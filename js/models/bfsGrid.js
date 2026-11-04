@@ -187,9 +187,16 @@ export default {
       const isStart = state.start?.x === col && state.start?.y === row;
       const isGoal = state.goal?.x === col && state.goal?.y === row;
       if (!isStart && !isGoal) {
-        if (ev.shiftKey) state._paintValue = 1;
-        else if (ev.altKey) state._paintValue = 0;
-        else state._paintValue = state.grid[row][col] === 1 ? 0 : 1;
+        if (ev.shiftKey) {
+          state._paintValue = 1;
+          state._lastPaintMode = '刷墙';
+        } else if (ev.altKey) {
+          state._paintValue = 0;
+          state._lastPaintMode = '擦除';
+        } else {
+          state._paintValue = state.grid[row][col] === 1 ? 0 : 1;
+          state._lastPaintMode = '切换';
+        }
         state._paintWall = true;
         state._paintDirty = false;
         paintWallAt(col, row);
@@ -212,8 +219,15 @@ export default {
   },
 
   getReadouts(state) {
+    let paintMode = '—';
+    if (state._paintWall) {
+      paintMode = state._paintValue === 1 ? '刷墙' : state._paintValue === 0 ? '擦除' : '切换';
+    } else if (state._lastPaintMode) {
+      paintMode = state._lastPaintMode;
+    }
     return [
       { label: 'algo', value: state.algo === 1 ? 'A*' : 'BFS' },
+      { label: '画墙', value: paintMode },
       { label: 'expanded', value: String(state.expanded) },
       { label: 'frontier', value: String(state.queue.length) },
       { label: 'path', value: state.found ? String(state.path.length) : '—' },

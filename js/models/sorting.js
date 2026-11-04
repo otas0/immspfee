@@ -64,6 +64,11 @@ export default {
       state.params.demo = Math.round(P(state.params, 'demo', 1)) ? 0 : 1;
       return true;
     }
+    if (actionId === 'autoDemo') {
+      // 恢复自动步进（课堂徽章一键）
+      state.params.demo = 0;
+      return true;
+    }
     return false;
   },
 
