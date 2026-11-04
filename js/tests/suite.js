@@ -18,6 +18,8 @@ import pipeline from '../models/pipeline.js';
 import fifo from '../models/fifo.js';
 import rcCircuit from '../models/rcCircuit.js';
 import rlc from '../models/rlc.js';
+import { models, loadModelMetadata } from '../models/index.js';
+import freeFall from '../models/freeFall.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -236,5 +238,48 @@ export function runSuite() {
     assert('CE RLC readout', smoke(rlc, 500, 1 / 120).r.length >= 3);
   }
 
+  // 目录规模 + live/reset 语义
+  {
+    assert('catalog ≥ 100 models', models.length >= 100, `n=${models.length}`);
+    const ids = new Set(models.map((m) => m.id));
+    assert('catalog has free-fall', ids.has('free-fall'));
+    assert('catalog has sorting', ids.has('sorting'));
+    assert('catalog has raft', ids.has('raft'));
+    assert('catalog has photoelectric', ids.has('photoelectric'));
+
+    // g live：高度不因改 g 而重置
+    {
+      const state = { params: { ...freeFall.params } };
+      freeFall.init(state);
+      for (let i = 0; i < 120; i += 1) freeFall.step(state, 1 / 240);
+      const yBefore = state.y;
+      state.params.g = 20;
+      for (let i = 0; i < 5; i += 1) freeFall.step(state, 1 / 240);
+      assert('live g 不跳回 h₀', state.y < yBefore && state.y > 0, `y0=${yBefore} y=${state.y}`);
+    }
+
+    // 工厂模型冒烟（抽样）
+    const sample = models.filter((m) => !['free-fall', 'sorting', 'rlc'].includes(m.id)).slice(0, 12);
+    let ok = true;
+    let detail = '';
+    for (const model of sample) {
+      try {
+        const state = { params: JSON.parse(JSON.stringify(model.params)) };
+        model.init(state);
+        for (let i = 0; i < 30; i += 1) model.step(state, 1 / 60);
+        const r = model.getReadouts(state) || [];
+        if (!r.length) { ok = false; detail = model.id; break; }
+      } catch (err) {
+        ok = false;
+        detail = `${model.id}: ${err.message}`;
+        break;
+      }
+    }
+    assert('factory sample smoke', ok, detail);
+  }
+
   return results;
 }
+
+// 供 Node 侧可选预加载（浏览器 loadModelMetadata 另走）
+void loadModelMetadata;

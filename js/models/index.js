@@ -1,7 +1,6 @@
 /**
  * 模型注册表
- * 元数据来自 data/models.json；实现来自本目录。
- * 新增：实现接口 → 在此注册 → 写入 models.json + palettes.json
+ * 元数据来自 data/models.json / catalog.json；手写实现优先，其余由 factory 生成。
  */
 import freeFall from './freeFall.js';
 import projectile from './projectile.js';
@@ -21,8 +20,10 @@ import pipeline from './pipeline.js';
 import fifo from './fifo.js';
 import rcCircuit from './rcCircuit.js';
 import rlc from './rlc.js';
+import { createFactoryModel } from './factory.js';
+import catalog from '../../data/catalog.json' with { type: 'json' };
 
-const implementations = [
+const handcrafted = [
   freeFall,
   projectile,
   spring,
@@ -43,10 +44,52 @@ const implementations = [
   rlc,
 ];
 
-const byId = Object.fromEntries(implementations.map((m) => [m.id, m]));
+const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
+
+function buildAll() {
+  const list = [];
+  const seen = new Set();
+  for (const spec of catalog) {
+    if (seen.has(spec.id)) continue;
+    seen.add(spec.id);
+    if (spec.family === 'hand' && byId[spec.id]) {
+      list.push({
+        ...byId[spec.id],
+        name: spec.name || byId[spec.id].name,
+        tags: [spec.domain, spec.sub].filter(Boolean),
+        formula: spec.formula || byId[spec.id].formula || '',
+        description: spec.description || byId[spec.id].description || '',
+        sub: spec.sub || '',
+      });
+    } else if (byId[spec.id]) {
+      list.push({
+        ...byId[spec.id],
+        name: spec.name || byId[spec.id].name,
+        tags: [spec.domain, spec.sub].filter(Boolean),
+        formula: spec.formula || '',
+        description: spec.description || '',
+        sub: spec.sub || '',
+      });
+    } else {
+      list.push(createFactoryModel(spec));
+    }
+  }
+  for (const impl of handcrafted) {
+    if (!seen.has(impl.id)) {
+      list.push({
+        ...impl,
+        tags: impl.tags || [],
+        formula: impl.formula || '',
+        description: impl.description || '',
+        sub: '',
+      });
+    }
+  }
+  return list;
+}
 
 /** @type {object[]} */
-let models = implementations.map((m) => ({ ...m }));
+let models = buildAll();
 
 export { models };
 
@@ -58,6 +101,7 @@ export function getAllTags() {
   const set = new Set();
   for (const m of models) {
     for (const t of m.tags || []) set.add(t);
+    if (m.sub) set.add(m.sub);
   }
   return [...set].sort();
 }
@@ -67,37 +111,22 @@ export async function loadModelMetadata(url = './data/models.json') {
     const res = await fetch(url);
     if (!res.ok) throw new Error(String(res.status));
     const metaList = await res.json();
-    const merged = [];
-    for (const meta of metaList) {
-      const impl = byId[meta.id];
-      if (!impl) continue;
-      merged.push({
-        ...impl,
-        name: meta.name ?? impl.name,
-        tags: meta.tags ?? [],
-        formula: meta.formula ?? '',
-        description: meta.description ?? '',
-      });
-    }
-    for (const impl of implementations) {
-      if (!merged.some((m) => m.id === impl.id)) {
-        merged.push({
-          ...impl,
-          tags: impl.tags || [],
-          formula: impl.formula || '',
-          description: impl.description || '',
-        });
-      }
-    }
-    models = merged;
+    const metaById = Object.fromEntries(metaList.map((m) => [m.id, m]));
+    models = buildAll().map((m) => {
+      const meta = metaById[m.id];
+      if (!meta) return m;
+      return {
+        ...m,
+        name: meta.name ?? m.name,
+        tags: meta.tags ?? m.tags ?? [],
+        formula: meta.formula ?? m.formula ?? '',
+        description: meta.description ?? m.description ?? '',
+        sub: meta.sub ?? m.sub ?? '',
+      };
+    });
   } catch (err) {
-    console.warn('模型元数据加载失败，使用内置字段', err);
-    models = implementations.map((m) => ({
-      ...m,
-      tags: m.tags || [],
-      formula: m.formula || '',
-      description: m.description || '',
-    }));
+    console.warn('模型元数据加载失败，使用 catalog', err);
+    models = buildAll();
   }
   return models;
 }

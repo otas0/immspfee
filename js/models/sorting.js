@@ -13,7 +13,14 @@ export default {
     n: { group: 'numerics', unit: '', label: 'n', min: 6, max: 64 },
     stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.02, max: 0.5 },
     seed: { group: 'initial', unit: '', label: 'seed', min: 1, max: 9999 },
-    algo: { group: 'dynamics', unit: '', label: 'algo 0b/1i/2q', min: 0, max: 2 },
+    algo: {
+      group: 'dynamics', unit: '', label: 'algo', min: 0, max: 2,
+      options: [
+        { value: 0, label: 'bubble' },
+        { value: 1, label: 'insertion' },
+        { value: 2, label: 'quick' },
+      ],
+    },
   },
 
   init(state) {

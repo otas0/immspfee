@@ -4,197 +4,1343 @@
     "name": "自由落体",
     "tags": [
       "物理",
-      "力学",
-      "重力"
+      "经典力学"
     ],
-    "formula": "y''=-g-(k/m)y'；落地 v'=-e·v",
-    "description": "竖直下落，可选空气阻力与弹性落地反弹"
+    "formula": "y''=-g-(k/m)y'",
+    "description": "小球、地面、速度矢量；调 g、初高度、空气阻力",
+    "sub": "经典力学",
+    "family": "hand"
   },
   {
     "id": "projectile",
-    "name": "斜抛运动",
+    "name": "斜抛/平抛运动",
     "tags": [
       "物理",
-      "力学",
-      "抛体"
+      "经典力学"
     ],
     "formula": "x=v₀cosθ·t，y=v₀sinθ·t-½gt²",
-    "description": "二维抛体运动，对比无阻力解析抛物线"
+    "description": "抛物线轨迹、vx/vy 分解；调 v0、抛射角、g",
+    "sub": "经典力学",
+    "family": "hand"
+  },
+  {
+    "id": "inclined-plane",
+    "name": "斜面滑动物块",
+    "tags": [
+      "物理",
+      "经典力学"
+    ],
+    "formula": "a=g(sinθ-μcosθ)",
+    "description": "斜面、物块、受力分解；调斜面角、摩擦系数、质量",
+    "sub": "经典力学",
+    "family": "ode1d"
   },
   {
     "id": "spring",
     "name": "弹簧振子",
     "tags": [
       "物理",
-      "振动",
-      "简谐"
+      "经典力学"
     ],
-    "formula": "m·x''=-k·x-c·x'；T=2π√(m/k)",
-    "description": "一维阻尼谐振子"
+    "formula": "m·x''=-k·x-c·x'",
+    "description": "弹簧、质量块、平衡位置；调 m、k、阻尼、x0",
+    "sub": "经典力学",
+    "family": "hand"
   },
   {
     "id": "pendulum",
     "name": "单摆",
     "tags": [
       "物理",
-      "振动",
-      "非线性"
+      "经典力学"
     ],
-    "formula": "θ''=-(g/L)sinθ-c·θ'；T≈2π√(L/g)",
-    "description": "大角度非线性单摆，小角度周期对照"
+    "formula": "θ''=-(g/L)sinθ-c·θ'",
+    "description": "摆线、摆球、轨迹；调 L、g、阻尼、θ0",
+    "sub": "经典力学",
+    "family": "hand"
   },
   {
     "id": "collision",
     "name": "一维碰撞",
     "tags": [
       "物理",
-      "力学",
-      "碰撞",
-      "动量"
+      "经典力学"
     ],
-    "formula": "v₁'=[(m₁-em₂)v₁+(1+e)m₂v₂]/(m₁+m₂)",
-    "description": "恢复系数碰撞，多次统计与动量"
+    "formula": "恢复系数碰撞公式",
+    "description": "两球、速度矢量、碰撞闪光；调 m1、m2、v1、v2、e",
+    "sub": "经典力学",
+    "family": "hand"
+  },
+  {
+    "id": "collision-2d",
+    "name": "二维刚体碰撞",
+    "tags": [
+      "物理",
+      "经典力学"
+    ],
+    "formula": "冲量 + 恢复系数",
+    "description": "圆盘、碰撞线、角动量；调质量、半径、速度、e",
+    "sub": "经典力学",
+    "family": "particles"
+  },
+  {
+    "id": "circular-motion",
+    "name": "匀速圆周运动",
+    "tags": [
+      "物理",
+      "经典力学"
+    ],
+    "formula": "a=ω²r",
+    "description": "轨迹圆、速度/向心加速度矢量；调半径、角速度、质量",
+    "sub": "经典力学",
+    "family": "circular"
   },
   {
     "id": "double-pendulum",
     "name": "双摆",
     "tags": [
       "物理",
-      "混沌",
-      "非线性"
+      "经典力学"
     ],
-    "formula": "双摆拉格朗日方程（θ₁,θ₂）",
-    "description": "混沌轨迹，末端按相空间色相"
+    "formula": "双摆拉格朗日",
+    "description": "两段摆、轨迹、混沌敏感；调 L1、L2、m1、m2、θ1、θ2",
+    "sub": "经典力学",
+    "family": "hand"
+  },
+  {
+    "id": "nbody",
+    "name": "三体/N 体引力",
+    "tags": [
+      "物理",
+      "经典力学"
+    ],
+    "formula": "ä=-Σ GM r̂/r²",
+    "description": "多天体、轨迹、引力线；调质量、初速度、初位置",
+    "sub": "经典力学",
+    "family": "nbody"
+  },
+  {
+    "id": "rigid-euler",
+    "name": "刚体旋转（欧拉方程）",
+    "tags": [
+      "物理",
+      "经典力学"
+    ],
+    "formula": "Iω̇+ω×Iω=0",
+    "description": "3D 刚体投影、角速度矢量；调主惯量、初始角速度",
+    "sub": "经典力学",
+    "family": "euler"
+  },
+  {
+    "id": "buoyancy",
+    "name": "浮力/阿基米德原理",
+    "tags": [
+      "物理",
+      "流体"
+    ],
+    "formula": "F_b=ρ_f V g",
+    "description": "容器、物块、液面、力箭头；调物体密度、液体密度、体积",
+    "sub": "流体",
+    "family": "buoyancy"
+  },
+  {
+    "id": "drag-fall",
+    "name": "粘滞阻力落体",
+    "tags": [
+      "物理",
+      "流体"
+    ],
+    "formula": "m v'=mg-b v",
+    "description": "小球、速度曲线、阻力矢量；调质量、阻力系数、g",
+    "sub": "流体",
+    "family": "ode1d"
+  },
+  {
+    "id": "bernoulli",
+    "name": "伯努利效应",
+    "tags": [
+      "物理",
+      "流体"
+    ],
+    "formula": "P+½ρv²+ρgh=const",
+    "description": "管道、流速、压强色带；调管径变化、流量",
+    "sub": "流体",
+    "family": "flow"
+  },
+  {
+    "id": "sph-simple",
+    "name": "简单 SPH 流体",
+    "tags": [
+      "物理",
+      "流体"
+    ],
+    "formula": "弱耦合粒子流体",
+    "description": "粒子、颜色映射、交互扰动；调粘度、重力、粒子数",
+    "sub": "流体",
+    "family": "particles"
+  },
+  {
+    "id": "laminar-turbulent",
+    "name": "层流/湍流切换",
+    "tags": [
+      "物理",
+      "流体"
+    ],
+    "formula": "Re=ρvD/μ",
+    "description": "流线、涡旋、雷诺数；调流速、粘度、管径",
+    "sub": "流体",
+    "family": "flow"
   },
   {
     "id": "wave",
-    "name": "横波 / 弦振动",
+    "name": "横波传播",
     "tags": [
       "物理",
-      "波动",
-      "驻波"
+      "波与振动"
     ],
-    "formula": "y''=c² y_xx；驻波模式 sin(nπx/L)",
-    "description": "离散质点链，多模式驻波叠加"
+    "formula": "y''=c² y_xx",
+    "description": "绳子波形、质点振动；调频率、波长、振幅、波速",
+    "sub": "波与振动",
+    "family": "hand"
+  },
+  {
+    "id": "longitudinal-wave",
+    "name": "纵波/声波",
+    "tags": [
+      "物理",
+      "波与振动"
+    ],
+    "formula": "疏密扰动",
+    "description": "疏密粒子、压强带；调频率、振幅、介质",
+    "sub": "波与振动",
+    "family": "wave1d"
+  },
+  {
+    "id": "standing-wave",
+    "name": "驻波/共振",
+    "tags": [
+      "物理",
+      "波与振动"
+    ],
+    "formula": "sin(kx)cos(ωt)",
+    "description": "绳上驻波、节点/腹点；调频率、绳长、张力",
+    "sub": "波与振动",
+    "family": "wave1d"
+  },
+  {
+    "id": "doppler",
+    "name": "多普勒效应",
+    "tags": [
+      "物理",
+      "波与振动"
+    ],
+    "formula": "f'=f(v±vo)/(v±vs)",
+    "description": "运动波源、波前圆；调源速度、波速、频率",
+    "sub": "波与振动",
+    "family": "doppler"
+  },
+  {
+    "id": "interference",
+    "name": "波的干涉",
+    "tags": [
+      "物理",
+      "波与振动"
+    ],
+    "formula": "双源叠加",
+    "description": "两波源、干涉条纹；调频率、相位差、间距",
+    "sub": "波与振动",
+    "family": "interference"
+  },
+  {
+    "id": "diffraction",
+    "name": "波的衍射",
+    "tags": [
+      "物理",
+      "波与振动"
+    ],
+    "formula": "单缝衍射包络",
+    "description": "缝、波前、衍射图样；调缝宽、波长",
+    "sub": "波与振动",
+    "family": "interference"
+  },
+  {
+    "id": "membrane-2d",
+    "name": "二维膜振动",
+    "tags": [
+      "物理",
+      "波与振动"
+    ],
+    "formula": "u_tt=c²∇²u",
+    "description": "网格、颜色映射、模态；调张力、密度、激励点",
+    "sub": "波与振动",
+    "family": "field2d"
   },
   {
     "id": "heat",
-    "name": "热传导",
+    "name": "一维热传导",
     "tags": [
       "物理",
-      "热学",
-      "扩散"
+      "热力学"
     ],
-    "formula": "∂T/∂t = α ∂²T/∂x²",
-    "description": "一维温度场有限差分，冷热色标"
+    "formula": "∂T/∂t=α∂²T/∂x²",
+    "description": "金属棒、温度色带；调导热系数、边界温度",
+    "sub": "热力学",
+    "family": "hand"
   },
   {
-    "id": "orbit",
-    "name": "开普勒轨道",
+    "id": "ideal-gas",
+    "name": "理想气体分子运动",
     "tags": [
       "物理",
-      "力学",
-      "引力"
+      "热力学"
     ],
-    "formula": "ä = -GM r̂ / r²",
-    "description": "二维中心力轨道，可调 GM 与初速"
+    "formula": "½mv²∝T",
+    "description": "粒子盒、速度分布；调温度、粒子数、体积",
+    "sub": "热力学",
+    "family": "particles"
+  },
+  {
+    "id": "gas-law",
+    "name": "气体定律 P-V-T",
+    "tags": [
+      "物理",
+      "热力学"
+    ],
+    "formula": "PV=nRT",
+    "description": "活塞、压强/体积表；调温度、体积、粒子数",
+    "sub": "热力学",
+    "family": "piston"
+  },
+  {
+    "id": "carnot",
+    "name": "热机循环（卡诺）",
+    "tags": [
+      "物理",
+      "热力学"
+    ],
+    "formula": "η=1-Tc/Th",
+    "description": "P-V 图、热/功流向；调高温/低温热源",
+    "sub": "热力学",
+    "family": "cycle"
+  },
+  {
+    "id": "heat-2d",
+    "name": "二维热扩散",
+    "tags": [
+      "物理",
+      "热力学"
+    ],
+    "formula": "∂T/∂t=α∇²T",
+    "description": "温度场、色带；调扩散系数、初始分布",
+    "sub": "热力学",
+    "family": "field2d"
+  },
+  {
+    "id": "entropy-mix",
+    "name": "熵与混合",
+    "tags": [
+      "物理",
+      "热力学"
+    ],
+    "formula": "S=k ln Ω",
+    "description": "两种粒子混合、熵曲线；调粒子数、初始分隔",
+    "sub": "热力学",
+    "family": "particles"
+  },
+  {
+    "id": "efield-lines",
+    "name": "点电荷电场线",
+    "tags": [
+      "物理",
+      "电磁学"
+    ],
+    "formula": "E=kq/r²",
+    "description": "电荷、电场线、等势线；调电荷量、位置",
+    "sub": "电磁学",
+    "family": "fieldlines"
+  },
+  {
+    "id": "e-field-particle",
+    "name": "匀强电场中带电粒子",
+    "tags": [
+      "物理",
+      "电磁学"
+    ],
+    "formula": "a=qE/m",
+    "description": "粒子轨迹、E 矢量；调电荷、质量、E",
+    "sub": "电磁学",
+    "family": "ode2d"
   },
   {
     "id": "lorentz",
-    "name": "洛伦兹力",
+    "name": "磁场中带电粒子",
     "tags": [
       "物理",
-      "电磁",
-      "带电粒子"
+      "电磁学"
     ],
-    "formula": "F = q(E + v×B)",
-    "description": "二维 ExB 漂移 / 回旋轨迹"
+    "formula": "F=q(E+v×B)",
+    "description": "圆周/螺旋轨迹、B 矢量；调电荷、速度、B",
+    "sub": "电磁学",
+    "family": "hand"
   },
   {
-    "id": "sorting",
-    "name": "排序算法",
+    "id": "ohms-law",
+    "name": "简单电路/欧姆定律",
     "tags": [
-      "计算机科学",
-      "算法",
-      "排序"
+      "物理",
+      "电磁学"
     ],
-    "formula": "bubble / insertion / quick（algo 参数）",
-    "description": "柱状图逐步排序，可切换冒泡、插入、快速排序"
-  },
-  {
-    "id": "bfs-grid",
-    "name": "BFS / A* 寻路",
-    "tags": [
-      "计算机科学",
-      "图论",
-      "搜索"
-    ],
-    "formula": "BFS 队列 或 A* f=g+h（曼哈顿）",
-    "description": "随机障碍网格；algo=0 BFS / 1 A* 对照扩展量"
-  },
-  {
-    "id": "life",
-    "name": "生命游戏",
-    "tags": [
-      "计算机科学",
-      "元胞自动机"
-    ],
-    "formula": "B3/S23（Conway）",
-    "description": "环形边界元胞自动机演化"
-  },
-  {
-    "id": "cache-lru",
-    "name": "LRU 缓存",
-    "tags": [
-      "计算机工程",
-      "体系结构",
-      "缓存"
-    ],
-    "formula": "命中提升；未命中逐出最久未用",
-    "description": "访问流驱动的 LRU 槽位与命中率"
-  },
-  {
-    "id": "pipeline",
-    "name": "CPU 流水线",
-    "tags": [
-      "计算机工程",
-      "体系结构",
-      "流水线"
-    ],
-    "formula": "IF→ID→EX→MEM→WB；周期停顿或数据冒险",
-    "description": "五级流水；hazardMode=0 周期停顿 / 1 数据冒险气泡"
-  },
-  {
-    "id": "fifo",
-    "name": "FIFO 缓冲",
-    "tags": [
-      "计算机工程",
-      "数字系统",
-      "队列"
-    ],
-    "formula": "有界队列；满则丢弃",
-    "description": "生产/消费速率差导致的占用与丢包"
+    "formula": "V=IR",
+    "description": "电池、电阻、电流动画；调电压、电阻、串并联",
+    "sub": "电磁学",
+    "family": "circuit"
   },
   {
     "id": "rc-circuit",
-    "name": "RC 电路",
+    "name": "RC 充放电",
     "tags": [
-      "计算机工程",
-      "电路",
-      "模拟"
+      "物理",
+      "电磁学"
     ],
-    "formula": "τ=RC；Vc'=(Vin-Vc)/τ",
-    "description": "电容充放电电压曲线（CE 物理）"
+    "formula": "τ=RC",
+    "description": "电容、电流/电压曲线；调 R、C、初始电压",
+    "sub": "电磁学",
+    "family": "hand"
   },
   {
     "id": "rlc",
     "name": "RLC 振荡",
     "tags": [
       "计算机工程",
-      "电路",
-      "振荡"
+      "电路"
     ],
     "formula": "L I'' + R I' + I/C = 0",
-    "description": "串联 RLC 电流与电容电压（CE 物理）"
+    "description": "串联 RLC 电流与电容电压",
+    "sub": "电路",
+    "family": "hand"
+  },
+  {
+    "id": "rl-circuit",
+    "name": "RL 电路",
+    "tags": [
+      "物理",
+      "电磁学"
+    ],
+    "formula": "τ=L/R",
+    "description": "电感、电流曲线；调 R、L、初始电流",
+    "sub": "电磁学",
+    "family": "circuit"
+  },
+  {
+    "id": "faraday",
+    "name": "电磁感应/法拉第",
+    "tags": [
+      "物理",
+      "电磁学"
+    ],
+    "formula": "ε=-dΦ/dt",
+    "description": "磁铁运动、线圈、电流计；调磁铁速度、匝数、B",
+    "sub": "电磁学",
+    "family": "induction"
+  },
+  {
+    "id": "em-wave",
+    "name": "电磁波传播",
+    "tags": [
+      "物理",
+      "电磁学"
+    ],
+    "formula": "E、B 正交",
+    "description": "E/B 正交波、传播方向；调频率、振幅、偏振",
+    "sub": "电磁学",
+    "family": "wave1d"
+  },
+  {
+    "id": "reflection-refraction",
+    "name": "反射与折射",
+    "tags": [
+      "物理",
+      "光学"
+    ],
+    "formula": "n₁sinθ₁=n₂sinθ₂",
+    "description": "界面、入射/反射/折射光线；调入射角、折射率",
+    "sub": "光学",
+    "family": "rays"
+  },
+  {
+    "id": "lens",
+    "name": "凸透镜成像",
+    "tags": [
+      "物理",
+      "光学"
+    ],
+    "formula": "1/f=1/u+1/v",
+    "description": "光轴、物/像、三条特殊光线；调物距、焦距、物高",
+    "sub": "光学",
+    "family": "rays"
+  },
+  {
+    "id": "double-slit",
+    "name": "双缝干涉",
+    "tags": [
+      "物理",
+      "光学"
+    ],
+    "formula": "Δ=d sinθ",
+    "description": "双缝、屏幕条纹；调缝距、波长、屏距",
+    "sub": "光学",
+    "family": "interference"
+  },
+  {
+    "id": "single-slit",
+    "name": "单缝衍射",
+    "tags": [
+      "物理",
+      "光学"
+    ],
+    "formula": "a sinθ=mλ",
+    "description": "单缝、衍射包络；调缝宽、波长",
+    "sub": "光学",
+    "family": "interference"
+  },
+  {
+    "id": "polarization",
+    "name": "偏振",
+    "tags": [
+      "物理",
+      "光学"
+    ],
+    "formula": "Malus 定律",
+    "description": "偏振片、光强变化；调偏振角、偏振片数",
+    "sub": "光学",
+    "family": "gauge"
+  },
+  {
+    "id": "ray-trace",
+    "name": "简单光线追踪",
+    "tags": [
+      "物理",
+      "光学"
+    ],
+    "formula": "反射/折射路径",
+    "description": "光线、反射/折射、阴影；调光源、物体、材质",
+    "sub": "光学",
+    "family": "rays"
+  },
+  {
+    "id": "photoelectric",
+    "name": "光电效应",
+    "tags": [
+      "物理",
+      "近代物理"
+    ],
+    "formula": "K_max=hf-W",
+    "description": "光子、电子逸出、I-V 曲线；调频率、光强、逸出功",
+    "sub": "近代物理",
+    "family": "gauge"
+  },
+  {
+    "id": "bohr",
+    "name": "玻尔模型/氢原子",
+    "tags": [
+      "物理",
+      "近代物理"
+    ],
+    "formula": "E_n=-13.6/n²",
+    "description": "轨道、跃迁、光谱线；调能级、跃迁",
+    "sub": "近代物理",
+    "family": "bohr"
+  },
+  {
+    "id": "wavepacket",
+    "name": "量子波包演化",
+    "tags": [
+      "物理",
+      "近代物理"
+    ],
+    "formula": "iħψ_t=Hψ",
+    "description": "波函数、概率密度；调初始宽度、势场",
+    "sub": "近代物理",
+    "family": "wave1d"
+  },
+  {
+    "id": "tunneling",
+    "name": "一维势垒隧穿",
+    "tags": [
+      "物理",
+      "近代物理"
+    ],
+    "formula": "透射系数 T(E)",
+    "description": "波函数、透射/反射；调势垒高度/宽度、能量",
+    "sub": "近代物理",
+    "family": "wave1d"
+  },
+  {
+    "id": "radioactive",
+    "name": "放射性衰变",
+    "tags": [
+      "物理",
+      "近代物理"
+    ],
+    "formula": "N=N₀ e^{-λt}",
+    "description": "粒子、半衰期曲线；调半衰期、初始数量",
+    "sub": "近代物理",
+    "family": "decay"
+  },
+  {
+    "id": "time-dilation",
+    "name": "相对论时间膨胀",
+    "tags": [
+      "物理",
+      "近代物理"
+    ],
+    "formula": "Δt=γΔτ",
+    "description": "双生子、时钟、速度；调速度、时间",
+    "sub": "近代物理",
+    "family": "gauge"
+  },
+  {
+    "id": "orbit",
+    "name": "行星轨道/开普勒",
+    "tags": [
+      "物理",
+      "天体物理"
+    ],
+    "formula": "ä=-GM r̂/r²",
+    "description": "椭圆轨道、速度矢量；调中心质量、初速度",
+    "sub": "天体物理",
+    "family": "hand"
+  },
+  {
+    "id": "binary-stars",
+    "name": "双星系统",
+    "tags": [
+      "物理",
+      "天体物理"
+    ],
+    "formula": "两体绕质心",
+    "description": "两星绕质心、轨迹；调质量比、间距",
+    "sub": "天体物理",
+    "family": "nbody"
+  },
+  {
+    "id": "gravity-assist",
+    "name": "引力弹弓",
+    "tags": [
+      "物理",
+      "天体物理"
+    ],
+    "formula": "双曲线转向",
+    "description": "航天器轨迹、行星；调行星速度、接近距离",
+    "sub": "天体物理",
+    "family": "nbody"
+  },
+  {
+    "id": "sorting",
+    "name": "排序算法对比",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "bubble/insertion/quick",
+    "description": "柱状图、交换动画；选算法、数组规模、速度",
+    "sub": "算法与数据结构",
+    "family": "hand"
+  },
+  {
+    "id": "binary-search",
+    "name": "二分查找",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "区间收缩",
+    "description": "有序数组、区间收缩；调目标值、数组规模",
+    "sub": "算法与数据结构",
+    "family": "discrete"
+  },
+  {
+    "id": "bfs-grid",
+    "name": "BFS/DFS 图遍历",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "队列/栈扩展",
+    "description": "图节点、边、访问顺序；调图结构、起点",
+    "sub": "算法与数据结构",
+    "family": "hand"
+  },
+  {
+    "id": "dijkstra",
+    "name": "Dijkstra 最短路径",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "优先队列松弛",
+    "description": "带权图、路径高亮；调图结构、起点/终点",
+    "sub": "算法与数据结构",
+    "family": "graph"
+  },
+  {
+    "id": "astar-grid",
+    "name": "A* 寻路",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "f=g+h",
+    "description": "网格、开放/关闭集；调启发函数、障碍",
+    "sub": "算法与数据结构",
+    "family": "graph"
+  },
+  {
+    "id": "dp-table",
+    "name": "动态规划（背包/LCS）",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "表填充回溯",
+    "description": "表格填充、回溯路径；调物品/序列、容量",
+    "sub": "算法与数据结构",
+    "family": "discrete"
+  },
+  {
+    "id": "hashtable",
+    "name": "哈希表冲突处理",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "链地址/开放寻址",
+    "description": "桶、链表/开放寻址；调哈希函数、容量、插入序列",
+    "sub": "算法与数据结构",
+    "family": "discrete"
+  },
+  {
+    "id": "avl-tree",
+    "name": "平衡树 AVL/红黑",
+    "tags": [
+      "计算机科学",
+      "算法与数据结构"
+    ],
+    "formula": "旋转维持平衡",
+    "description": "树结构、旋转动画；调插入/删除序列",
+    "sub": "算法与数据结构",
+    "family": "tree"
+  },
+  {
+    "id": "dfa-nfa",
+    "name": "有限自动机 DFA/NFA",
+    "tags": [
+      "计算机科学",
+      "计算理论"
+    ],
+    "formula": "δ(q,a)",
+    "description": "状态图、转移、输入串；调状态/转移、输入串",
+    "sub": "计算理论",
+    "family": "fsm"
+  },
+  {
+    "id": "pda",
+    "name": "下推自动机",
+    "tags": [
+      "计算机科学",
+      "计算理论"
+    ],
+    "formula": "状态+栈",
+    "description": "状态图、栈；调转移规则、输入串",
+    "sub": "计算理论",
+    "family": "fsm"
+  },
+  {
+    "id": "turing",
+    "name": "图灵机",
+    "tags": [
+      "计算机科学",
+      "计算理论"
+    ],
+    "formula": "纸带读写",
+    "description": "纸带、读写头、状态；调转移表、初始纸带",
+    "sub": "计算理论",
+    "family": "turing"
+  },
+  {
+    "id": "regex-match",
+    "name": "正则表达式匹配",
+    "tags": [
+      "计算机科学",
+      "计算理论"
+    ],
+    "formula": "NFA 模拟",
+    "description": "输入串、高亮匹配；调正则、输入串",
+    "sub": "计算理论",
+    "family": "discrete"
+  },
+  {
+    "id": "life",
+    "name": "细胞自动机/生命游戏",
+    "tags": [
+      "计算机科学",
+      "计算理论"
+    ],
+    "formula": "B3/S23",
+    "description": "网格、世代演化；调规则、初始图案、速度",
+    "sub": "计算理论",
+    "family": "hand"
+  },
+  {
+    "id": "caesar",
+    "name": "凯撒/维吉尼亚密码",
+    "tags": [
+      "计算机科学",
+      "密码学"
+    ],
+    "formula": "移位/多表",
+    "description": "字母表、密文；调密钥、明文",
+    "sub": "密码学",
+    "family": "crypto"
+  },
+  {
+    "id": "rsa",
+    "name": "RSA 加解密",
+    "tags": [
+      "计算机科学",
+      "密码学"
+    ],
+    "formula": "c=m^e mod n",
+    "description": "公钥/私钥、模幂过程；调 p、q、e、消息",
+    "sub": "密码学",
+    "family": "crypto"
+  },
+  {
+    "id": "diffie-hellman",
+    "name": "Diffie-Hellman 密钥交换",
+    "tags": [
+      "计算机科学",
+      "密码学"
+    ],
+    "formula": "g^a mod p",
+    "description": "双方、公开值、共享密钥；调素数、生成元",
+    "sub": "密码学",
+    "family": "crypto"
+  },
+  {
+    "id": "huffman",
+    "name": "哈夫曼编码",
+    "tags": [
+      "计算机科学",
+      "信息论"
+    ],
+    "formula": "最优前缀码",
+    "description": "频率表、编码树、压缩率；调输入文本/符号频率",
+    "sub": "信息论",
+    "family": "tree"
+  },
+  {
+    "id": "channel-coding",
+    "name": "信道编码/纠错",
+    "tags": [
+      "计算机科学",
+      "信息论"
+    ],
+    "formula": "汉明距离",
+    "description": "编码前后、错误注入；调码率、错误位置",
+    "sub": "信息论",
+    "family": "discrete"
+  },
+  {
+    "id": "linreg-gd",
+    "name": "线性回归/梯度下降",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "θ←θ-η∇L",
+    "description": "散点、拟合线、损失曲线；调学习率、初始参数",
+    "sub": "机器学习",
+    "family": "ml"
+  },
+  {
+    "id": "kmeans",
+    "name": "K-means 聚类",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "迭代分配中心",
+    "description": "散点、聚类中心、迭代；调簇数、初始中心",
+    "sub": "机器学习",
+    "family": "ml"
+  },
+  {
+    "id": "nn-forward",
+    "name": "神经网络前向传播",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "a=σ(Wx+b)",
+    "description": "网络结构、激活值；调权重、输入",
+    "sub": "机器学习",
+    "family": "ml"
+  },
+  {
+    "id": "backprop",
+    "name": "反向传播/训练",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "链式法则",
+    "description": "损失曲线、权重变化；调学习率、网络规模",
+    "sub": "机器学习",
+    "family": "ml"
+  },
+  {
+    "id": "cnn-demo",
+    "name": "CNN/卷积演示",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "卷积滑动",
+    "description": "卷积核滑动、特征图；调核大小、步长",
+    "sub": "机器学习",
+    "family": "ml"
+  },
+  {
+    "id": "attention",
+    "name": "Transformer 注意力",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "softmax(QKᵀ/√d)V",
+    "description": "token、注意力热图；调序列、头数",
+    "sub": "机器学习",
+    "family": "ml"
+  },
+  {
+    "id": "rl-grid",
+    "name": "强化学习网格世界",
+    "tags": [
+      "计算机科学",
+      "机器学习"
+    ],
+    "formula": "V←r+γV'",
+    "description": "网格、策略箭头、价值色；调奖励、折扣因子",
+    "sub": "机器学习",
+    "family": "graph"
+  },
+  {
+    "id": "genetic",
+    "name": "遗传算法",
+    "tags": [
+      "计算机科学",
+      "优化"
+    ],
+    "formula": "选择交叉变异",
+    "description": "种群、适应度、交叉/变异；调种群规模、变异率",
+    "sub": "优化",
+    "family": "opt"
+  },
+  {
+    "id": "ant-colony",
+    "name": "蚁群算法",
+    "tags": [
+      "计算机科学",
+      "优化"
+    ],
+    "formula": "信息素更新",
+    "description": "路径、信息素浓度；调蚂蚁数、挥发率",
+    "sub": "优化",
+    "family": "opt"
+  },
+  {
+    "id": "sim-anneal",
+    "name": "模拟退火",
+    "tags": [
+      "计算机科学",
+      "优化"
+    ],
+    "formula": "Metropolis",
+    "description": "状态、能量曲线、温度；调初始温度、降温速率",
+    "sub": "优化",
+    "family": "opt"
+  },
+  {
+    "id": "logic-gates",
+    "name": "基本逻辑门",
+    "tags": [
+      "计算机工程",
+      "数字逻辑"
+    ],
+    "formula": "AND/OR/NOT…",
+    "description": "输入开关、门符号、真值表；调输入组合",
+    "sub": "数字逻辑",
+    "family": "logic"
+  },
+  {
+    "id": "adder",
+    "name": "组合逻辑/加法器",
+    "tags": [
+      "计算机工程",
+      "数字逻辑"
+    ],
+    "formula": "全加器进位",
+    "description": "半加/全加器、进位链；调输入位",
+    "sub": "数字逻辑",
+    "family": "logic"
+  },
+  {
+    "id": "mux-decoder",
+    "name": "多路选择器/译码器",
+    "tags": [
+      "计算机工程",
+      "数字逻辑"
+    ],
+    "formula": "选择端→输出",
+    "description": "输入/选择端、输出高亮；调选择信号",
+    "sub": "数字逻辑",
+    "family": "logic"
+  },
+  {
+    "id": "flipflop",
+    "name": "时序逻辑/触发器",
+    "tags": [
+      "计算机工程",
+      "数字逻辑"
+    ],
+    "formula": "边沿触发",
+    "description": "D/JK 触发器、时钟波形；调输入、时钟",
+    "sub": "数字逻辑",
+    "family": "logic"
+  },
+  {
+    "id": "counter-reg",
+    "name": "计数器/寄存器",
+    "tags": [
+      "计算机工程",
+      "数字逻辑"
+    ],
+    "formula": "状态位移位",
+    "description": "状态位、时钟脉冲；调初值、计数模式",
+    "sub": "数字逻辑",
+    "family": "logic"
+  },
+  {
+    "id": "fsm-ce",
+    "name": "有限状态机 FSM",
+    "tags": [
+      "计算机工程",
+      "数字逻辑"
+    ],
+    "formula": "状态转移",
+    "description": "状态图、转移、输入序列；调状态/转移、输入",
+    "sub": "数字逻辑",
+    "family": "fsm"
+  },
+  {
+    "id": "cpu-datapath",
+    "name": "CPU 数据通路",
+    "tags": [
+      "计算机工程",
+      "计算机体系结构"
+    ],
+    "formula": "寄存器-ALU-总线",
+    "description": "寄存器、ALU、总线、控制信号；调指令",
+    "sub": "计算机体系结构",
+    "family": "arch"
+  },
+  {
+    "id": "asm-cycle",
+    "name": "指令周期/汇编执行",
+    "tags": [
+      "计算机工程",
+      "计算机体系结构"
+    ],
+    "formula": "取指译码执行",
+    "description": "PC、寄存器、内存、指令高亮；调程序/单步",
+    "sub": "计算机体系结构",
+    "family": "arch"
+  },
+  {
+    "id": "pipeline",
+    "name": "流水线",
+    "tags": [
+      "计算机工程",
+      "计算机体系结构"
+    ],
+    "formula": "IF→ID→EX→MEM→WB",
+    "description": "流水段、指令重叠、冒险；调指令序列、停顿",
+    "sub": "计算机体系结构",
+    "family": "hand"
+  },
+  {
+    "id": "cache-lru",
+    "name": "缓存/内存层次",
+    "tags": [
+      "计算机工程",
+      "计算机体系结构"
+    ],
+    "formula": "命中/缺失 LRU",
+    "description": "缓存行、命中/缺失、LRU；调缓存大小、访问序列",
+    "sub": "计算机体系结构",
+    "family": "hand"
+  },
+  {
+    "id": "virtmem",
+    "name": "虚拟内存/分页",
+    "tags": [
+      "计算机工程",
+      "计算机体系结构"
+    ],
+    "formula": "页表/TLB",
+    "description": "页表、TLB、缺页；调页大小、访问序列",
+    "sub": "计算机体系结构",
+    "family": "arch"
+  },
+  {
+    "id": "bus-arb",
+    "name": "总线/仲裁",
+    "tags": [
+      "计算机工程",
+      "计算机体系结构"
+    ],
+    "formula": "优先级占用",
+    "description": "主从设备、总线占用；调请求序列、优先级",
+    "sub": "计算机体系结构",
+    "family": "arch"
+  },
+  {
+    "id": "irq-dma",
+    "name": "中断/DMA",
+    "tags": [
+      "计算机工程",
+      "嵌入式"
+    ],
+    "formula": "外设抢占",
+    "description": "CPU、外设、中断线、DMA 通道；调触发时序",
+    "sub": "嵌入式",
+    "family": "embed"
+  },
+  {
+    "id": "adc-dac",
+    "name": "ADC/DAC",
+    "tags": [
+      "计算机工程",
+      "嵌入式"
+    ],
+    "formula": "采样量化",
+    "description": "模拟波形、采样点、量化误差；调采样率、位数",
+    "sub": "嵌入式",
+    "family": "embed"
+  },
+  {
+    "id": "pwm",
+    "name": "PWM/电机控制",
+    "tags": [
+      "计算机工程",
+      "嵌入式"
+    ],
+    "formula": "占空比",
+    "description": "占空比、波形、电机转速；调频率、占空比",
+    "sub": "嵌入式",
+    "family": "embed"
+  },
+  {
+    "id": "serdes",
+    "name": "并串转换/编码",
+    "tags": [
+      "计算机工程",
+      "通信"
+    ],
+    "formula": "并行↔串行",
+    "description": "并行数据、串行波形、时钟；调数据、速率",
+    "sub": "通信",
+    "family": "comm"
+  },
+  {
+    "id": "am-fm",
+    "name": "调制/解调 AM/FM",
+    "tags": [
+      "计算机工程",
+      "通信"
+    ],
+    "formula": "载波调制",
+    "description": "载波、调制信号、频谱；调载波频率、调制指数",
+    "sub": "通信",
+    "family": "comm"
+  },
+  {
+    "id": "crc-hamming",
+    "name": "差错检测 CRC/汉明码",
+    "tags": [
+      "计算机工程",
+      "通信"
+    ],
+    "formula": "校验位",
+    "description": "数据位、校验位、错误注入；调码字、错误位置",
+    "sub": "通信",
+    "family": "comm"
+  },
+  {
+    "id": "tcp-handshake",
+    "name": "TCP 三次握手/四次挥手",
+    "tags": [
+      "计算机工程",
+      "网络"
+    ],
+    "formula": "状态机时序",
+    "description": "客户端/服务端状态、报文时序；调丢包、延迟",
+    "sub": "网络",
+    "family": "net"
+  },
+  {
+    "id": "routing",
+    "name": "路由/转发",
+    "tags": [
+      "计算机工程",
+      "网络"
+    ],
+    "formula": "最短路径",
+    "description": "网络拓扑、路由表、路径高亮；调拓扑、链路代价",
+    "sub": "网络",
+    "family": "graph"
+  },
+  {
+    "id": "sched",
+    "name": "进程调度",
+    "tags": [
+      "计算机工程",
+      "操作系统"
+    ],
+    "formula": "FCFS/RR/优先级",
+    "description": "就绪队列、甘特图；调算法、时间片、进程列表",
+    "sub": "操作系统",
+    "family": "os"
+  },
+  {
+    "id": "fifo",
+    "name": "进程同步/生产者消费者",
+    "tags": [
+      "计算机工程",
+      "操作系统"
+    ],
+    "formula": "有界缓冲",
+    "description": "缓冲区、信号量、线程状态；调生产/消费速率",
+    "sub": "操作系统",
+    "family": "hand"
+  },
+  {
+    "id": "banker",
+    "name": "死锁/银行家算法",
+    "tags": [
+      "计算机工程",
+      "操作系统"
+    ],
+    "formula": "安全序列",
+    "description": "资源分配图、安全序列；调进程/资源请求",
+    "sub": "操作系统",
+    "family": "os"
+  },
+  {
+    "id": "fs-inode",
+    "name": "文件系统/索引",
+    "tags": [
+      "计算机工程",
+      "操作系统"
+    ],
+    "formula": "inode 映射",
+    "description": "inode、目录树、块映射；调文件大小、块大小",
+    "sub": "操作系统",
+    "family": "os"
+  },
+  {
+    "id": "lexer",
+    "name": "词法分析",
+    "tags": [
+      "计算机工程",
+      "编译原理"
+    ],
+    "formula": "正则→token",
+    "description": "输入串、token 高亮；调源码",
+    "sub": "编译原理",
+    "family": "compile"
+  },
+  {
+    "id": "parser",
+    "name": "语法分析/语法树",
+    "tags": [
+      "计算机工程",
+      "编译原理"
+    ],
+    "formula": "CFG 推导",
+    "description": "推导过程、语法树；调文法、输入串",
+    "sub": "编译原理",
+    "family": "compile"
+  },
+  {
+    "id": "vm-interp",
+    "name": "解释器/虚拟机",
+    "tags": [
+      "计算机工程",
+      "编译原理"
+    ],
+    "formula": "栈式执行",
+    "description": "指令流、栈/寄存器、输出；调程序、单步",
+    "sub": "编译原理",
+    "family": "compile"
+  },
+  {
+    "id": "btree",
+    "name": "B+ 树索引",
+    "tags": [
+      "计算机工程",
+      "数据库"
+    ],
+    "formula": "多路平衡树",
+    "description": "树结构、范围查询高亮；调键值、查询范围",
+    "sub": "数据库",
+    "family": "tree"
+  },
+  {
+    "id": "acid-tx",
+    "name": "事务 ACID/并发控制",
+    "tags": [
+      "计算机工程",
+      "数据库"
+    ],
+    "formula": "锁/隔离",
+    "description": "事务时间线、锁、提交/回滚；调隔离级别、冲突",
+    "sub": "数据库",
+    "family": "os"
+  },
+  {
+    "id": "raft",
+    "name": "Raft/Paxos 共识",
+    "tags": [
+      "计算机工程",
+      "分布式"
+    ],
+    "formula": "选举/日志复制",
+    "description": "节点状态、日志复制、选举；调节点数、网络分区",
+    "sub": "分布式",
+    "family": "dist"
+  },
+  {
+    "id": "mapreduce",
+    "name": "MapReduce",
+    "tags": [
+      "计算机工程",
+      "分布式"
+    ],
+    "formula": "Map/Shuffle/Reduce",
+    "description": "Map/Shuffle/Reduce 阶段、数据流；调分片、节点数",
+    "sub": "分布式",
+    "family": "dist"
   }
 ]

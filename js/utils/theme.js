@@ -10,8 +10,31 @@ const NEUTRAL = { ...paletteDoc.neutral };
 const MODEL = { ...paletteDoc.models };
 const HC = paletteDoc.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
 
+function hashHue(id) {
+  let h = 0;
+  for (let i = 0; i < String(id).length; i += 1) h = (h * 31 + String(id).charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+function synthPalette(modelId) {
+  const hue = hashHue(modelId);
+  const hex = (h, s, l) => {
+    const c = hslToRgb(h / 360, s, l);
+    return `#${((1 << 24) + (c.r << 16) + (c.g << 8) + c.b).toString(16).slice(1)}`;
+  };
+  return {
+    swatch: hex(hue, 0.72, 0.55),
+    body: hex(hue, 0.72, 0.55),
+    body2: hex((hue + 40) % 360, 0.65, 0.45),
+    accent: hex((hue + 180) % 360, 0.7, 0.55),
+    vector: hex((hue + 120) % 360, 0.55, 0.6),
+    trail: `hsla(${hue}, 70%, 55%, 0.4)`,
+    legend: ['主体 body', '强调 accent', '矢量 vector'],
+  };
+}
+
 export function setModelPalette(modelId) {
-  activeModelId = MODEL[modelId] ? modelId : 'free-fall';
+  activeModelId = modelId || 'free-fall';
 }
 
 export function getActiveModelId() {
@@ -23,12 +46,12 @@ export function listModelIds() {
 }
 
 export function getModelSwatch(modelId) {
-  const m = MODEL[modelId] || MODEL['free-fall'];
+  const m = MODEL[modelId] || synthPalette(modelId);
   return m.swatch || m.body || '#ffffff';
 }
 
 export function getModelLegend(modelId = activeModelId) {
-  const m = MODEL[modelId] || MODEL['free-fall'];
+  const m = MODEL[modelId] || synthPalette(modelId);
   const colors = getModelColors(modelId);
   const entries = [];
   for (const line of m.legend || []) {
@@ -132,7 +155,7 @@ function desaturateCssColor(v) {
 export function getModelColors(modelId = activeModelId) {
   const hc = typeof document !== 'undefined'
     && document.documentElement.classList.contains('hc');
-  const base = { ...NEUTRAL, ...(MODEL[modelId] || MODEL['free-fall']) };
+  const base = { ...NEUTRAL, ...(MODEL[modelId] || synthPalette(modelId)) };
   if (!hc) return base;
   const out = {};
   for (const [k, v] of Object.entries(base)) {

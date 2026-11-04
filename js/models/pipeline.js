@@ -17,7 +17,13 @@ export default {
   paramSchema: {
     stallEvery: { group: 'dynamics', unit: '', label: 'stallEvery', min: 0, max: 20 },
     stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.05, max: 0.8 },
-    hazardMode: { group: 'dynamics', unit: '', label: 'mode 0周期/1数据', min: 0, max: 1 },
+    hazardMode: {
+      group: 'dynamics', unit: '', label: 'hazardMode', min: 0, max: 1,
+      options: [
+        { value: 0, label: '周期停顿' },
+        { value: 1, label: '数据冒险' },
+      ],
+    },
     hazardRate: { group: 'dynamics', unit: '', label: 'hazardRate', min: 0, max: 1 },
     seed: { group: 'initial', unit: '', label: 'seed', min: 1, max: 9999 },
   },

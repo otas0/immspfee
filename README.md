@@ -1,16 +1,16 @@
 # Lab · 演示实验室
 
-纯前端演示实验室：**18 个模型**（物理 / 计算机科学 / 计算机工程）· 自定义参数工作台 · 黑白外壳 + 分模型语义彩绘。
+纯前端学术演示实验室：**112 个模型**（物理 / 计算机科学 / 计算机工程）· 子类侧栏 · 自定义参数工作台 · 黑白外壳 + 分模型语义彩绘。
 
 ## 领域对照
 
-| 领域 | 模型 | 侧栏筛选 / 搜索 |
-|------|------|-----------------|
-| **物理** | 自由落体、斜抛、弹簧、单摆、碰撞、双摆、波、热传导、开普勒轨道、洛伦兹力 | tag `物理` · 搜索 `phy` |
-| **计算机科学** | 排序算法（bubble/insertion/quick）、BFS/A* 寻路、生命游戏 | tag `计算机科学` · 搜索 `CS` |
-| **计算机工程** | LRU 缓存、CPU 流水线、FIFO、RC 电路、RLC 振荡 | tag `计算机工程` · 搜索 `CE` |
+| 领域 | 覆盖子类（节选） | 侧栏 / 搜索 |
+|------|------------------|-------------|
+| **物理** | 经典力学、流体、波与振动、热力学、电磁学、光学、近代物理、天体物理 | tag `物理` · 搜索 `phy` |
+| **计算机科学** | 算法与数据结构、计算理论、密码学、信息论、机器学习、优化 | tag `计算机科学` · 搜索 `CS` |
+| **计算机工程** | 数字逻辑、体系结构、嵌入式、通信、网络、操作系统、编译、数据库、分布式 | tag `计算机工程` · 搜索 `CE` |
 
-> 原「计算机工程·物理」（RC/RLC）已并入 **计算机工程**。
+完整目录见 [`data/catalog.json`](./data/catalog.json)。手写精调模型 + 工厂教学可视化合并注册。
 
 ## 启动
 
@@ -20,23 +20,15 @@ npm start
 
 打开 http://127.0.0.1:8765/
 
-### Connection refused？
-
-浏览器报 `ERR_CONNECTION_REFUSED` 时，在项目目录重新启动：
-
-```bash
-cd ~/physics-demo && npm start
-```
-
 端口占用：`PORT=8766 npm start`。
 
 ## 测试
 
 ```bash
-npm test              # 物理断言 + 参数工具 + CS/CE 冒烟
+npm test              # 物理断言 + 目录规模 + live g + CS/CE 冒烟
 npm run test:pot      # Playwright：拖 pot 不爆表（需先 npm start）
-npm run shots         # 8 张经典物理基线
-npm run shots:extra   # 可选：扩展模型轻量截图 → shots/extra/
+npm run shots
+npm run shots:extra
 npm run baseline:update
 npm run test:visual
 npm run test:all
@@ -44,17 +36,16 @@ npm run test:all
 
 ## 参数工作台
 
-- 每个参数有显式 **min / max**；拖电位器 / 滑条 / 输入超界会钳制，并 toast 一次
-- **− / +**：按量级步进；输入框 ↑↓ 同理（Shift = 大步进）
-- **复位**：电位器 **双击** 或聚焦后按 **Home**
-- **fixedDt** 友好显示为 `1/240`；也可输入 `1/120`
-- 离散模型统一 **stepDt**（排序 / 寻路 / 生命 / 缓存 / 流水线 / FIFO）
-- 拖滑条时暂停仿真，松手后恢复
-- 非法自定义常量拒绝写入
+- **live vs reset**：`dyn` 带 `live` 标记立即生效；`init` / `num` 与强制键会 `init()` 重置（见 [manual.html](./manual.html)）
+- 顶部固定「应用到模型」说明条
+- 每个参数有显式 **min / max**；超界钳制并 toast
+- 离散 `algo` / `mode` / `hazardMode` 等为**下拉**
+- **− / +**、↑↓、电位器双击 / Home 复位
+- 拖旋钮暂停；`blur` / `pointercancel` / `touchcancel` 强制恢复播放
+- 改参后 readout 高亮对照；调试：`localStorage.physics-lab-debug-params=1`（120ms 防抖日志）
 
 ## 说明
 
-- 色板：[`data/palettes.json`](./data/palettes.json)；contrast 降饱和
-- 截图：`sys → frame shot` / `shot readouts` / `shot legend`
-- 窄屏：汉堡打开模型列表；宽屏三栏隐藏汉堡
+- 色板：[`data/palettes.json`](./data/palettes.json)；未登记模型自动合成色相
+- 窄屏：汉堡开模型列表；工作台底部 ADD/PRESETS 留白防遮挡
 - 自定义常量：见 [manual.html](./manual.html)

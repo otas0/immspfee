@@ -173,12 +173,29 @@ html.hc .brand-badge {
   color: var(--ink);
   outline: none;
 }
-.filters input:focus,
-.filters select:focus,
-.param-row input:focus,
-.custom-add input:focus {
+.filters input:focus-visible,
+.filters select:focus-visible,
+.param-row input:focus-visible,
+.param-row select:focus-visible,
+.custom-add input:focus-visible,
+.step-btn:focus-visible,
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.model-item:focus-visible,
+.pot-dial:focus-visible,
+.param-select:focus-visible {
   outline: 2px solid var(--ink);
-  outline-offset: 1px;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+html.hc .filters input:focus-visible,
+html.hc .filters select:focus-visible,
+html.hc .param-row input:focus-visible,
+html.hc .param-row select:focus-visible,
+html.hc .btn:focus-visible,
+html.hc .model-item:focus-visible,
+html.hc .pot-dial:focus-visible {
+  outline-color: #fff;
 }
 
 .model-list {
@@ -224,6 +241,31 @@ html.hc .domain-group .domain-count {
   color: #000;
 }
 .domain-body { padding: 0 0.2rem 0.35rem; }
+.sub-group {
+  margin: 0.2rem 0.15rem 0.35rem;
+  border-left: 2px solid var(--line-soft);
+  padding-left: 0.2rem;
+}
+.sub-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.sub-group > summary::-webkit-details-marker { display: none; }
+.sub-group > summary:hover { color: var(--ink); }
+.sub-count {
+  font-size: 0.52rem;
+  color: var(--muted);
+}
+.sub-body { padding: 0 0.1rem 0.2rem; }
 
 .model-item {
   appearance: none;
@@ -545,6 +587,18 @@ html.hc .btn.primary {
   font-weight: 500;
   font-feature-settings: "tnum" 1;
 }
+.readout-card.is-changed {
+  outline: 1px solid var(--hud-accent, #f0b429);
+  outline-offset: -1px;
+}
+.readout-card.is-changed .value {
+  color: #fff;
+  animation: readout-flash 0.85s ease;
+}
+@keyframes readout-flash {
+  from { filter: brightness(1.45); }
+  to { filter: none; }
+}
 
 .bench {
   background: var(--panel);
@@ -587,7 +641,8 @@ html.hc .bench-drag span { background: rgba(255,255,255,0.35); }
   font-size: 0.98rem;
   letter-spacing: -0.03em;
 }
-.bench-close { display: none; }
+/* 必须压过 .btn.ghost-always，否则宽屏三栏也会露出无效 close */
+.btn.bench-close { display: none; }
 
 .bench-help {
   margin: 0 0.7rem;
@@ -619,13 +674,35 @@ html.hc .bench-drag span { background: rgba(255,255,255,0.35); }
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
-  padding: 0.55rem 0.7rem 1.4rem;
+  padding: 0.55rem 0.7rem 2.8rem; /* 底部留白，窄屏 ADD/PRESETS 不被挡 */
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+.apply-banner {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  background: var(--panel);
+  border: 1px solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.apply-banner strong {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.58rem;
+}
+.apply-banner span { color: var(--muted); }
 .param-section {
   border-radius: 8px;
   background: var(--panel-2);
@@ -668,6 +745,17 @@ html.hc .bench-drag span { background: rgba(255,255,255,0.35); }
   letter-spacing: 0.06em;
   color: var(--muted);
   font-weight: 400;
+}
+.param-select {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  background: var(--panel);
+  color: var(--ink);
+  outline: none;
 }
 html.hc .param-section h3 .idx {
   background: #fff;
@@ -969,7 +1057,7 @@ html.hc .pot-knob::after { background: #fff; }
     z-index: 31;
   }
   .bench.open { transform: translateX(0); }
-  .bench-close { display: inline-flex; }
+  .btn.bench-close { display: inline-flex; }
 }
 
 @media (max-width: 900px) {

@@ -15,7 +15,13 @@ export default {
     wallDensity: { group: 'initial', unit: '', label: 'walls', min: 0, max: 0.45 },
     stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.02, max: 0.3 },
     seed: { group: 'initial', unit: '', label: 'seed', min: 1, max: 9999 },
-    algo: { group: 'dynamics', unit: '', label: 'algo 0BFS/1A*', min: 0, max: 1 },
+    algo: {
+      group: 'dynamics', unit: '', label: 'algo', min: 0, max: 1,
+      options: [
+        { value: 0, label: 'BFS' },
+        { value: 1, label: 'A*' },
+      ],
+    },
   },
 
   init(state) {

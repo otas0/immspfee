@@ -67,11 +67,19 @@ export function createParamBench(root, hooks = {}) {
     }
     root.innerHTML = '';
     sectionIdx = 0;
+    root.appendChild(renderApplyBanner());
     root.appendChild(renderGlobalSection());
     root.appendChild(renderParamSections());
     root.appendChild(renderCustomSection());
     root.appendChild(renderPresetSection());
     requestAnimationFrame(() => onLayoutChange?.());
+  }
+
+  function renderApplyBanner() {
+    const bar = document.createElement('div');
+    bar.className = 'apply-banner';
+    bar.innerHTML = '<strong>应用到模型</strong><span>dyn 标 live 立即生效；init / num 会重置仿真状态</span>';
+    return bar;
   }
 
   function renderGlobalSection() {
@@ -158,7 +166,15 @@ export function createParamBench(root, hooks = {}) {
       }
       for (const item of groups.get(g)) {
         const def = currentModel.params?.[item.key];
-        if (typeof item.value === 'boolean') {
+        if (Array.isArray(item.schema?.options) && item.schema.options.length) {
+          const row = selectRow(item.key, item.value, {
+            label: item.schema?.label || item.key,
+            options: item.schema.options,
+            onCommit: (v) => commitParam(item.key, v),
+          });
+          if ((item.schema?.group || g) === 'dynamics') row.classList.add('is-live');
+          rows.appendChild(row);
+        } else if (typeof item.value === 'boolean') {
           rows.appendChild(boolRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             onCommit: (v) => commitParam(item.key, v),
@@ -656,9 +672,11 @@ function createPot({
   dial.addEventListener('mousedown', onDown);
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
+  window.addEventListener('pointercancel', onUp);
   dial.addEventListener('touchstart', onDown, { passive: false });
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onUp);
+  window.addEventListener('touchcancel', onUp);
 
   dial.addEventListener('dblclick', (e) => {
     e.preventDefault();
@@ -729,5 +747,32 @@ function boolRow(_key, value, opts) {
   input.checked = !!value;
   input.addEventListener('change', () => opts.onCommit?.(input.checked));
   row.append(meta, input);
+  return row;
+}
+
+function selectRow(_key, value, opts) {
+  const row = document.createElement('div');
+  row.className = 'param-row select';
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const label = document.createElement('span');
+  label.className = 'key';
+  label.textContent = opts.label || _key;
+  meta.appendChild(label);
+  const select = document.createElement('select');
+  select.className = 'param-select';
+  select.setAttribute('aria-label', opts.label || _key);
+  for (const opt of opts.options || []) {
+    const o = document.createElement('option');
+    o.value = String(opt.value);
+    o.textContent = opt.label ?? String(opt.value);
+    select.appendChild(o);
+  }
+  select.value = String(value);
+  select.addEventListener('change', () => {
+    const n = Number(select.value);
+    opts.onCommit?.(Number.isFinite(n) ? n : select.value);
+  });
+  row.append(meta, select);
   return row;
 }

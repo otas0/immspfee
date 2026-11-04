@@ -86,6 +86,12 @@ function syncPauseUi() {
 }
 
 let scrubResume = null;
+const DEBUG_PARAM_LOG = (() => {
+  try { return localStorage.getItem('physics-lab-debug-params') === '1'; }
+  catch { return false; }
+})();
+let paramLogTimer = null;
+let prevReadoutMap = new Map();
 
 function showToast(msg) {
   let el = document.getElementById('lab-toast');
@@ -126,8 +132,15 @@ function applyParamChange(key) {
     app.state = { params: kept };
     app.model.init(app.state);
   }
+  if (DEBUG_PARAM_LOG) {
+    clearTimeout(paramLogTimer);
+    paramLogTimer = setTimeout(() => {
+      const mode = shouldReinitModel(key) ? 'reinit' : 'live';
+      console.debug(`[param ${mode}]`, key, app.state?.params?.[key]);
+    }, 120);
+  }
   // 动力学参数已写回同一 params 对象，下一帧 step/draw 直接使用
-  updateHud();
+  updateHud({ flash: true });
 }
 
 const paramBench = createParamBench(paramRoot, {
@@ -155,8 +168,7 @@ const paramBench = createParamBench(paramRoot, {
   },
 });
 
-// 防止松手事件丢失导致仿真一直停在 scrub 暂停
-window.addEventListener('blur', () => {
+function endScrubResume() {
   if (scrubResume === null) return;
   const was = scrubResume;
   scrubResume = null;
@@ -164,7 +176,12 @@ window.addEventListener('blur', () => {
     app.paused = false;
     syncPauseUi();
   }
-});
+}
+
+// 防止松手事件丢失导致仿真一直停在 scrub 暂停
+window.addEventListener('blur', endScrubResume);
+window.addEventListener('pointercancel', endScrubResume);
+window.addEventListener('touchcancel', endScrubResume);
 
 function resetToModelDefaults() {
   app.state = createState(app.model);
@@ -183,9 +200,9 @@ function resetSim() {
 
 const DOMAIN_ORDER = ['物理', '计算机科学', '计算机工程'];
 const SEARCH_ALIASES = {
-  cs: ['计算机科学', '算法', '排序', '图论', '搜索', '元胞'],
-  ce: ['计算机工程', '体系结构', '缓存', '流水线', '电路', '队列', '数字'],
-  phy: ['物理', '力学', '电磁', '波动', '热学'],
+  cs: ['计算机科学', '算法', '排序', '图论', '搜索', '元胞', '机器学习', '密码'],
+  ce: ['计算机工程', '体系结构', '缓存', '流水线', '电路', '队列', '数字', '网络', '操作系统'],
+  phy: ['物理', '力学', '电磁', '波动', '热学', '光学', '流体', '近代'],
   physics: ['物理'],
 };
 
@@ -233,6 +250,12 @@ function makeModelButton(m) {
   return btn;
 }
 
+function modelSub(m) {
+  if (m.sub) return m.sub;
+  const tags = m.tags || [];
+  return tags.find((t) => !DOMAIN_ORDER.includes(t)) || '未分类';
+}
+
 function buildSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
@@ -246,21 +269,35 @@ function buildSidebar() {
   const groups = new Map();
   for (const m of list) {
     const d = modelDomain(m);
-    if (!groups.has(d)) groups.set(d, []);
-    groups.get(d).push(m);
+    if (!groups.has(d)) groups.set(d, new Map());
+    const sub = modelSub(m);
+    if (!groups.get(d).has(sub)) groups.get(d).set(sub, []);
+    groups.get(d).get(sub).push(m);
   }
   const order = [...DOMAIN_ORDER, '其他'];
   for (const domain of order) {
-    const items = groups.get(domain);
-    if (!items?.length) continue;
+    const subMap = groups.get(domain);
+    if (!subMap?.size) continue;
+    const count = [...subMap.values()].reduce((n, arr) => n + arr.length, 0);
     const details = document.createElement('details');
     details.className = 'domain-group';
-    details.open = true;
+    details.open = domain === '物理' || count < 40;
     const sum = document.createElement('summary');
-    sum.innerHTML = `<span class="domain-name">${domain}</span><span class="domain-count">${items.length}</span>`;
+    sum.innerHTML = `<span class="domain-name">${domain}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');
     body.className = 'domain-body';
-    for (const m of items) body.appendChild(makeModelButton(m));
+    for (const [sub, items] of subMap) {
+      const subEl = document.createElement('details');
+      subEl.className = 'sub-group';
+      subEl.open = true;
+      const subSum = document.createElement('summary');
+      subSum.innerHTML = `<span class="sub-name">${sub}</span><span class="sub-count">${items.length}</span>`;
+      const subBody = document.createElement('div');
+      subBody.className = 'sub-body';
+      for (const m of items) subBody.appendChild(makeModelButton(m));
+      subEl.append(subSum, subBody);
+      body.appendChild(subEl);
+    }
     details.append(sum, body);
     modelListEl.appendChild(details);
   }
@@ -334,8 +371,9 @@ function switchModel(id) {
   setModelPalette(model.id);
   app.state = createState(model);
   stepper.reset();
+  prevReadoutMap = new Map();
   toolbarTitle.textContent = model.name;
-  toolbarSub.textContent = (model.tags || []).join(' / ') || 'model';
+  toolbarSub.textContent = [model.sub, ...(model.tags || []).filter((t) => t !== model.sub)].filter(Boolean).join(' / ') || 'model';
   metaFormula.textContent = [model.formula, model.description].filter(Boolean).join('\n');
   paramBench.bind(model, app.state.params, app.globals);
   syncSidebarActive();
@@ -344,15 +382,26 @@ function switchModel(id) {
   requestAnimationFrame(measureSysSticky);
 }
 
-function updateHud() {
+function updateHud(opts = {}) {
   const digits = app.globals.readoutDigits;
   const readouts = app.model.getReadouts(app.state, { digits }) || [];
   app.lastReadouts = readouts;
   const accent = getModelColors(app.model?.id).body || '#fff';
   readoutsEl.style.setProperty('--hud-accent', accent);
-  readoutsEl.innerHTML = readouts.map((r) => (
-    `<div class="readout-card"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value">${r.value}</span></div>`
-  )).join('');
+  readoutsEl.innerHTML = readouts.map((r) => {
+    const prev = prevReadoutMap.get(r.label);
+    const changed = opts.flash && prev != null && prev !== r.value;
+    return `<div class="readout-card${changed ? ' is-changed' : ''}"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value">${r.value}</span></div>`;
+  }).join('');
+  prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+  if (opts.flash) {
+    clearTimeout(updateHud._flashT);
+    updateHud._flashT = setTimeout(() => {
+      for (const el of readoutsEl.querySelectorAll('.readout-card.is-changed')) {
+        el.classList.remove('is-changed');
+      }
+    }, 900);
+  }
 }
 
 function paintFrame(opts = {}) {
