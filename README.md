@@ -1,4 +1,6 @@
-# Lab · 演示实验室
+# IMMSPFEE · Lab
+
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-otas0.github.io%2Fimmspfee-0B3D2E?logo=github)](https://otas0.github.io/immspfee/)
 
 纯前端学术演示实验室：**1500+ 模型**（手写/工厂精调 + 每族 1 条引擎条目；轴/参数进工作台而非侧栏克隆）· 统一 Model 接口 · Web/Canvas 可视化 · 高自定义参数工作台。
 
@@ -50,9 +52,11 @@ npm run gen:families -- --max-per-family 20 --target 4000
 
 ## Live
 
-GitHub Pages（project site）：**https://otas0.github.io/physics-demo/**
+GitHub Pages（project site）：**https://otas0.github.io/immspfee/**
 
-静态根目录由 `.github/workflows/pages.yml`（`actions/deploy-pages`）在 `main` 推送后发布；本地仍用相对路径 `./…`，与 `/physics-demo/` 前缀兼容。
+[![Open Lab](https://img.shields.io/badge/Live-immspfee%20Lab-1F6F4A?style=for-the-badge)](https://otas0.github.io/immspfee/)
+
+静态根目录由 `.github/workflows/pages.yml`（`actions/deploy-pages`）在 `main` 推送后发布；仓库名 `immspfee` → 站点前缀 `/immspfee/`。本地与 Pages 均用相对路径 `./…`。
 
 ## 启动与测试
 
@@ -81,7 +85,7 @@ npm run new:family -- name=rcmesh --formalism=circuit
 
 手写精调模型（`family: "hand"`）对照说明见 **[docs/hand-models.md](./docs/hand-models.md)**。
 
-品牌字标 **IMMSPFEE**：`assets/immspfee-logo.webp`（优先）+ `.png` 回退，侧栏 `picture` 引用；SVG 外壳见 `assets/immspfee-logo.svg`。
+品牌字标 **IMMSPFEE**：纯矢量逐字 path — [`assets/immspfee-logo.svg`](./assets/immspfee-logo.svg)；favicon [`assets/favicon.svg`](./assets/favicon.svg)。
 
 ## 参数与窄屏
 

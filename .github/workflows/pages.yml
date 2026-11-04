@@ -31,9 +31,10 @@ jobs:
             --exclude='.github' \
             --exclude='node_modules' \
             --exclude='artifacts' \
-            --exclude='shots/diff' \
+            --exclude='shots' \
             --exclude='_site' \
             --exclude='*.log' \
+            --exclude='package-lock.json' \
             ./ _site/
           # Ensure Jekyll never processes the artifact (Actions path is already static).
           touch _site/.nojekyll
