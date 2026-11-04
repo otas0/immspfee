@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 /**
  * 从 artifacts/contract-browser.json 更新 data/principle-low-ink.json + js/lab/lowInkIds.js
- *
- * 默认：与旧表取并集（加粗持续生效）
- * --tighten：只保留本轮 ink<1%（收紧静态表）
+ * 默认并集；--tighten 只留本轮 ink<1%。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,11 +27,10 @@ const sampledLow = (j.report || [])
 let prev = [];
 try {
   prev = JSON.parse(fs.readFileSync(outJson, 'utf8')).ids || [];
-} catch { /* first run */ }
+} catch { /* first */ }
 
 const ids = [...new Set(tighten ? sampledLow : [...prev, ...sampledLow])].sort();
-
-const payload = {
+fs.writeFileSync(outJson, `${JSON.stringify({
   threshold: THRESHOLD,
   source: 'artifacts/contract-browser.json',
   generatedAt: new Date().toISOString(),
@@ -41,14 +38,26 @@ const payload = {
   n: ids.length,
   sampledLowInk: sampledLow,
   ids,
-};
-fs.writeFileSync(outJson, `${JSON.stringify(payload, null, 2)}\n`);
+}, null, 2)}\n`);
 
 const idLines = ids.map((id) => `  '${String(id).replace(/'/g, "\\'")}',`).join('\n');
-const boostBody = fs.readFileSync(path.join(root, 'js/lab/lowInkIds.js'), 'utf8');
-// Keep applyLowInkStrokeBoost implementation from current file if present, else embed template
-const boostMatch = boostBody.match(/export function applyLowInkStrokeBoost[\s\S]*$/);
-const boostFn = boostMatch ? boostMatch[0] : `export function applyLowInkStrokeBoost(model) {
+fs.writeFileSync(outJs, `/**
+ * principle 模型 ink density < 1% 静态表（与 data/principle-low-ink.json 同步）。
+ * 仅对这些 id 做「内建曲线加粗」（无墨点网格）。
+ * 更新：npm run gen:low-ink | npm run gen:low-ink:tighten
+ */
+export const LOW_INK_THRESHOLD = ${THRESHOLD};
+
+export const LOW_INK_IDS = new Set([
+${idLines}
+]);
+
+export function shouldBoostStroke(modelId) {
+  return !!modelId && LOW_INK_IDS.has(modelId);
+}
+
+/** 内建曲线加粗：衬底描边 + 主描边加宽 + 细填充条加粗（无墨点网格） */
+export function applyLowInkStrokeBoost(model) {
   if (!model || typeof model.draw !== 'function') return model;
   if (!shouldBoostStroke(model.id)) return model;
   if (model._lowInkBoosted) return model;
@@ -94,25 +103,6 @@ const boostFn = boostMatch ? boostMatch[0] : `export function applyLowInkStrokeB
   model._lowInkBoosted = true;
   return model;
 }
-`;
-
-const js = `/**
- * principle 模型 ink density < 1% 静态表（与 data/principle-low-ink.json 同步）。
- * 仅对这些 id 做「内建曲线加粗」（无墨点网格），避免全局影响视觉基线。
- * 更新：npm run gen:low-ink | npm run gen:low-ink:tighten
- */
-export const LOW_INK_THRESHOLD = ${THRESHOLD};
-
-export const LOW_INK_IDS = new Set([
-${idLines}
-]);
-
-export function shouldBoostStroke(modelId) {
-  return !!modelId && LOW_INK_IDS.has(modelId);
-}
-
-${boostFn}
-`;
-fs.writeFileSync(outJs, js);
-console.log(`low-ink mode=${payload.mode} n=${ids.length} sampledLow=${sampledLow.length}`);
+`);
+console.log(`low-ink mode=${tighten ? 'tighten' : 'union'} n=${ids.length} sampledLow=${sampledLow.length}`);
 console.log(ids.join(', ') || '(none)');
