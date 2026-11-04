@@ -189,6 +189,42 @@ html.hc .brand-badge {
   flex-direction: column;
   gap: 0.2rem;
 }
+.domain-group {
+  margin: 0.15rem 0.35rem 0.45rem;
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.domain-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.domain-group > summary::-webkit-details-marker { display: none; }
+.domain-group > summary:hover { color: var(--ink); }
+.domain-group .domain-count {
+  min-width: 1.4em;
+  text-align: center;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--panel);
+  font-size: 0.55rem;
+}
+html.hc .domain-group .domain-count {
+  background: #fff;
+  color: #000;
+}
+.domain-body { padding: 0 0.2rem 0.35rem; }
+
 .model-item {
   appearance: none;
   border: none;
@@ -203,6 +239,7 @@ html.hc .brand-badge {
   grid-template-columns: 10px minmax(0, 1fr);
   column-gap: 0.55rem;
   align-items: start;
+  width: 100%;
 }
 .model-item .swatch {
   grid-row: 1 / span 2;

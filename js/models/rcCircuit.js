@@ -2,7 +2,7 @@ import { formatNum } from '../utils/draw.js';
 import { P, finiteOr } from '../utils/params.js';
 import { C } from '../utils/theme.js';
 
-/** RC 充电：Vc' = (Vin - Vc)/(RC)（计算机工程·物理） */
+/** RC 充电：Vc' = (Vin - Vc)/(RC)（计算机工程） */
 export default {
   id: 'rc-circuit',
   name: 'RC 电路',
@@ -38,12 +38,12 @@ export default {
   draw(ctx, state, view) {
     const { width: W, height: H } = view;
     const pad = { l: 50, r: 30, t: 40, b: 40 };
-    const Vin = Math.abs(P(state.params, 'Vin', 5)) || 5;
+    const VinAbs = Math.abs(P(state.params, 'Vin', 5)) || 5;
     const plotW = W - pad.l - pad.r;
     const plotH = H - pad.t - pad.b;
     const tMax = Math.max(state.t, 0.5);
     const X = (t) => pad.l + (t / tMax) * plotW;
-    const Y = (v) => pad.t + (1 - (v / (Vin * 1.2) + 0.1) / 1.2) * plotH;
+    const Y = (v) => pad.t + (1 - (v / (VinAbs * 1.2) + 0.1) / 1.2) * plotH;
 
     ctx.strokeStyle = C.axis;
     ctx.beginPath();
@@ -51,6 +51,28 @@ export default {
     ctx.lineTo(pad.l, pad.t + plotH);
     ctx.lineTo(pad.l + plotW, pad.t + plotH);
     ctx.stroke();
+
+    // 解析解虚线：Vc(t)=Vin+(V0-Vin)e^{-t/τ}（充电）或 V0 e^{-t/τ}（放电）
+    const R = Math.max(P(state.params, 'R', 1000), 1e-6);
+    const Cap = Math.max(P(state.params, 'C', 0.001), 1e-9);
+    const tau = R * Cap;
+    const mode = P(state.params, 'mode', 1) >= 0.5 ? 1 : 0;
+    const Vin = mode ? P(state.params, 'Vin', 5) : 0;
+    const V0 = P(state.params, 'V0', 0);
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = C.theory || '#7c9cbf';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 80; i += 1) {
+      const t = (tMax * i) / 80;
+      const v = Vin + (V0 - Vin) * Math.exp(-t / tau);
+      const x = X(t);
+      const y = Y(v);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     if (state.trail.length > 1) {
       ctx.strokeStyle = C.body;
@@ -65,7 +87,6 @@ export default {
       ctx.stroke();
     }
 
-    // 简易电路示意
     const cx = W * 0.78;
     const cy = H * 0.28;
     ctx.strokeStyle = C.vector;
@@ -73,7 +94,7 @@ export default {
     ctx.fillStyle = C.muted;
     ctx.font = '11px IBM Plex Mono, monospace';
     ctx.fillText('C', cx + 14, cy + 16);
-    ctx.fillText(`Vc=${formatNum(state.Vc, 2)}V`, 12, 22);
+    ctx.fillText(`Vc=${formatNum(state.Vc, 2)}V · 虚线=解析`, 12, 22);
   },
 
   getReadouts(state, opts = {}) {

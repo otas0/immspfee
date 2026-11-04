@@ -55,7 +55,7 @@ export function composeExport(canvas, {
   ctx.fillStyle = framed ? '#000' : '#fff';
   ctx.font = '500 16px "IBM Plex Mono", monospace';
   if (framed && !readouts?.length && !legend) {
-    ctx.fillText('physics lab', pad, h - 12);
+    ctx.fillText('Lab', pad, h - 12);
   }
   if (readouts?.length) {
     ctx.font = '500 15px "IBM Plex Mono", monospace';

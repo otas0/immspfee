@@ -9,6 +9,7 @@
     "test:visual": "node scripts/visual-baseline.mjs check",
     "baseline:update": "node scripts/visual-baseline.mjs update",
     "shots": "node scripts/capture-shots.mjs",
+    "shots:extra": "node scripts/capture-extra.mjs",
     "test:all": "npm test && npm run test:pot && npm run test:visual"
   },
   "devDependencies": {

@@ -2,7 +2,7 @@ import { formatNum } from '../utils/draw.js';
 import { P, finiteOr } from '../utils/params.js';
 import { C } from '../utils/theme.js';
 
-/** 串联 RLC：L I'' + R I' + I/C = 0（计算机工程·物理） */
+/** 串联 RLC：L I'' + R I' + I/C = 0（计算机工程） */
 export default {
   id: 'rlc',
   name: 'RLC 振荡',
@@ -29,7 +29,6 @@ export default {
     const R = P(state.params, 'R', 1);
     const L = Math.max(P(state.params, 'L', 1), 1e-6);
     const Cap = Math.max(P(state.params, 'C', 0.2), 1e-6);
-    // dI/dt = -(R/L)I - Vc/L ; dVc/dt = I/C
     const dI = (-R / L) * state.I - state.Vc / L;
     const dV = state.I / Cap;
     state.I = finiteOr(state.I + dI * dt, 0);
@@ -52,13 +51,41 @@ export default {
     const iMax = Math.max(1, ...state.trailI.map((p) => Math.abs(p.v)), Math.abs(state.I));
     const vMax = Math.max(1, ...state.trailV.map((p) => Math.abs(p.v)), Math.abs(state.Vc));
 
-    const drawSeries = (trail, top, maxAbs, color, label) => {
+    const R = P(state.params, 'R', 1);
+    const L = Math.max(P(state.params, 'L', 1), 1e-6);
+    const Cap = Math.max(P(state.params, 'C', 0.25), 1e-6);
+    const I0 = P(state.params, 'I0', 0);
+    const V0 = P(state.params, 'V0', 4);
+    const alpha = R / (2 * L);
+    const w0 = 1 / Math.sqrt(L * Cap);
+    const under = w0 > alpha;
+    const wd = under ? Math.sqrt(w0 * w0 - alpha * alpha) : 0;
+    // Vc 解析（欠阻尼近似，初值 Vc(0)=V0, I(0)=I0 → Vc'=I/C）
+    const dVc0 = I0 / Cap;
+
+    const drawSeries = (trail, top, maxAbs, color, label, analyticFn) => {
       ctx.strokeStyle = C.axis;
       ctx.beginPath();
       ctx.moveTo(pad.l, top);
       ctx.lineTo(pad.l, top + plotH);
       ctx.lineTo(pad.l + plotW, top + plotH);
       ctx.stroke();
+      if (analyticFn && under) {
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = C.theory || '#7c9cbf';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let i = 0; i <= 100; i += 1) {
+          const t = (tMax * i) / 100;
+          const v = analyticFn(t);
+          const x = pad.l + (t / tMax) * plotW;
+          const y = top + plotH / 2 - (v / (maxAbs * 1.2)) * (plotH / 2);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       if (trail.length > 1) {
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
@@ -76,8 +103,22 @@ export default {
       ctx.fillText(label, pad.l + 6, top + 14);
     };
 
-    drawSeries(state.trailI, pad.t, iMax, C.body, 'I(t)');
-    drawSeries(state.trailV, pad.t + plotH + 20, vMax, C.vector, 'Vc(t)');
+    // 欠阻尼 Vc(t)=e^{-αt}(A cos ωd t + B sin ωd t)
+    const A = V0;
+    const B = wd > 0 ? (dVc0 + alpha * V0) / wd : 0;
+    const vcAnalytic = (t) => Math.exp(-alpha * t) * (A * Math.cos(wd * t) + B * Math.sin(wd * t));
+    // I = C Vc'
+    const iAnalytic = (t) => {
+      const e = Math.exp(-alpha * t);
+      const dVc = e * (
+        -alpha * (A * Math.cos(wd * t) + B * Math.sin(wd * t))
+        + (-A * wd * Math.sin(wd * t) + B * wd * Math.cos(wd * t))
+      );
+      return Cap * dVc;
+    };
+
+    drawSeries(state.trailI, pad.t, iMax, C.body, 'I(t) · 虚线解析', iAnalytic);
+    drawSeries(state.trailV, pad.t + plotH + 20, vMax, C.vector, 'Vc(t) · 虚线解析', vcAnalytic);
   },
 
   getReadouts(state, opts = {}) {

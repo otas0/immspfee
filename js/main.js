@@ -148,14 +148,56 @@ function resetSim() {
   updateHud();
 }
 
+const DOMAIN_ORDER = ['物理', '计算机科学', '计算机工程'];
+const SEARCH_ALIASES = {
+  cs: ['计算机科学', '算法', '排序', '图论', '搜索', '元胞'],
+  ce: ['计算机工程', '体系结构', '缓存', '流水线', '电路', '队列', '数字'],
+  phy: ['物理', '力学', '电磁', '波动', '热学'],
+  physics: ['物理'],
+};
+
+function modelDomain(m) {
+  const tags = m.tags || [];
+  for (const d of DOMAIN_ORDER) {
+    if (tags.includes(d)) return d;
+  }
+  return '其他';
+}
+
+function expandSearchQuery(raw) {
+  const q = raw.trim().toLowerCase();
+  if (!q) return [];
+  const tokens = [q];
+  for (const [alias, words] of Object.entries(SEARCH_ALIASES)) {
+    if (q === alias || q.includes(alias)) tokens.push(...words.map((w) => w.toLowerCase()));
+  }
+  return [...new Set(tokens)];
+}
+
 function filteredModels() {
-  const q = app.filter.q.trim().toLowerCase();
+  const tokens = expandSearchQuery(app.filter.q);
   return models.filter((m) => {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
-    if (!q) return true;
+    if (!tokens.length) return true;
     const hay = `${m.name} ${m.id} ${m.formula || ''} ${(m.tags || []).join(' ')} ${m.description || ''}`.toLowerCase();
-    return hay.includes(q);
+    return tokens.some((t) => hay.includes(t));
   });
+}
+
+function makeModelButton(m) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'model-item' + (app.model?.id === m.id ? ' active' : '');
+  btn.dataset.id = m.id;
+  const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
+    .map((t) => `<span class="tag">${t}</span>`).join('');
+  const swatch = getModelSwatch(m.id);
+  btn.innerHTML = `<span class="swatch" style="--swatch:${swatch}"></span><span class="name">${m.name}</span><span class="tags">${tags}</span>`;
+  btn.addEventListener('click', () => {
+    switchModel(m.id);
+    setSidebarOpen(false);
+  });
+  return btn;
 }
 
 function buildSidebar() {
@@ -168,19 +210,26 @@ function buildSidebar() {
     modelListEl.appendChild(empty);
     return;
   }
+  const groups = new Map();
   for (const m of list) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'model-item' + (app.model?.id === m.id ? ' active' : '');
-    btn.dataset.id = m.id;
-    const tags = (m.tags || []).slice(0, 3).map((t) => `<span class="tag">${t}</span>`).join('');
-    const swatch = getModelSwatch(m.id);
-    btn.innerHTML = `<span class="swatch" style="--swatch:${swatch}"></span><span class="name">${m.name}</span><span class="tags">${tags}</span>`;
-    btn.addEventListener('click', () => {
-      switchModel(m.id);
-      setSidebarOpen(false);
-    });
-    modelListEl.appendChild(btn);
+    const d = modelDomain(m);
+    if (!groups.has(d)) groups.set(d, []);
+    groups.get(d).push(m);
+  }
+  const order = [...DOMAIN_ORDER, '其他'];
+  for (const domain of order) {
+    const items = groups.get(domain);
+    if (!items?.length) continue;
+    const details = document.createElement('details');
+    details.className = 'domain-group';
+    details.open = true;
+    const sum = document.createElement('summary');
+    sum.innerHTML = `<span class="domain-name">${domain}</span><span class="domain-count">${items.length}</span>`;
+    const body = document.createElement('div');
+    body.className = 'domain-body';
+    for (const m of items) body.appendChild(makeModelButton(m));
+    details.append(sum, body);
+    modelListEl.appendChild(details);
   }
 }
 

@@ -10,6 +10,14 @@ import {
   validateCustomParam,
   clampNumber,
 } from '../utils/params.js';
+import sorting from '../models/sorting.js';
+import bfsGrid from '../models/bfsGrid.js';
+import life from '../models/life.js';
+import cacheLru from '../models/cacheLru.js';
+import pipeline from '../models/pipeline.js';
+import fifo from '../models/fifo.js';
+import rcCircuit from '../models/rcCircuit.js';
+import rlc from '../models/rlc.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -192,6 +200,40 @@ export function runSuite() {
     assert('validateCustomParam 坏 key', !validateCustomParam('__x', 1).ok);
     assert('validateCustomParam 超大', !validateCustomParam('a_extra', 1e20).ok);
     assert('validateCustomParam 合法', validateCustomParam('a_extra', 1.5).ok && validateCustomParam('a_extra', 1.5).value === 1.5);
+  }
+
+  // CS / CE 冒烟
+  {
+    const smoke = (model, steps = 400, dt = 1 / 60) => {
+      const state = { params: JSON.parse(JSON.stringify(model.params)) };
+      model.init(state);
+      for (let i = 0; i < steps; i += 1) model.step(state, dt);
+      const r = model.getReadouts(state) || [];
+      return { state, r };
+    };
+
+    {
+      const state = { params: { ...sorting.params, n: 8, algo: 1, stepDt: 0.01, seed: 2 } };
+      sorting.init(state);
+      for (let i = 0; i < 5000 && !state.done; i += 1) sorting.step(state, 0.05);
+      const sorted = state.arr.every((v, i, a) => i === 0 || a[i - 1] <= v);
+      assert('CS insertion 最终有序', state.done && sorted, `done=${state.done}`);
+    }
+    assert('CS BFS readout', smoke(bfsGrid, 800, 0.05).r.length >= 3);
+    assert('CS life readout', smoke(life, 100, 0.12).r.length >= 3);
+    assert('CE cache readout', smoke(cacheLru, 200, 0.1).r.length >= 3);
+    {
+      const { state, r } = smoke(pipeline, 80, 0.2);
+      assert('CE pipeline cycle', state.cycle > 0 && r.length >= 3, `cycle=${state.cycle}`);
+    }
+    assert('CE fifo readout', smoke(fifo, 200, 0.1).r.length >= 3);
+    {
+      const state = { params: { ...rcCircuit.params, R: 100, C: 0.01, Vin: 5, V0: 0, mode: 1 } };
+      rcCircuit.init(state);
+      for (let i = 0; i < 2000; i += 1) rcCircuit.step(state, 0.01);
+      assert('CE RC 趋向 Vin', Math.abs(state.Vc - 5) < 0.2, `Vc=${state.Vc}`);
+    }
+    assert('CE RLC readout', smoke(rlc, 500, 1 / 120).r.length >= 3);
   }
 
   return results;
