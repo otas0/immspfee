@@ -123,9 +123,17 @@ export default {
     ctx.arc(p2.x, p2.y, 11, 0, Math.PI * 2);
     ctx.fill();
 
+    // 色相图例条
+    const barX = 12;
+    const barY = H - 28;
+    const barW = Math.min(160, W - 24);
+    for (let i = 0; i < 64; i += 1) {
+      ctx.fillStyle = `hsl(${(i / 63) * 360}, 72%, 56%)`;
+      ctx.fillRect(barX + (i * barW) / 64, barY, barW / 64 + 1, 8);
+    }
     ctx.fillStyle = C.muted;
     ctx.font = '11px IBM Plex Mono, monospace';
-    ctx.fillText('轨迹色相∝θ₁,ω₁', 12, H - 14);
+    ctx.fillText('色相∝θ₁,ω₁', barX, barY - 4);
   },
 
   getReadouts(state) {

@@ -1,9 +1,13 @@
-/** 下载 Canvas PNG；可选机箱外框 + 读数叠加 */
+import { drawPaletteLegend, getActiveModelId } from './theme.js';
+
+/** 下载 Canvas PNG；可选机箱外框 + 读数 + 色板图例 */
 export function downloadCanvasPng(canvas, filename = 'physics-lab.png', opts = {}) {
   const framed = !!opts.framed;
   const readouts = opts.readouts || null;
-  const source = (framed || readouts)
-    ? composeExport(canvas, { framed, readouts })
+  const legend = !!opts.legend;
+  const modelId = opts.modelId || getActiveModelId();
+  const source = (framed || readouts || legend)
+    ? composeExport(canvas, { framed, readouts, legend, modelId })
     : canvas;
   source.toBlob((blob) => {
     if (!blob) return;
@@ -17,9 +21,16 @@ export function downloadCanvasPng(canvas, filename = 'physics-lab.png', opts = {
 }
 
 /** 合成导出画布（供测试 / 验收） */
-export function composeExport(canvas, { framed = false, readouts = null } = {}) {
+export function composeExport(canvas, {
+  framed = false,
+  readouts = null,
+  legend = false,
+  modelId = getActiveModelId(),
+} = {}) {
   const pad = framed ? 28 : 12;
-  const footer = readouts?.length ? 28 + readouts.length * 22 : (framed ? 36 : 0);
+  const readoutH = readouts?.length ? 28 + readouts.length * 22 : 0;
+  const legendH = legend ? 22 + 5 * 16 : (framed && !readouts?.length ? 36 : 0);
+  const footer = readoutH + legendH;
   const w = canvas.width + pad * 2;
   const h = canvas.height + pad * 2 + footer;
   const out = document.createElement('canvas');
@@ -43,7 +54,7 @@ export function composeExport(canvas, { framed = false, readouts = null } = {}) 
   let y = pad + canvas.height + 18;
   ctx.fillStyle = framed ? '#000' : '#fff';
   ctx.font = '500 16px "IBM Plex Mono", monospace';
-  if (framed) {
+  if (framed && !readouts?.length && !legend) {
     ctx.fillText('physics lab', pad, h - 12);
   }
   if (readouts?.length) {
@@ -52,6 +63,10 @@ export function composeExport(canvas, { framed = false, readouts = null } = {}) 
       ctx.fillText(`${r.label}: ${r.value}`, pad, y);
       y += 22;
     }
+  }
+  if (legend) {
+    if (framed) ctx.fillStyle = '#333';
+    drawPaletteLegend(ctx, pad, y, canvas.width * 0.55, modelId);
   }
   return out;
 }

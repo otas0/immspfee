@@ -119,8 +119,8 @@ export default {
     }
     ctx.fillStyle = C.muted;
     ctx.font = '11px IBM Plex Mono, monospace';
-    ctx.fillText(`${formatNum(tMin, 0)}°C`, margin.l, legendY + 26);
-    ctx.fillText(`${formatNum(tMax, 0)}°C`, margin.l + barW - 36, legendY + 26);
+    ctx.fillText(`冷 ${formatNum(tMin, 0)}°C`, margin.l, legendY + 26);
+    ctx.fillText(`热 ${formatNum(tMax, 0)}°C`, margin.l + barW - 52, legendY + 26);
     ctx.fillText(`L=${formatNum(L)} m`, margin.l, barY - 8);
   },
 

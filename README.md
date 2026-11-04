@@ -43,7 +43,7 @@ npm run test:all
 
 ## 说明
 
-- 画布按模型着色（碰撞蓝/红双球、热传导冷热色标、双摆相空间色相等）；UI 外壳仍为黑白
-- 截图：`sys → frame shot` / `shot readouts`（导出固定 2× DPR，随后恢复屏幕 DPR）
+- 画布按模型着色（色板见 [`data/palettes.json`](./data/palettes.json)）；UI 外壳仍为黑白；contrast 降饱和
+- 截图：`sys → frame shot` / `shot readouts` / `shot legend`（导出固定 2× DPR，随后恢复屏幕 DPR）
 - 窄屏：汉堡打开模型列表；点遮罩关闭；宽屏三栏不显示汉堡
 - 自定义常量：见 [manual.html](./manual.html)

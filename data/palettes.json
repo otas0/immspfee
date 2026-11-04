@@ -1,0 +1,95 @@
+{
+  "neutral": {
+    "axis": "#5c6570",
+    "ground": "#6b7280",
+    "muted": "#94a3b8",
+    "theory": "#64748b",
+    "text": "#94a3b8",
+    "bg": "#000000",
+    "flash": "rgba(255, 220, 100, 0.45)"
+  },
+  "models": {
+    "free-fall": {
+      "swatch": "#f0b429",
+      "body": "#f0b429",
+      "body2": "#d97706",
+      "accent": "#fb7185",
+      "vector": "#2dd4bf",
+      "trail": "rgba(240, 180, 41, 0.4)",
+      "legend": ["球 body", "速度 vector"]
+    },
+    "projectile": {
+      "swatch": "#fb923c",
+      "body": "#fb923c",
+      "body2": "#ea580c",
+      "accent": "#60a5fa",
+      "vector": "#34d399",
+      "trail": "rgba(251, 146, 60, 0.45)",
+      "theory": "#7c9cbf",
+      "legend": ["轨迹 body", "vx vector", "vy accent", "理论 theory"]
+    },
+    "spring": {
+      "swatch": "#f43f5e",
+      "body": "#f43f5e",
+      "body2": "#14b8a6",
+      "accent": "#fbbf24",
+      "vector": "#fde68a",
+      "trail": "rgba(244, 63, 94, 0.35)",
+      "legend": ["质量 body", "弹簧 body2"]
+    },
+    "pendulum": {
+      "swatch": "#f97316",
+      "body": "#f97316",
+      "body2": "#c2410c",
+      "accent": "#4ade80",
+      "vector": "#818cf8",
+      "trail": "rgba(249, 115, 22, 0.4)",
+      "legend": ["摆球 body", "摆杆 vector"]
+    },
+    "collision": {
+      "swatch": "#3b82f6",
+      "body": "#fbbf24",
+      "body2": "#ef4444",
+      "accent": "#fbbf24",
+      "vector": "#3b82f6",
+      "trail": "rgba(59, 130, 246, 0.35)",
+      "flash": "rgba(250, 204, 21, 0.5)",
+      "legend": ["m1 vector", "m2 body2"]
+    },
+    "double-pendulum": {
+      "swatch": "#a78bfa",
+      "body": "#a78bfa",
+      "body2": "#7c3aed",
+      "accent": "#fb7185",
+      "vector": "#cbd5e1",
+      "trail": "rgba(167, 139, 250, 0.4)",
+      "legend": ["m1 body", "m2 accent", "轨迹 hue"]
+    },
+    "wave": {
+      "swatch": "#22d3ee",
+      "body": "#22d3ee",
+      "body2": "#0891b2",
+      "accent": "#fb7185",
+      "vector": "#67e8f9",
+      "trail": "rgba(34, 211, 238, 0.35)",
+      "ground": "#6366f1",
+      "theory": "rgba(148, 163, 184, 0.55)",
+      "pos": "rgba(251, 113, 133, 0.28)",
+      "neg": "rgba(56, 189, 248, 0.28)",
+      "legend": ["波形 body", "正位移 pos", "负位移 neg"]
+    },
+    "heat": {
+      "swatch": "#fb923c",
+      "body": "#fb923c",
+      "body2": "#ea580c",
+      "accent": "#ef4444",
+      "vector": "#38bdf8",
+      "trail": "rgba(251, 146, 60, 0.35)",
+      "legend": ["曲线 body", "色标 冷→热"]
+    }
+  },
+  "hc": {
+    "saturationScale": 0.42,
+    "lightnessBoost": 0.08
+  }
+}

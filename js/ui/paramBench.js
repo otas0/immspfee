@@ -119,6 +119,9 @@ export function createParamBench(root, hooks = {}) {
     rows.appendChild(boolRow('shotReadouts', g.shotReadouts, {
       label: 'shot readouts', onCommit: (v) => { g.shotReadouts = v; onGlobalsChange?.(g); },
     }));
+    rows.appendChild(boolRow('shotLegend', g.shotLegend, {
+      label: 'shot legend', onCommit: (v) => { g.shotLegend = v; onGlobalsChange?.(g); },
+    }));
     appendSectionBody(sec, rows, {
       foldable: true,
       open: sysOpen,
@@ -367,6 +370,7 @@ export function createParamBench(root, hooks = {}) {
     globals = globalState;
     if (typeof globals.frameShot !== 'boolean') globals.frameShot = false;
     if (typeof globals.shotReadouts !== 'boolean') globals.shotReadouts = false;
+    if (typeof globals.shotLegend !== 'boolean') globals.shotLegend = false;
     sanitizeGlobals(globals);
     builtins = new Set(Object.keys(model.params || {}));
     render();

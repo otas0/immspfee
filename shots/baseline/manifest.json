@@ -4,31 +4,31 @@
     "bytes": 65670
   },
   "02-projectile.png": {
-    "sha256": "5860fa4de7e3b752bcb425eaaae0166ebf2b8ba3e1f23e5f4209141af57fa179",
-    "bytes": 78843
+    "sha256": "23ace0a5f8b91328f60166b3732a1dbe22dbbb44726789c2b1aa6fca2f4a8770",
+    "bytes": 80822
   },
   "03-spring.png": {
-    "sha256": "59bab93180e82d39e21df2bf240a777a77219a0c4448c4ee4e24d4305a87cc75",
-    "bytes": 60361
+    "sha256": "1f90552d09fa4ac1a7ef12629ec191db1ba24994f4051020d9c732495a6e9a94",
+    "bytes": 60153
   },
   "04-pendulum.png": {
-    "sha256": "f29d3275fc883306f6059057c1c28d7c428d8a5e12d6566452fb0b2cdeeb68a7",
-    "bytes": 64703
+    "sha256": "58ccb54cc17df23bbe3a630f7a0198df8d0f880ca3cebeb4b335d1992b804dbe",
+    "bytes": 65581
   },
   "05-collision.png": {
-    "sha256": "e3740f783b83e2ec74d583d12e12e2827b7682314efba460cc3f50eb24fab0a4",
-    "bytes": 60909
+    "sha256": "1f4feb8c6917d54993ce6914d0a04e0405323ed32497761174dfe58fe9f3478b",
+    "bytes": 62905
   },
   "06-double-pendulum.png": {
-    "sha256": "aa3480c4cee58e361d7f947e586229e85999d46b0f8dfd2fd06f365d61ec8d46",
-    "bytes": 85286
+    "sha256": "1a7e5a314b629b8b5b80a7d0d6a560bbfb35ba4eaf3bb9b56ec866709ae12512",
+    "bytes": 84123
   },
   "07-wave.png": {
-    "sha256": "c49c84fc28fc99af1f978e02b5c04fa22ce54af88aa35c410b94e5fa1c7ea6ea",
-    "bytes": 88468
+    "sha256": "15b68b1054454094ee4fec6aae05cb5b3dc8ba60a3c697e81da1b09411b11744",
+    "bytes": 100079
   },
   "08-heat.png": {
-    "sha256": "be07b20b690cba457de93490ef6fa5bff13f44e195c18b66477cbc2767397500",
-    "bytes": 81994
+    "sha256": "795f67205e5661281e05eabb2aca92099bbe6b6084cafb89b79db21cad64935a",
+    "bytes": 83537
   }
 }

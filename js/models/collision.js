@@ -123,11 +123,24 @@ export default {
       drawArrow(ctx, X(state.x2), y, X(state.x2) + state.v2 * 18, y, C.body2, 2);
     }
 
+    // 蓝/红图例
+    const lx = 16;
+    const ly = 18;
+    ctx.fillStyle = C.vector;
+    ctx.beginPath();
+    ctx.arc(lx + 5, ly, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = C.body2;
+    ctx.beginPath();
+    ctx.arc(lx + 48, ly, 5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = C.muted;
     ctx.font = '12px IBM Plex Mono, monospace';
-    ctx.fillText(`hits ${state.collisionCount}`, 16, 24);
+    ctx.fillText('m1', lx + 14, ly + 4);
+    ctx.fillText('m2', lx + 57, ly + 4);
+    ctx.fillText(`hits ${state.collisionCount}`, lx, ly + 22);
     if (state.keBefore != null) {
-      ctx.fillText(`KE ${formatNum(state.keBefore)} → ${formatNum(state.keAfter)}`, 16, 42);
+      ctx.fillText(`KE ${formatNum(state.keBefore)} → ${formatNum(state.keAfter)}`, lx, ly + 40);
     }
   },
 

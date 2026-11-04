@@ -5,7 +5,7 @@ import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js
 import { createParamBench } from './ui/paramBench.js';
 import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml } from './ui/icons.js';
-import { setModelPalette } from './utils/theme.js';
+import { setModelPalette, getModelSwatch, getModelColors } from './utils/theme.js';
 
 const canvas = document.getElementById('canvas');
 const canvasWrap = document.querySelector('.canvas-wrap');
@@ -54,6 +54,7 @@ const app = {
     readoutDigits: 3,
     frameShot: false,
     shotReadouts: false,
+    shotLegend: false,
   },
 };
 
@@ -173,7 +174,8 @@ function buildSidebar() {
     btn.className = 'model-item' + (app.model?.id === m.id ? ' active' : '');
     btn.dataset.id = m.id;
     const tags = (m.tags || []).slice(0, 3).map((t) => `<span class="tag">${t}</span>`).join('');
-    btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
+    const swatch = getModelSwatch(m.id);
+    btn.innerHTML = `<span class="swatch" style="--swatch:${swatch}"></span><span class="name">${m.name}</span><span class="tags">${tags}</span>`;
     btn.addEventListener('click', () => {
       switchModel(m.id);
       setSidebarOpen(false);
@@ -264,8 +266,10 @@ function updateHud() {
   const digits = app.globals.readoutDigits;
   const readouts = app.model.getReadouts(app.state, { digits }) || [];
   app.lastReadouts = readouts;
+  const accent = getModelColors(app.model?.id).body || '#fff';
+  readoutsEl.style.setProperty('--hud-accent', accent);
   readoutsEl.innerHTML = readouts.map((r) => (
-    `<div class="readout-card"><span class="label">${r.label}</span><span class="value">${r.value}</span></div>`
+    `<div class="readout-card"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value">${r.value}</span></div>`
   )).join('');
 }
 
@@ -347,6 +351,8 @@ btnShot.addEventListener('click', () => {
   downloadCanvasPng(canvas, `${app.model.id}-${Date.now()}.png`, {
     framed: !!app.globals.frameShot,
     readouts: app.globals.shotReadouts ? app.lastReadouts : null,
+    legend: !!app.globals.shotLegend,
+    modelId: app.model.id,
   });
   // 导出后恢复屏幕 DPR，避免下一帧糊一下
   requestAnimationFrame(() => paintFrame());
@@ -502,11 +508,13 @@ window.__labCapture = {
     paintFrame();
     return url;
   },
-  composedPng: (framed, withReadouts) => {
+  composedPng: (framed, withReadouts, withLegend = false) => {
     paintFrame({ forceDpr: 2 });
     const url = composeExport(document.getElementById('canvas'), {
       framed: !!framed,
       readouts: withReadouts ? app.lastReadouts : null,
+      legend: !!withLegend,
+      modelId: app.model?.id,
     }).toDataURL('image/png');
     paintFrame();
     return url;

@@ -199,6 +199,19 @@ html.hc .brand-badge {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  column-gap: 0.55rem;
+  align-items: start;
+}
+.model-item .swatch {
+  grid-row: 1 / span 2;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--swatch, #888);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
 }
 .model-item:hover { background: var(--accent-soft); }
 .model-item.active { background: var(--ink); color: var(--panel); }
@@ -215,6 +228,7 @@ html.hc .model-item.active { background: #fff; color: #000; }
   flex-wrap: wrap;
   gap: 0.2rem;
   margin-top: 0.3rem;
+  grid-column: 2;
 }
 .model-item .tag {
   font-family: var(--font-mono);
@@ -413,6 +427,7 @@ html.hc .btn.primary {
 }
 .hud-label { margin: 0 0.3rem 0.35rem; }
 .readouts {
+  --hud-accent: #f0b429;
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
@@ -422,8 +437,29 @@ html.hc .btn.primary {
   overflow: hidden;
   background: var(--oled-2);
   border-radius: 8px;
-  padding: 0.4rem 0.55rem;
+  padding: 0.4rem 0.55rem 0.4rem 0.7rem;
   min-width: 88px;
+}
+.readout-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--hud-accent, #f0b429);
+  opacity: 0.85;
+}
+.readout-card .dot {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hud-accent, #f0b429);
+  opacity: 0.9;
+  z-index: 2;
 }
 .readout-card::after {
   content: "";

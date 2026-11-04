@@ -89,7 +89,8 @@ export default {
     if (p.showTheory) {
       const Tflight = (2 * v0 * Math.sin(th)) / g;
       ctx.setLineDash([6, 5]);
-      ctx.strokeStyle = C.axis;
+      ctx.strokeStyle = C.theory || '#7c9cbf';
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       for (let i = 0; i <= 80; i += 1) {
         const t = (Tflight * i) / 80;
@@ -101,9 +102,9 @@ export default {
       }
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = C.muted;
+      ctx.fillStyle = C.theory || C.muted;
       ctx.font = '11px IBM Plex Mono, monospace';
-      ctx.fillText('虚线=无阻力解析解', ox + 8, margin.t + 4);
+      ctx.fillText('虚线=无阻力解析解（灰蓝）', ox + 8, margin.t + 4);
     }
 
     if (view.showTrail !== false) {

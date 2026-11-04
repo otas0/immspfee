@@ -106,6 +106,25 @@ export default {
     ctx.stroke();
     ctx.setLineDash([]);
 
+    // 正位移暖色 / 负位移冷色填充
+    const pos = C.pos || 'rgba(251, 113, 133, 0.28)';
+    const neg = C.neg || 'rgba(56, 189, 248, 0.28)';
+    for (let i = 0; i < N + 1; i += 1) {
+      const x0 = X(i * dx);
+      const x1 = X((i + 1) * dx);
+      const y0 = y[i];
+      const y1 = y[i + 1];
+      const mid = (y0 + y1) / 2;
+      ctx.fillStyle = mid >= 0 ? pos : neg;
+      ctx.beginPath();
+      ctx.moveTo(x0, oy);
+      ctx.lineTo(x0, Y(y0));
+      ctx.lineTo(x1, Y(y1));
+      ctx.lineTo(x1, oy);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     ctx.strokeStyle = C.body;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -118,7 +137,7 @@ export default {
     ctx.stroke();
 
     for (let i = 1; i <= N; i += 1) {
-      ctx.fillStyle = C.vector;
+      ctx.fillStyle = y[i] >= 0 ? (C.accent || C.vector) : C.vector;
       ctx.beginPath();
       ctx.arc(X(i * dx), Y(y[i]), 3.2, 0, Math.PI * 2);
       ctx.fill();
