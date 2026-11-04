@@ -2,57 +2,127 @@
   {
     "id": "free-fall",
     "name": "自由落体",
-    "tags": ["力学", "重力"],
+    "tags": ["物理", "力学", "重力"],
     "formula": "y''=-g-(k/m)y'；落地 v'=-e·v",
     "description": "竖直下落，可选空气阻力与弹性落地反弹"
   },
   {
     "id": "projectile",
     "name": "斜抛运动",
-    "tags": ["力学", "抛体"],
+    "tags": ["物理", "力学", "抛体"],
     "formula": "x=v₀cosθ·t，y=v₀sinθ·t-½gt²",
     "description": "二维抛体运动，对比无阻力解析抛物线"
   },
   {
     "id": "spring",
     "name": "弹簧振子",
-    "tags": ["振动", "简谐"],
+    "tags": ["物理", "振动", "简谐"],
     "formula": "m·x''=-k·x-c·x'；T=2π√(m/k)",
     "description": "一维阻尼谐振子"
   },
   {
     "id": "pendulum",
     "name": "单摆",
-    "tags": ["振动", "非线性"],
+    "tags": ["物理", "振动", "非线性"],
     "formula": "θ''=-(g/L)sinθ-c·θ'；T≈2π√(L/g)",
     "description": "大角度非线性单摆，小角度周期对照"
   },
   {
     "id": "collision",
     "name": "一维碰撞",
-    "tags": ["力学", "碰撞", "动量"],
+    "tags": ["物理", "力学", "碰撞", "动量"],
     "formula": "v₁'=[(m₁-em₂)v₁+(1+e)m₂v₂]/(m₁+m₂)",
     "description": "恢复系数碰撞，多次统计与动量"
   },
   {
     "id": "double-pendulum",
     "name": "双摆",
-    "tags": ["混沌", "非线性"],
+    "tags": ["物理", "混沌", "非线性"],
     "formula": "双摆拉格朗日方程（θ₁,θ₂）",
-    "description": "混沌轨迹，末端按相空间灰度"
+    "description": "混沌轨迹，末端按相空间色相"
   },
   {
     "id": "wave",
     "name": "横波 / 弦振动",
-    "tags": ["波动", "驻波"],
+    "tags": ["物理", "波动", "驻波"],
     "formula": "y''=c² y_xx；驻波模式 sin(nπx/L)",
     "description": "离散质点链，多模式驻波叠加"
   },
   {
     "id": "heat",
     "name": "热传导",
-    "tags": ["热学", "扩散"],
+    "tags": ["物理", "热学", "扩散"],
     "formula": "∂T/∂t = α ∂²T/∂x²",
-    "description": "一维温度场有限差分，灰度可视化"
+    "description": "一维温度场有限差分，冷热色标"
+  },
+  {
+    "id": "orbit",
+    "name": "开普勒轨道",
+    "tags": ["物理", "力学", "引力"],
+    "formula": "ä = -GM r̂ / r²",
+    "description": "二维中心力轨道，可调 GM 与初速"
+  },
+  {
+    "id": "lorentz",
+    "name": "洛伦兹力",
+    "tags": ["物理", "电磁", "带电粒子"],
+    "formula": "F = q(E + v×B)",
+    "description": "二维 ExB 漂移 / 回旋轨迹"
+  },
+  {
+    "id": "sorting",
+    "name": "冒泡排序",
+    "tags": ["计算机科学", "算法", "排序"],
+    "formula": "相邻比较交换 → O(n²)",
+    "description": "柱状图逐步冒泡，统计比较与交换"
+  },
+  {
+    "id": "bfs-grid",
+    "name": "BFS 寻路",
+    "tags": ["计算机科学", "图论", "搜索"],
+    "formula": "队列扩展四邻域直至终点",
+    "description": "随机障碍网格上的广度优先路径"
+  },
+  {
+    "id": "life",
+    "name": "生命游戏",
+    "tags": ["计算机科学", "元胞自动机"],
+    "formula": "B3/S23（Conway）",
+    "description": "环形边界元胞自动机演化"
+  },
+  {
+    "id": "cache-lru",
+    "name": "LRU 缓存",
+    "tags": ["计算机工程", "体系结构", "缓存"],
+    "formula": "命中提升；未命中逐出最久未用",
+    "description": "访问流驱动的 LRU 槽位与命中率"
+  },
+  {
+    "id": "pipeline",
+    "name": "CPU 流水线",
+    "tags": ["计算机工程", "体系结构", "流水线"],
+    "formula": "IF→ID→EX→MEM→WB + 周期停顿",
+    "description": "五级流水与气泡插入，观察 IPC"
+  },
+  {
+    "id": "fifo",
+    "name": "FIFO 缓冲",
+    "tags": ["计算机工程", "数字系统", "队列"],
+    "formula": "有界队列；满则丢弃",
+    "description": "生产/消费速率差导致的占用与丢包"
+  },
+  {
+    "id": "rc-circuit",
+    "name": "RC 电路",
+    "tags": ["计算机工程·物理", "电路", "模拟"],
+    "formula": "τ=RC；Vc'=(Vin-Vc)/τ",
+    "description": "电容充放电电压曲线（CE 物理）"
+  },
+  {
+    "id": "rlc",
+    "name": "RLC 振荡",
+    "tags": ["计算机工程·物理", "电路", "振荡"],
+    "formula": "L I'' + R I' + I/C = 0",
+    "description": "串联 RLC 电流与电容电压（CE 物理）"
   }
 ]

@@ -1,7 +1,7 @@
 /**
  * 模型注册表
  * 元数据来自 data/models.json；实现来自本目录。
- * 新增：实现接口 → 在此注册 → 写入 models.json
+ * 新增：实现接口 → 在此注册 → 写入 models.json + palettes.json
  */
 import freeFall from './freeFall.js';
 import projectile from './projectile.js';
@@ -11,6 +11,16 @@ import collision from './collision.js';
 import doublePendulum from './doublePendulum.js';
 import wave from './wave.js';
 import heat from './heat.js';
+import orbit from './orbit.js';
+import lorentz from './lorentz.js';
+import sorting from './sorting.js';
+import bfsGrid from './bfsGrid.js';
+import life from './life.js';
+import cacheLru from './cacheLru.js';
+import pipeline from './pipeline.js';
+import fifo from './fifo.js';
+import rcCircuit from './rcCircuit.js';
+import rlc from './rlc.js';
 
 const implementations = [
   freeFall,
@@ -21,6 +31,16 @@ const implementations = [
   doublePendulum,
   wave,
   heat,
+  orbit,
+  lorentz,
+  sorting,
+  bfsGrid,
+  life,
+  cacheLru,
+  pipeline,
+  fifo,
+  rcCircuit,
+  rlc,
 ];
 
 const byId = Object.fromEntries(implementations.map((m) => [m.id, m]));

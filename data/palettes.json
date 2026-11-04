@@ -86,6 +86,98 @@
       "vector": "#38bdf8",
       "trail": "rgba(251, 146, 60, 0.35)",
       "legend": ["曲线 body", "色标 冷→热"]
+    },
+    "orbit": {
+      "swatch": "#eab308",
+      "body": "#facc15",
+      "body2": "#ca8a04",
+      "accent": "#f97316",
+      "vector": "#38bdf8",
+      "trail": "rgba(250, 204, 21, 0.35)",
+      "legend": ["行星 body", "引力源 accent"]
+    },
+    "lorentz": {
+      "swatch": "#06b6d4",
+      "body": "#22d3ee",
+      "body2": "#0891b2",
+      "accent": "#a78bfa",
+      "vector": "#f472b6",
+      "trail": "rgba(34, 211, 238, 0.4)",
+      "legend": ["粒子 body", "速度 vector"]
+    },
+    "sorting": {
+      "swatch": "#84cc16",
+      "body": "#a3e635",
+      "body2": "#65a30d",
+      "accent": "#f97316",
+      "vector": "#4ade80",
+      "trail": "rgba(163, 230, 53, 0.3)",
+      "legend": ["条 body", "比较 accent"]
+    },
+    "bfs-grid": {
+      "swatch": "#0ea5e9",
+      "body": "#38bdf8",
+      "body2": "#0369a1",
+      "accent": "#fbbf24",
+      "vector": "#4ade80",
+      "ground": "#334155",
+      "trail": "rgba(56, 189, 248, 0.3)",
+      "legend": ["访问 body2", "路径 accent"]
+    },
+    "life": {
+      "swatch": "#10b981",
+      "body": "#34d399",
+      "body2": "#059669",
+      "accent": "#f59e0b",
+      "vector": "#6ee7b7",
+      "trail": "rgba(52, 211, 153, 0.3)",
+      "legend": ["活细胞 body"]
+    },
+    "cache-lru": {
+      "swatch": "#8b5cf6",
+      "body": "#a78bfa",
+      "body2": "#6d28d9",
+      "accent": "#f472b6",
+      "vector": "#34d399",
+      "trail": "rgba(167, 139, 250, 0.3)",
+      "legend": ["槽 body", "命中 vector"]
+    },
+    "pipeline": {
+      "swatch": "#ec4899",
+      "body": "#f472b6",
+      "body2": "#db2777",
+      "accent": "#fbbf24",
+      "vector": "#67e8f9",
+      "ground": "#475569",
+      "trail": "rgba(244, 114, 182, 0.3)",
+      "legend": ["指令 body", "气泡 ground"]
+    },
+    "fifo": {
+      "swatch": "#14b8a6",
+      "body": "#2dd4bf",
+      "body2": "#0f766e",
+      "accent": "#fb7185",
+      "vector": "#38bdf8",
+      "trail": "rgba(45, 212, 191, 0.3)",
+      "legend": ["条目 body", "占用 vector"]
+    },
+    "rc-circuit": {
+      "swatch": "#f59e0b",
+      "body": "#fbbf24",
+      "body2": "#d97706",
+      "accent": "#ef4444",
+      "vector": "#60a5fa",
+      "trail": "rgba(251, 191, 36, 0.35)",
+      "legend": ["Vc body", "电路 vector"]
+    },
+    "rlc": {
+      "swatch": "#ef4444",
+      "body": "#f87171",
+      "body2": "#b91c1c",
+      "accent": "#fbbf24",
+      "vector": "#38bdf8",
+      "trail": "rgba(248, 113, 113, 0.35)",
+      "legend": ["I body", "Vc vector"]
     }
   },
   "hc": {

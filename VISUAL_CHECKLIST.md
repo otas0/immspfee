@@ -25,10 +25,14 @@
 - 侧栏模型项左侧色点 = `swatch`
 - HUD readout 左边条 + 右上角点 = 当前模型 `body`
 - sys → `shot legend`：PNG 导出附色板图例
+- 侧栏 tag 可筛：`物理` / `计算机科学` / `计算机工程` / `计算机工程·物理`
+
+## 扩展模型（不纳入 8 张视觉基线）
+开普勒轨道、洛伦兹力、冒泡排序、BFS 寻路、生命游戏、LRU 缓存、CPU 流水线、FIFO 缓冲、RC 电路、RLC 振荡 —— 见 `data/models.json`。
 
 ```bash
 npm test              # 物理 + 参数工具单测
 npm run test:pot      # 拖 pot 不爆表（需服务）
-npm run test:visual   # 8 张哈希对比
+npm run test:visual   # 8 张哈希对比（经典物理集）
 npm run test:all
 ```
