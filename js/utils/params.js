@@ -235,12 +235,12 @@ export function inferGroup(key, value) {
   return 'dynamics';
 }
 
-/** TE 风短标签 */
+/** 工作台分组标签（中文） */
 export const GROUP_LABELS = {
-  dynamics: 'dyn',
-  initial: 'init',
-  display: 'view',
-  numerics: 'num',
-  custom: 'custom',
-  global: 'sys',
+  dynamics: '动力学',
+  initial: '初值',
+  display: '显示',
+  numerics: '数值',
+  custom: '自定义',
+  global: '系统',
 };

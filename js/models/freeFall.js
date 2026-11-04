@@ -10,6 +10,14 @@ import { C } from '../utils/theme.js';
 export default {
   id: 'free-fall',
   name: '自由落体',
+  capabilities: {
+    pointer: true,
+    interaction: 'canvas',
+    formalism: 'ode',
+    viz: 'phet-particle',
+    fidelity: 'principle',
+    hint: '拖动球改初高度 h₀（类 PhET 约束点）',
+  },
   params: {
     g: 9.81, h: 10, v0: 0, k: 0, m: 1, e: 0.7,
     dragExp: 1, restVel: 0.05, ground: 0,
@@ -121,12 +129,13 @@ export default {
     }
 
     const sy = toY(state.y);
+    state._ball = { x: cx, y: sy, r: 16, groundY, scale, cx };
     ctx.fillStyle = C.body;
     ctx.beginPath();
     ctx.arc(cx, sy, 12, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = C.vector;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = state._dragBall ? C.accent : C.vector;
+    ctx.lineWidth = state._dragBall ? 3 : 2;
     ctx.stroke();
 
     if (view.showVectors !== false) {
@@ -135,7 +144,37 @@ export default {
 
     ctx.fillStyle = C.muted;
     ctx.font = '12px IBM Plex Mono, monospace';
-    ctx.fillText(`h0=${formatNum(h0)}  e=${formatNum(P(state.params, 'e', 0), 2)}`, margin.l, margin.t - 8);
+    ctx.fillText(`h0=${formatNum(h0)}  e=${formatNum(P(state.params, 'e', 0), 2)} · 拖球`, margin.l, margin.t - 8);
+  },
+
+  onPointer(state, ev) {
+    const b = state._ball;
+    if (!b) return false;
+    if (ev.type === 'down') {
+      if ((ev.x - b.x) ** 2 + (ev.y - b.y) ** 2 <= b.r * b.r) {
+        state._dragBall = true;
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === 'move' && state._dragBall) {
+      const y = (b.groundY - ev.y) / Math.max(b.scale, 1e-6);
+      const ground = P(state.params, 'ground', 0);
+      const next = Math.max(ground, Math.min(200, y));
+      state.y = next;
+      state.params.h = next;
+      state.v = P(state.params, 'v0', 0);
+      state.resting = false;
+      state.bounces = 0;
+      state.t = 0;
+      state.trail = [];
+      return true;
+    }
+    if (ev.type === 'up') {
+      state._dragBall = false;
+      return true;
+    }
+    return false;
   },
 
   getReadouts(state, opts = {}) {

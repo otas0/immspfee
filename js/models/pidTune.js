@@ -8,6 +8,15 @@ import { C } from '../utils/theme.js';
 export default {
   id: 'pid-tune',
   name: 'PID 参数整定（交互）',
+  capabilities: {
+    interaction: 'knobs',
+    formalism: 'ode',
+    viz: 'control',
+    fidelity: 'principle',
+    hint: '原理级二阶对象 + PID；非工业调参软件',
+  },
+  fidelity: 'principle',
+  fidelityNote: '原理级，非工业调参',
   params: {
     K: 1, zeta: 0.35, wn: 2.2,
     Kp: 1.4, Ki: 0.55, Kd: 0.12,
@@ -126,6 +135,7 @@ export default {
     const d = opts.digits ?? 3;
     const osPct = (state.overshoot / Math.max(Math.abs(state.ref), 1e-9)) * 100;
     return [
+      { label: '保真', value: '原理级≠工业' },
       { label: 'y', value: formatNum(state.y, d) },
       { label: 'OS%', value: formatNum(osPct, d) },
       { label: 'ts', value: state.ts >= 0 ? `${formatNum(state.ts, d)} s` : '—' },

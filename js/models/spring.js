@@ -7,6 +7,14 @@ import { C } from '../utils/theme.js';
 export default {
   id: 'spring',
   name: '弹簧振子',
+  capabilities: {
+    pointer: true,
+    interaction: 'canvas',
+    formalism: 'ode',
+    viz: 'phet-particle',
+    fidelity: 'principle',
+    hint: '拖动质量块设置位移 x（类 PhET 约束点）',
+  },
   params: {
     m: 1, k: 20, c: 0.3, x0: 0.8, v0: 0,
     dragExp: 1, windX: 0, driveA: 0, driveF: 0,
@@ -78,6 +86,7 @@ export default {
     const y = H * 0.5;
     const scale = Math.min(120, (W - wallX - 80) / 2);
     const massX = eqX + state.x * scale;
+    state._spring = { eqX, y, scale, massX, wallX };
 
     ctx.fillStyle = C.ground;
     ctx.fillRect(wallX - 16, y - 50, 16, 100);
@@ -100,15 +109,39 @@ export default {
     drawZigZagSpring(ctx, wallX, y, massX - 22, 14, 12);
 
     ctx.fillStyle = C.body;
-    ctx.strokeStyle = C.vector;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = state._dragMass ? C.accent : C.vector;
+    ctx.lineWidth = state._dragMass ? 3 : 2;
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(massX - 22, y - 22, 44, 44, 4);
     else ctx.rect(massX - 22, y - 22, 44, 44);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = C.vector;
-    ctx.fillText(`x=${formatNum(state.x)}`, massX - 28, y + 48);
+    ctx.fillText(`x=${formatNum(state.x)} · 拖块`, massX - 36, y + 48);
+  },
+
+  onPointer(state, ev) {
+    const g = state._spring;
+    if (!g) return false;
+    if (ev.type === 'down') {
+      if (Math.abs(ev.x - g.massX) <= 28 && Math.abs(ev.y - g.y) <= 28) {
+        state._dragMass = true;
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === 'move' && state._dragMass) {
+      const x = (ev.x - g.eqX) / Math.max(g.scale, 1e-6);
+      state.x = Math.max(-8, Math.min(8, x));
+      state.params.x0 = state.x;
+      state.v = 0;
+      return true;
+    }
+    if (ev.type === 'up') {
+      state._dragMass = false;
+      return true;
+    }
+    return false;
   },
 
   getReadouts(state, opts = {}) {

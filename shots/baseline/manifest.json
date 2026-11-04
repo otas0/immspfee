@@ -1,34 +1,42 @@
 {
   "01-free-fall.png": {
-    "sha256": "55fb1b1df20b841f20131e335ec8f07293e58986dc8afc3b02e6e4b37aa892f2",
-    "bytes": 65670
+    "sha256": "d5f0140601e7bf99de77df4d816b89e25f18954eee35b104c8283e07d672cb20",
+    "bytes": 58179
   },
   "02-projectile.png": {
-    "sha256": "23ace0a5f8b91328f60166b3732a1dbe22dbbb44726789c2b1aa6fca2f4a8770",
-    "bytes": 80822
+    "sha256": "cc38cd027d72c69a4cef391eef968be45961239caa0bed97f84485d916a891e2",
+    "bytes": 85023
   },
   "03-spring.png": {
-    "sha256": "1f90552d09fa4ac1a7ef12629ec191db1ba24994f4051020d9c732495a6e9a94",
-    "bytes": 60153
+    "sha256": "1351e355ae17e9ee251f574071f6ed270f742ef6cd12e43b32f3722bf392c15d",
+    "bytes": 54061
   },
   "04-pendulum.png": {
-    "sha256": "58ccb54cc17df23bbe3a630f7a0198df8d0f880ca3cebeb4b335d1992b804dbe",
-    "bytes": 65581
+    "sha256": "33b9919508c85999e435a6cf5aceb1536f93f39836e64ba51d95d22e997420f3",
+    "bytes": 55563
   },
   "05-collision.png": {
-    "sha256": "1f4feb8c6917d54993ce6914d0a04e0405323ed32497761174dfe58fe9f3478b",
-    "bytes": 62905
+    "sha256": "3695dd544beb0e1771cb910da1bc43e7dabacdba837a3d56b42e3b0245f35435",
+    "bytes": 54064
   },
   "06-double-pendulum.png": {
-    "sha256": "1a7e5a314b629b8b5b80a7d0d6a560bbfb35ba4eaf3bb9b56ec866709ae12512",
-    "bytes": 84123
+    "sha256": "72a7f86e4cf8de03508594313595e1ce46b890f9d5dd5cc09f00fd19515b23de",
+    "bytes": 73531
   },
   "07-wave.png": {
-    "sha256": "15b68b1054454094ee4fec6aae05cb5b3dc8ba60a3c697e81da1b09411b11744",
-    "bytes": 100079
+    "sha256": "a1ff752fe666f6accd5a515af0a3e7d88264dd766428535c8fd1ec66ec165372",
+    "bytes": 89585
   },
   "08-heat.png": {
-    "sha256": "795f67205e5661281e05eabb2aca92099bbe6b6084cafb89b79db21cad64935a",
-    "bytes": 83537
+    "sha256": "92dcf82f3741bbbfc07dc64dd6ab3e4b698314359bdf482c423f366100e55512",
+    "bytes": 74490
+  },
+  "09-pid-tune.png": {
+    "sha256": "6553ff3ab62e314a9d342d5603aa538a613f81edbc4eb1559a100c133bfbf6d7",
+    "bytes": 56877
+  },
+  "10-root-locus.png": {
+    "sha256": "dd122fd58b4d5300d5143f153fde4a6cb01f1790696ad647630b996ab9578cd2",
+    "bytes": 46839
   }
 }

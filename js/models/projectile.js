@@ -5,9 +5,20 @@ import { C } from '../utils/theme.js';
 export default {
   id: 'projectile',
   name: '斜抛运动',
+  capabilities: {
+    pointer: true,
+    interaction: 'canvas',
+    formalism: 'ode',
+    viz: 'phet-particle',
+    fidelity: 'principle',
+    hint: '拖球放置；拖尖端改 v₀/θ；工具条「再发射」',
+    actions: [
+      { id: 'launch', label: '再发射', resume: true },
+    ],
+  },
   params: {
     v0: 20, theta: 45, g: 9.81, k: 0, m: 1, dragExp: 1,
-    windX: 0, windY: 0, showTheory: true,
+    windX: 0, windY: 0, showTheory: true, resumeOnLaunch: 1, pauseOnLand: 1,
   },
   paramSchema: {
     v0: { group: 'initial', unit: 'm/s', label: 'v₀', min: 0, max: 500 },
@@ -19,6 +30,36 @@ export default {
     windX: { group: 'dynamics', unit: 'm/s²', label: '风场 ax', min: -50, max: 50 },
     windY: { group: 'dynamics', unit: 'm/s²', label: '风场 ay', min: -50, max: 50 },
     showTheory: { group: 'display', label: '理论抛物线' },
+    resumeOnLaunch: {
+      group: 'display', unit: '—', label: '再发射后继续', min: 0, max: 1,
+      options: [
+        { value: 1, label: '取消暂停' },
+        { value: 0, label: '保持暂停' },
+      ],
+    },
+    pauseOnLand: {
+      group: 'display', unit: '—', label: '落地后暂停', min: 0, max: 1,
+      options: [
+        { value: 1, label: '自动暂停' },
+        { value: 0, label: '继续走表' },
+      ],
+    },
+  },
+
+  runAction(state, actionId) {
+    if (actionId !== 'launch') return false;
+    const th = (P(state.params, 'theta', 45) * Math.PI) / 180;
+    const v0 = P(state.params, 'v0', 20);
+    // 从当前放置点按 v₀/θ 再发射
+    state.vx = v0 * Math.cos(th);
+    state.vy = v0 * Math.sin(th);
+    state.t = 0;
+    state.landed = false;
+    state.range = 0;
+    state.maxY = Math.max(0, state.y);
+    state.trail = [{ t: 0, x: state.x, y: state.y }];
+    state._resumeApp = Math.round(P(state.params, 'resumeOnLaunch', 1)) === 1;
+    return true;
   },
 
   init(state) {
@@ -63,6 +104,10 @@ export default {
       state.landed = true;
       state.vx = 0;
       state.vy = 0;
+      // 与 resumeOnLaunch 成对：落地可选请求暂停全局时钟
+      if (Math.round(P(state.params, 'pauseOnLand', 1)) === 1) {
+        state._pauseApp = true;
+      }
     }
   },
 
@@ -129,10 +174,44 @@ export default {
 
     const bx = X(state.x);
     const by = Y(state.y);
+    const tipScale = 2.2;
+    const tipX = X(0) + (state.landed || state.t < 0.02
+      ? v0 * Math.cos(th) * tipScale * sx
+      : state.vx * tipScale * sx);
+    const tipY = Y(0) - (state.landed || state.t < 0.02
+      ? v0 * Math.sin(th) * tipScale * sy
+      : state.vy * tipScale * sy);
+    // 发射端速度尖端（可拖）
+    const originX = X(state.t < 0.05 ? 0 : state.x);
+    const originY = Y(state.t < 0.05 ? 0 : state.y);
+    const launchTipX = state.t < 0.05 ? tipX : bx + state.vx * tipScale * sx;
+    const launchTipY = state.t < 0.05 ? tipY : by - state.vy * tipScale * sy;
+    state._proj = {
+      X, Y, sx, sy, ox, oy, tipScale,
+      ball: { x: bx, y: by, r: 14 },
+      tip: { x: launchTipX, y: launchTipY, r: 12 },
+      origin: { x: state.t < 0.05 ? ox : bx, y: state.t < 0.05 ? oy : by },
+    };
+    ctx.strokeStyle = C.accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(state._proj.origin.x, state._proj.origin.y);
+    ctx.lineTo(launchTipX, launchTipY);
+    ctx.stroke();
+    ctx.fillStyle = C.accent;
+    ctx.beginPath();
+    ctx.arc(launchTipX, launchTipY, 6, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.fillStyle = C.body;
     ctx.beginPath();
     ctx.arc(bx, by, 10, 0, Math.PI * 2);
     ctx.fill();
+    if (state._drag === 'ball' || state._drag === 'tip') {
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
 
     if (view.showVectors !== false) {
       const vs = 3;
@@ -140,6 +219,63 @@ export default {
       drawArrow(ctx, bx, by, bx, by - state.vy * vs, C.accent, 2);
       drawArrow(ctx, bx, by, bx + state.vx * vs, by - state.vy * vs, C.body, 2);
     }
+  },
+
+  onPointer(state, ev) {
+    const g = state._proj;
+    if (!g) return false;
+    if (ev.type === 'down') {
+      const tip = g.tip;
+      if ((ev.x - tip.x) ** 2 + (ev.y - tip.y) ** 2 <= tip.r * tip.r) {
+        state._drag = 'tip';
+        return true;
+      }
+      const b = g.ball;
+      if ((ev.x - b.x) ** 2 + (ev.y - b.y) ** 2 <= b.r * b.r) {
+        state._drag = 'ball';
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === 'move' && state._drag === 'tip') {
+      const ox = g.origin.x;
+      const oy = g.origin.y;
+      const dx = (ev.x - ox) / Math.max(g.sx * g.tipScale, 1e-6);
+      const dy = (oy - ev.y) / Math.max(g.sy * g.tipScale, 1e-6);
+      const speed = Math.hypot(dx, dy);
+      const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+      state.params.v0 = Math.max(0.5, Math.min(200, speed));
+      state.params.theta = Math.max(0, Math.min(89, ang));
+      if (state.t < 0.05 || state.landed) {
+        const th = (state.params.theta * Math.PI) / 180;
+        state.vx = state.params.v0 * Math.cos(th);
+        state.vy = state.params.v0 * Math.sin(th);
+        if (state.landed) {
+          state.x = 0; state.y = 0; state.t = 0; state.landed = false;
+          state.trail = [{ t: 0, x: 0, y: 0 }];
+          state.maxY = 0;
+        }
+      }
+      return true;
+    }
+    if (ev.type === 'move' && state._drag === 'ball') {
+      const x = Math.max(0, (ev.x - g.ox) / Math.max(g.sx, 1e-6));
+      const y = Math.max(0, (g.oy - ev.y) / Math.max(g.sy, 1e-6));
+      state.x = x;
+      state.y = y;
+      state.vx = 0;
+      state.vy = 0;
+      state.landed = false;
+      state.t = 0;
+      state.trail = [{ t: 0, x, y }];
+      state.maxY = y;
+      return true;
+    }
+    if (ev.type === 'up') {
+      state._drag = null;
+      return true;
+    }
+    return false;
   },
 
   getReadouts(state, opts = {}) {

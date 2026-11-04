@@ -223,7 +223,7 @@ export function runSuite() {
     };
 
     {
-      const state = { params: { ...sorting.params, n: 8, algo: 1, stepDt: 0.01, seed: 2 } };
+      const state = { params: { ...sorting.params, n: 8, algo: 1, stepDt: 0.01, seed: 2, demo: 0 } };
       sorting.init(state);
       for (let i = 0; i < 5000 && !state.done; i += 1) sorting.step(state, 0.05);
       const sorted = state.arr.every((v, i, a) => i === 0 || a[i - 1] <= v);
@@ -268,7 +268,23 @@ export function runSuite() {
 
   // 目录规模 + live/reset 语义
   {
-    assert('catalog ≥ 3000 models', models.length >= 3000, `n=${models.length}`);
+    // 每族×引擎仅 1 条；不再要求笛卡尔爆炸后的 ≥3000
+    assert('catalog ≥ 1000 models', models.length >= 1000, `n=${models.length}`);
+    {
+      const idsList = models.map((m) => m.id);
+      const famIds = idsList.filter((id) => /^fam-.+-v\d+$/.test(id));
+      const bySlug = new Map();
+      let dup = null;
+      for (const id of famIds) {
+        const slug = id.replace(/^fam-/, '').replace(/-v\d+$/, '');
+        if (bySlug.has(slug)) { dup = slug; break; }
+        bySlug.set(slug, id);
+      }
+      assert('generated families unique by slug', !dup && bySlug.size >= 100,
+        dup ? `dup=${dup}` : `families=${bySlug.size}`);
+      const nonV01 = famIds.filter((id) => !/-v01$/.test(id));
+      assert('family entries prefer -v01 only', nonV01.length === 0, `extra=${nonV01.slice(0, 5).join(',')}`);
+    }
     const ids = new Set(models.map((m) => m.id));
     assert('catalog has free-fall', ids.has('free-fall'));
     assert('catalog has sorting', ids.has('sorting'));
@@ -278,6 +294,8 @@ export function runSuite() {
     assert('catalog has pid-tune', ids.has('pid-tune'));
     assert('catalog has lorenz', ids.has('lorenz'));
     assert('catalog has nasch-ca', ids.has('nasch-ca'));
+    assert('catalog has fam-projectile-v01', ids.has('fam-projectile-v01'));
+    assert('no fam-projectile-v02 clone', !ids.has('fam-projectile-v02'));
 
     // g live：高度不因改 g 而重置
     {

@@ -1,6 +1,6 @@
 # Lab · 演示实验室
 
-纯前端学术演示实验室：**3000+ 模型**（族×维度生成 + 手写/工厂精调）· 统一 Model 接口 · Web/Canvas 可视化 · 高自定义参数工作台。
+纯前端学术演示实验室：**1500+ 模型**（手写/工厂精调 + 每族 1 条引擎条目；轴/参数进工作台而非侧栏克隆）· 统一 Model 接口 · Web/Canvas 可视化 · 高自定义参数工作台。
 
 ## 架构原则
 
@@ -29,7 +29,7 @@ Fidelity 默认 `principle`。工厂族能力见 `js/lab/formalism.js`。
 
 | 层 | 职责 |
 |----|------|
-| Catalog | `data/catalog.json`；侧栏领域/子类；窄屏左右滑切域 |
+| Catalog | `data/catalog.json`；侧栏领域/子类 |
 | Shell | `deriveCapabilities`：formalism / hint / pointer / actions |
 | Stage | 统一 canvas；透镜/Dijkstra/逻辑门走 pointer + 壳工具条 |
 | Bench | schema 控件；≥20 参默认只展开 dyn |
@@ -40,13 +40,19 @@ Fidelity 默认 `principle`。工厂族能力见 `js/lab/formalism.js`。
 模型族与变体维度定义在 [`scripts/family-defs.mjs`](./scripts/family-defs.mjs)（同步写出 [`data/families.json`](./data/families.json)）。生成器合并进 `catalog.json` / `models.json`，跳过已有 id，并为新 id 批量写领域色相色板：
 
 ```bash
-npm run gen:families                 # 默认可达 catalog ≥3000（确定性抽样）
-npm run gen:families -- --full       # 逼近四主域目标合计 ~5000
+npm run gen:families                 # 每缺失族补 1 条（唯一仿真引擎，不展开预设）
+node scripts/dedupe-family-variants.mjs  # 折叠历史族×变体克隆（已跑过可跳过）
 npm run gen:families -- --dry-run    # 只打印计数
 npm run gen:families -- --max-per-family 20 --target 4000
 ```
 
 生成条目 id 形如 `fam-<slug>-vNN`，`family` 映射现有 factory（ode1d / wave1d / ml / …）；运行时走薄 `variant` 构建器读取 `dims`/`defaults`。
+
+## Live
+
+GitHub Pages（project site）：**https://otas0.github.io/physics-demo/**
+
+静态根目录由 `.github/workflows/pages.yml`（`actions/deploy-pages`）在 `main` 推送后发布；本地仍用相对路径 `./…`，与 `/physics-demo/` 前缀兼容。
 
 ## 启动与测试
 
@@ -62,9 +68,24 @@ npm run test:all
 
 覆盖率与交互说明见 [manual.html](./manual.html) · [docs/schema-coverage.md](./docs/schema-coverage.md)。
 
+## 贡献入口：新增 factory family
+
+新增一族可视化时，先读 **[docs/add-factory-family.md](./docs/add-factory-family.md)**（统一接口 · Canvas · 原理级保真），再用脚手架：
+
+```bash
+npm run new:family -- name=fluid
+npm run new:family -- name=rcmesh --formalism=circuit
+```
+
+然后在 `data/catalog.json` 挂 `"family": "fluid"` 条目，并跑 `npm test`。
+
+手写精调模型（`family: "hand"`）对照说明见 **[docs/hand-models.md](./docs/hand-models.md)**。
+
+品牌字标 **IMMSPFEE**：`assets/immspfee-logo.webp`（优先）+ `.png` 回退，侧栏 `picture` 引用；SVG 外壳见 `assets/immspfee-logo.svg`。
+
 ## 参数与窄屏
 
 - 宽量程 NaN →「恢复安全默认」
 - 对照：钉住 / 存快照 / 切换 / **导出·导入 JSON**
 - CSV 优先 `getEnergyAt(row)`，按轨迹点能量而非末态重复
-- 折叠：按钮全开全收 + 点标题 + **左右滑切领域**（与按钮并存）
+- 折叠：按钮全开全收 + 点标题

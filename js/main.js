@@ -68,7 +68,11 @@ const app = {
 const FOLD_KEY = 'physics-lab-folds-v1';
 const BASELINE_KEY = 'physics-lab-baselines-v1';
 const MODEL_KEY = 'physics-lab-model';
+const RECENTS_KEY = 'physics-lab-recents-v1';
+const RECENTS_MAX = 8;
+const AUTO_OPEN_BENCH_KEY = 'physics-lab-auto-open-bench';
 const DEFAULT_MODEL_ID = 'free-fall';
+/** P1 stub: shareable deep link `#m=<id>&p=<compressed-params>` (encoding TBD; keep IA 三栏). */
 const HOT_SUBS = new Set([
   '经典力学', '算法与数据结构', '计算机体系结构', '波与振动', '电磁学', '数字逻辑',
   '梁与框架', '动力循环', '经典控制', '气动', '交通流', '静力与强度',
@@ -170,6 +174,24 @@ function syncPauseUi() {
   btnPause.classList.toggle('primary', !app.paused);
 }
 
+/** 模型声明 shouldPauseApp / state._pauseApp 时暂停全局时钟 */
+function syncModelClockPause() {
+  if (app.state?._pauseApp) {
+    app.state._pauseApp = false;
+    if (!app.paused) {
+      app.paused = true;
+      syncPauseUi();
+    }
+  }
+  if (typeof app.model?.shouldPauseApp === 'function' && app.model.shouldPauseApp(app.state)) {
+    if (!app.paused) {
+      app.paused = true;
+      syncPauseUi();
+    }
+  }
+  updateShellStrip();
+}
+
 let scrubResume = null;
 const DEBUG_PARAM_LOG = (() => {
   try { return localStorage.getItem('physics-lab-debug-params') === '1'; }
@@ -191,6 +213,46 @@ function showToast(msg) {
   el.classList.add('show');
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/** 初值/数值改参：节流 toast，避免拖电位器刷屏 */
+let reinitToastAt = 0;
+function toastReinitThrottled() {
+  const now = Date.now();
+  if (now - reinitToastAt < 900) return;
+  reinitToastAt = now;
+  showToast('已重置仿真状态');
+}
+
+function loadRecents() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]');
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((id) => typeof id === 'string' && models.some((m) => m.id === id)).slice(0, RECENTS_MAX);
+  } catch {
+    return [];
+  }
+}
+
+function pushRecent(id) {
+  if (!id || !models.some((m) => m.id === id)) return;
+  const next = [id, ...loadRecents().filter((x) => x !== id)].slice(0, RECENTS_MAX);
+  try { localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+}
+
+/** 窄屏默认开；可用 localStorage physics-lab-auto-open-bench=0|1 覆盖 */
+function autoOpenBenchOnSelect() {
+  try {
+    const v = localStorage.getItem(AUTO_OPEN_BENCH_KEY);
+    if (v === '0') return false;
+    if (v === '1') return true;
+  } catch { /* ignore */ }
+  return isCompact();
+}
+
+function scrollBenchToDynamics() {
+  const dyn = paramRoot?.querySelector('.param-section[data-priority="dyn"]');
+  dyn?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 /** 完全以 schema.group 为准：dynamics/display=live；initial/numerics=reset；无 schema 的自定义键默认 live */
@@ -225,11 +287,14 @@ function sanitizeSimState(state) {
 }
 
 function applyParamChange(key) {
-  if (shouldReinitModel(key)) {
+  const reinit = shouldReinitModel(key);
+  if (reinit) {
     stepper.reset();
     const kept = { ...app.state.params };
     app.state = { params: kept };
     app.model.init(app.state);
+    if (key === 'layoutSteps') showToast('布局已重算');
+    else toastReinitThrottled();
   }
   // 死规则：改参后立即 refresh，保证 HUD/图在暂停时也立刻响应
   try {
@@ -250,10 +315,11 @@ function applyParamChange(key) {
   if (DEBUG_PARAM_LOG) {
     clearTimeout(paramLogTimer);
     paramLogTimer = setTimeout(() => {
-      const mode = shouldReinitModel(key) ? 'reinit' : 'live';
+      const mode = reinit ? 'reinit' : 'live';
       console.debug(`[param ${mode}]`, key, app.state?.params?.[key]);
     }, 120);
   }
+  syncModelClockPause();
   paintFrame();
   updateHud({ flash: true });
 }
@@ -273,14 +339,53 @@ function updateShellStrip() {
     shellModeEl.textContent = [cap.formalism, cap.interaction].filter(Boolean).join(' · ') || 'knobs';
   }
   if (shellHintEl) {
-    shellHintEl.textContent = [
-      note ? `【${note}】` : '',
-      cap.hint,
-      cap.fidelity === 'principle' ? '· 原理级' : '',
-      cap.hasPointer ? '· 画布可交互' : '',
-      cap.hasEnergy ? '· CSV 含能量' : '',
-      `· ${cap.paramCount} 参`,
-    ].filter(Boolean).join(' ');
+    // PhET 风：短提示，把长说明留给工作台 banner
+    const bits = [];
+    if (note) bits.push(note);
+    else if (cap.hint) bits.push(cap.hint);
+    if (cap.fidelity === 'principle' && !note) bits.push('原理级');
+    shellHintEl.textContent = bits.filter(Boolean).join(' · ');
+  }
+  // 课堂模式：时钟已暂停徽章 + 恢复自动步进
+  let pauseBadge = document.getElementById('shell-pause-badge');
+  if (!pauseBadge) {
+    pauseBadge = document.createElement('span');
+    pauseBadge.id = 'shell-pause-badge';
+    pauseBadge.className = 'shell-chip shell-pause-badge';
+    document.getElementById('model-shell')?.insertBefore(
+      pauseBadge,
+      document.getElementById('shell-actions') || null,
+    );
+  }
+  let resumeDemoBtn = document.getElementById('shell-resume-demo');
+  if (!resumeDemoBtn) {
+    resumeDemoBtn = document.createElement('button');
+    resumeDemoBtn.type = 'button';
+    resumeDemoBtn.id = 'shell-resume-demo';
+    resumeDemoBtn.className = 'btn quiet shell-resume-demo';
+    resumeDemoBtn.textContent = '恢复自动步进';
+    resumeDemoBtn.addEventListener('click', () => {
+      if (!app.state?.params) return;
+      app.state.params.demo = 0;
+      applyParamChange('demo');
+      app.paused = false;
+      syncPauseUi();
+      updateShellStrip();
+      showToast('已恢复自动步进');
+    });
+    pauseBadge.after(resumeDemoBtn);
+  }
+  const demoPause = typeof app.model?.shouldPauseApp === 'function'
+    && app.model.shouldPauseApp(app.state);
+  if (demoPause) {
+    pauseBadge.hidden = false;
+    pauseBadge.textContent = '时钟已暂停 · 用 step';
+    pauseBadge.title = '课堂演示：全局时钟暂停，点工具条单步推进';
+    resumeDemoBtn.hidden = false;
+  } else {
+    pauseBadge.hidden = true;
+    pauseBadge.textContent = '';
+    resumeDemoBtn.hidden = true;
   }
   canvas?.classList.toggle('has-pointer', !!cap.hasPointer);
   renderShellActions(cap);
@@ -301,16 +406,31 @@ function renderShellActions(cap) {
     btn.type = 'button';
     btn.className = 'btn quiet';
     btn.textContent = a.label || a.id;
+    const enabled = typeof app.model?.actionEnabled === 'function'
+      ? !!app.model.actionEnabled(app.state, a.id)
+      : true;
+    btn.disabled = !enabled;
+    btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+    btn.title = enabled ? (a.label || a.id) : (a.id === 'redoEdge' ? '无可重做' : a.id === 'undoEdge' ? '无可撤销' : a.label || a.id);
     btn.addEventListener('click', () => {
-      if (typeof app.model?.runAction !== 'function') return;
+      if (btn.disabled || typeof app.model?.runAction !== 'function') return;
       const ok = app.model.runAction(app.state, a.id);
       if (ok) {
+        // 抛体等：runAction 设 state._resumeApp（受 resumeOnLaunch 等参数控制）
+        if (app.state?._resumeApp) {
+          app.state._resumeApp = false;
+          if (app.paused) {
+            app.paused = false;
+            syncPauseUi();
+          }
+        }
+        updateShellStrip();
         paintFrame();
         paramBench.refresh?.();
         updateHud({ flash: true });
         showToast(a.label || a.id);
       } else {
-        showToast('无可撤销操作');
+        showToast(a.id === 'redoEdge' ? '无可重做' : '无可撤销操作');
       }
     });
     bar.appendChild(btn);
@@ -350,9 +470,64 @@ function activateBaseline(slot) {
   prevReadoutMap = new Map(Object.entries(slot.values || {}));
   app.globals.compareReadouts = true;
   app.globals.pinBaseline = true;
+  if (slot.params || slot.sim) {
+    if (slot.sim) {
+      applySnapshotSimState(slot);
+    } else if (slot.params && app.state?.params) {
+      Object.assign(app.state.params, slot.params);
+      try {
+        if (typeof app.model.init === 'function') {
+          const kept = { ...app.state.params };
+          app.state = { params: kept };
+          app.model.init(app.state);
+        } else if (typeof app.model.refresh === 'function') app.model.refresh(app.state);
+      } catch { /* ignore */ }
+    }
+    paintFrame();
+  }
   paramBench.refresh?.();
   renderBaselineSelect();
   updateHud();
+}
+
+function snapshotSimState(state) {
+  if (!state || typeof state !== 'object') return null;
+  const out = {};
+  for (const [k, v] of Object.entries(state)) {
+    if (k === 'params' || k.startsWith('_')) continue;
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    else if (typeof v === 'boolean' || typeof v === 'string') out[k] = v;
+    else if (Array.isArray(v) && (k === 'trail' || k === 'trails' || k === 'hist' || k === 'wave' || k === 'path')) {
+      out[k] = JSON.parse(JSON.stringify(v.slice(-400)));
+    }
+  }
+  return out;
+}
+
+function applySnapshotSimState(slot) {
+  if (!slot || !app.state) return;
+  if (slot.params) Object.assign(app.state.params, slot.params);
+  if (slot.sim && typeof slot.sim === 'object') {
+    // 有完整仿真态时不要 refresh/init 冲掉 trail/t
+    for (const [k, v] of Object.entries(slot.sim)) {
+      app.state[k] = Array.isArray(v) ? JSON.parse(JSON.stringify(v)) : v;
+    }
+    return;
+  }
+  try {
+    if (typeof app.model.refresh === 'function') app.model.refresh(app.state);
+    else if (typeof app.model.recompute === 'function') app.model.recompute(app.state);
+  } catch { /* ignore */ }
+}
+
+function hashParams(params) {
+  const raw = JSON.stringify(params || {});
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i += 1) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (`00000000${(h >>> 0).toString(16)}`).slice(-8);
 }
 
 function saveBaselineSnapshot(name) {
@@ -361,10 +536,14 @@ function saveBaselineSnapshot(name) {
     : (app.model?.getReadouts(app.state, { digits: app.globals.readoutDigits }) || []);
   const values = Object.fromEntries(readouts.map((r) => [r.label, r.value]));
   const bucket = modelBaselineBucket();
+  const params = { ...(app.state?.params || {}) };
   const slot = {
     id: `s${Date.now()}`,
     name: name || `快照 ${bucket.length + 1}`,
     values,
+    params,
+    sim: snapshotSimState(app.state),
+    paramsHash: hashParams(params),
     ts: Date.now(),
   };
   bucket.push(slot);
@@ -492,51 +671,6 @@ function expandSearchQuery(raw) {
   return [...new Set(tokens)];
 }
 
-let domainCursor = 0;
-
-function visibleDomains() {
-  const list = filteredModels();
-  const set = new Set(list.map(modelDomain));
-  return [...DOMAIN_ORDER, '其他'].filter((d) => set.has(d));
-}
-
-function cycleDomain(dir) {
-  const domains = visibleDomains();
-  if (!domains.length) return;
-  domainCursor = (domainCursor + dir + domains.length) % domains.length;
-  const target = domains[domainCursor];
-  const folds = loadFolds();
-  for (const d of domains) folds[foldKey(d)] = d === target;
-  saveFolds(folds);
-  buildSidebar();
-  const el = modelListEl.querySelector(`details.domain-group > summary .domain-name`);
-  const match = [...modelListEl.querySelectorAll('details.domain-group')].find(
-    (d) => d.querySelector('.domain-name')?.textContent === target,
-  );
-  match?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  showToast(`领域：${target}`);
-  void el;
-}
-
-function bindDomainSwipe(el) {
-  if (!el || el.dataset.swipeBound) return;
-  el.dataset.swipeBound = '1';
-  let x0 = 0;
-  let armed = false;
-  el.addEventListener('touchstart', (e) => {
-    if (!isMobileDrawer() && !isCompact()) return;
-    armed = true;
-    x0 = e.touches[0].clientX;
-  }, { passive: true });
-  el.addEventListener('touchend', (e) => {
-    if (!armed) return;
-    armed = false;
-    const dx = e.changedTouches[0].clientX - x0;
-    if (Math.abs(dx) < 48) return;
-    cycleDomain(dx < 0 ? 1 : -1);
-  }, { passive: true });
-}
-
 function filteredModels() {
   const raw = app.filter.q.trim();
   const rawLower = raw.toLowerCase();
@@ -572,9 +706,11 @@ function filteredModels() {
 
 function makeModelButton(m) {
   const btn = document.createElement('button');
+  const active = app.model?.id === m.id;
   btn.type = 'button';
-  btn.className = 'model-item' + (app.model?.id === m.id ? ' active' : '');
+  btn.className = 'model-item' + (active ? ' active' : '');
   btn.dataset.id = m.id;
+  if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
     .map((t) => `<span class="tag">${t}</span>`).join('');
   const swatch = getModelSwatch(m.id);
@@ -584,6 +720,34 @@ function makeModelButton(m) {
     setSidebarOpen(false);
   });
   return btn;
+}
+
+function renderRecentsStrip() {
+  const ids = loadRecents();
+  if (!ids.length) return null;
+  const strip = document.createElement('div');
+  strip.className = 'recents-strip';
+  strip.setAttribute('aria-label', '最近模型');
+  const label = document.createElement('span');
+  label.className = 'recents-label';
+  label.textContent = '最近';
+  strip.appendChild(label);
+  for (const id of ids) {
+    const m = getModelById(id);
+    if (!m) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'recents-chip' + (app.model?.id === id ? ' is-active' : '');
+    b.textContent = m.name;
+    b.title = m.id;
+    if (app.model?.id === id) b.setAttribute('aria-current', 'page');
+    b.addEventListener('click', () => {
+      switchModel(id);
+      setSidebarOpen(false);
+    });
+    strip.appendChild(b);
+  }
+  return strip;
 }
 
 function modelSub(m) {
@@ -617,7 +781,42 @@ function buildSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
   const folds = loadFolds();
-  const searching = !!app.filter.q.trim() || !!app.filter.tag;
+  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism;
+  const countEl = document.createElement('div');
+  countEl.className = 'filter-count';
+  const parts = [];
+  if (app.filter.tag) parts.push(`tag:${app.filter.tag}`);
+  if (app.filter.formalism) parts.push(`form:${app.filter.formalism}`);
+  if (app.filter.q.trim()) parts.push(`q:${app.filter.q.trim()}`);
+  countEl.textContent = parts.length
+    ? `筛选 ${list.length} / ${models.length} · ${parts.join(' · ')}`
+    : `全部 ${list.length} 模型`;
+  // 三次点击循环：清 tag/form → 清 q → 提示已空
+  countEl.title = parts.length
+    ? '点击：清 tag/form → 再点清 q → 再点提示已空'
+    : '点击提示：当前无筛选';
+  countEl.style.cursor = 'pointer';
+  countEl.addEventListener('click', () => {
+    if (app.filter.tag || app.filter.formalism) {
+      const keepQ = !!app.filter.q.trim();
+      app.filter.tag = '';
+      app.filter.formalism = '';
+      if (filterTag) filterTag.value = '';
+      if (filterFormalism) filterFormalism.value = '';
+      buildSidebar();
+      showToast(keepQ ? '已清除 tag · form（再点清除搜索）' : '已清除 tag · form 筛选');
+      return;
+    }
+    if (app.filter.q.trim()) {
+      app.filter.q = '';
+      if (filterQ) filterQ.value = '';
+      buildSidebar();
+      showToast('已清除搜索 q');
+      return;
+    }
+    showToast('筛选已空');
+  });
+  modelListEl.appendChild(countEl);
   const foldBar = document.createElement('div');
   foldBar.className = 'fold-bar';
   const btnExpand = document.createElement('button');
@@ -632,22 +831,11 @@ function buildSidebar() {
   btnCollapse.addEventListener('click', () => setAllFolds(false));
   const foldHint = document.createElement('p');
   foldHint.className = 'fold-hint';
-  foldHint.textContent = '折叠：按钮全开/全收；点标题开合；窄屏在折叠栏左右滑切换领域';
-  const btnPrevDom = document.createElement('button');
-  btnPrevDom.type = 'button';
-  btnPrevDom.className = 'btn quiet domain-nav';
-  btnPrevDom.textContent = '‹ 域';
-  btnPrevDom.title = '上一个领域';
-  const btnNextDom = document.createElement('button');
-  btnNextDom.type = 'button';
-  btnNextDom.className = 'btn quiet domain-nav';
-  btnNextDom.textContent = '域 ›';
-  btnNextDom.title = '下一个领域';
-  btnPrevDom.addEventListener('click', () => cycleDomain(-1));
-  btnNextDom.addEventListener('click', () => cycleDomain(1));
-  foldBar.append(btnPrevDom, btnExpand, btnCollapse, btnNextDom);
-  bindDomainSwipe(foldBar);
+  foldHint.textContent = '折叠：按钮全开/全收；点标题开合';
+  foldBar.append(btnExpand, btnCollapse);
   modelListEl.appendChild(foldBar);
+  const recents = renderRecentsStrip();
+  if (recents) modelListEl.appendChild(recents);
   modelListEl.appendChild(foldHint);
 
   if (!list.length) {
@@ -710,8 +898,19 @@ function buildSidebar() {
 }
 
 function syncSidebarActive() {
+  const id = app.model?.id;
   for (const el of modelListEl.querySelectorAll('.model-item')) {
-    el.classList.toggle('active', el.dataset.id === app.model.id);
+    const on = el.dataset.id === id;
+    el.classList.toggle('active', on);
+    if (on) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
+  }
+  for (const el of modelListEl.querySelectorAll('.recents-chip')) {
+    // chips store model id in title
+    const active = el.title === id;
+    el.classList.toggle('is-active', active);
+    if (active) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
   }
 }
 
@@ -756,7 +955,7 @@ function syncDrawerChrome() {
     btnParams.tabIndex = 0;
     btnParams.setAttribute('aria-hidden', 'false');
     const lbl = btnParams.querySelector('.lbl');
-    if (lbl) lbl.textContent = compact ? 'params' : (benchCollapsed ? 'bench' : 'fold');
+    if (lbl) lbl.textContent = compact ? '参数' : (benchCollapsed ? '参数' : '收起');
   }
   if (btnCloseBench) {
     btnCloseBench.hidden = !compact;
@@ -828,12 +1027,31 @@ function switchModel(id) {
   toolbarSub.textContent = [model.sub, ...(model.tags || []).filter((t) => t !== model.sub)].filter(Boolean).join(' / ') || 'model';
   metaFormula.textContent = [model.formula, model.description].filter(Boolean).join('\n');
   paramBench.bind(model, app.state.params, app.globals);
+  pushRecent(model.id);
+  // 刷新最近条（fold-bar 下），不整树重建以免丢折叠态时也可接受轻量 rebuild 条
+  const oldStrip = modelListEl.querySelector('.recents-strip');
+  const nextStrip = renderRecentsStrip();
+  if (oldStrip && nextStrip) oldStrip.replaceWith(nextStrip);
+  else if (!oldStrip && nextStrip) {
+    const foldBar = modelListEl.querySelector('.fold-bar');
+    foldBar?.after(nextStrip);
+  }
   syncSidebarActive();
   updateShellStrip();
   renderBaselineSelect();
   updateHud();
-  setBenchOpen(!isCompact());
+  if (isCompact()) {
+    if (autoOpenBenchOnSelect()) {
+      setBenchOpen(true);
+      requestAnimationFrame(() => requestAnimationFrame(scrollBenchToDynamics));
+    } else {
+      setBenchOpen(false);
+    }
+  } else {
+    setBenchOpen(true);
+  }
   persistActiveModel(model.id);
+  syncModelClockPause();
   requestAnimationFrame(measureSysSticky);
 }
 
@@ -854,6 +1072,12 @@ function updateHud(opts = {}) {
       : '';
     return `<div class="readout-card${changed ? ' is-changed' : ''}${compare ? ' has-compare' : ''}"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value-row">${prevHtml}<span class="value">${r.value}</span></span></div>`;
   }).join('');
+  const srTable = document.getElementById('sr-readouts');
+  if (srTable) {
+    srTable.innerHTML = '<thead><tr><th scope="col">量</th><th scope="col">值</th></tr></thead><tbody>'
+      + readouts.map((r) => `<tr><th scope="row">${r.label}</th><td>${r.value}</td></tr>`).join('')
+      + '</tbody>';
+  }
   const pinned = !!app.globals.pinBaseline;
   if (opts.snapshotPrev || baseline.size === 0) {
     prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
@@ -908,6 +1132,7 @@ function frame(now) {
     stepper.advance(frameDt * app.globals.timeScale, (dt) => {
       try {
         app.model.step(app.state, dt);
+        if (app.state?._pauseApp) syncModelClockPause();
         const check = sanitizeSimState(app.state);
         if (!check.ok) {
           showToast(`非有限值保护: ${check.bad.slice(0, 2).join(', ')} — 可恢复安全默认`);
@@ -938,7 +1163,8 @@ btnReset.addEventListener('click', () => resetSim());
 btnMenu.addEventListener('click', (e) => {
   // 菜单在 stage 内，必须阻止冒泡，否则 stage click 会立刻关掉侧栏
   e.stopPropagation();
-  setSidebarOpen(!sidebar.classList.contains('open'));
+  const willOpen = !sidebar.classList.contains('open');
+  setSidebarOpen(willOpen);
 });
 btnParams.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -952,10 +1178,62 @@ btnParams.addEventListener('click', (e) => {
 btnCloseBench.addEventListener('click', (e) => {
   e.stopPropagation();
   setBenchOpen(false);
+  btnParams?.focus();
 });
 drawerBackdrop.addEventListener('click', () => {
+  const sideWas = sidebar.classList.contains('open');
+  const benchWas = isCompact() && bench.classList.contains('open');
   setBenchOpen(false);
   setSidebarOpen(false);
+  if (sideWas) btnMenu?.focus();
+  else if (benchWas) btnParams?.focus();
+});
+
+document.addEventListener('keydown', (e) => {
+  const inField = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT');
+  // Ctrl/Cmd+Shift+Z → redoEdge；Ctrl/Cmd+Z → undoEdge
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !inField) {
+    if (typeof app.model?.runAction === 'function') {
+      const actionId = e.shiftKey ? 'redoEdge' : 'undoEdge';
+      const ok = app.model.runAction(app.state, actionId);
+      if (ok) {
+        e.preventDefault();
+        paintFrame();
+        paramBench.refresh?.();
+        updateHud({ flash: true });
+        showToast(e.shiftKey ? '重做连线' : '撤销连线');
+        return;
+      }
+    }
+  }
+  if (e.key !== 'Escape') return;
+  if (inField) {
+    // 输入框 Esc：先失焦，不关抽屉（二次 Esc 才关）
+    e.target.blur?.();
+    return;
+  }
+  if (sidebar.classList.contains('open')) {
+    setSidebarOpen(false);
+    btnMenu?.focus();
+    e.preventDefault();
+    return;
+  }
+  if (isCompact() && bench.classList.contains('open')) {
+    setBenchOpen(false);
+    btnParams?.focus();
+    e.preventDefault();
+  }
+});
+
+document.getElementById('btn-copy-readouts')?.addEventListener('click', async () => {
+  const rows = app.lastReadouts || [];
+  const text = rows.map((r) => `${r.label}\t${r.value}`).join('\n') || '(无读数)';
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('已复制读数');
+  } catch {
+    showToast('复制失败');
+  }
 });
 
 btnShot.addEventListener('click', () => {
@@ -1033,25 +1311,73 @@ document.getElementById('btn-export-baseline')?.addEventListener('click', () => 
   showToast('已导出对照卷 JSON');
 });
 document.getElementById('btn-export-classpack')?.addEventListener('click', () => {
-  const files = [{
+  const withShots = !!document.getElementById('chk-pack-shots')?.checked;
+  const shotList = [];
+  const files = [];
+  const modelIds = Object.keys(baselineStore.byModel).filter((id) => baselineStore.byModel[id]?.length);
+  for (const mid of modelIds) {
+    files.push({
+      name: `models/${mid}.json`,
+      data: JSON.stringify({ modelId: mid, snapshots: baselineStore.byModel[mid] }, null, 2),
+    });
+  }
+  if (!files.length) {
+    showToast('尚无快照可打包 — 先存几个对照快照');
+    return;
+  }
+  if (withShots) {
+    const prevId = app.model?.id;
+    for (const mid of modelIds) {
+      if (!models.some((m) => m.id === mid)) continue;
+      switchModel(mid);
+      const snaps = baselineStore.byModel[mid] || [];
+      for (const snap of snaps) {
+        applySnapshotSimState(snap);
+        paintFrame({ forceDpr: 2 });
+        const dataUrl = canvas.toDataURL('image/png');
+        const b64 = dataUrl.split(',', 2)[1] || '';
+        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const safeSnap = String(snap.id || snap.name || 'snap').replace(/[^\w.-]+/g, '_');
+        const shotName = `shots/${mid}/${safeSnap}.png`;
+        const paramsHash = snap.paramsHash || hashParams(snap.params);
+        files.push({ name: shotName, data: bin });
+        shotList.push({
+          modelId: mid,
+          snapshotId: snap.id,
+          snapshotName: snap.name,
+          snapshotParamsHash: paramsHash,
+          file: shotName,
+        });
+      }
+    }
+    if (prevId) switchModel(prevId);
+    requestAnimationFrame(() => paintFrame());
+  }
+  const snapshotParamsHash = {};
+  for (const mid of modelIds) {
+    snapshotParamsHash[mid] = (baselineStore.byModel[mid] || []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      hash: s.paramsHash || hashParams(s.params),
+    }));
+  }
+  files.unshift({
     name: 'manifest.json',
     data: JSON.stringify({
       kind: 'lab-classroom-pack',
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
-      models: Object.keys(baselineStore.byModel),
+      models: modelIds,
+      shots: shotList,
+      includeShots: withShots,
+      snapshotParamsHash,
     }, null, 2),
-  }];
-  for (const [mid, snaps] of Object.entries(baselineStore.byModel)) {
-    if (!snaps?.length) continue;
+  });
+  if (shotList.length) {
     files.push({
-      name: `models/${mid}.json`,
-      data: JSON.stringify({ modelId: mid, snapshots: snaps }, null, 2),
+      name: 'shots/README.txt',
+      data: `课堂包截图清单（每快照一帧）\n${shotList.map((s) => `${s.modelId}\t${s.snapshotId || ''}\t${s.snapshotName || ''}\t${s.file}`).join('\n')}\n`,
     });
-  }
-  if (files.length < 2) {
-    showToast('尚无快照可打包 — 先存几个对照快照');
-    return;
   }
   const blob = buildZipStore(files);
   const a = document.createElement('a');
@@ -1059,7 +1385,7 @@ document.getElementById('btn-export-classpack')?.addEventListener('click', () =>
   a.download = `lab-classroom-pack-${Date.now()}.zip`;
   a.click();
   URL.revokeObjectURL(a.href);
-  showToast(`课堂包已导出（${files.length - 1} 个模型）`);
+  showToast(`课堂包已导出（${modelIds.length} 模型${withShots ? ` + ${shotList.length} PNG` : ''}）`);
 });
 document.getElementById('btn-import-baseline')?.addEventListener('click', () => {
   document.getElementById('baseline-file')?.click();
@@ -1312,6 +1638,23 @@ window.__labCapture = {
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
   restoreSafeDefaults: () => restoreSafeDefaults(),
   getCapabilities: () => deriveCapabilities(app.model),
+  getModel: () => app.model,
+  runAction: (actionId) => {
+    if (typeof app.model?.runAction !== 'function') return false;
+    const ok = app.model.runAction(app.state, actionId);
+    if (ok) {
+      if (app.state?._resumeApp) {
+        app.state._resumeApp = false;
+        if (app.paused) {
+          app.paused = false;
+          syncPauseUi();
+        }
+      }
+      paintFrame();
+      updateHud({ flash: true });
+    }
+    return ok;
+  },
   saveBaseline: (name) => saveBaselineSnapshot(name),
 };
 
@@ -1331,11 +1674,15 @@ function bindCanvasPointer() {
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   canvas.addEventListener('pointerdown', (e) => {
     if (typeof app.model?.onPointer !== 'function') return;
     const p = pt(e);
-    const handled = app.model.onPointer(app.state, { type: 'down', x: p.x, y: p.y });
+    const handled = app.model.onPointer(app.state, {
+      type: 'down', x: p.x, y: p.y, button: e.button, altKey: !!e.altKey, shiftKey: !!e.shiftKey,
+    });
     if (handled) {
+      // 左键拖交互；右键/中键也可拖（BFS 画墙）
       dragging = true;
       canvas.setPointerCapture?.(e.pointerId);
       e.preventDefault();
@@ -1347,7 +1694,9 @@ function bindCanvasPointer() {
   canvas.addEventListener('pointermove', (e) => {
     if (!dragging || typeof app.model?.onPointer !== 'function') return;
     const p = pt(e);
-    if (app.model.onPointer(app.state, { type: 'move', x: p.x, y: p.y })) {
+    if (app.model.onPointer(app.state, {
+      type: 'move', x: p.x, y: p.y, button: e.button, altKey: !!e.altKey, shiftKey: !!e.shiftKey,
+    })) {
       paintFrame();
       paramBench.refresh?.();
       updateHud({ flash: true });
@@ -1357,7 +1706,9 @@ function bindCanvasPointer() {
     if (!dragging) return;
     dragging = false;
     const p = pt(e);
-    app.model?.onPointer?.(app.state, { type: 'up', x: p.x, y: p.y });
+    app.model?.onPointer?.(app.state, {
+      type: 'up', x: p.x, y: p.y, button: e.button, altKey: !!e.altKey, shiftKey: !!e.shiftKey,
+    });
     paintFrame();
     paramBench.refresh?.();
     updateHud({ flash: true });
@@ -1375,11 +1726,17 @@ async function boot() {
     document.getElementById('chassis')?.classList.add('bench-collapsed');
   }
   btnMenu.innerHTML = ICO.menu;
-  btnReset.innerHTML = btnHtml('reset', 'reset');
+  btnReset.innerHTML = btnHtml('reset', '重跑');
+  btnReset.title = '保持当前参数，从 t=0 重积';
+  btnReset.setAttribute('aria-label', '重跑');
   btnShot.innerHTML = btnHtml('cam', 'png');
   btnCsv.innerHTML = btnHtml('csv', 'csv');
-  btnParams.innerHTML = btnHtml('params', 'params');
+  btnParams.innerHTML = btnHtml('params', '参数');
+  btnParams.title = '打开参数工作台';
   btnCloseBench.innerHTML = btnHtml('close', 'close');
+  if (btnSafeRestore) {
+    btnSafeRestore.title = '宽量程 NaN 后一键恢复模型默认参数（与「重跑」不同）';
+  }
 
   await loadModelMetadata('./data/models.json');
   populateTagFilter();

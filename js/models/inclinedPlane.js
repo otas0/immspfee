@@ -6,6 +6,14 @@ import { C } from '../utils/theme.js';
 export default {
   id: 'inclined-plane',
   name: '斜面滑动物块',
+  capabilities: {
+    pointer: true,
+    interaction: 'canvas',
+    formalism: 'ode',
+    viz: 'phet-particle',
+    fidelity: 'principle',
+    hint: '拖动物块改 s；拖斜面端点改 θ（类 PhET 约束点）',
+  },
   params: {
     g: 9.81, theta: 30, mu_s: 0.35, mu_k: 0.22, m: 1.2,
     s0: 0.2, v0: 0, c: 0, length: 8, e: 0.3,
@@ -95,6 +103,7 @@ export default {
     const pix = Math.min((W - margin * 2) / (L * Math.cos(th) + 0.01), (H - margin * 2) / (L * Math.sin(th) + 0.01));
     const x1 = x0 + L * Math.cos(th) * pix;
     const y1 = y0 - L * Math.sin(th) * pix;
+    state._plane = { x0, y0, x1, y1, pix, L, th, W, H };
 
     ctx.strokeStyle = C.axis;
     ctx.lineWidth = 3;
@@ -112,11 +121,23 @@ export default {
     const by = y0 + u * (y1 - y0);
     const nx = -Math.sin(th);
     const ny = -Math.cos(th);
+    state._block = { x: bx + nx * 14, y: by + ny * 14, r: 22 };
+    // 可拖约束点：斜面顶端（改 θ）
+    ctx.fillStyle = C.vector;
+    ctx.beginPath();
+    ctx.arc(x1, y1, 7, 0, Math.PI * 2);
+    ctx.fill();
+    state._hinge = { x: x1, y: y1, r: 12 };
     ctx.fillStyle = C.body;
     ctx.save();
     ctx.translate(bx + nx * 14, by + ny * 14);
     ctx.rotate(-th);
     ctx.fillRect(-16, -12, 32, 24);
+    if (state._drag === 'block') {
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-18, -14, 36, 28);
+    }
     ctx.restore();
 
     if (view.showVectors !== false) {
@@ -166,5 +187,47 @@ export default {
 
   getTrajectory(state) {
     return state.trail;
+  },
+
+  onPointer(state, ev) {
+    if (!state._plane) return false;
+    const { x0, y0, L } = state._plane;
+    if (ev.type === 'down') {
+      const h = state._hinge;
+      if (h && (ev.x - h.x) ** 2 + (ev.y - h.y) ** 2 <= h.r * h.r) {
+        state._drag = 'hinge';
+        return true;
+      }
+      const b = state._block;
+      if (b && (ev.x - b.x) ** 2 + (ev.y - b.y) ** 2 <= b.r * b.r) {
+        state._drag = 'block';
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === 'move' && state._drag === 'hinge') {
+      const dx = ev.x - x0;
+      const dy = y0 - ev.y;
+      let deg = (Math.atan2(dy, Math.max(dx, 1e-6)) * 180) / Math.PI;
+      deg = Math.max(1, Math.min(85, deg));
+      state.params.theta = deg;
+      state.stuck = false;
+      return true;
+    }
+    if (ev.type === 'move' && state._drag === 'block') {
+      const th = (P(state.params, 'theta', 30) * Math.PI) / 180;
+      const pix = state._plane.pix;
+      const along = (ev.x - x0) * Math.cos(th) + (y0 - ev.y) * Math.sin(th);
+      state.s = Math.max(0, Math.min(L, along / Math.max(pix, 1e-6)));
+      state.params.s0 = state.s;
+      state.v = 0;
+      state.stuck = false;
+      return true;
+    }
+    if (ev.type === 'up') {
+      state._drag = null;
+      return true;
+    }
+    return false;
   },
 };

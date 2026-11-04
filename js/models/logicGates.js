@@ -58,7 +58,16 @@ export default {
   capabilities: {
     pointer: true,
     interaction: 'canvas',
-    hint: '网表模式：拖门体移动；从输出点拖到输入点连线',
+    formalism: 'digital',
+    viz: 'netlist',
+    fidelity: 'principle',
+    hint: '网表拖线；清空连线保留门 / 重置模板 两档',
+    actions: [
+      { id: 'undoEdge', label: '撤销连线' },
+      { id: 'redoEdge', label: '重做连线' },
+      { id: 'clearWires', label: '清空连线' },
+      { id: 'resetTemplate', label: '重置模板' },
+    ],
   },
   params: {
     a: 1, b: 0, c: 0, mode: 0, scan: 0, stepDt: 0.4, bits: 2,
@@ -88,6 +97,70 @@ export default {
     },
   },
 
+  pushNetHist(state) {
+    if (!state._netHist) state._netHist = [];
+    state._netHist.push(String(state.params.netlist || ''));
+    while (state._netHist.length > 32) state._netHist.shift();
+    // 新编辑清空重做栈
+    state._netRedo = [];
+  },
+
+  /** 工具条 disabled：与 undo 同深 32 的 redo 栈 */
+  actionEnabled(state, actionId) {
+    if (actionId === 'undoEdge') return (state?._netHist?.length || 0) > 0;
+    if (actionId === 'redoEdge') return (state?._netRedo?.length || 0) > 0;
+    return true;
+  },
+
+  runAction(state, actionId) {
+    if (actionId === 'undoEdge') {
+      const hist = state._netHist || [];
+      if (!hist.length) return false;
+      if (!state._netRedo) state._netRedo = [];
+      state._netRedo.push(String(state.params.netlist || ''));
+      while (state._netRedo.length > 32) state._netRedo.shift();
+      state.params.netlist = hist.pop();
+      state._netHist = hist;
+      this.recompute(state);
+      return true;
+    }
+    if (actionId === 'redoEdge') {
+      const redo = state._netRedo || [];
+      if (!redo.length) return false;
+      if (!state._netHist) state._netHist = [];
+      state._netHist.push(String(state.params.netlist || ''));
+      while (state._netHist.length > 32) state._netHist.shift();
+      state.params.netlist = redo.pop();
+      state._netRedo = redo;
+      this.recompute(state);
+      return true;
+    }
+    if (actionId === 'clearWires' || actionId === 'clearGraph') {
+      // 清空连线、保留门（与拖线共用 _netHist 撤销栈）
+      this.pushNetHist(state);
+      const gates = state.gates?.length
+        ? state.gates
+        : parseNetlist(state.params.netlist || 'AND A B N1; OR N1 C Y');
+      gates.forEach((g, i) => {
+        g.in[0] = i === 0 ? 'A' : (gates[i - 1]?.out || 'A');
+        g.in[1] = i === 0 ? 'B' : 'C';
+      });
+      state.gates = gates;
+      state.params.netlist = gates.map((g) => `${g.op} ${g.in[0]} ${g.in[1]} ${g.out}`).join('; ');
+      this.recompute(state);
+      return true;
+    }
+    if (actionId === 'resetTemplate') {
+      this.pushNetHist(state);
+      state.params.netlist = 'AND A B N1; OR N1 C Y';
+      state.gates = parseNetlist(state.params.netlist);
+      state._layout = null;
+      this.recompute(state);
+      return true;
+    }
+    return false;
+  },
+
   init(state) {
     state.t = 0;
     state.acc = 0;
@@ -96,6 +169,8 @@ export default {
     state.wave = [];
     state.table = [];
     state.wires = {};
+    state._netHist = [];
+    state._netRedo = [];
     state.gates = parseNetlist(state.params.netlist || 'AND A B N1; OR N1 C Y');
     this.recompute(state);
   },
@@ -347,11 +422,11 @@ export default {
       if (state._wire) {
         const port = hitPort(ev.x, ev.y);
         if (port && (port.kind === 'in0' || port.kind === 'in1') && port.gate !== state._wire.from) {
+          this.pushNetHist(state);
           const src = state.gates[state._wire.from];
           const dst = state.gates[port.gate];
           const idx = port.kind === 'in0' ? 0 : 1;
           dst.in[idx] = src.out;
-          // sync netlist text
           state.params.netlist = state.gates.map((g) => `${g.op} ${g.in[0]} ${g.in[1]} ${g.out}`).join('; ');
           this.recompute(state);
         }

@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+/**
+ * 从 artifacts/contract-browser.json 更新 data/principle-low-ink.json + js/lab/lowInkIds.js
+ *
+ * 默认：与旧表取并集（加粗持续生效）
+ * --tighten：只保留本轮 ink<1%（收紧静态表）
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const reportPath = path.join(root, 'artifacts/contract-browser.json');
+const outJson = path.join(root, 'data/principle-low-ink.json');
+const outJs = path.join(root, 'js/lab/lowInkIds.js');
+const THRESHOLD = 0.01;
+const tighten = process.argv.includes('--tighten');
+
+if (!fs.existsSync(reportPath)) {
+  console.error('缺少 artifacts/contract-browser.json — 先跑 npm run test:contract-browser');
+  process.exit(1);
+}
+
+const j = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+const sampledLow = (j.report || [])
+  .filter((r) => (r.fidelity || 'principle') === 'principle' && (r.inkDensity || 0) < THRESHOLD)
+  .map((r) => r.id);
+
+let prev = [];
+try {
+  prev = JSON.parse(fs.readFileSync(outJson, 'utf8')).ids || [];
+} catch { /* first run */ }
+
+const ids = [...new Set(tighten ? sampledLow : [...prev, ...sampledLow])].sort();
+
+const payload = {
+  threshold: THRESHOLD,
+  source: 'artifacts/contract-browser.json',
+  generatedAt: new Date().toISOString(),
+  mode: tighten ? 'tighten' : 'union',
+  n: ids.length,
+  sampledLowInk: sampledLow,
+  ids,
+};
+fs.writeFileSync(outJson, `${JSON.stringify(payload, null, 2)}\n`);
+
+const idLines = ids.map((id) => `  '${String(id).replace(/'/g, "\\'")}',`).join('\n');
+const boostBody = fs.readFileSync(path.join(root, 'js/lab/lowInkIds.js'), 'utf8');
+// Keep applyLowInkStrokeBoost implementation from current file if present, else embed template
+const boostMatch = boostBody.match(/export function applyLowInkStrokeBoost[\s\S]*$/);
+const boostFn = boostMatch ? boostMatch[0] : `export function applyLowInkStrokeBoost(model) {
+  if (!model || typeof model.draw !== 'function') return model;
+  if (!shouldBoostStroke(model.id)) return model;
+  if (model._lowInkBoosted) return model;
+  const draw0 = model.draw.bind(model);
+  model.draw = (ctx, state, view) => {
+    const stroke0 = ctx.stroke.bind(ctx);
+    const strokeRect0 = ctx.strokeRect.bind(ctx);
+    const fillRect0 = ctx.fillRect.bind(ctx);
+    ctx.stroke = (...a) => {
+      const lw = Number(ctx.lineWidth) || 1;
+      const alpha = ctx.globalAlpha;
+      ctx.lineWidth = Math.max(lw * 4.2, 5);
+      ctx.globalAlpha = Math.min(1, alpha * 0.22);
+      stroke0(...a);
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = Math.max(lw * 2.8, 3.2);
+      stroke0(...a);
+      ctx.lineWidth = lw;
+    };
+    ctx.strokeRect = (...a) => {
+      const lw = Number(ctx.lineWidth) || 1;
+      const alpha = ctx.globalAlpha;
+      ctx.lineWidth = Math.max(lw * 3.5, 4);
+      ctx.globalAlpha = Math.min(1, alpha * 0.25);
+      strokeRect0(...a);
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = Math.max(lw * 2.4, 2.8);
+      strokeRect0(...a);
+      ctx.lineWidth = lw;
+    };
+    ctx.fillRect = (x, y, w, h) => {
+      if (Math.abs(w) < 3 && Math.abs(h) > 6) fillRect0(x - 1, y, w + (w >= 0 ? 2 : -2), h);
+      else if (Math.abs(h) < 3 && Math.abs(w) > 6) fillRect0(x, y - 1, w, h + (h >= 0 ? 2 : -2));
+      else fillRect0(x, y, w, h);
+    };
+    try { draw0(ctx, state, view); }
+    finally {
+      ctx.stroke = stroke0;
+      ctx.strokeRect = strokeRect0;
+      ctx.fillRect = fillRect0;
+    }
+  };
+  model._lowInkBoosted = true;
+  return model;
+}
+`;
+
+const js = `/**
+ * principle 模型 ink density < 1% 静态表（与 data/principle-low-ink.json 同步）。
+ * 仅对这些 id 做「内建曲线加粗」（无墨点网格），避免全局影响视觉基线。
+ * 更新：npm run gen:low-ink | npm run gen:low-ink:tighten
+ */
+export const LOW_INK_THRESHOLD = ${THRESHOLD};
+
+export const LOW_INK_IDS = new Set([
+${idLines}
+]);
+
+export function shouldBoostStroke(modelId) {
+  return !!modelId && LOW_INK_IDS.has(modelId);
+}
+
+${boostFn}
+`;
+fs.writeFileSync(outJs, js);
+console.log(`low-ink mode=${payload.mode} n=${ids.length} sampledLow=${sampledLow.length}`);
+console.log(ids.join(', ') || '(none)');

@@ -18,13 +18,13 @@ export default {
     hotspot: 80,   // 中心热斑温度
   },
   paramSchema: {
-    N: { group: 'numerics', unit: '', label: 'N', min: 10, max: 256 },
-    L: { group: 'dynamics', unit: 'm', label: 'L', min: 0.1, max: 10 },
-    alpha: { group: 'dynamics', unit: 'm²/s', label: 'alpha', min: 0, max: 2 },
-    Tleft: { group: 'initial', unit: '°C', label: 'Tleft', min: -50, max: 200 },
-    Tright: { group: 'initial', unit: '°C', label: 'Tright', min: -50, max: 200 },
-    T0: { group: 'initial', unit: '°C', label: 'T0', min: -50, max: 200 },
-    hotspot: { group: 'initial', unit: '°C', label: 'hotspot', min: -50, max: 200 },
+    N: { group: 'numerics', unit: '', label: '网格点数 N', min: 10, max: 256 },
+    L: { group: 'dynamics', unit: 'm', label: '杆长 L', min: 0.1, max: 10 },
+    alpha: { group: 'dynamics', unit: 'm²/s', label: '热扩散率 α', min: 0, max: 2 },
+    Tleft: { group: 'initial', unit: '°C', label: '左端温度', min: -50, max: 200 },
+    Tright: { group: 'initial', unit: '°C', label: '右端温度', min: -50, max: 200 },
+    T0: { group: 'initial', unit: '°C', label: '初温 T₀', min: -50, max: 200 },
+    hotspot: { group: 'initial', unit: '°C', label: '热斑温度', min: -50, max: 200 },
   },
 
   init(state) {

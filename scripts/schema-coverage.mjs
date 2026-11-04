@@ -12,6 +12,7 @@ const { models } = await import(
 );
 
 const ZH = /[\u4e00-\u9fff]/;
+const SYM = /[₁₂₃₄₅₆₇₈₉₀θλμφσωΩ°⊥∥∆∇ζβ]/;
 const GROUPS = new Set(['dynamics', 'initial', 'numerics', 'display', 'custom']);
 
 let params = 0;
@@ -36,7 +37,7 @@ for (const m of models) {
     }
     withSchema += 1;
     if (meta.label) {
-      if (ZH.test(String(meta.label)) || /[₁₂θλμ]/.test(String(meta.label))) zhLabel += 1;
+      if (ZH.test(String(meta.label)) || SYM.test(String(meta.label))) zhLabel += 1;
       else missZh += 1;
     } else missLabel += 1;
     if (meta.unit != null && String(meta.unit).length) withUnit += 1;
@@ -71,11 +72,15 @@ const report = {
 };
 
 const outDir = path.join(root, 'artifacts');
+const docsDir = path.join(root, 'docs');
 fs.mkdirSync(outDir, { recursive: true });
+fs.mkdirSync(docsDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'schema-coverage.json'), `${JSON.stringify(report, null, 2)}\n`);
 
 const md = [
   '# 工厂中文 schema 覆盖率',
+  '',
+  '> 由 `npm run report:schema` 生成；manual 可读入口见 [manual.html](../manual.html)。',
   '',
   `- 模型数: **${report.models}**`,
   `- 参数槽: **${params}**`,
@@ -92,9 +97,11 @@ const md = [
   ...report.weakTop.map((w) => `| ${w.id} | ${w.name} | ${w.params} | ${w.missingOrLatinLabel} |`),
   '',
 ];
-fs.writeFileSync(path.join(outDir, 'schema-coverage.md'), `${md.join('\n')}\n`);
+const mdText = `${md.join('\n')}\n`;
+fs.writeFileSync(path.join(outDir, 'schema-coverage.md'), mdText);
+fs.writeFileSync(path.join(docsDir, 'schema-coverage.md'), mdText);
 
-console.log(`schema coverage → artifacts/schema-coverage.md`);
+console.log(`schema coverage → docs/schema-coverage.md (+ artifacts/)`);
 console.log(`  schema ${report.coverage.schema.pct}% · zh-label ${report.coverage.zhOrSymbolLabel.pct}% · unit ${report.coverage.unit.pct}%`);
 if (weakModels.length) {
   console.log(`  weak models: ${weakModels.length} (top ${Math.min(5, weakModels.length)}: ${weakModels.slice(0, 5).map((w) => w.id).join(', ')})`);

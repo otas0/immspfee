@@ -25,6 +25,8 @@ const FILES = [
   '06-double-pendulum.png',
   '07-wave.png',
   '08-heat.png',
+  '09-pid-tune.png',
+  '10-root-locus.png',
 ];
 
 function sha256(buf) {

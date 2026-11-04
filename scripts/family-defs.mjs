@@ -732,7 +732,7 @@ export const DOMAIN_TARGETS = {
 export function toFamiliesJson() {
   return {
     version: 1,
-    description: 'Lab 模型族 × 变体维度；由 npm run gen:families 生成 catalog 变体',
+    description: 'Lab 模型族定义；每族对应 catalog 中 1 条仿真引擎条目。axes/dims 为工作台可调维度，不展开为侧栏克隆',
     domainTargets: DOMAIN_TARGETS,
     sections: SECTIONS,
   };

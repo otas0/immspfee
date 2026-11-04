@@ -48,7 +48,110 @@ jobs:
         run: npm run test:pot
 
       - name: Contract browser draw sample
+        id: contract_browser
         run: npm run test:contract-browser
+        continue-on-error: true
+
+      - name: Regenerate low-ink table (gen:low-ink)
+        id: gen_low_ink
+        if: always() && hashFiles('artifacts/contract-browser.json') != ''
+        run: |
+          npm run gen:low-ink
+          if git diff --quiet -- data/principle-low-ink.json js/lab/lowInkIds.js; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "low-ink table unchanged"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff -- data/principle-low-ink.json js/lab/lowInkIds.js > artifacts/low-ink-table.diff || true
+            echo "low-ink table drifted — see artifacts/low-ink-table.diff"
+          fi
+        continue-on-error: true
+
+      - name: Upload contract-failed-ids on draw failure
+        if: steps.contract_browser.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-failed-ids
+          path: |
+            artifacts/contract-failed-ids.txt
+            artifacts/contract-browser.json
+          if-no-files-found: warn
+
+      - name: Upload low-ink table diff
+        if: steps.gen_low_ink.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: low-ink-table-diff
+          path: |
+            artifacts/low-ink-table.diff
+            data/principle-low-ink.json
+            js/lab/lowInkIds.js
+          if-no-files-found: warn
+
+      - name: Comment PR with schema + principle-ink summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let schemaLine = 'schema coverage: (missing artifacts/schema-coverage.json)';
+            try {
+              const j = JSON.parse(fs.readFileSync('artifacts/schema-coverage.json', 'utf8'));
+              const c = j.coverage || {};
+              schemaLine = `schema ${c.schema?.pct ?? '?'}% · zh-label ${c.zhOrSymbolLabel?.pct ?? '?'}% · unit ${c.unit?.pct ?? '?'}% · models ${j.models ?? '?'}`;
+            } catch {}
+            let inkLine = 'principle-ink: (missing artifacts/principle-ink.md)';
+            let inkWarn = false;
+            try {
+              const md = fs.readFileSync('artifacts/principle-ink.md', 'utf8');
+              const mean = (md.match(/mean:\s*([^\n]+)/i) || [])[1]?.trim();
+              const min = (md.match(/min:\s*([^\n]+)/i) || [])[1]?.trim();
+              const n = (md.match(/n:\s*([^\n]+)/i) || [])[1]?.trim();
+              const sparse = (md.match(/sparse[^:]*:\s*([^\n]+)/i) || [])[1]?.trim();
+              const gate = (md.match(/gate:\s*([^\n]+)/i) || [])[1]?.trim();
+              const unreg = (md.match(/low-ink unregistered:\s*([^\n]+)/i) || [])[1]?.trim();
+              inkLine = `principle-ink n=${n || '?'} mean=${mean || '?'} min=${min || '?'}`
+                + (sparse && sparse !== '—' ? ` sparse=${sparse}` : '')
+                + (gate ? ` · gate=${gate}` : '');
+              const minPct = parseFloat(String(min || '').replace('%', ''));
+              inkWarn = Number.isFinite(minPct) && minPct < 1;
+              if (unreg && unreg !== '—') inkLine += ` · unregistered=${unreg}`;
+            } catch {}
+            const lines = [
+              '### Lab CI summary',
+              '',
+              schemaLine,
+              inkWarn ? `⚠️ ${inkLine}` : inkLine,
+            ];
+            if (process.env.LOW_INK_CHANGED === 'true') {
+              lines.push('', '_low-ink table drifted — artifact `low-ink-table-diff`；本地可 `npm run gen:low-ink` 后提交_');
+              try {
+                const diff = fs.readFileSync('artifacts/low-ink-table.diff', 'utf8').trim();
+                if (diff) lines.push('```diff', diff.slice(0, 3500), '```');
+              } catch {}
+            }
+            if (process.env.CONTRACT_FAILED === 'true') {
+              let ids = '(no artifacts/contract-failed-ids.txt)';
+              try {
+                ids = fs.readFileSync('artifacts/contract-failed-ids.txt', 'utf8').trim() || '(empty)';
+              } catch {}
+              lines.push('', '**Contract browser failed**', '```', ids, '```');
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: lines.join('\n'),
+            });
+        env:
+          CONTRACT_FAILED: ${{ steps.contract_browser.outcome == 'failure' }}
+          LOW_INK_CHANGED: ${{ steps.gen_low_ink.outputs.changed }}
+
+      - name: Fail job if contract-browser failed
+        if: steps.contract_browser.outcome == 'failure'
+        run: |
+          echo "contract-browser failed; see artifact + PR comment"
+          exit 1
 
       - name: Visual baseline
         run: npm run test:visual

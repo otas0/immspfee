@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lab · 演示实验室</title>
+  <title>IMMSPFEE · Lab</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -15,11 +16,17 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-drag" id="sidebar-drag" aria-hidden="true"><span></span></div>
       <header class="brand">
-        <div class="brand-badge">Lab</div>
-        <div>
-          <h1>Lab</h1>
-          <p>physics · cs · ce</p>
-        </div>
+        <a class="brand-logo" href="./index.html" aria-label="IMMSPFEE">
+          <img
+            src="./assets/immspfee-logo.svg"
+            width="458"
+            height="76"
+            alt="IMMSPFEE"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </a>
+        <p class="brand-tagline">physics · cs · ce · lab</p>
       </header>
 
       <div class="filters">
@@ -30,6 +37,12 @@
         <label class="field">
           <span>tag</span>
           <select id="filter-tag" aria-label="按标签筛选">
+            <option value="">all</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>form</span>
+          <select id="filter-formalism" aria-label="按形式筛选">
             <option value="">all</option>
           </select>
         </label>
@@ -58,7 +71,7 @@
             <output id="speed-label">1.0×</output>
           </label>
           <button type="button" id="btn-pause" class="btn primary" data-priority="high">pause</button>
-          <button type="button" id="btn-reset" class="btn" data-priority="high">reset</button>
+          <button type="button" id="btn-reset" class="btn" data-priority="high" title="保持当前参数，从 t=0 重积" aria-label="重跑">重跑</button>
           <button type="button" id="btn-shot" class="btn" data-priority="mid">png</button>
           <button type="button" id="btn-csv" class="btn" data-priority="low">csv</button>
           <details class="tb-more" id="tb-more">
@@ -67,15 +80,15 @@
               <button type="button" id="btn-csv-more" class="btn quiet">csv</button>
             </div>
           </details>
-          <button type="button" id="btn-params" class="btn ghost-always params-toggle" data-priority="high" aria-expanded="false" aria-controls="bench"><span class="lbl">params</span></button>
+          <button type="button" id="btn-params" class="btn ghost-always params-toggle" data-priority="high" aria-expanded="false" aria-controls="bench" title="打开参数工作台"><span class="lbl">参数</span></button>
         </div>
       </header>
 
       <div class="display-bezel">
         <div class="model-shell" id="model-shell" aria-live="polite">
           <span class="shell-chip" id="shell-mode">knobs</span>
-          <span class="shell-hint" id="shell-hint">右侧工作台调参</span>
-          <button type="button" id="btn-safe-restore" class="btn quiet shell-safe" hidden title="宽量程 NaN 后一键恢复模型默认参数">恢复安全默认</button>
+          <span class="shell-hint" id="shell-hint">右侧调参</span>
+          <button type="button" id="btn-safe-restore" class="btn quiet shell-safe" hidden title="宽量程 NaN 后一键恢复模型默认参数（与「重跑」不同：会改回 schema 默认值）">恢复安全默认</button>
         </div>
         <div class="canvas-wrap">
           <canvas id="canvas"></canvas>
@@ -90,10 +103,23 @@
               <option value="">当前对照</option>
             </select>
             <button type="button" id="btn-save-baseline" class="btn quiet" title="把当前读数存为新快照">存快照</button>
+            <button type="button" id="btn-copy-readouts" class="btn quiet" title="复制当前读数为纯文本">复制读数</button>
+            <button type="button" id="btn-export-baseline" class="btn quiet" title="导出当前模型对照卷 JSON">导出</button>
+            <label class="pack-shots-opt" title="课堂包附带当前画布 PNG">
+              <input type="checkbox" id="chk-pack-shots" />
+              <span>含图</span>
+            </label>
+            <button type="button" id="btn-export-classpack" class="btn quiet" title="导出多模型课堂包 ZIP">课堂包</button>
+            <button type="button" id="btn-import-baseline" class="btn quiet" title="导入 JSON 或课堂包 ZIP">导入</button>
+            <input type="file" id="baseline-file" accept="application/json,.json,application/zip,.zip" hidden />
             <button type="button" id="btn-pin-baseline" class="btn quiet" title="把当前读数钉为对照基线">钉住基线</button>
           </div>
         </div>
         <div class="readouts" id="readouts"></div>
+        <details class="sr-readouts-panel">
+          <summary>文本读数表</summary>
+          <table class="sr-readouts" id="sr-readouts" aria-live="polite" aria-label="当前读数"></table>
+        </details>
       </footer>
     </main>
 

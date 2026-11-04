@@ -30,19 +30,40 @@
   <main>
     <div class="kicker">physics lab / manual</div>
     <h1>自定义常量如何进入方程</h1>
-    <p class="muted"><a href="./index.html">← back</a> · <a href="#" id="hc">contrast</a></p>
+    <p class="muted"><a href="./index.html">← back</a> · <a href="#" id="hc">contrast</a> · <a href="./docs/schema-coverage.md">schema 覆盖率</a> · <a href="./docs/add-factory-family.md">新增 factory family</a></p>
 
-    <h2>1. live vs reset</h2>
+    <h2>0. 架构原则（统一接口 · Canvas）</h2>
+    <div class="card">
+      <ul class="muted">
+        <li>对齐 <strong>scikit-complexity</strong>：catalog 分类 + 同一套 Model API；可视化层用 Web/Canvas，不依赖 Python/Rerun。</li>
+        <li>物理交互借鉴 <strong>PhET / oPhysics / SimuPhysics</strong>（拖物、读数对照、虚像虚线）。</li>
+        <li>CS 步进/高亮借鉴 <strong>Algorithm Visualizer / eigenvue</strong> 思路（图算法点选连边、网表拖线）。</li>
+        <li>工程为<strong>原理性可视化</strong>（简化方程），非工业求解器，保持浏览器轻量。</li>
+      </ul>
+    </div>
+
+    <h2>1. Live vs Reinit（改参语义）</h2>
     <div class="card">
       <table>
         <thead><tr><th>类型</th><th>判定</th><th>行为</th><th>示例</th></tr></thead>
         <tbody>
-          <tr><td>live</td><td>group = dynamics，且不在强制重置键表</td><td>写回 params，下一帧立刻用新值；高度/相位不跳回</td><td>g, k, m, μ, R, C, 学习率</td></tr>
-          <tr><td>reset</td><td>group = initial / numerics，或键 ∈ 强制表</td><td>保留 params 后 <code>init()</code>，仿真状态重建</td><td>h₀, x0, v0, θ0, seed, n, algo</td></tr>
+          <tr><td>Live（即时）</td><td><code>paramSchema.group</code> = dynamics / display / custom</td><td>写回 params，下一帧立刻用新值；高度/相位不跳回</td><td>g, k, m, μ, R, C, 学习率</td></tr>
+          <tr><td>Reinit（重置）</td><td>group = initial / numerics</td><td>保留 params 后 <code>init()</code>，仿真状态重建；toast「已重置仿真状态」</td><td>h₀, x0, v0, θ0, seed, n</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted">工作台顶部「应用到模型」条会提示；dyn 行带 <code>live</code> 标记。调试：<code>localStorage.physics-lab-debug-params=1</code> 后改参有 120ms 防抖日志。</p>
+    <p class="muted">工作台顶栏：「动力学即时生效；初值/数值会重置状态」。行标记 <code>即时</code> / <code>重置</code>。已取消硬编码 REINIT 键表，完全以 schema.group 为准。调试：<code>localStorage.physics-lab-debug-params=1</code>。</p>
+
+    <h2>1b. 「重跑」vs「恢复安全默认」</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>控件</th><th>行为</th></tr></thead>
+        <tbody>
+          <tr><td>工具栏「重跑」</td><td>保持当前参数，从 <code>t=0</code> 重新积分（tooltip 同此）</td></tr>
+          <tr><td>机箱「恢复安全默认」</td><td>宽量程 NaN / 发散后：回到模型 schema 默认参数 + 安全全局量</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <h2>2. 现有参数</h2>
     <p>工作台内数值可任意输入（含科学计数）。电位器仅参考调节；<strong>双击旋钮</strong>恢复默认；方向键按量级步进，Home 复位。离散 <code>algo</code> 等为下拉。</p>

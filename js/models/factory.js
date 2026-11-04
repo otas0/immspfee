@@ -7,6 +7,8 @@ import { P } from '../utils/params.js';
 import { C, heatTempColor } from '../utils/theme.js';
 import { localizeSchema } from '../utils/zhLabels.js';
 import { familyCapabilities } from '../lab/formalism.js';
+import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
+import { forceGraphStep, mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
 
 function schemaNum(label, group, unit, min, max) {
   return { label, group, unit, min, max };
@@ -109,8 +111,10 @@ function enrich(model, spec) {
     if (recompute) recompute(state);
     else if (step0) step0(state, 0);
   };
-  // 稀疏绘制保底像素（合同抽检 / 可见性）
+  // 稀疏绘制保底像素；仅 low-ink 静态表内 id 加粗主曲线
   if (typeof model.draw === 'function') {
+    if (!model.id) model.id = spec.id;
+    applyLowInkStrokeBoost(model);
     const draw0 = model.draw.bind(model);
     model.draw = (ctx, state, view) => {
       draw0(ctx, state, view);
@@ -1765,6 +1769,20 @@ function buildRays(spec) {
         ctx.fillStyle = C.muted;
         ctx.font = '11px IBM Plex Mono, monospace';
         ctx.fillText(o.kind + ' · 拖动物体（物/像联动）', box.l + 8, box.t + 36);
+        // 推导式叠画布（窄屏缩写/换行，避免与刻度重叠）
+        const narrow = box.w < 420;
+        const vStr = Number.isFinite(o.v) ? o.v.toFixed(2) : '∞';
+        const mStr = Number.isFinite(o.m) ? o.m.toFixed(2) : '—';
+        ctx.fillStyle = state._flashUv ? (C.accent || C.body) : C.muted;
+        if (narrow) {
+          ctx.font = '600 11px IBM Plex Mono, monospace';
+          ctx.fillText('1/u+1/v=1/f', box.l + 8, box.b - 22);
+          ctx.fillText(`v=${vStr}  m=${mStr}`, box.l + 8, box.b - 8);
+        } else {
+          ctx.font = '600 12px IBM Plex Mono, monospace';
+          ctx.fillText(`1/u+1/v=1/f  →  v=${vStr}  m=${mStr}`, box.l + 8, box.b - 10);
+        }
+        if (state._flashUv > 0) state._flashUv -= 1;
       } else {
         const th1 = (P(state.params, 'theta', 35) * Math.PI) / 180;
         const n1 = P(state.params, 'n1', 1);
@@ -1846,6 +1864,7 @@ function buildRays(spec) {
           state.params.h = Math.max(0.05, imgH);
         }
         state._hoverImg = true;
+        state._flashUv = 24;
         this.recompute(state);
         return true;
       }
@@ -1862,12 +1881,21 @@ function buildRays(spec) {
       this.recompute(state);
       if (spec.id === 'lens') {
         const o = lensOptics(state.params);
-        return [
+        const rows = [
           { label: 'u', value: formatNum(o.u, d) },
           { label: 'v', value: Number.isFinite(o.v) ? formatNum(o.v, d) : '∞' },
           { label: 'm', value: Number.isFinite(o.m) ? formatNum(o.m, d) : '—' },
           { label: '像', value: o.kind },
         ];
+        if (state._dragImg || state._flashUv) {
+          rows.unshift({
+            label: '推导',
+            value: Number.isFinite(o.v)
+              ? `1/u=1/f−1/v → u=${formatNum(o.u, d)}`
+              : '1/u+1/v=1/f',
+          });
+        }
+        return rows;
       }
       return [
         { label: 'θ1', value: formatNum(P(state.params, 'theta', 35), d) },
@@ -2182,15 +2210,16 @@ function buildDiscrete(spec) {
 function buildGraph(spec) {
   return {
     ...baseMeta(spec),
-    params: { nodes: 8, seed: 5, start: 0, goal: 7, stepDt: 0.15, algo: 0 },
+    params: { nodes: 8, seed: 5, start: 0, goal: 7, stepDt: 0.15, algo: 0, layoutSteps: 40 },
     paramSchema: {
-      nodes: schemaNum('nodes', 'numerics', '—', 4, 16),
-      seed: schemaNum('seed', 'initial', '—', 1, 99),
-      start: schemaNum('start', 'initial', '—', 0, 15),
-      goal: schemaNum('goal', 'initial', '—', 0, 15),
-      stepDt: schemaNum('stepDt', 'dynamics', 's', 0.05, 0.5),
+      nodes: schemaNum('节点数', 'numerics', '—', 4, 16),
+      seed: schemaNum('随机种子', 'initial', '—', 1, 99),
+      start: schemaNum('起点', 'initial', '—', 0, 15),
+      goal: schemaNum('终点', 'initial', '—', 0, 15),
+      stepDt: schemaNum('步进间隔', 'dynamics', 's', 0.05, 0.5),
+      layoutSteps: schemaNum('力导向步数', 'numerics', '—', 0, 120),
       algo: {
-        group: 'dynamics', unit: '', label: 'algo', min: 0, max: 2,
+        group: 'dynamics', unit: '—', label: '算法', min: 0, max: 2,
         options: [{ value: 0, label: 'Dijkstra' }, { value: 1, label: 'A*' }, { value: 2, label: 'BFS' }],
       },
     },
@@ -2208,6 +2237,16 @@ function buildGraph(spec) {
           if (r() < 0.35) state.edges.push({ a: i, b: j, w: 1 + Math.floor(r() * 9) });
         }
       }
+      // eigenvue 思路：力导向松弛 layoutSteps 步再映射画布
+      const W = 400; const H = 300;
+      const steps = Math.max(0, Math.floor(P(state.params, 'layoutSteps', 40)));
+      const px = state.nodes.map((n) => ({ x: n.x * W, y: n.y * H }));
+      for (let k = 0; k < steps; k += 1) forceGraphStep(px, state.edges, { W, H, pad: 24 });
+      state.nodes = px.map((p, i) => ({
+        i,
+        x: Math.max(0.05, Math.min(0.95, p.x / W)),
+        y: Math.max(0.05, Math.min(0.95, p.y / H)),
+      }));
       state.visit = new Set();
       state.frontier = [Math.min(Math.floor(P(state.params, 'start', 0)), n - 1)];
       state.parent = {};
@@ -2248,36 +2287,28 @@ function buildGraph(spec) {
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
-      const box = padBox(W, H);
       title(ctx, spec.name);
-      const pt = (i) => {
-        const n = state.nodes[i];
-        return { x: box.l + n.x * box.w, y: box.t + n.y * box.h };
-      };
-      ctx.strokeStyle = C.axis;
-      for (const e of state.edges) {
-        const a = pt(e.a); const b = pt(e.b);
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-        ctx.stroke();
-      }
-      if (state.path.length > 1) {
-        ctx.strokeStyle = C.accent;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        state.path.forEach((i, k) => {
-          const p = pt(i);
-          k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
-        });
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      }
-      state.nodes.forEach((n, i) => {
-        const p = pt(i);
-        ctx.fillStyle = state.visit.has(i) ? C.body : (state.frontier.includes(i) ? C.vector : C.muted);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-        ctx.fill();
+      const screen = mapNormToScreen(state.nodes, W, H, 40);
+      const hi = new Set([...state.visit, ...state.frontier]);
+      paintGraph(ctx, screen, state.edges, {
+        highlight: hi,
+        path: state.path || [],
+        edgeColor: C.axis,
+        nodeColor: C.muted,
+        accent: C.accent,
+        r: 8,
+      });
+      state.nodes.forEach((_, i) => {
+        const p = screen[i];
+        let fill = null;
+        if (state.frontier.includes(i)) fill = C.vector;
+        if (state.visit.has(i)) fill = C.body;
+        if (fill) {
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.arc(p.sx, p.sy, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
     },
     getReadouts(state) {

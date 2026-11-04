@@ -21,6 +21,8 @@ const MODELS = [
   ['double-pendulum', '06-double-pendulum.png'],
   ['wave', '07-wave.png'],
   ['heat', '08-heat.png'],
+  ['pid-tune', '09-pid-tune.png'],
+  ['root-locus', '10-root-locus.png'],
 ];
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';

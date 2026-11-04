@@ -1,9 +1,9 @@
 /**
- * 万能壳：从任意模型推导统一能力描述，驱动同一套 UX。
+ * 万能壳：统一 Model 接口 → 同一套 UX（对齐 scikit-complexity catalog 思路，Canvas 可视化）。
  * 约定（死规则）：
  * - params + paramSchema
  * - init / step / draw / getReadouts / refresh
- * - 可选 onPointer / recompute / getEnergy / getTrajectory / capabilities
+ * - 可选 onPointer / runAction / recompute / getEnergy / getEnergyAt / getTrajectory / capabilities
  */
 
 export function deriveCapabilities(model) {
@@ -16,7 +16,10 @@ export function deriveCapabilities(model) {
       hasPointer: false,
       hasEnergy: false,
       hasTextParams: false,
-      focusGroups: ['dynamics', 'initial', 'numerics', 'display', 'custom'],
+      actions: [],
+      formalism: '',
+      fidelity: 'principle',
+      focusGroups: ['dynamics'],
     };
   }
   const schema = model.paramSchema || {};
@@ -34,8 +37,11 @@ export function deriveCapabilities(model) {
     || (hasPointer ? 'canvas' : (hasTextParams ? 'text+knobs' : 'knobs'));
   const hint = declared.hint
     || (hasPointer
-      ? '画布可直接拖拽/点选；右侧旋钮与文本同步生效'
-      : '右侧工作台调节参数；dyn=live，init/num=重置');
+      ? '画布可交互'
+      : '右侧调参');
+
+  const focusGroups = ['dynamics'];
+  if (keys.length < 20 && groups.has('initial')) focusGroups.push('initial');
 
   return {
     id: model.id,
@@ -45,16 +51,23 @@ export function deriveCapabilities(model) {
     hasPointer,
     hasEnergy: typeof model.getEnergy === 'function',
     hasTextParams,
-    focusGroups: ['dynamics', 'initial', 'numerics', 'display', 'custom'].filter(
-      (g) => g === 'custom' || g === 'dynamics' || groups.has(g) || g === 'initial',
-    ),
+    actions: Array.isArray(declared.actions) ? declared.actions : [],
+    formalism: declared.formalism || model.formalism || '',
+    viz: declared.viz || '',
+    fidelity: declared.fidelity || model.fidelity || 'principle',
+    focusGroups,
     tags: model.tags || [],
     sub: model.sub || '',
   };
 }
 
-/** 参数过多时默认折叠非 dyn，保持万能台不爆炸 */
-export function shouldAutoFoldGroup(group, paramCount) {
+/**
+ * 参数 ≥20：默认只展开 dyn（+ focus）；其余 accordion。
+ * 较少参数时仍折叠 numerics/display。
+ */
+export function shouldAutoFoldGroup(group, paramCount, focusGroups = ['dynamics']) {
+  if (focusGroups.includes(group)) return false;
+  if (paramCount >= 20) return true;
   if (group === 'dynamics') return false;
   if (paramCount >= 14 && (group === 'numerics' || group === 'display')) return true;
   if (paramCount >= 20 && group === 'initial') return true;

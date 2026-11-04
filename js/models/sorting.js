@@ -6,21 +6,65 @@ import { C } from '../utils/theme.js';
 export default {
   id: 'sorting',
   name: '排序算法',
+  capabilities: {
+    interaction: 'knobs',
+    formalism: 'discrete',
+    viz: 'algo-step',
+    fidelity: 'principle',
+    hint: '课堂演示可关自动步进，仅用 step；高亮比较位',
+    actions: [
+      { id: 'step', label: '单步 step' },
+      { id: 'toggleDemo', label: '切换课堂模式' },
+      { id: 'reset', label: '重置数组' },
+    ],
+  },
   params: {
-    n: 24, stepDt: 0.08, seed: 42, algo: 0, // 0 bubble 1 insertion 2 quick
+    n: 24, stepDt: 0.08, seed: 42, algo: 0, demo: 1, // 默认课堂：仅 step + 暂停时钟
   },
   paramSchema: {
-    n: { group: 'numerics', unit: '', label: 'n', min: 6, max: 64 },
-    stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.02, max: 0.5 },
-    seed: { group: 'initial', unit: '', label: 'seed', min: 1, max: 9999 },
+    n: { group: 'numerics', unit: '—', label: '元素数 n', min: 6, max: 64 },
+    stepDt: { group: 'dynamics', unit: 's', label: '步进间隔', min: 0.02, max: 0.5 },
+    seed: { group: 'initial', unit: '—', label: '随机种子', min: 1, max: 9999 },
     algo: {
-      group: 'dynamics', unit: '', label: 'algo', min: 0, max: 2,
+      group: 'dynamics', unit: '—', label: '算法', min: 0, max: 2,
       options: [
         { value: 0, label: 'bubble' },
         { value: 1, label: 'insertion' },
         { value: 2, label: 'quick' },
       ],
     },
+    demo: {
+      group: 'dynamics', unit: '—', label: '课堂演示', min: 0, max: 1,
+      options: [
+        { value: 0, label: '自动步进' },
+        { value: 1, label: '仅手动 step' },
+      ],
+    },
+  },
+
+  /** 主循环：课堂模式请求暂停全局时钟，避免“卡住”错觉 */
+  shouldPauseApp(state) {
+    return Math.round(P(state?.params, 'demo', 1)) === 1;
+  },
+
+  runAction(state, actionId) {
+    if (actionId === 'reset') {
+      this.init(state);
+      return true;
+    }
+    if (actionId === 'step') {
+      if (state.done) return false;
+      if (state.algo === 0) stepBubble(state);
+      else if (state.algo === 1) stepInsertion(state);
+      else stepQuick(state);
+      state._flash = 12;
+      return true;
+    }
+    if (actionId === 'toggleDemo') {
+      state.params.demo = Math.round(P(state.params, 'demo', 1)) ? 0 : 1;
+      return true;
+    }
+    return false;
   },
 
   init(state) {
@@ -58,15 +102,16 @@ export default {
 
   step(state, dt) {
     if (state.done) return;
-    // 参数热切换算法 → 重开
     const want = Math.round(clampAlgo(P(state.params, 'algo', 0)));
     if (want !== state.algo) {
       this.init(state);
       return;
     }
+    state.t += dt;
+    // 课堂演示：暂停自动步进，只靠 runAction('step')
+    if (Math.round(P(state.params, 'demo', 1)) === 1) return;
     const period = Math.max(P(state.params, 'stepDt', 0.08), 0.01);
     state.acc += dt;
-    state.t += dt;
     while (state.acc >= period && !state.done) {
       state.acc -= period;
       if (state.algo === 0) stepBubble(state);
@@ -88,18 +133,33 @@ export default {
       const x = pad + k * bw;
       const y = H - pad - h;
       let fill = C.body;
-      if (!state.done) {
-        if (state.algo === 0 && (k === state.j || k === state.j + 1)) fill = C.accent;
-        if (state.algo === 1 && (k === state.j || k === state.i)) fill = C.accent;
-        if (state.algo === 2 && (k === state.j || k === state.i || k === state.pivot)) fill = C.accent;
-      } else fill = C.vector;
+      const hot = !state.done && (
+        (state.algo === 0 && (k === state.j || k === state.j + 1))
+        || (state.algo === 1 && (k === state.j || k === state.i))
+        || (state.algo === 2 && (k === state.j || k === state.i || k === state.pivot))
+      );
+      if (state.done) fill = C.vector;
+      else if (hot) fill = C.accent;
       ctx.fillStyle = fill;
       ctx.fillRect(x + 1, y, Math.max(2, bw - 2), h);
+      if (hot || state._flash > 0) {
+        ctx.strokeStyle = C.vector;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 0.5, y - 1, Math.max(2, bw - 1), h + 2);
+      }
     }
+    if (state._flash > 0) state._flash -= 1;
 
     ctx.fillStyle = C.muted;
     ctx.font = '11px IBM Plex Mono, monospace';
-    ctx.fillText(state.done ? `${names[state.algo]} · sorted` : `${names[state.algo]} · running`, 12, 20);
+    const demo = Math.round(P(state.params, 'demo', 0)) === 1;
+    ctx.fillText(
+      state.done
+        ? `${names[state.algo]} · sorted`
+        : `${names[state.algo]} · ${demo ? '课堂·仅step' : '自动'} · 高亮比较位`,
+      12,
+      20,
+    );
   },
 
   getReadouts(state) {

@@ -93,6 +93,15 @@ function rebuild(state) {
 export default {
   id: 'beam-sfd-bmd',
   name: '梁的弯曲内力（剪力图/弯矩图）',
+  capabilities: {
+    interaction: 'knobs',
+    formalism: 'ode',
+    viz: 'beam',
+    fidelity: 'principle',
+    hint: '原理级 SFD/BMD；非 FEA 工业求解',
+  },
+  fidelity: 'principle',
+  fidelityNote: '原理级，非 FEA',
   params: {
     span: 6, support: 0,
     P1: 10, a1: 0.35,
@@ -231,6 +240,7 @@ export default {
     const d = opts.digits ?? 3;
     const names = ['简支', '悬臂', '固支'];
     return [
+      { label: '保真', value: '原理级≠FEA' },
       { label: '支座', value: names[Math.round(P(state.params, 'support', 0))] || '?' },
       { label: 'Ra', value: `${formatNum(state.Ra, d)} kN` },
       { label: 'Rb', value: `${formatNum(state.Rb, d)} kN` },

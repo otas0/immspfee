@@ -1,6 +1,7 @@
 import { formatNum } from '../utils/draw.js';
 import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
+import { mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
 
 function parseAdj(text, n) {
   const edges = [];
@@ -31,13 +32,13 @@ export default {
   },
   paramSchema: {
     nodes: { group: 'numerics', unit: '—', label: '节点数', min: 4, max: 24 },
-    seed: { group: 'initial', unit: '—', label: 'seed', min: 1, max: 9999 },
+    seed: { group: 'initial', unit: '—', label: '随机种子', min: 1, max: 9999 },
     start: { group: 'initial', unit: '—', label: '起点', min: 0, max: 23 },
     goal: { group: 'initial', unit: '—', label: '终点', min: 0, max: 23 },
     adjText: {
       group: 'initial', unit: '', label: '邻接表 0-1:2,1-2:5', allowText: true,
     },
-    stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.02, max: 1 },
+    stepDt: { group: 'dynamics', unit: 's', label: '步进间隔', min: 0.02, max: 1 },
     edgeProb: { group: 'dynamics', unit: '—', label: '边概率', min: 0.05, max: 1 },
     wMin: { group: 'dynamics', unit: '—', label: '权最小', min: 1, max: 50 },
     wMax: { group: 'dynamics', unit: '—', label: '权最大', min: 1, max: 100 },
@@ -46,9 +47,27 @@ export default {
     edgeW: { group: 'dynamics', unit: '—', label: '手动画边权', min: 0.1, max: 100 },
     commitEdge: { group: 'dynamics', unit: '—', label: '提交画边(+1)', min: 0, max: 9999 },
     algo: {
-      group: 'dynamics', unit: '', label: 'algo', min: 0, max: 1,
+      group: 'dynamics', unit: '', label: '算法', min: 0, max: 1,
       options: [{ value: 0, label: 'Dijkstra' }, { value: 1, label: 'BFS(无权)' }],
     },
+  },
+
+  runAction(state, actionId) {
+    if (actionId === 'undoEdge') {
+      if (state.edges?.length) {
+        state.edges.pop();
+        this.resetSearch(state);
+        return true;
+      }
+      return false;
+    }
+    if (actionId === 'clearGraph') {
+      state.edges = [];
+      state._pick = null;
+      this.resetSearch(state);
+      return true;
+    }
+    return false;
   },
 
   init(state) {
@@ -82,6 +101,7 @@ export default {
     this.resetSearch(state);
     state._commit = Math.round(P(state.params, 'commitEdge', 0));
     state._adj = String(state.params.adjText || '');
+    state._edgeHist = state.edges.map((e) => ({ ...e }));
   },
 
   resetSearch(state) {
@@ -164,7 +184,14 @@ export default {
   capabilities: {
     pointer: true,
     interaction: 'canvas',
-    hint: '点击两节点连边；再点第三下取消选中',
+    formalism: 'network',
+    viz: 'algo-graph',
+    fidelity: 'principle',
+    hint: '点击两节点连边（类 Algorithm Visualizer）；工具条可撤销/清空',
+    actions: [
+      { id: 'undoEdge', label: '撤销上一边' },
+      { id: 'clearGraph', label: '清空边' },
+    ],
   },
 
   draw(ctx, state, view) {
@@ -172,32 +199,42 @@ export default {
     const pad = 36;
     state._pad = pad;
     state._view = { W, H };
-    const pt = (i) => ({
-      x: pad + state.nodes[i].x * (W - pad * 2),
-      y: pad + state.nodes[i].y * (H - pad * 2),
+    const screen = mapNormToScreen(state.nodes, W, H, pad);
+    state._screen = screen.map((p) => ({ x: p.sx, y: p.sy }));
+    const hi = new Set([...state.frontier, ...state.visited]);
+    if (state.start != null) hi.add(state.start);
+    if (state.goal != null) hi.add(state.goal);
+    paintGraph(ctx, screen, state.edges, {
+      highlight: hi,
+      path: state.path || [],
+      edgeColor: C.axis,
+      nodeColor: C.muted,
+      accent: C.accent,
+      r: 10,
     });
-    state._screen = state.nodes.map((_, i) => pt(i));
     ctx.font = '11px IBM Plex Mono, monospace';
     for (const e of state.edges) {
-      const a = pt(e.a); const b = pt(e.b);
-      ctx.strokeStyle = C.axis;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-      ctx.stroke();
+      const a = state._screen[e.a]; const b = state._screen[e.b];
+      if (!a || !b) continue;
       ctx.fillStyle = C.muted;
       ctx.fillText(String(e.w), (a.x + b.x) / 2, (a.y + b.y) / 2);
     }
-    if (state.path.length > 1) {
-      ctx.strokeStyle = C.accent;
-      ctx.lineWidth = 3;
+    // 覆盖起终点/前沿颜色
+    state.nodes.forEach((_n, i) => {
+      const p = state._screen[i];
+      let fill = null;
+      if (state.frontier.has(i)) fill = C.vector;
+      if (state.visited.has(i)) fill = C.body;
+      if (i === state.start) fill = C.theory || C.body2;
+      if (i === state.goal) fill = C.accent;
+      if (!fill) return;
+      ctx.fillStyle = fill;
       ctx.beginPath();
-      state.path.forEach((i, k) => {
-        const p = pt(i);
-        k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
-      });
-      ctx.stroke();
-    }
+      ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.fillText(String(i), p.x - 3, p.y + 3);
+    });
     if (state._pick != null && state._screen[state._pick]) {
       const p = state._screen[state._pick];
       ctx.strokeStyle = C.vector;
@@ -206,20 +243,6 @@ export default {
       ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
       ctx.stroke();
     }
-    state.nodes.forEach((_n, i) => {
-      const p = pt(i);
-      let fill = C.muted;
-      if (state.frontier.has(i)) fill = C.vector;
-      if (state.visited.has(i)) fill = C.body;
-      if (i === state.start) fill = C.theory || C.body2;
-      if (i === state.goal) fill = C.accent;
-      ctx.fillStyle = fill;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#111';
-      ctx.fillText(String(i), p.x - 3, p.y + 3);
-    });
     ctx.fillStyle = C.muted;
     ctx.fillText(
       state.done
@@ -260,6 +283,7 @@ export default {
     this.resetSearch(state);
     return true;
   },
+
 
   getReadouts(state, opts = {}) {
     const d = opts.digits ?? 3;

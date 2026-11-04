@@ -28,6 +28,8 @@ import beamSfdBmd from './beamSfdBmd.js';
 import pidTune from './pidTune.js';
 import hodgkinHuxley from './hodgkinHuxley.js';
 import { createFactoryModel } from './factory.js';
+import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
+import { localizeModel } from '../utils/zhLabels.js';
 import catalog from '../../data/catalog.json' with { type: 'json' };
 
 const handcrafted = [
@@ -60,13 +62,31 @@ const handcrafted = [
 
 const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
 
-/** 死规则：每个模型必须有 refresh，改参后 HUD/图立刻可用 */
+/** 死规则：每个模型必须有 refresh；手写模型也走中文 schema 本地化 */
 function ensureRefresh(model) {
-  if (typeof model.refresh === 'function') return model;
-  model.refresh = function refresh(state) {
-    if (typeof this.recompute === 'function') this.recompute(state);
-    else if (typeof this.step === 'function') this.step(state, 0);
-  };
+  localizeModel(model);
+  if (typeof model.getEnergyAt !== 'function' && typeof model.getEnergy === 'function') {
+    model.getEnergyAt = function getEnergyAt(state, row) {
+      if (!row || typeof row !== 'object') return this.getEnergy(state);
+      const probe = { params: state.params };
+      for (const [k, v] of Object.entries(state)) {
+        if (k === 'params' || k === 'trail' || k === 'trails' || k.startsWith('_')) continue;
+        probe[k] = v;
+      }
+      for (const [k, v] of Object.entries(row)) {
+        if (k.startsWith('E_') || k === 'note') continue;
+        if (typeof v === 'number' && Number.isFinite(v)) probe[k] = v;
+      }
+      return this.getEnergy(probe);
+    };
+  }
+  if (typeof model.refresh !== 'function') {
+    model.refresh = function refresh(state) {
+      if (typeof this.recompute === 'function') this.recompute(state);
+      else if (typeof this.step === 'function') this.step(state, 0);
+    };
+  }
+  applyLowInkStrokeBoost(model);
   return model;
 }
 

@@ -10,14 +10,14 @@ export default {
     q: 1, m: 1, Ex: 0.4, B: 1.2, vx0: 0, vy0: 2.5, x0: -1.5, y0: 0,
   },
   paramSchema: {
-    q: { group: 'dynamics', unit: 'C', label: 'q', min: -5, max: 5 },
-    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.1, max: 10 },
-    Ex: { group: 'dynamics', unit: 'V/m', label: 'Ex', min: -5, max: 5 },
-    B: { group: 'dynamics', unit: 'T', label: 'B⊥', min: -5, max: 5 },
-    x0: { group: 'initial', unit: 'm', label: 'x₀', min: -5, max: 5 },
-    y0: { group: 'initial', unit: 'm', label: 'y₀', min: -5, max: 5 },
-    vx0: { group: 'initial', unit: 'm/s', label: 'vx₀', min: -8, max: 8 },
-    vy0: { group: 'initial', unit: 'm/s', label: 'vy₀', min: -8, max: 8 },
+    q: { group: 'dynamics', unit: 'C', label: '电荷 q', min: -5, max: 5 },
+    m: { group: 'dynamics', unit: 'kg', label: '质量 m', min: 0.1, max: 10 },
+    Ex: { group: 'dynamics', unit: 'V/m', label: '电场 Ex', min: -5, max: 5 },
+    B: { group: 'dynamics', unit: 'T', label: '磁场 B⊥', min: -5, max: 5 },
+    x0: { group: 'initial', unit: 'm', label: '初位 x₀', min: -5, max: 5 },
+    y0: { group: 'initial', unit: 'm', label: '初位 y₀', min: -5, max: 5 },
+    vx0: { group: 'initial', unit: 'm/s', label: '初速 vx₀', min: -8, max: 8 },
+    vy0: { group: 'initial', unit: 'm/s', label: '初速 vy₀', min: -8, max: 8 },
   },
 
   init(state) {

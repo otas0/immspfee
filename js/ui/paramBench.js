@@ -39,7 +39,6 @@ export function createParamBench(root, hooks = {}) {
   let currentParams = null;
   let builtins = new Set();
   let globals = null;
-  let sectionIdx = 0;
   let sysOpen = false;
   const toastOnce = new Set();
 
@@ -70,7 +69,6 @@ export function createParamBench(root, hooks = {}) {
       }
     }
     root.innerHTML = '';
-    sectionIdx = 0;
     root.appendChild(renderApplyBanner());
     root.appendChild(renderGlobalSection());
     root.appendChild(renderParamSections());
@@ -83,13 +81,33 @@ export function createParamBench(root, hooks = {}) {
     const cap = deriveCapabilities(currentModel);
     const bar = document.createElement('div');
     bar.className = 'apply-banner';
-    bar.innerHTML = `<strong>万能工作台 · ${cap.interaction}</strong>`
-      + `<span>dyn=live · init/num=重置 · 参数 ${cap.paramCount} · ${cap.hint}</span>`;
+    bar.setAttribute('role', 'status');
+    const note = currentModel?.fidelityNote
+      || ((cap.viz === 'beam' || cap.viz === 'control'
+        || currentModel?.id === 'beam-sfd-bmd' || currentModel?.id === 'pid-tune')
+        ? '原理级，非 FEA/工业调参'
+        : '');
+    const applyLine = `动力学即时生效；初值/数值会重置状态 · ${cap.paramCount} 参`;
+    if (note) {
+      bar.classList.add('is-principle');
+      bar.innerHTML = `<div class="principle-badge">${note}</div>`
+        + `<strong>万能工作台 · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
+        + `<span>${applyLine}</span>`;
+    } else {
+      bar.innerHTML = `<strong>万能工作台 · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
+        + `<span>${applyLine}</span>`;
+    }
     return bar;
   }
 
+  /** dynamics → is-live；initial / numerics → is-reinit（::after 文案由 CSS 提供） */
+  function markApplyMode(row, group) {
+    if (group === 'dynamics') row.classList.add('is-live');
+    else if (group === 'initial' || group === 'numerics') row.classList.add('is-reinit');
+  }
+
   function renderGlobalSection() {
-    const sec = section('sys', { stickySys: true, foldable: true, open: sysOpen });
+    const sec = section(GROUP_LABELS.global || '系统', { stickySys: true, foldable: true, open: sysOpen });
     const rows = document.createElement('div');
     rows.className = 'param-rows';
     const g = globals;
@@ -178,30 +196,34 @@ export function createParamBench(root, hooks = {}) {
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
     });
     const paramCount = Object.keys(currentParams || {}).length;
+    const cap = deriveCapabilities(currentModel);
     for (const g of keys) {
       const title = GROUP_LABELS[g] || g;
-      const fold = shouldAutoFoldGroup(g, paramCount);
+      const fold = shouldAutoFoldGroup(g, paramCount, cap.focusGroups);
       const sec = section(title);
       const rows = document.createElement('div');
       rows.className = 'param-rows';
-      if (g === 'dynamics' && isNarrow()) {
+      if (g === 'dynamics') {
         sec.dataset.priority = 'dyn';
       }
       for (const item of groups.get(g)) {
         const def = currentModel.params?.[item.key];
+        const applyGroup = item.schema?.group || g;
         if (Array.isArray(item.schema?.options) && item.schema.options.length) {
           const row = selectRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             options: item.schema.options,
             onCommit: (v) => commitParam(item.key, v),
           });
-          if ((item.schema?.group || g) === 'dynamics') row.classList.add('is-live');
+          markApplyMode(row, applyGroup);
           rows.appendChild(row);
         } else if (typeof item.value === 'boolean') {
-          rows.appendChild(boolRow(item.key, item.value, {
+          const row = boolRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             onCommit: (v) => commitParam(item.key, v),
-          }));
+          });
+          markApplyMode(row, applyGroup);
+          rows.appendChild(row);
         } else if (typeof item.value === 'string' || item.schema?.allowText || item.key === 'expr_a') {
           const isText = typeof item.value === 'string' || item.schema?.allowText || item.key === 'expr_a';
           if (isText && (item.schema?.allowText || item.key === 'expr_a' || typeof item.value === 'string')) {
@@ -214,6 +236,7 @@ export function createParamBench(root, hooks = {}) {
               removable: !builtins.has(item.key),
               onRemove: () => removeParam(item.key),
             });
+            markApplyMode(row, applyGroup);
             rows.appendChild(row);
           }
         } else if (typeof item.value === 'number') {
@@ -249,7 +272,7 @@ export function createParamBench(root, hooks = {}) {
             onScrubStart,
             onScrubEnd,
           });
-          if ((item.schema?.group || g) === 'dynamics') row.classList.add('is-live');
+          markApplyMode(row, applyGroup);
           rows.appendChild(row);
         }
       }
@@ -425,14 +448,10 @@ export function createParamBench(root, hooks = {}) {
   }
 
   function section(title, { stickySys = false } = {}) {
-    sectionIdx += 1;
     const sec = document.createElement('section');
     sec.className = 'param-section' + (stickySys ? ' is-sys' : '');
     const h = document.createElement('h3');
-    const idx = document.createElement('span');
-    idx.className = 'idx';
-    idx.textContent = String(sectionIdx).padStart(2, '0');
-    h.append(idx, document.createTextNode(` ${title}`));
+    h.textContent = title;
     sec.appendChild(h);
     return sec;
   }
