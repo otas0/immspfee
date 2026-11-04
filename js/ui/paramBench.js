@@ -11,6 +11,7 @@ import {
   validateCustomParam,
 } from '../utils/params.js';
 import { ICO } from './icons.js';
+import { shouldAutoFoldGroup, deriveCapabilities } from './modelShell.js';
 
 const GLOBAL_META = {
   timeScale: { label: 'timeScale', unit: '×', min: 0.05, max: 8, def: 1 },
@@ -79,9 +80,11 @@ export function createParamBench(root, hooks = {}) {
   }
 
   function renderApplyBanner() {
+    const cap = deriveCapabilities(currentModel);
     const bar = document.createElement('div');
     bar.className = 'apply-banner';
-    bar.innerHTML = '<strong>应用到模型</strong><span>dyn 标 live 立即生效；init / num 会重置仿真状态</span>';
+    bar.innerHTML = `<strong>万能工作台 · ${cap.interaction}</strong>`
+      + `<span>dyn=live · init/num=重置 · 参数 ${cap.paramCount} · ${cap.hint}</span>`;
     return bar;
   }
 
@@ -174,13 +177,13 @@ export function createParamBench(root, hooks = {}) {
       const ia = order.indexOf(a); const ib = order.indexOf(b);
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
     });
+    const paramCount = Object.keys(currentParams || {}).length;
     for (const g of keys) {
       const title = GROUP_LABELS[g] || g;
-      // dyn 始终展开；sys/add/presets 在各自 render* 里折叠
+      const fold = shouldAutoFoldGroup(g, paramCount);
       const sec = section(title);
       const rows = document.createElement('div');
       rows.className = 'param-rows';
-      // 窄屏时 dyn 排在前面（order 已保证），便于先调物理量
       if (g === 'dynamics' && isNarrow()) {
         sec.dataset.priority = 'dyn';
       }
@@ -250,7 +253,11 @@ export function createParamBench(root, hooks = {}) {
           rows.appendChild(row);
         }
       }
-      sec.appendChild(rows);
+      if (fold) {
+        appendSectionBody(sec, rows, { foldable: true, open: false });
+      } else {
+        sec.appendChild(rows);
+      }
       wrap.appendChild(sec);
     }
     return wrap;

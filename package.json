@@ -6,11 +6,12 @@
     "start": "node scripts/dev-server.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:pot": "node scripts/test-pot.mjs",
+    "test:catalog": "node scripts/validate-catalog.mjs",
     "test:visual": "node scripts/visual-baseline.mjs check",
     "baseline:update": "node scripts/visual-baseline.mjs update",
     "shots": "node scripts/capture-shots.mjs",
     "shots:extra": "node scripts/capture-extra.mjs",
-    "test:all": "npm test && npm run test:pot && npm run test:visual"
+    "test:all": "npm test && npm run test:pot && npm run test:catalog && npm run test:visual"
   },
   "devDependencies": {
     "pixelmatch": "^8.0.0",

@@ -563,18 +563,18 @@ expr_a = a_extra + 0.01 * t</pre>
       <tr><td>compound-growth</td><td>复利/投资增长</td><td>本金增长曲线、不同利率对比；调利率、期数</td></tr>
     </tbody></table></div>
 
-    <h2>9. 宽屏常驻 / 窄屏抽屉</h2>
+    <h2>9. 宽屏折叠 / 窄屏抽屉</h2>
     <div class="card">
       <table>
         <thead><tr><th>视口</th><th>工作台</th><th>params / close</th></tr></thead>
         <tbody>
-          <tr><td>&gt; 1100px</td><td>三栏常驻，不可关闭</td><td>隐藏；不进入 Tab 序</td></tr>
-          <tr><td>≤ 1100px</td><td>右侧/底部抽屉</td><td>显示；close / 遮罩 / 拖拽可关</td></tr>
+          <tr><td>&gt; 1100px</td><td>三栏常驻；可用 params 折叠第三栏（<code>bench-collapsed</code>）</td><td>params 显示为 fold/bench；close 隐藏</td></tr>
+          <tr><td>≤ 1100px</td><td>右侧/底部抽屉</td><td>params 开合；close / 遮罩 / 拖拽可关</td></tr>
           <tr><td>≤ 900px</td><td>同上 + 侧栏抽屉</td><td>menu 开侧栏；遮罩互斥关闭</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted">CSS 约定：条件隐藏按钮用 <code>.btn.&lt;role&gt;</code> 双类选择器压过 <code>.btn.ghost-always</code>。</p>
+    <p class="muted">侧栏默认只展开「物理」；搜索命中时展开匹配域。CSS 约定：条件隐藏用 <code>.btn.&lt;role&gt;</code> 压过 <code>.btn.ghost-always</code>。校验：<code>npm run test:catalog</code>。</p>
 
   </main>
   <script>

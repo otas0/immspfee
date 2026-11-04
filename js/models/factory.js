@@ -1102,56 +1102,129 @@ function buildPiston(spec) {
 }
 
 function buildCycle(spec) {
+  const dragTs = /rankine|vapor-compression|heat-pump|brayton|otto|carnot/i.test(spec.id);
   return {
     ...baseMeta(spec),
-    params: { Th: 500, Tc: 300, phaseSpeed: 0.4 },
+    params: { Th: 500, Tc: 300, phaseSpeed: 0.4, sHot: 0.72, sCold: 0.28 },
     paramSchema: {
       Th: schemaNum('Th', 'dynamics', 'K', 250, 900),
       Tc: schemaNum('Tc', 'dynamics', 'K', 100, 600),
       phaseSpeed: schemaNum('速率', 'dynamics', '—', 0.05, 2),
+      sHot: schemaNum('s_hot', 'dynamics', '—', 0.15, 0.9),
+      sCold: schemaNum('s_cold', 'dynamics', '—', 0.1, 0.85),
     },
-    init(state) { state.t = 0; state.s = 0; },
+    init(state) {
+      state.t = 0;
+      state.s = 0;
+      state.drag = null;
+      state._box = null;
+    },
     step(state, dt) {
       state.t += dt;
       state.s = (state.s + dt * P(state.params, 'phaseSpeed', 0.4)) % 4;
       const Th = P(state.params, 'Th', 500);
       const Tc = P(state.params, 'Tc', 300);
-      state.eta = 1 - Tc / Math.max(Th, 1);
+      state.eta = Math.max(0, 1 - Tc / Math.max(Th, 1));
+      if (spec.id.includes('vapor') || spec.id.includes('heat-pump')) {
+        state.cop = Tc / Math.max(Th - Tc, 1);
+      }
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
       const box = padBox(W, H);
-      title(ctx, spec.name);
+      state._box = box;
+      title(ctx, `${spec.name}${dragTs ? ' · drag T-s pts' : ''}`);
+      // T-s 轴：x=熵 y=温度（上高）
+      const sh = Math.max(0.15, Math.min(0.9, P(state.params, 'sHot', 0.72)));
+      const sc = Math.max(0.1, Math.min(0.85, P(state.params, 'sCold', 0.28)));
+      const Th = P(state.params, 'Th', 500);
+      const Tc = P(state.params, 'Tc', 300);
+      const Tmax = 900;
+      const Tmin = 100;
+      const toX = (s) => box.l + s * box.w;
+      const toY = (T) => box.b - ((T - Tmin) / (Tmax - Tmin)) * box.h;
       const pts = [
-        [0.2, 0.75], [0.75, 0.75], [0.75, 0.25], [0.2, 0.25],
+        { s: sc, T: Tc, key: 'c' },
+        { s: sh, T: Tc, key: 'b' },
+        { s: sh, T: Th, key: 'h' },
+        { s: sc, T: Th, key: 'a' },
       ];
+      state._pts = pts.map((p) => ({ ...p, x: toX(p.s), y: toY(p.T) }));
+      ctx.strokeStyle = C.axis;
+      ctx.strokeRect(box.l, box.t, box.w, box.h);
+      ctx.fillStyle = C.muted;
+      ctx.font = '10px IBM Plex Mono, monospace';
+      ctx.fillText('s →', box.r - 28, box.b + 14);
+      ctx.fillText('T', box.l - 16, box.t + 10);
       ctx.strokeStyle = C.body;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      pts.forEach((p, i) => {
-        const x = box.l + p[0] * box.w;
-        const y = box.t + p[1] * box.h;
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      state._pts.forEach((p, i) => {
+        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
       });
       ctx.closePath();
       ctx.stroke();
+      state._pts.forEach((p) => {
+        ctx.fillStyle = p.key === 'h' || p.key === 'a' ? C.accent : C.vector;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      });
       const i = Math.floor(state.s) % 4;
       const j = (i + 1) % 4;
       const u = state.s - Math.floor(state.s);
-      const x = box.l + (pts[i][0] * (1 - u) + pts[j][0] * u) * box.w;
-      const y = box.t + (pts[i][1] * (1 - u) + pts[j][1] * u) * box.h;
-      ctx.fillStyle = C.accent;
+      const x = state._pts[i].x * (1 - u) + state._pts[j].x * u;
+      const y = state._pts[i].y * (1 - u) + state._pts[j].y * u;
+      ctx.strokeStyle = C.flash || '#fbbf24';
       ctx.beginPath();
-      ctx.arc(x, y, 7, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.stroke();
+    },
+    hitTest(state, x, y) {
+      if (!dragTs || !state._pts) return null;
+      for (const p of state._pts) {
+        const dx = x - p.x;
+        const dy = y - p.y;
+        if (dx * dx + dy * dy < 14 * 14) return p.key;
+      }
+      return null;
+    },
+    onPointer(state, ev) {
+      if (!dragTs || !state._box) return false;
+      const box = state._box;
+      if (ev.type === 'down') {
+        state.drag = this.hitTest(state, ev.x, ev.y);
+        return !!state.drag;
+      }
+      if (ev.type === 'move' && state.drag) {
+        const sn = Math.max(0.12, Math.min(0.92, (ev.x - box.l) / box.w));
+        const Tn = 100 + Math.max(0, Math.min(1, (box.b - ev.y) / box.h)) * 800;
+        if (state.drag === 'h' || state.drag === 'a') {
+          state.params.Th = Tn;
+          if (state.drag === 'h') state.params.sHot = sn;
+          else state.params.sCold = sn;
+        } else {
+          state.params.Tc = Math.min(Tn, P(state.params, 'Th', 500) - 10);
+          if (state.drag === 'b') state.params.sHot = sn;
+          else state.params.sCold = sn;
+        }
+        return true;
+      }
+      if (ev.type === 'up') {
+        state.drag = null;
+        return true;
+      }
+      return false;
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
-      return [
+      const rows = [
         { label: 'η', value: formatNum(state.eta, d) },
         { label: 'Th', value: formatNum(P(state.params, 'Th', 500), 0) },
         { label: 'Tc', value: formatNum(P(state.params, 'Tc', 300), 0) },
       ];
+      if (Number.isFinite(state.cop)) rows.push({ label: 'COP', value: formatNum(state.cop, d) });
+      return rows;
     },
     getTrajectory() { return []; },
   };
@@ -3039,7 +3112,7 @@ function buildChaos(spec) {
     ...baseMeta(spec),
     params: isMandel
       ? { iter: 40, cx: -0.7, cy: 0.27, zoom: 1.2 }
-      : { sigma: 10, rho: 28, beta: 2.67, a: 0.2, b: 0.2, c: 5.7, speed: 1 },
+      : { sigma: 10, rho: 28, beta: 2.67, a: 0.2, b: 0.2, c: 5.7, speed: 1, proj: 0 },
     paramSchema: isMandel
       ? {
         iter: schemaNum('迭代', 'numerics', '—', 10, 120),
@@ -3055,6 +3128,14 @@ function buildChaos(spec) {
         b: schemaNum('b', 'dynamics', '—', 0.05, 1),
         c: schemaNum('c', 'dynamics', '—', 1, 20),
         speed: schemaNum('动画速', 'dynamics', '—', 0.2, 4),
+        proj: {
+          label: '投影', group: 'display', unit: '', min: 0, max: 2,
+          options: [
+            { value: 0, label: 'xy' },
+            { value: 1, label: 'xz' },
+            { value: 2, label: 'yz' },
+          ],
+        },
       },
     init(state) {
       state.t = 0;
@@ -3137,11 +3218,20 @@ function buildChaos(spec) {
         return;
       }
       const box = padBox(W, H);
+      const proj = Math.round(P(state.params, 'proj', 0));
+      const labels = ['xy', 'xz', 'yz'];
+      ctx.fillStyle = C.muted;
+      ctx.font = '11px IBM Plex Mono, monospace';
+      ctx.fillText(`proj ${labels[proj] || 'xy'}`, box.l, box.t - 8);
       ctx.strokeStyle = C.body;
       ctx.beginPath();
       state.trail.forEach((p, i) => {
-        const x = box.l + box.w * 0.5 + p.x * 6;
-        const y = box.t + box.h * 0.5 + p.y * 6;
+        let u; let v;
+        if (proj === 1) { u = p.x; v = p.z; }
+        else if (proj === 2) { u = p.y; v = p.z; }
+        else { u = p.x; v = p.y; }
+        const x = box.l + box.w * 0.5 + u * 6;
+        const y = box.t + box.h * 0.5 + v * 6;
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       });
       ctx.stroke();
@@ -3154,11 +3244,12 @@ function buildChaos(spec) {
           { label: 'zoom', value: formatNum(P(state.params, 'zoom', 1.2), d) },
         ];
       }
+      const labels = ['xy', 'xz', 'yz'];
       return [
         { label: 'x', value: formatNum(state.x, d) },
         { label: 'y', value: formatNum(state.y, d) },
         { label: 'z', value: formatNum(state.z, d) },
-        { label: 'pts', value: String(state.trail.length) },
+        { label: 'proj', value: labels[Math.round(P(state.params, 'proj', 0))] || 'xy' },
       ];
     },
   };
@@ -3186,6 +3277,7 @@ function buildTraffic(spec) {
       state.flow = 0;
       state.queue = 0;
       state.n = n;
+      state.fund = [];
     },
     step(state, dt) {
       state.t += dt;
@@ -3223,13 +3315,16 @@ function buildTraffic(spec) {
       state.cells = next;
       state.flow = moved / n;
       state.queue = state.cells.filter((c) => c === 0).length;
+      const dens = state.cells.filter((c) => c >= 0).length / n;
+      state.fund.push({ rho: dens, q: state.flow });
+      if (state.fund.length > 220) state.fund.shift();
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
-      title(ctx, spec.name);
+      title(ctx, `${spec.name} · ρ–q`);
       const n = state.n;
       const cellW = (W - 40) / n;
-      const y = H * 0.45;
+      const y = H * 0.32;
       for (let i = 0; i < n; i += 1) {
         const v = state.cells[i];
         if (v < 0) continue;
@@ -3238,15 +3333,31 @@ function buildTraffic(spec) {
       }
       ctx.strokeStyle = C.axis;
       ctx.strokeRect(20, y - 12, W - 40, 24);
+
+      // 基本图散点
+      const box = { l: 40, t: H * 0.48, w: W - 80, h: H * 0.42 };
+      ctx.strokeStyle = C.axis;
+      ctx.strokeRect(box.l, box.t, box.w, box.h);
+      ctx.fillStyle = C.muted;
+      ctx.font = '10px IBM Plex Mono, monospace';
+      ctx.fillText('ρ', box.l + box.w - 12, box.t + box.h + 12);
+      ctx.fillText('q', box.l - 12, box.t + 10);
+      const qMax = Math.max(0.15, ...state.fund.map((p) => p.q));
+      for (const p of state.fund) {
+        const x = box.l + p.rho * box.w;
+        const yy = box.t + box.h - (p.q / qMax) * box.h;
+        ctx.fillStyle = C.body;
+        ctx.fillRect(x - 1.5, yy - 1.5, 3, 3);
+      }
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
       const dens = state.cells.filter((c) => c >= 0).length / state.n;
       return [
         { label: 'ρ', value: formatNum(dens, d) },
-        { label: 'flow', value: formatNum(state.flow, d) },
+        { label: 'q', value: formatNum(state.flow, d) },
         { label: 'queue', value: String(state.queue) },
-        { label: 't', value: `${formatNum(state.t, 1)} s` },
+        { label: 'pts', value: String(state.fund.length) },
       ];
     },
   };

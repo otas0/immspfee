@@ -32,6 +32,15 @@ const MODELS = [
   ['raft', 'raft.png'],
   ['attention', 'attention.png'],
   ['membrane-2d', 'membrane-2d.png'],
+  // 精调 / 新学科抽检
+  ['beam-sfd-bmd', 'beam-sfd-bmd.png'],
+  ['pid-tune', 'pid-tune.png'],
+  ['hodgkin-huxley', 'hodgkin-huxley.png'],
+  ['lorenz', 'lorenz.png'],
+  ['nasch-ca', 'nasch-ca.png'],
+  ['rankine-cycle', 'rankine-cycle.png'],
+  ['vortex-lattice', 'vortex-lattice.png'],
+  ['cstr', 'cstr.png'],
 ];
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';

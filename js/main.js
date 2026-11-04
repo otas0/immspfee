@@ -255,10 +255,10 @@ function resetSim() {
 }
 
 const DOMAIN_ORDER = [
-  '物理', '计算机科学', '计算机工程',
+  '物理', '计算机科学', '计算机工程', '工程',
   '材料力学与结构工程', '工程热力学与能源动力', '电子工程与信号处理', '控制系统',
   '航空航天工程', '水利与土木', '交通工程', '化学工程', '工业工程', '核工程',
-  '生物医学工程', '环境工程', '数学', '化学', '生物', '地球科学', '经济与管理',
+  '生物医学工程', '环境工程', '数学', '化学', '生物', '地球科学', '经济与管理', '地球与经济',
 ];
 const SEARCH_ALIASES = {
   cs: ['计算机科学', '算法', '排序', '图论', '搜索', '元胞', '机器学习', '密码'],
@@ -454,21 +454,26 @@ function populateTagFilter() {
 function syncDrawerChrome() {
   const compact = isCompact();
   const sideOpen = sidebar.classList.contains('open');
-  const benchOpen = compact && bench.classList.contains('open');
+  const benchCollapsed = document.getElementById('chassis')?.classList.contains('bench-collapsed');
+  const benchOpen = compact
+    ? bench.classList.contains('open')
+    : !benchCollapsed;
   btnMenu?.setAttribute('aria-expanded', sideOpen ? 'true' : 'false');
   btnParams?.setAttribute('aria-expanded', benchOpen ? 'true' : 'false');
-  // 宽屏三栏常驻：params/close 无开关意义，隐藏并移出 Tab 序
+  // 宽屏：params 改为折叠/展开三栏工作台（非整隐）；close 仍仅抽屉模式
   if (btnParams) {
-    btnParams.hidden = !compact;
-    btnParams.tabIndex = compact ? 0 : -1;
-    btnParams.setAttribute('aria-hidden', compact ? 'false' : 'true');
+    btnParams.hidden = false;
+    btnParams.tabIndex = 0;
+    btnParams.setAttribute('aria-hidden', 'false');
+    const lbl = btnParams.querySelector('.lbl');
+    if (lbl) lbl.textContent = compact ? 'params' : (benchCollapsed ? 'bench' : 'fold');
   }
   if (btnCloseBench) {
     btnCloseBench.hidden = !compact;
     btnCloseBench.tabIndex = compact ? 0 : -1;
     btnCloseBench.setAttribute('aria-hidden', compact ? 'false' : 'true');
   }
-  const showBackdrop = sideOpen || benchOpen;
+  const showBackdrop = sideOpen || (compact && bench.classList.contains('open'));
   drawerBackdrop.hidden = !showBackdrop;
   document.body.classList.toggle('drawer-open', showBackdrop && isMobileDrawer());
 }
@@ -486,15 +491,21 @@ function setSidebarOpen(open) {
 }
 
 function setBenchOpen(open) {
-  // 宽屏（>1100）：工作台是三栏常驻面板，不可关闭；此处强制 open 并忽略 close。
-  // 仅 ≤1100 抽屉模式下 open=false 才会真正收起。
+  const chassis = document.getElementById('chassis');
+  // 宽屏：params 折叠/展开第三栏（bench-collapsed），close 仍无操作空间。
+  // 窄屏抽屉：open=false 真正收起。
   if (!isCompact()) {
     bench.classList.add('open');
     bench.style.transform = '';
     bench.style.height = '';
+    chassis?.classList.toggle('bench-collapsed', !open);
+    try {
+      localStorage.setItem('physics-lab-bench-collapsed', chassis?.classList.contains('bench-collapsed') ? '1' : '0');
+    } catch { /* ignore */ }
     syncDrawerChrome();
     return;
   }
+  chassis?.classList.remove('bench-collapsed');
   bench.classList.toggle('open', open);
   if (!open) {
     bench.style.transform = '';
@@ -631,6 +642,11 @@ btnMenu.addEventListener('click', (e) => {
 });
 btnParams.addEventListener('click', (e) => {
   e.stopPropagation();
+  if (!isCompact()) {
+    const collapsed = document.getElementById('chassis')?.classList.contains('bench-collapsed');
+    setBenchOpen(!!collapsed); // 折叠→展开 / 展开→折叠
+    return;
+  }
   setBenchOpen(!bench.classList.contains('open'));
 });
 btnCloseBench.addEventListener('click', (e) => {
@@ -867,9 +883,59 @@ window.__labCapture = {
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
 };
 
+function bindCanvasPointer() {
+  let dragging = false;
+  const toLocal = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / Math.max(r.width, 1) / (window.devicePixelRatio || 1);
+    // paintFrame 用 CSS 像素逻辑坐标
+    return {
+      x: ((e.clientX - r.left) / r.width) * (canvas.width / (window.devicePixelRatio || 1)),
+      y: ((e.clientY - r.top) / r.height) * (canvas.height / (window.devicePixelRatio || 1)),
+    };
+  };
+  // 更稳：用 view 逻辑尺寸
+  const pt = (e) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (typeof app.model?.onPointer !== 'function') return;
+    const p = pt(e);
+    const handled = app.model.onPointer(app.state, { type: 'down', x: p.x, y: p.y });
+    if (handled) {
+      dragging = true;
+      canvas.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+      paramBench.refresh?.();
+      updateHud({ flash: true });
+    }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging || typeof app.model?.onPointer !== 'function') return;
+    const p = pt(e);
+    if (app.model.onPointer(app.state, { type: 'move', x: p.x, y: p.y })) {
+      paramBench.refresh?.();
+      updateHud({ flash: true });
+    }
+  });
+  const end = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    const p = pt(e);
+    app.model?.onPointer?.(app.state, { type: 'up', x: p.x, y: p.y });
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  void toLocal;
+}
+
 async function boot() {
   if (localStorage.getItem('physics-lab-hc') === '1') {
     document.documentElement.classList.add('hc');
+  }
+  if (localStorage.getItem('physics-lab-bench-collapsed') === '1') {
+    document.getElementById('chassis')?.classList.add('bench-collapsed');
   }
   btnMenu.innerHTML = ICO.menu;
   btnReset.innerHTML = btnHtml('reset', 'reset');
@@ -885,6 +951,7 @@ async function boot() {
   buildSidebar();
   switchModel('free-fall');
   if (!isCompact()) bench.classList.add('open');
+  bindCanvasPointer();
   syncDrawerChrome();
   requestAnimationFrame(frame);
 }

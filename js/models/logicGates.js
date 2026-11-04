@@ -51,10 +51,15 @@ function evalNet(gates, inputs) {
   return wire;
 }
 
-/** 基本逻辑门 + 组合电路网表 */
+/** 基本逻辑门 + 组合电路网表（画布拖线） */
 export default {
   id: 'logic-gates',
   name: '基本逻辑门',
+  capabilities: {
+    pointer: true,
+    interaction: 'canvas',
+    hint: '网表模式：拖门体移动；从输出点拖到输入点连线',
+  },
   params: {
     a: 1, b: 0, c: 0, mode: 0, scan: 0, stepDt: 0.4, bits: 2,
     netlist: '',

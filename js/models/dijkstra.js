@@ -161,13 +161,22 @@ export default {
     }
   },
 
+  capabilities: {
+    pointer: true,
+    interaction: 'canvas',
+    hint: '点击两节点连边；再点第三下取消选中',
+  },
+
   draw(ctx, state, view) {
     const { width: W, height: H } = view;
     const pad = 36;
+    state._pad = pad;
+    state._view = { W, H };
     const pt = (i) => ({
       x: pad + state.nodes[i].x * (W - pad * 2),
       y: pad + state.nodes[i].y * (H - pad * 2),
     });
+    state._screen = state.nodes.map((_, i) => pt(i));
     ctx.font = '11px IBM Plex Mono, monospace';
     for (const e of state.edges) {
       const a = pt(e.a); const b = pt(e.b);
@@ -189,6 +198,14 @@ export default {
       });
       ctx.stroke();
     }
+    if (state._pick != null && state._screen[state._pick]) {
+      const p = state._screen[state._pick];
+      ctx.strokeStyle = C.vector;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     state.nodes.forEach((_n, i) => {
       const p = pt(i);
       let fill = C.muted;
@@ -205,10 +222,43 @@ export default {
     });
     ctx.fillStyle = C.muted;
     ctx.fillText(
-      state.done ? `done · cost=${formatNum(state.dist[state.goal], 2)} · edges=${state.edges.length}` : `searching · edges=${state.edges.length}`,
+      state.done
+        ? `done · cost=${formatNum(state.dist[state.goal], 2)} · edges=${state.edges.length}`
+        : `searching · edges=${state.edges.length} · 点选连边`,
       12,
       18,
     );
+  },
+
+  onPointer(state, ev) {
+    if (ev.type !== 'down' || !state._screen) return false;
+    let hit = -1;
+    let best = 16 * 16;
+    state._screen.forEach((p, i) => {
+      const d = (p.x - ev.x) ** 2 + (p.y - ev.y) ** 2;
+      if (d < best) { best = d; hit = i; }
+    });
+    if (hit < 0) {
+      state._pick = null;
+      return true;
+    }
+    if (state._pick == null) {
+      state._pick = hit;
+      return true;
+    }
+    if (state._pick === hit) {
+      state._pick = null;
+      return true;
+    }
+    const a = state._pick;
+    const b = hit;
+    const w = Math.max(0.01, P(state.params, 'edgeW', 3));
+    if (!state.edges.some((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a))) {
+      state.edges.push({ a, b, w });
+    }
+    state._pick = null;
+    this.resetSearch(state);
+    return true;
   },
 
   getReadouts(state, opts = {}) {

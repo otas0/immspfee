@@ -34,7 +34,7 @@ export default {
     state.peak = 0;
     state.overshoot = 0;
     state.iae = 0;
-    state.ts = NaN;
+    state.ts = -1; // -1 = 未进入容差带（避免 NaN 触发全局非有限检测）
     state.settled = false;
     state.lastOut = false;
   },
@@ -64,7 +64,7 @@ export default {
     if (!inside) {
       state.lastOut = true;
       state.settled = false;
-      state.ts = NaN;
+      state.ts = -1;
     } else if (state.lastOut || !state.settled) {
       // 进入容差带后记 ts（首次持续进入）
       if (!state.settled) {
@@ -116,7 +116,7 @@ export default {
     ctx.font = '12px IBM Plex Mono, monospace';
     const osPct = (state.overshoot / Math.max(Math.abs(state.ref), 1e-9)) * 100;
     ctx.fillText(
-      `OS=${formatNum(osPct, 1)}%  ts=${Number.isFinite(state.ts) ? formatNum(state.ts, 2) : '—'}  IAE=${formatNum(state.iae, 2)}`,
+      `OS=${formatNum(osPct, 1)}%  ts=${state.ts >= 0 ? formatNum(state.ts, 2) : '—'}  IAE=${formatNum(state.iae, 2)}`,
       pad,
       H - 18,
     );
@@ -128,7 +128,7 @@ export default {
     return [
       { label: 'y', value: formatNum(state.y, d) },
       { label: 'OS%', value: formatNum(osPct, d) },
-      { label: 'ts', value: Number.isFinite(state.ts) ? `${formatNum(state.ts, d)} s` : '—' },
+      { label: 'ts', value: state.ts >= 0 ? `${formatNum(state.ts, d)} s` : '—' },
       { label: 'IAE', value: formatNum(state.iae, d) },
       { label: 't', value: `${formatNum(state.t, d)} s` },
     ];

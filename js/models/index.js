@@ -24,6 +24,9 @@ import inclinedPlane from './inclinedPlane.js';
 import collision2d from './collision2d.js';
 import dijkstra from './dijkstra.js';
 import logicGates from './logicGates.js';
+import beamSfdBmd from './beamSfdBmd.js';
+import pidTune from './pidTune.js';
+import hodgkinHuxley from './hodgkinHuxley.js';
 import { createFactoryModel } from './factory.js';
 import catalog from '../../data/catalog.json' with { type: 'json' };
 
@@ -50,6 +53,9 @@ const handcrafted = [
   collision2d,
   dijkstra,
   logicGates,
+  beamSfdBmd,
+  pidTune,
+  hodgkinHuxley,
 ];
 
 const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));

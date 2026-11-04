@@ -689,10 +689,21 @@ html.hc .bench-drag span { background: rgba(255,255,255,0.35); }
 }
 /*
  * 条件隐藏按钮约定：用「.btn.<role>」双类选择器压过 .btn.ghost-always。
- * 宽屏三栏常驻时 close/params 无开关意义；窄屏抽屉再显示。
+ * close：仅窄屏抽屉；params-toggle：宽屏折叠三栏 / 窄屏开抽屉，始终可点。
  */
-.btn.bench-close,
-.btn.params-toggle { display: none; }
+.btn.bench-close { display: none; }
+.btn.params-toggle { display: inline-flex; }
+
+/* 宽屏折叠工作台：第三栏收起，舞台占满 */
+.chassis.bench-collapsed {
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 0fr;
+}
+.chassis.bench-collapsed > .bench {
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border: none;
+}
 
 .bench-help {
   margin: 0 0.7rem;
@@ -1107,8 +1118,14 @@ html.hc .pot-knob::after { background: #fff; }
     z-index: 31;
   }
   .bench.open { transform: translateX(0); }
-  .btn.bench-close,
-  .btn.params-toggle { display: inline-flex; }
+  .btn.bench-close { display: inline-flex; }
+  .chassis.bench-collapsed {
+    grid-template-columns: var(--sidebar-w) 1fr;
+  }
+  .chassis.bench-collapsed > .bench {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 @media (max-width: 900px) {

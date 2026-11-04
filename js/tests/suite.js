@@ -24,6 +24,9 @@ import inclinedPlane from '../models/inclinedPlane.js';
 import collision2d from '../models/collision2d.js';
 import dijkstra from '../models/dijkstra.js';
 import logicGates from '../models/logicGates.js';
+import beamSfdBmd from '../models/beamSfdBmd.js';
+import pidTune from '../models/pidTune.js';
+import hodgkinHuxley from '../models/hodgkinHuxley.js';
 import { runModelContract } from './model-contract.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
@@ -245,11 +248,27 @@ export function runSuite() {
     assert('collision-2d readout', smoke(collision2d, 200).r.length >= 4);
     assert('dijkstra readout', smoke(dijkstra, 400, 0.1).r.length >= 3);
     assert('logic-gates readout', smoke(logicGates, 50, 0.2).r.length >= 4);
+    {
+      const { state, r } = smoke(beamSfdBmd, 10, 0.1);
+      assert('beam-sfd-bmd SFD/BMD', state.sfd?.length > 10 && state.bmd?.length > 10 && r.length >= 4);
+      state.params.support = 1;
+      beamSfdBmd.step(state, 0.1);
+      assert('beam cantilever Ra', Math.abs(state.Ra - (state.params.P1 + state.params.P2 + state.params.P3)) < 1e-6, `Ra=${state.Ra}`);
+    }
+    {
+      const { state, r } = smoke(pidTune, 400, 0.02);
+      assert('pid-tune metrics', r.some((x) => x.label === 'OS%') && r.some((x) => x.label === 'IAE') && r.some((x) => x.label === 'ts'));
+      assert('pid-tune IAE grows', state.iae > 0, `iae=${state.iae}`);
+    }
+    {
+      const { r } = smoke(hodgkinHuxley, 200, 0.001);
+      assert('hodgkin-huxley readout', r.length >= 4);
+    }
   }
 
   // 目录规模 + live/reset 语义
   {
-    assert('catalog ≥ 200 models', models.length >= 200, `n=${models.length}`);
+    assert('catalog ≥ 1200 models', models.length >= 1200, `n=${models.length}`);
     const ids = new Set(models.map((m) => m.id));
     assert('catalog has free-fall', ids.has('free-fall'));
     assert('catalog has sorting', ids.has('sorting'));
