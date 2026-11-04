@@ -67,7 +67,7 @@
               <button type="button" id="btn-csv-more" class="btn quiet">csv</button>
             </div>
           </details>
-          <button type="button" id="btn-params" class="btn ghost-always" data-priority="high" aria-expanded="false" aria-controls="bench"><span class="lbl">params</span></button>
+          <button type="button" id="btn-params" class="btn ghost-always params-toggle" data-priority="high" aria-expanded="false" aria-controls="bench"><span class="lbl">params</span></button>
         </div>
       </header>
 
@@ -78,7 +78,10 @@
       </div>
 
       <footer class="hud">
-        <div class="hud-label">readouts</div>
+        <div class="hud-label-row">
+          <div class="hud-label">readouts</div>
+          <button type="button" id="btn-pin-baseline" class="btn quiet" title="把当前读数钉为对照基线">钉住基线</button>
+        </div>
         <div class="readouts" id="readouts"></div>
       </footer>
     </main>

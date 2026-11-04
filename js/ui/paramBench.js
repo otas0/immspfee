@@ -134,7 +134,18 @@ export function createParamBench(root, hooks = {}) {
       label: 'shot legend', onCommit: (v) => { g.shotLegend = v; onGlobalsChange?.(g); },
     }));
     rows.appendChild(boolRow('compareReadouts', g.compareReadouts, {
-      label: 'readout 对照', onCommit: (v) => { g.compareReadouts = v; onGlobalsChange?.(g); },
+      label: 'readout 对照', onCommit: (v) => {
+        g.compareReadouts = v;
+        if (!v) g.pinBaseline = false;
+        onGlobalsChange?.(g);
+      },
+    }));
+    rows.appendChild(boolRow('pinBaseline', !!g.pinBaseline, {
+      label: '钉住基线', onCommit: (v) => {
+        g.pinBaseline = v;
+        if (v) g.compareReadouts = true;
+        onGlobalsChange?.(g);
+      },
     }));
     rows.appendChild(boolRow('wideBounds', g.wideBounds !== false, {
       label: '宽量程输入', onCommit: (v) => { g.wideBounds = v; onGlobalsChange?.(g); render(); },
@@ -188,12 +199,26 @@ export function createParamBench(root, hooks = {}) {
             label: item.schema?.label || item.key,
             onCommit: (v) => commitParam(item.key, v),
           }));
-        } else if (typeof item.value === 'number' || item.key === 'expr_a') {
+        } else if (typeof item.value === 'string' || item.schema?.allowText || item.key === 'expr_a') {
+          const isText = typeof item.value === 'string' || item.schema?.allowText || item.key === 'expr_a';
+          if (isText && (item.schema?.allowText || item.key === 'expr_a' || typeof item.value === 'string')) {
+            const row = numberRow(item.key, item.value, {
+              label: item.schema?.label || item.key,
+              unit: item.schema?.unit || '',
+              allowExpr: true,
+              defaultValue: item.value,
+              onCommit: (v) => commitParam(item.key, String(v)),
+              removable: !builtins.has(item.key),
+              onRemove: () => removeParam(item.key),
+            });
+            rows.appendChild(row);
+          }
+        } else if (typeof item.value === 'number') {
           const bounds = inferBounds(item.key, typeof def === 'number' ? def : item.value, item.schema);
           const wide = globals?.wideBounds !== false;
           const commitMin = wide ? WIDE.min : bounds.min;
           const commitMax = wide ? WIDE.max : bounds.max;
-          if (typeof item.value === 'number' && Number.isFinite(item.value) && !wide) {
+          if (Number.isFinite(item.value) && !wide) {
             const clamped = clampNumber(item.value, bounds.min, bounds.max);
             if (clamped !== item.value) {
               toastClamp(item.key, item.value, clamped);
@@ -204,7 +229,7 @@ export function createParamBench(root, hooks = {}) {
           const row = numberRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             unit: item.schema?.unit || inferUnit(item.key),
-            allowExpr: item.key === 'expr_a',
+            allowExpr: false,
             defaultValue: typeof def === 'number' ? def : item.value,
             min: bounds.min,
             max: bounds.max,
@@ -263,8 +288,35 @@ export function createParamBench(root, hooks = {}) {
       render();
     });
     box.append(keyIn, valIn, btn);
+
+    const templates = document.createElement('div');
+    templates.className = 'add-templates';
+    const TEMPLATES = [
+      ['a_extra', '0.5', '额外加速度'],
+      ['k_extra', '2', '额外弹簧刚度'],
+      ['expr_a', '-0.1*v', '阻尼表达式'],
+      ['a_wind', '0.2', '风场常量'],
+    ];
+    for (const [k, v, lab] of TEMPLATES) {
+      const t = document.createElement('button');
+      t.type = 'button';
+      t.className = 'btn quiet';
+      t.textContent = lab;
+      t.title = `${k}=${v}`;
+      t.addEventListener('click', () => {
+        keyIn.value = k;
+        valIn.value = v;
+        const checked = validateCustomParam(k, v);
+        if (!checked.ok) return;
+        currentParams[k] = checked.value;
+        onParamChange?.(k, checked.value, true);
+        render();
+      });
+      templates.appendChild(t);
+    }
+
     const body = document.createElement('div');
-    body.append(box, hint);
+    body.append(box, templates, hint);
     appendSectionBody(sec, body, { foldable: true, open: false });
     return sec;
   }

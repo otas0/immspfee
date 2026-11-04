@@ -3,6 +3,7 @@ name: test
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -52,4 +53,26 @@ jobs:
         with:
           name: visual-diffs
           path: shots/diff/
+          if-no-files-found: ignore
+
+  shots-extra:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[shots]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - name: Start lab server
+        run: |
+          node scripts/dev-server.mjs &
+          sleep 2
+      - run: npm run shots:extra
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shots-extra
+          path: shots/extra/
           if-no-files-found: ignore

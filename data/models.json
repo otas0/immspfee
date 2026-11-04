@@ -1342,5 +1342,1289 @@
     "description": "Map/Shuffle/Reduce 阶段、数据流；调分片、节点数",
     "sub": "分布式",
     "family": "dist"
+  },
+  {
+    "id": "axial-loading",
+    "name": "轴向拉伸与压缩",
+    "tags": [
+      "材料力学与结构工程",
+      "静力与强度"
+    ],
+    "formula": "σ=F/A，ε=ΔL/L",
+    "description": "杆件伸长/缩短、应力-应变曲线、屈服点；调力、截面积、材料",
+    "sub": "静力与强度",
+    "family": "struct"
+  },
+  {
+    "id": "shear-bearing",
+    "name": "剪切与挤压",
+    "tags": [
+      "材料力学与结构工程",
+      "静力与强度"
+    ],
+    "formula": "τ=F/A",
+    "description": "连接件剪切面、挤压面、应力分布；调力、面积",
+    "sub": "静力与强度",
+    "family": "struct"
+  },
+  {
+    "id": "shaft-torsion",
+    "name": "圆轴扭转",
+    "tags": [
+      "材料力学与结构工程",
+      "静力与强度"
+    ],
+    "formula": "τ=Tρ/J，θ=TL/GJ",
+    "description": "轴段扭转变形、切应力沿半径分布；调扭矩、直径、长度",
+    "sub": "静力与强度",
+    "family": "struct"
+  },
+  {
+    "id": "beam-sfd-bmd",
+    "name": "梁的弯曲内力（剪力图/弯矩图）",
+    "tags": [
+      "材料力学与结构工程",
+      "梁与框架"
+    ],
+    "formula": "ΣV=0，ΣM=0",
+    "description": "梁、载荷、剪力图和弯矩图实时生成；调载荷位置/大小、支座条件",
+    "sub": "梁与框架",
+    "family": "struct"
+  },
+  {
+    "id": "beam-bending-stress",
+    "name": "梁的弯曲应力",
+    "tags": [
+      "材料力学与结构工程",
+      "梁与框架"
+    ],
+    "formula": "σ=My/I",
+    "description": "横截面正应力分布、中性轴；调弯矩、截面形状",
+    "sub": "梁与框架",
+    "family": "struct"
+  },
+  {
+    "id": "beam-deflection",
+    "name": "梁的弯曲变形（挠度）",
+    "tags": [
+      "材料力学与结构工程",
+      "梁与框架"
+    ],
+    "formula": "EI y''=M(x)",
+    "description": "梁变形曲线、挠度/转角；调 EI、载荷、跨度",
+    "sub": "梁与框架",
+    "family": "struct"
+  },
+  {
+    "id": "euler-buckling",
+    "name": "压杆稳定（欧拉屈曲）",
+    "tags": [
+      "材料力学与结构工程",
+      "稳定与组合"
+    ],
+    "formula": "P_cr=π²EI/(μL)²",
+    "description": "压杆失稳模式、临界载荷；调长度、约束、EI",
+    "sub": "稳定与组合",
+    "family": "struct"
+  },
+  {
+    "id": "bend-torsion",
+    "name": "组合变形（弯扭组合）",
+    "tags": [
+      "材料力学与结构工程",
+      "稳定与组合"
+    ],
+    "formula": "主应力/强度理论",
+    "description": "危险点应力状态、强度校核；调弯矩/扭矩组合",
+    "sub": "稳定与组合",
+    "family": "struct"
+  },
+  {
+    "id": "truss-analysis",
+    "name": "简单桁架受力分析",
+    "tags": [
+      "材料力学与结构工程",
+      "梁与框架"
+    ],
+    "formula": "节点法/截面法",
+    "description": "桁架节点、杆件内力（拉/压）、支座反力；调载荷、桁架几何",
+    "sub": "梁与框架",
+    "family": "struct"
+  },
+  {
+    "id": "frame-internal",
+    "name": "框架结构内力",
+    "tags": [
+      "材料力学与结构工程",
+      "梁与框架"
+    ],
+    "formula": "弯矩/剪力平衡",
+    "description": "框架弯矩图/剪力图、节点位移；调跨度、层高、载荷",
+    "sub": "梁与框架",
+    "family": "struct"
+  },
+  {
+    "id": "sdof-dynamics",
+    "name": "单自由度结构动力学",
+    "tags": [
+      "材料力学与结构工程",
+      "结构动力学"
+    ],
+    "formula": "mü+củ+ku=F(t)",
+    "description": "质量-弹簧-阻尼体系的位移时程、共振；调 m、k、c、激励频率",
+    "sub": "结构动力学",
+    "family": "control"
+  },
+  {
+    "id": "mdof-modes",
+    "name": "多自由度结构模态",
+    "tags": [
+      "材料力学与结构工程",
+      "结构动力学"
+    ],
+    "formula": "Kφ=ω²Mφ",
+    "description": "多质点体系的前几阶振型、频率；调质量/刚度分布",
+    "sub": "结构动力学",
+    "family": "control"
+  },
+  {
+    "id": "seismic-response",
+    "name": "地震响应（SDOF/MDOF）",
+    "tags": [
+      "材料力学与结构工程",
+      "结构动力学"
+    ],
+    "formula": "ü+2ζωủ+ω²u=-üg",
+    "description": "地面加速度输入下的结构响应、层间位移；调地震波、阻尼比",
+    "sub": "结构动力学",
+    "family": "control"
+  },
+  {
+    "id": "friction-pendulum",
+    "name": "摩擦摆/隔震支座",
+    "tags": [
+      "材料力学与结构工程",
+      "结构动力学"
+    ],
+    "formula": "滞回隔震",
+    "description": "隔震层滞回曲线、上部结构加速度折减；调摩擦系数、曲率半径",
+    "sub": "结构动力学",
+    "family": "control"
+  },
+  {
+    "id": "rankine-cycle",
+    "name": "朗肯循环",
+    "tags": [
+      "工程热力学与能源动力",
+      "动力循环"
+    ],
+    "formula": "η=1-Q_out/Q_in",
+    "description": "T-s / P-h 图、各状态点、泵/涡轮/冷凝器/锅炉；调压力、温度、效率",
+    "sub": "动力循环",
+    "family": "cycle"
+  },
+  {
+    "id": "vapor-compression",
+    "name": "制冷循环（蒸气压缩）",
+    "tags": [
+      "工程热力学与能源动力",
+      "动力循环"
+    ],
+    "formula": "COP=Q_c/W",
+    "description": "log p-h 图、蒸发/冷凝温度、COP；调过热度、过冷度",
+    "sub": "动力循环",
+    "family": "cycle"
+  },
+  {
+    "id": "hx-temp-profile",
+    "name": "换热器温度分布",
+    "tags": [
+      "工程热力学与能源动力",
+      "传热与工质"
+    ],
+    "formula": "ε-NTU",
+    "description": "冷/热流体沿程温度曲线、效能-传热单元数；调流量、入口温度、换热面积",
+    "sub": "传热与工质",
+    "family": "flow"
+  },
+  {
+    "id": "heat-pump",
+    "name": "热泵循环",
+    "tags": [
+      "工程热力学与能源动力",
+      "动力循环"
+    ],
+    "formula": "COP_h=Q_h/W",
+    "description": "与制冷循环对比的 T-s 图、性能系数；调热源/热汇温度",
+    "sub": "动力循环",
+    "family": "cycle"
+  },
+  {
+    "id": "brayton-cycle",
+    "name": "燃气轮机布雷顿循环",
+    "tags": [
+      "工程热力学与能源动力",
+      "动力循环"
+    ],
+    "formula": "η=1-r_p^{(1-γ)/γ}",
+    "description": "T-s 图、压气机/燃烧室/涡轮；调压比、涡轮入口温度",
+    "sub": "动力循环",
+    "family": "cycle"
+  },
+  {
+    "id": "otto-diesel",
+    "name": "内燃机奥托/狄塞尔循环",
+    "tags": [
+      "工程热力学与能源动力",
+      "动力循环"
+    ],
+    "formula": "η(r,γ)",
+    "description": "P-V 图、效率对比；调压缩比、吸热量",
+    "sub": "动力循环",
+    "family": "cycle"
+  },
+  {
+    "id": "pipe-pressure-drop",
+    "name": "管道流动压降",
+    "tags": [
+      "工程热力学与能源动力",
+      "流体机械"
+    ],
+    "formula": "ΔP=f (L/D)½ρv²",
+    "description": "沿程压力分布、摩擦因子；调管径、流速、粗糙度",
+    "sub": "流体机械",
+    "family": "flow"
+  },
+  {
+    "id": "pump-fan-curve",
+    "name": "泵/风机特性曲线",
+    "tags": [
+      "工程热力学与能源动力",
+      "流体机械"
+    ],
+    "formula": "H-Q 工作点",
+    "description": "流量-扬程曲线、工作点；调转速、管路阻力",
+    "sub": "流体机械",
+    "family": "flow"
+  },
+  {
+    "id": "hydro-turbine",
+    "name": "水轮机（佩尔顿/弗朗西斯）",
+    "tags": [
+      "工程热力学与能源动力",
+      "流体机械"
+    ],
+    "formula": "P=ρgQH η",
+    "description": "转轮、射流/水流、功率提取；调水头、流量",
+    "sub": "流体机械",
+    "family": "flow"
+  },
+  {
+    "id": "compressor-map",
+    "name": "压缩机特性",
+    "tags": [
+      "工程热力学与能源动力",
+      "流体机械"
+    ],
+    "formula": "压比-流量、喘振",
+    "description": "压比-流量曲线、喘振边界；调转速、进口条件",
+    "sub": "流体机械",
+    "family": "flow"
+  },
+  {
+    "id": "rc-rl-filter",
+    "name": "无源 RC/RL 滤波器",
+    "tags": [
+      "电子工程与信号处理",
+      "模拟电路"
+    ],
+    "formula": "H(jω)=…",
+    "description": "电路图、幅频/相频（伯德图）、阶跃响应；调 R、C 值",
+    "sub": "模拟电路",
+    "family": "circuit"
+  },
+  {
+    "id": "active-filter",
+    "name": "有源滤波器（Sallen-Key）",
+    "tags": [
+      "电子工程与信号处理",
+      "模拟电路"
+    ],
+    "formula": "二阶传递函数",
+    "description": "运放电路、伯德图、零极点图；调 R、C、增益",
+    "sub": "模拟电路",
+    "family": "circuit"
+  },
+  {
+    "id": "opamp-configs",
+    "name": "运算放大器基本组态",
+    "tags": [
+      "电子工程与信号处理",
+      "模拟电路"
+    ],
+    "formula": "Av=-Rf/Rin",
+    "description": "反相/同相/差分电路、输入输出波形、增益；调电阻比",
+    "sub": "模拟电路",
+    "family": "circuit"
+  },
+  {
+    "id": "bjt-amplifier",
+    "name": "晶体管共射/共集/共基放大",
+    "tags": [
+      "电子工程与信号处理",
+      "模拟电路"
+    ],
+    "formula": "小信号增益",
+    "description": "输入/输出波形、增益、输入输出电阻；调偏置、负载",
+    "sub": "模拟电路",
+    "family": "circuit"
+  },
+  {
+    "id": "rlc-resonance",
+    "name": "RLC 谐振电路",
+    "tags": [
+      "电子工程与信号处理",
+      "模拟电路"
+    ],
+    "formula": "Q=ω₀L/R",
+    "description": "幅频曲线、品质因数、带宽；调 R、L、C",
+    "sub": "模拟电路",
+    "family": "circuit"
+  },
+  {
+    "id": "diode-rectifier",
+    "name": "二极管整流与稳压",
+    "tags": [
+      "电子工程与信号处理",
+      "电源与调制"
+    ],
+    "formula": "半波/全波+滤波",
+    "description": "输入交流、输出直流波形、纹波；调滤波电容、负载",
+    "sub": "电源与调制",
+    "family": "circuit"
+  },
+  {
+    "id": "mixer-am-fm",
+    "name": "混频器/调制（AM/FM）",
+    "tags": [
+      "电子工程与信号处理",
+      "电源与调制"
+    ],
+    "formula": "s(t)=[1+m·x]cos ωc t",
+    "description": "载波、调制信号、已调波形、频谱；调调制指数、载波频率",
+    "sub": "电源与调制",
+    "family": "comm"
+  },
+  {
+    "id": "adc-sampling",
+    "name": "采样与量化（ADC）",
+    "tags": [
+      "电子工程与信号处理",
+      "电源与调制"
+    ],
+    "formula": "fs、N bit",
+    "description": "模拟波形、采样点、量化误差、频谱混叠；调采样率、位数",
+    "sub": "电源与调制",
+    "family": "embed"
+  },
+  {
+    "id": "pwm-signal",
+    "name": "脉宽调制（PWM）",
+    "tags": [
+      "电子工程与信号处理",
+      "电源与调制"
+    ],
+    "formula": "Vavg=D·V",
+    "description": "占空比、开关波形、平均电压；调频率、占空比",
+    "sub": "电源与调制",
+    "family": "embed"
+  },
+  {
+    "id": "pll-lock",
+    "name": "锁相环（PLL）",
+    "tags": [
+      "电子工程与信号处理",
+      "射频与微波"
+    ],
+    "formula": "环路锁定",
+    "description": "输入/输出相位、环路滤波器、锁定过程；调环路带宽、阻尼",
+    "sub": "射频与微波",
+    "family": "control"
+  },
+  {
+    "id": "transmission-line",
+    "name": "传输线（反射/驻波）",
+    "tags": [
+      "电子工程与信号处理",
+      "射频与微波"
+    ],
+    "formula": "Γ=(ZL-Z0)/(ZL+Z0)",
+    "description": "沿线电压/电流驻波、反射系数；调负载阻抗、线长",
+    "sub": "射频与微波",
+    "family": "wave1d"
+  },
+  {
+    "id": "antenna-pattern",
+    "name": "天线方向图",
+    "tags": [
+      "电子工程与信号处理",
+      "射频与微波"
+    ],
+    "formula": "阵列因子",
+    "description": "极坐标辐射方向图、增益、波束宽度；调阵元间距、相位",
+    "sub": "射频与微波",
+    "family": "gauge"
+  },
+  {
+    "id": "step-response",
+    "name": "一阶/二阶系统阶跃响应",
+    "tags": [
+      "控制系统",
+      "经典控制"
+    ],
+    "formula": "G(s)=Kωₙ²/(s²+2ζωₙs+ωₙ²)",
+    "description": "响应曲线、超调、调节时间、阻尼比；调 K、ζ、ωₙ",
+    "sub": "经典控制",
+    "family": "control"
+  },
+  {
+    "id": "pid-tune",
+    "name": "PID 参数整定（交互）",
+    "tags": [
+      "控制系统",
+      "经典控制"
+    ],
+    "formula": "u=Kp e+Ki∫e+Kd ė",
+    "description": "被控对象响应、Kp/Ki/Kd 滑条、性能指标；调三个参数",
+    "sub": "经典控制",
+    "family": "control"
+  },
+  {
+    "id": "root-locus",
+    "name": "根轨迹",
+    "tags": [
+      "控制系统",
+      "经典控制"
+    ],
+    "formula": "1+KG(s)=0",
+    "description": "开环极点/零点、闭环极点随增益移动；调零极点位置",
+    "sub": "经典控制",
+    "family": "control"
+  },
+  {
+    "id": "bode-nyquist",
+    "name": "伯德图/奈奎斯特图",
+    "tags": [
+      "控制系统",
+      "经典控制"
+    ],
+    "formula": "稳定裕度",
+    "description": "频域响应、稳定裕度；调增益、零极点",
+    "sub": "经典控制",
+    "family": "control"
+  },
+  {
+    "id": "inverted-pendulum",
+    "name": "倒立摆 PID 控制",
+    "tags": [
+      "控制系统",
+      "被控对象"
+    ],
+    "formula": "小车-摆杆",
+    "description": "小车-摆杆动画、角度/位置响应、控制力；调 PID、初始扰动",
+    "sub": "被控对象",
+    "family": "control"
+  },
+  {
+    "id": "dc-motor-speed",
+    "name": "电机调速（直流电机）",
+    "tags": [
+      "控制系统",
+      "被控对象"
+    ],
+    "formula": "电枢方程",
+    "description": "转速/电流响应、电压输入；调电枢电阻、惯量、负载",
+    "sub": "被控对象",
+    "family": "control"
+  },
+  {
+    "id": "tank-level",
+    "name": "液位控制",
+    "tags": [
+      "控制系统",
+      "被控对象"
+    ],
+    "formula": "A ḣ = qi-qo",
+    "description": "水箱液位、阀门开度、扰动响应；调 PID、容器面积",
+    "sub": "被控对象",
+    "family": "control"
+  },
+  {
+    "id": "maglev",
+    "name": "磁悬浮",
+    "tags": [
+      "控制系统",
+      "被控对象"
+    ],
+    "formula": "电磁力平衡",
+    "description": "悬浮间隙、电磁力、稳定性；调电流、间隙、PID",
+    "sub": "被控对象",
+    "family": "control"
+  },
+  {
+    "id": "flight-attitude",
+    "name": "飞行控制（俯仰/滚转）",
+    "tags": [
+      "控制系统",
+      "被控对象"
+    ],
+    "formula": "姿态动力学",
+    "description": "飞行器姿态、舵面、角速率；调气动导数、控制增益",
+    "sub": "被控对象",
+    "family": "control"
+  },
+  {
+    "id": "vortex-lattice",
+    "name": "机翼升力/阻力（涡格法）",
+    "tags": [
+      "航空航天工程",
+      "气动"
+    ],
+    "formula": "升力面理论",
+    "description": "机翼平面形状、展向升力分布、下洗；调展弦比、后掠角、攻角",
+    "sub": "气动",
+    "family": "aero"
+  },
+  {
+    "id": "airfoil-aero",
+    "name": "翼型气动特性",
+    "tags": [
+      "航空航天工程",
+      "气动"
+    ],
+    "formula": "Cl(α)、Cd",
+    "description": "翼型、压力分布、升力/阻力系数随攻角变化；调弯度、厚度、雷诺数",
+    "sub": "气动",
+    "family": "aero"
+  },
+  {
+    "id": "phugoid-short",
+    "name": "飞行器纵向短周期/长周期模态",
+    "tags": [
+      "航空航天工程",
+      "飞行动力学"
+    ],
+    "formula": "模态响应",
+    "description": "攻角/俯仰角响应；调气动导数、质量分布",
+    "sub": "飞行动力学",
+    "family": "control"
+  },
+  {
+    "id": "rocket-vt",
+    "name": "火箭垂直回收（推力矢量）",
+    "tags": [
+      "航空航天工程",
+      "推进与返回"
+    ],
+    "formula": "六自由度示意",
+    "description": "箭体姿态、推力矢量、着陆轨迹；调推力、质心、控制增益",
+    "sub": "推进与返回",
+    "family": "aero"
+  },
+  {
+    "id": "hohmann-transfer",
+    "name": "卫星轨道机动",
+    "tags": [
+      "航空航天工程",
+      "轨道"
+    ],
+    "formula": "霍曼转移 Δv",
+    "description": "轨道转移、霍曼转移、速度增量；调初始/目标轨道",
+    "sub": "轨道",
+    "family": "nbody"
+  },
+  {
+    "id": "reentry-trajectory",
+    "name": "再入大气层弹道",
+    "tags": [
+      "航空航天工程",
+      "推进与返回"
+    ],
+    "formula": "弹道方程",
+    "description": "高度-速度曲线、热流、过载；调弹道系数、进入角",
+    "sub": "推进与返回",
+    "family": "aero"
+  },
+  {
+    "id": "rotor-thrust",
+    "name": "旋翼/螺旋桨拉力",
+    "tags": [
+      "航空航天工程",
+      "气动"
+    ],
+    "formula": "动量理论",
+    "description": "桨叶、诱导速度、拉力/功率；调转速、桨距、直径",
+    "sub": "气动",
+    "family": "aero"
+  },
+  {
+    "id": "open-channel-uniform",
+    "name": "明渠均匀流",
+    "tags": [
+      "水利与土木",
+      "明渠与堰闸"
+    ],
+    "formula": "曼宁公式",
+    "description": "渠道断面、水深、流速、曼宁公式；调底坡、糙率、流量",
+    "sub": "明渠与堰闸",
+    "family": "flow"
+  },
+  {
+    "id": "gradually-varied",
+    "name": "明渠非均匀流（水面线）",
+    "tags": [
+      "水利与土木",
+      "明渠与堰闸"
+    ],
+    "formula": "dy/dx=(i-J)/(1-Fr²)",
+    "description": "水面曲线（M/S 型）、控制断面；调流量、底坡、闸门开度",
+    "sub": "明渠与堰闸",
+    "family": "flow"
+  },
+  {
+    "id": "weir-flow",
+    "name": "堰流（宽顶/尖顶/V 型）",
+    "tags": [
+      "水利与土木",
+      "明渠与堰闸"
+    ],
+    "formula": "Q=Cd·f(H)",
+    "description": "堰上水头、流量系数、水舌；调堰高、水头",
+    "sub": "明渠与堰闸",
+    "family": "flow"
+  },
+  {
+    "id": "sluice-gate",
+    "name": "闸孔出流",
+    "tags": [
+      "水利与土木",
+      "明渠与堰闸"
+    ],
+    "formula": "收缩断面",
+    "description": "闸门开度、收缩断面、流量；调开度、上游水头",
+    "sub": "明渠与堰闸",
+    "family": "flow"
+  },
+  {
+    "id": "hydraulic-jump",
+    "name": "水跃",
+    "tags": [
+      "水利与土木",
+      "明渠与堰闸"
+    ],
+    "formula": "共轭水深",
+    "description": "跃前/跃后水深、能量损失；调弗劳德数",
+    "sub": "明渠与堰闸",
+    "family": "flow"
+  },
+  {
+    "id": "pipe-network",
+    "name": "管道网络（串联/并联）",
+    "tags": [
+      "水利与土木",
+      "管网与泵站"
+    ],
+    "formula": "节点连续、能量方程",
+    "description": "各管段流量/压力、节点水头；调管径、长度、泵",
+    "sub": "管网与泵站",
+    "family": "flow"
+  },
+  {
+    "id": "pump-station",
+    "name": "泵站（单泵/并联/串联）",
+    "tags": [
+      "水利与土木",
+      "管网与泵站"
+    ],
+    "formula": "H-Q 叠加",
+    "description": "泵特性曲线、工作点、管路特性；调转速、台数",
+    "sub": "管网与泵站",
+    "family": "flow"
+  },
+  {
+    "id": "surge-waterhammer",
+    "name": "调压井/水锤",
+    "tags": [
+      "水利与土木",
+      "管网与泵站"
+    ],
+    "formula": "水锤波速 a",
+    "description": "压力波动、水位振荡；调管道特性、阀门关闭时间",
+    "sub": "管网与泵站",
+    "family": "wave1d"
+  },
+  {
+    "id": "nasch-ca",
+    "name": "交通流元胞自动机（NaSch）",
+    "tags": [
+      "交通工程",
+      "交通流"
+    ],
+    "formula": "NaSch 规则",
+    "description": "车辆网格、速度/密度/流量基本图；调密度、随机慢化概率",
+    "sub": "交通流",
+    "family": "traffic"
+  },
+  {
+    "id": "signalized-intersection",
+    "name": "信号交叉口通行能力",
+    "tags": [
+      "交通工程",
+      "交叉口与交织"
+    ],
+    "formula": "延误模型",
+    "description": "车辆到达/排队、信号配时、延误；调绿信比、周期、到达率",
+    "sub": "交叉口与交织",
+    "family": "traffic"
+  },
+  {
+    "id": "lane-change",
+    "name": "双车道换道模型",
+    "tags": [
+      "交通工程",
+      "交通流"
+    ],
+    "formula": "换道决策",
+    "description": "车辆换道决策、速度差异；调换道概率、车流密度",
+    "sub": "交通流",
+    "family": "traffic"
+  },
+  {
+    "id": "weaving-section",
+    "name": "匝道交织区",
+    "tags": [
+      "交通工程",
+      "交叉口与交织"
+    ],
+    "formula": "交织通行能力",
+    "description": "主路/匝道车辆交织、通行能力；调流量比、交织长度",
+    "sub": "交叉口与交织",
+    "family": "traffic"
+  },
+  {
+    "id": "social-force",
+    "name": "行人流/社会力模型",
+    "tags": [
+      "交通工程",
+      "行人"
+    ],
+    "formula": "社会力",
+    "description": "行人粒子、避让、拥堵；调行人密度、出口宽度",
+    "sub": "行人",
+    "family": "particles"
+  },
+  {
+    "id": "cstr",
+    "name": "连续搅拌釜反应器（CSTR）",
+    "tags": [
+      "化学工程",
+      "反应器"
+    ],
+    "formula": "V dc/dt=F(cin-c)+rV",
+    "description": "浓度/温度随时间、稳态/振荡；调停留时间、反应速率",
+    "sub": "反应器",
+    "family": "reactor"
+  },
+  {
+    "id": "pfr",
+    "name": "平推流反应器（PFR）",
+    "tags": [
+      "化学工程",
+      "反应器"
+    ],
+    "formula": "u dc/dz=r",
+    "description": "沿程浓度/转化率分布；调流速、反应级数",
+    "sub": "反应器",
+    "family": "reactor"
+  },
+  {
+    "id": "mccabe-thiele",
+    "name": "精馏塔（McCabe-Thiele）",
+    "tags": [
+      "化学工程",
+      "分离"
+    ],
+    "formula": "操作线/平衡线",
+    "description": "平衡曲线、操作线、理论板数；调回流比、进料组成",
+    "sub": "分离",
+    "family": "reactor"
+  },
+  {
+    "id": "hx-network",
+    "name": "换热器网络",
+    "tags": [
+      "化学工程",
+      "分离"
+    ],
+    "formula": "夹点分析",
+    "description": "多股物流换热、夹点分析；调热容流率、目标温度",
+    "sub": "分离",
+    "family": "flow"
+  },
+  {
+    "id": "flash-separator",
+    "name": "简单分离器（闪蒸）",
+    "tags": [
+      "化学工程",
+      "分离"
+    ],
+    "formula": "气液平衡",
+    "description": "气液平衡、相分率；调 T、P、组成",
+    "sub": "分离",
+    "family": "reactor"
+  },
+  {
+    "id": "fluidized-bed",
+    "name": "流化床颗粒运动",
+    "tags": [
+      "化学工程",
+      "反应器"
+    ],
+    "formula": "压降-气速",
+    "description": "颗粒/气泡运动、压降；调气速、颗粒粒径",
+    "sub": "反应器",
+    "family": "particles"
+  },
+  {
+    "id": "queue-mmc",
+    "name": "排队系统（M/M/1, M/M/c）",
+    "tags": [
+      "工业工程",
+      "运筹"
+    ],
+    "formula": "ρ=λ/(cμ)",
+    "description": "队列长度、等待时间、利用率；调到达率、服务率、服务器数",
+    "sub": "运筹",
+    "family": "os"
+  },
+  {
+    "id": "inventory-eoq",
+    "name": "库存 EOQ / (s, S) 策略",
+    "tags": [
+      "工业工程",
+      "运筹"
+    ],
+    "formula": "EOQ=√(2DS/H)",
+    "description": "库存水平随时间、订货点、缺货；调需求率、订货成本、提前期",
+    "sub": "运筹",
+    "family": "os"
+  },
+  {
+    "id": "jobshop-schedule",
+    "name": "流水车间/作业车间调度",
+    "tags": [
+      "工业工程",
+      "运筹"
+    ],
+    "formula": "甘特图",
+    "description": "甘特图、机器利用率、完工时间；调工件顺序、加工时间",
+    "sub": "运筹",
+    "family": "os"
+  },
+  {
+    "id": "kanban-pull",
+    "name": "看板/拉动生产",
+    "tags": [
+      "工业工程",
+      "运筹"
+    ],
+    "formula": "看板数量",
+    "description": "在制品、产出率、看板数量；调看板数、需求波动",
+    "sub": "运筹",
+    "family": "os"
+  },
+  {
+    "id": "neutron-diffusion",
+    "name": "中子扩散（一维/二维）",
+    "tags": [
+      "核工程",
+      "反应堆物理"
+    ],
+    "formula": "D∇²φ-Σa φ+S=0",
+    "description": "中子通量分布、临界尺寸；调材料截面、几何",
+    "sub": "反应堆物理",
+    "family": "field2d"
+  },
+  {
+    "id": "reactor-power",
+    "name": "反应堆功率分布",
+    "tags": [
+      "核工程",
+      "反应堆物理"
+    ],
+    "formula": "功率密度",
+    "description": "堆芯功率密度图、控制棒价值；调控制棒位置、燃耗",
+    "sub": "反应堆物理",
+    "family": "field2d"
+  },
+  {
+    "id": "decay-chain",
+    "name": "放射性衰变链",
+    "tags": [
+      "核工程",
+      "核素"
+    ],
+    "formula": "Bateman 方程",
+    "description": "核素丰度随时间、半衰期；调初始核素、分支比",
+    "sub": "核素",
+    "family": "decay"
+  },
+  {
+    "id": "mc-neutron",
+    "name": "中子输运（蒙特卡洛示意）",
+    "tags": [
+      "核工程",
+      "输运"
+    ],
+    "formula": "散射/吸收",
+    "description": "粒子轨迹、散射/吸收事件；调介质、能量",
+    "sub": "输运",
+    "family": "particles"
+  },
+  {
+    "id": "hodgkin-huxley",
+    "name": "神经动作电位（Hodgkin-Huxley）",
+    "tags": [
+      "生物医学工程",
+      "电生理"
+    ],
+    "formula": "C V̇=I-Σg·(V-E)",
+    "description": "膜电位时程、离子通道电导；调刺激电流、通道参数",
+    "sub": "电生理",
+    "family": "control"
+  },
+  {
+    "id": "ecg-synth",
+    "name": "心电图（ECG）合成",
+    "tags": [
+      "生物医学工程",
+      "电生理"
+    ],
+    "formula": "P-QRS-T",
+    "description": "P-QRS-T 波形、心率变异性；调心率、各波幅",
+    "sub": "电生理",
+    "family": "gauge"
+  },
+  {
+    "id": "pacemaker",
+    "name": "房室结/起搏器控制",
+    "tags": [
+      "生物医学工程",
+      "电生理"
+    ],
+    "formula": "起搏节律",
+    "description": "起搏节律、传导延迟；调起搏频率、延迟",
+    "sub": "电生理",
+    "family": "gauge"
+  },
+  {
+    "id": "respiratory-mech",
+    "name": "呼吸系统力学",
+    "tags": [
+      "生物医学工程",
+      "生理系统"
+    ],
+    "formula": "P-V 环",
+    "description": "肺容积-压力环、气道阻力；调顺应性、阻力",
+    "sub": "生理系统",
+    "family": "control"
+  },
+  {
+    "id": "pk-compartment",
+    "name": "药物代谢（一室/二室模型）",
+    "tags": [
+      "生物医学工程",
+      "生理系统"
+    ],
+    "formula": "C(t) 药代",
+    "description": "血药浓度-时间曲线；调剂量、消除速率、分布容积",
+    "sub": "生理系统",
+    "family": "decay"
+  },
+  {
+    "id": "gait-dynamics",
+    "name": "步态/关节动力学",
+    "tags": [
+      "生物医学工程",
+      "生物力学"
+    ],
+    "formula": "关节力矩",
+    "description": "关节角度、力矩、地面反力；调步速、质量",
+    "sub": "生物力学",
+    "family": "ode2d"
+  },
+  {
+    "id": "asm-simple",
+    "name": "活性污泥模型（ASM 简化）",
+    "tags": [
+      "环境工程",
+      "水处理"
+    ],
+    "formula": "有机物/氧/生物量",
+    "description": "有机物/氧/生物量浓度随时间；调进水负荷、曝气量",
+    "sub": "水处理",
+    "family": "reactor"
+  },
+  {
+    "id": "do-control",
+    "name": "曝气池溶解氧控制",
+    "tags": [
+      "环境工程",
+      "水处理"
+    ],
+    "formula": "DO PID",
+    "description": "DO 浓度、曝气量、PID 响应；调设定值、控制器参数",
+    "sub": "水处理",
+    "family": "control"
+  },
+  {
+    "id": "river-dispersion",
+    "name": "污染物扩散（一维河流）",
+    "tags": [
+      "环境工程",
+      "水环境"
+    ],
+    "formula": "对流-扩散-降解",
+    "description": "浓度沿程分布、降解；调流速、降解系数、排放点",
+    "sub": "水环境",
+    "family": "wave1d"
+  },
+  {
+    "id": "water-network",
+    "name": "给水管网水力",
+    "tags": [
+      "环境工程",
+      "给排水"
+    ],
+    "formula": "节点压力",
+    "description": "节点压力、管段流量；调管径、节点需水量、泵",
+    "sub": "给排水",
+    "family": "flow"
+  },
+  {
+    "id": "lorenz",
+    "name": "洛伦茨吸引子",
+    "tags": [
+      "数学",
+      "动力系统"
+    ],
+    "formula": "ẋ=σ(y-x)…",
+    "description": "三维相空间轨迹、蝴蝶效应；调 σ、ρ、β",
+    "sub": "动力系统",
+    "family": "chaos"
+  },
+  {
+    "id": "rossler",
+    "name": "Rossler 吸引子",
+    "tags": [
+      "数学",
+      "动力系统"
+    ],
+    "formula": "三维 ODE",
+    "description": "三维轨迹、混沌；调参数 a、b、c",
+    "sub": "动力系统",
+    "family": "chaos"
+  },
+  {
+    "id": "mandelbrot-julia",
+    "name": "分形（Mandelbrot/Julia）",
+    "tags": [
+      "数学",
+      "动力系统"
+    ],
+    "formula": "z←z²+c",
+    "description": "复平面迭代着色、缩放；调迭代次数、参数 c",
+    "sub": "动力系统",
+    "family": "chaos"
+  },
+  {
+    "id": "ode-solver",
+    "name": "微分方程数值解",
+    "tags": [
+      "数学",
+      "数值方法"
+    ],
+    "formula": "Euler/RK",
+    "description": "解曲线、相图、步长影响；调方程参数、步长",
+    "sub": "数值方法",
+    "family": "control"
+  },
+  {
+    "id": "fourier-series",
+    "name": "傅里叶级数合成",
+    "tags": [
+      "数学",
+      "分析"
+    ],
+    "formula": "Σ an cos",
+    "description": "谐波叠加逼近方波/锯齿波；调谐波数量、系数",
+    "sub": "分析",
+    "family": "wave1d"
+  },
+  {
+    "id": "matrix-transform",
+    "name": "线性变换（矩阵）",
+    "tags": [
+      "数学",
+      "线性代数"
+    ],
+    "formula": "x'=Ax",
+    "description": "2D 向量/网格的拉伸/旋转/剪切；调 2×2 矩阵",
+    "sub": "线性代数",
+    "family": "gauge"
+  },
+  {
+    "id": "titration-curve",
+    "name": "酸碱滴定曲线",
+    "tags": [
+      "化学",
+      "反应"
+    ],
+    "formula": "pH 突跃",
+    "description": "pH 随滴定体积、突跃；调浓度、pKa",
+    "sub": "反应",
+    "family": "gauge"
+  },
+  {
+    "id": "le-chatelier",
+    "name": "化学平衡（Le Chatelier）",
+    "tags": [
+      "化学",
+      "反应"
+    ],
+    "formula": "K(T,P)",
+    "description": "浓度/温度/压力对平衡的影响；调条件",
+    "sub": "反应",
+    "family": "reactor"
+  },
+  {
+    "id": "reaction-order",
+    "name": "一级/二级反应动力学",
+    "tags": [
+      "化学",
+      "反应"
+    ],
+    "formula": "c=c₀ e^{-kt}",
+    "description": "浓度-时间曲线、半衰期；调速率常数、初始浓度",
+    "sub": "反应",
+    "family": "decay"
+  },
+  {
+    "id": "normal-modes",
+    "name": "分子振动（简正模式）",
+    "tags": [
+      "化学",
+      "分子"
+    ],
+    "formula": "谐振子",
+    "description": "双原子/三原子分子振动动画；调质量、键力常数",
+    "sub": "分子",
+    "family": "ode1d"
+  },
+  {
+    "id": "logistic-growth",
+    "name": "种群增长（Logistic）",
+    "tags": [
+      "生物",
+      "种群"
+    ],
+    "formula": "Ṅ=rN(1-N/K)",
+    "description": "N-t 曲线、环境容量；调 r、K",
+    "sub": "种群",
+    "family": "control"
+  },
+  {
+    "id": "lotka-volterra",
+    "name": "Lotka-Volterra 捕食者-猎物",
+    "tags": [
+      "生物",
+      "种群"
+    ],
+    "formula": "ẋ=x(α-βy)",
+    "description": "相图、周期振荡；调出生/捕食/死亡参数",
+    "sub": "种群",
+    "family": "chaos"
+  },
+  {
+    "id": "sir-epidemic",
+    "name": "SIR 传染病模型",
+    "tags": [
+      "生物",
+      "种群"
+    ],
+    "formula": "Ṡ=-βSI…",
+    "description": "S/I/R 曲线、峰值、基本再生数；调 β、γ",
+    "sub": "种群",
+    "family": "control"
+  },
+  {
+    "id": "neural-net-simple",
+    "name": "神经元网络（简化）",
+    "tags": [
+      "生物",
+      "神经"
+    ],
+    "formula": "放电率",
+    "description": "放电率、连接权重、活动传播；调连接矩阵",
+    "sub": "神经",
+    "family": "ml"
+  },
+  {
+    "id": "seismic-waves",
+    "name": "板块运动/地震波传播",
+    "tags": [
+      "地球科学",
+      "地球物理"
+    ],
+    "formula": "走时",
+    "description": "波前、走时、震源机制；调波速、震源深度",
+    "sub": "地球物理",
+    "family": "wave1d"
+  },
+  {
+    "id": "radiation-balance",
+    "name": "大气辐射平衡",
+    "tags": [
+      "地球科学",
+      "气候"
+    ],
+    "formula": "温室效应",
+    "description": "太阳/地面辐射、温室效应；调反照率、CO₂",
+    "sub": "气候",
+    "family": "gauge"
+  },
+  {
+    "id": "supply-demand",
+    "name": "供需均衡",
+    "tags": [
+      "经济与管理",
+      "微观"
+    ],
+    "formula": "均衡价格",
+    "description": "供给/需求曲线、均衡价格；调弹性、冲击",
+    "sub": "微观",
+    "family": "gauge"
+  },
+  {
+    "id": "compound-growth",
+    "name": "复利/投资增长",
+    "tags": [
+      "经济与管理",
+      "金融"
+    ],
+    "formula": "A=P(1+r)^n",
+    "description": "本金增长曲线、不同利率对比；调利率、期数",
+    "sub": "金融",
+    "family": "gauge"
   }
 ]

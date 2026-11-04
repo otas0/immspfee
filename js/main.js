@@ -56,6 +56,7 @@ const app = {
     shotReadouts: false,
     shotLegend: false,
     compareReadouts: false,
+    pinBaseline: false,
     wideBounds: true,
   },
 };
@@ -63,6 +64,7 @@ const app = {
 const FOLD_KEY = 'physics-lab-folds-v1';
 const HOT_SUBS = new Set([
   '经典力学', '算法与数据结构', '计算机体系结构', '波与振动', '电磁学', '数字逻辑',
+  '梁与框架', '动力循环', '经典控制', '气动', '交通流', '静力与强度',
 ]);
 
 function loadFolds() {
@@ -135,10 +137,33 @@ const REINIT_KEYS = new Set([
 
 function shouldReinitModel(key) {
   if (!key || String(key).startsWith('__')) return true;
-  if (REINIT_KEYS.has(key)) return true;
   const schema = app.model?.paramSchema?.[key];
-  const group = schema?.group || '';
-  return group === 'initial' || group === 'numerics';
+  // schema 优先：dynamics/display 永 live；initial/numerics 必 reset
+  if (schema?.group === 'dynamics' || schema?.group === 'display') return false;
+  if (schema?.group === 'initial' || schema?.group === 'numerics') return true;
+  if (REINIT_KEYS.has(key)) return true;
+  return false;
+}
+
+function sanitizeSimState(state) {
+  if (!state || typeof state !== 'object') return { ok: true };
+  const bad = [];
+  const walk = (obj, path) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const [k, v] of Object.entries(obj)) {
+      if (k === 'params' || k.startsWith('_')) continue;
+      const p = path ? `${path}.${k}` : k;
+      if (typeof v === 'number' && Number.isNaN(v)) bad.push(p);
+      else if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Float64Array)) walk(v, p);
+      else if (Array.isArray(v) && v.length && typeof v[0] === 'number') {
+        for (let i = 0; i < v.length; i += 1) {
+          if (typeof v[i] === 'number' && Number.isNaN(v[i])) { bad.push(`${p}[${i}]`); break; }
+        }
+      }
+    }
+  };
+  walk(state, '');
+  return { ok: !bad.length, bad };
 }
 
 function applyParamChange(key) {
@@ -148,6 +173,21 @@ function applyParamChange(key) {
     app.state = { params: kept };
     app.model.init(app.state);
   }
+  // 死规则：改参后立即 refresh，保证 HUD/图在暂停时也立刻响应
+  try {
+    if (typeof app.model.refresh === 'function') app.model.refresh(app.state);
+    else if (typeof app.model.recompute === 'function') app.model.recompute(app.state);
+    else if (typeof app.model.step === 'function') app.model.step(app.state, 0);
+  } catch (err) {
+    console.warn('refresh after param', err);
+    showToast(`参数应用失败: ${key}`);
+  }
+  const check = sanitizeSimState(app.state);
+  if (!check.ok) {
+    showToast(`非有限值保护: ${check.bad.slice(0, 3).join(', ')} — 已暂停，请调回合理范围`);
+    app.paused = true;
+    syncPauseUi();
+  }
   if (DEBUG_PARAM_LOG) {
     clearTimeout(paramLogTimer);
     paramLogTimer = setTimeout(() => {
@@ -155,7 +195,7 @@ function applyParamChange(key) {
       console.debug(`[param ${mode}]`, key, app.state?.params?.[key]);
     }, 120);
   }
-  // 动力学参数已写回同一 params 对象，下一帧 step/draw 直接使用
+  paintFrame();
   updateHud({ flash: true });
 }
 
@@ -214,12 +254,23 @@ function resetSim() {
   updateHud();
 }
 
-const DOMAIN_ORDER = ['物理', '计算机科学', '计算机工程'];
+const DOMAIN_ORDER = [
+  '物理', '计算机科学', '计算机工程',
+  '材料力学与结构工程', '工程热力学与能源动力', '电子工程与信号处理', '控制系统',
+  '航空航天工程', '水利与土木', '交通工程', '化学工程', '工业工程', '核工程',
+  '生物医学工程', '环境工程', '数学', '化学', '生物', '地球科学', '经济与管理',
+];
 const SEARCH_ALIASES = {
   cs: ['计算机科学', '算法', '排序', '图论', '搜索', '元胞', '机器学习', '密码'],
   ce: ['计算机工程', '体系结构', '缓存', '流水线', '电路', '队列', '数字', '网络', '操作系统'],
   phy: ['物理', '力学', '电磁', '波动', '热学', '光学', '流体', '近代'],
   physics: ['物理'],
+  me: ['材料力学与结构工程', '梁', '桁架', '屈曲'],
+  thermo: ['工程热力学与能源动力', '朗肯', '制冷', '布雷顿'],
+  ee: ['电子工程与信号处理', '滤波器', '运放', 'PLL'],
+  control: ['控制系统', 'PID', '根轨迹', '倒立摆'],
+  aero: ['航空航天工程', '翼型', '轨道', '再入'],
+  civil: ['水利与土木', '明渠', '水锤', '堰'],
 };
 
 function modelDomain(m) {
@@ -288,11 +339,43 @@ function foldKey(domain, sub) {
   return sub ? `${domain}::${sub}` : domain;
 }
 
+function setAllFolds(open) {
+  const next = loadFolds();
+  for (const el of modelListEl.querySelectorAll('details.domain-group, details.sub-group')) {
+    el.open = open;
+  }
+  for (const el of modelListEl.querySelectorAll('details.domain-group')) {
+    const name = el.querySelector('.domain-name')?.textContent || '';
+    next[foldKey(name)] = open;
+  }
+  for (const el of modelListEl.querySelectorAll('details.sub-group')) {
+    const sub = el.querySelector('.sub-name')?.textContent || '';
+    const domain = el.closest('.domain-group')?.querySelector('.domain-name')?.textContent || '';
+    next[foldKey(domain, sub)] = open;
+  }
+  saveFolds(next);
+}
+
 function buildSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
   const folds = loadFolds();
   const searching = !!app.filter.q.trim() || !!app.filter.tag;
+  const foldBar = document.createElement('div');
+  foldBar.className = 'fold-bar';
+  const btnExpand = document.createElement('button');
+  btnExpand.type = 'button';
+  btnExpand.className = 'btn quiet';
+  btnExpand.textContent = '全部展开';
+  btnExpand.addEventListener('click', () => setAllFolds(true));
+  const btnCollapse = document.createElement('button');
+  btnCollapse.type = 'button';
+  btnCollapse.className = 'btn quiet';
+  btnCollapse.textContent = '全部收起';
+  btnCollapse.addEventListener('click', () => setAllFolds(false));
+  foldBar.append(btnExpand, btnCollapse);
+  modelListEl.appendChild(foldBar);
+
   if (!list.length) {
     const empty = document.createElement('div');
     empty.style.cssText = 'padding:0.75rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--muted)';
@@ -338,7 +421,9 @@ function buildSidebar() {
         saveFolds(next);
       });
       const subSum = document.createElement('summary');
-      subSum.innerHTML = `<span class="sub-name">${sub}</span><span class="sub-count">${items.length}</span>`;
+      const q = app.filter.q.trim();
+      const hit = q && (sub === q || sub.toLowerCase() === q.toLowerCase());
+      subSum.innerHTML = `<span class="sub-name${hit ? ' is-match' : ''}">${sub}</span><span class="sub-count">${items.length}</span>`;
       const subBody = document.createElement('div');
       subBody.className = 'sub-body';
       for (const m of items) subBody.appendChild(makeModelButton(m));
@@ -367,10 +452,22 @@ function populateTagFilter() {
 }
 
 function syncDrawerChrome() {
+  const compact = isCompact();
   const sideOpen = sidebar.classList.contains('open');
-  const benchOpen = isCompact() && bench.classList.contains('open');
+  const benchOpen = compact && bench.classList.contains('open');
   btnMenu?.setAttribute('aria-expanded', sideOpen ? 'true' : 'false');
   btnParams?.setAttribute('aria-expanded', benchOpen ? 'true' : 'false');
+  // 宽屏三栏常驻：params/close 无开关意义，隐藏并移出 Tab 序
+  if (btnParams) {
+    btnParams.hidden = !compact;
+    btnParams.tabIndex = compact ? 0 : -1;
+    btnParams.setAttribute('aria-hidden', compact ? 'false' : 'true');
+  }
+  if (btnCloseBench) {
+    btnCloseBench.hidden = !compact;
+    btnCloseBench.tabIndex = compact ? 0 : -1;
+    btnCloseBench.setAttribute('aria-hidden', compact ? 'false' : 'true');
+  }
   const showBackdrop = sideOpen || benchOpen;
   drawerBackdrop.hidden = !showBackdrop;
   document.body.classList.toggle('drawer-open', showBackdrop && isMobileDrawer());
@@ -389,6 +486,8 @@ function setSidebarOpen(open) {
 }
 
 function setBenchOpen(open) {
+  // 宽屏（>1100）：工作台是三栏常驻面板，不可关闭；此处强制 open 并忽略 close。
+  // 仅 ≤1100 抽屉模式下 open=false 才会真正收起。
   if (!isCompact()) {
     bench.classList.add('open');
     bench.style.transform = '';
@@ -446,15 +545,16 @@ function updateHud(opts = {}) {
       : '';
     return `<div class="readout-card${changed ? ' is-changed' : ''}${compare ? ' has-compare' : ''}"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value-row">${prevHtml}<span class="value">${r.value}</span></span></div>`;
   }).join('');
-  if (!compare) {
+  const pinned = !!app.globals.pinBaseline;
+  if (opts.snapshotPrev || baseline.size === 0) {
     prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
-  } else if (opts.flash) {
+  } else if (!compare) {
+    prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+  } else if (opts.flash && !pinned) {
     clearTimeout(updateHud._cmpT);
     updateHud._cmpT = setTimeout(() => {
       prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
     }, 120);
-  } else if (opts.snapshotPrev || baseline.size === 0) {
-    prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
   }
   if (opts.flash) {
     clearTimeout(updateHud._flashT);
@@ -499,12 +599,15 @@ function frame(now) {
     stepper.advance(frameDt * app.globals.timeScale, (dt) => {
       try {
         app.model.step(app.state, dt);
-        if (app.state && Object.values(app.state).some((v) => typeof v === 'number' && !Number.isFinite(v))) {
+        const check = sanitizeSimState(app.state);
+        if (!check.ok) {
+          showToast(`非有限值保护: ${check.bad.slice(0, 2).join(', ')}`);
           app.paused = true;
           syncPauseUi();
         }
       } catch (err) {
         console.warn('step error', err);
+        showToast('仿真步进异常，已暂停');
         app.paused = true;
         syncPauseUi();
       }
@@ -555,11 +658,41 @@ function exportCsv() {
     ? app.model.getTrajectory(app.state)
     : null;
   if (!rows || !rows.length) rows = [{ t: finiteOr(app.state.t, 0), note: 'no-trajectory' }];
+  const energy = typeof app.model.getEnergy === 'function'
+    ? app.model.getEnergy(app.state)
+    : null;
+  rows = rows.map((row, i) => {
+    const out = { ...row };
+    if (energy && i === 0) {
+      if (Number.isFinite(energy.kinetic)) out.E_kin = energy.kinetic;
+      if (Number.isFinite(energy.potential)) out.E_pot = energy.potential;
+      if (Number.isFinite(energy.kinetic) && Number.isFinite(energy.potential)) {
+        out.E_tot = energy.kinetic + energy.potential;
+      }
+    } else if (energy && typeof app.model.getEnergy === 'function') {
+      // 逐行尽量附当前能量（轨迹点无独立能量时重复末态）
+      const e = app.model.getEnergy(app.state);
+      if (Number.isFinite(e.kinetic)) out.E_kin = e.kinetic;
+      if (Number.isFinite(e.potential)) out.E_pot = e.potential;
+      if (Number.isFinite(e.kinetic) && Number.isFinite(e.potential)) {
+        out.E_tot = e.kinetic + e.potential;
+      }
+    }
+    return out;
+  });
   downloadCsv(rows, `${app.model.id}-trajectory.csv`);
   if (tbMore) tbMore.open = false;
 }
 btnCsv.addEventListener('click', exportCsv);
 btnCsvMore?.addEventListener('click', exportCsv);
+
+document.getElementById('btn-pin-baseline')?.addEventListener('click', () => {
+  app.globals.compareReadouts = true;
+  app.globals.pinBaseline = true;
+  updateHud({ snapshotPrev: true });
+  paramBench.refresh?.();
+  showToast('已钉住基线（对照开）');
+});
 
 speedSlider.addEventListener('input', () => {
   app.globals.timeScale = Number(speedSlider.value) || 1;

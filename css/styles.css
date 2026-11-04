@@ -266,6 +266,34 @@ html.hc .domain-group .domain-count {
   color: var(--muted);
 }
 .sub-body { padding: 0 0.1rem 0.2rem; }
+.sub-name.is-match {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.fold-bar {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.25rem 0.45rem 0.45rem;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+.add-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem 0.15rem;
+}
+.hud-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.15rem;
+}
 
 .model-item {
   appearance: none;
@@ -659,8 +687,12 @@ html.hc .bench-drag span { background: rgba(255,255,255,0.35); }
   font-size: 0.98rem;
   letter-spacing: -0.03em;
 }
-/* 必须压过 .btn.ghost-always，否则宽屏三栏也会露出无效 close */
-.btn.bench-close { display: none; }
+/*
+ * 条件隐藏按钮约定：用「.btn.<role>」双类选择器压过 .btn.ghost-always。
+ * 宽屏三栏常驻时 close/params 无开关意义；窄屏抽屉再显示。
+ */
+.btn.bench-close,
+.btn.params-toggle { display: none; }
 
 .bench-help {
   margin: 0 0.7rem;
@@ -1075,7 +1107,8 @@ html.hc .pot-knob::after { background: #fff; }
     z-index: 31;
   }
   .bench.open { transform: translateX(0); }
-  .btn.bench-close { display: inline-flex; }
+  .btn.bench-close,
+  .btn.params-toggle { display: inline-flex; }
 }
 
 @media (max-width: 900px) {

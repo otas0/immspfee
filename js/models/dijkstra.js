@@ -2,23 +2,49 @@ import { formatNum } from '../utils/draw.js';
 import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
 
-/** Dijkstra 最短路径（可调节点/边密度/起终点/速度） */
+function parseAdj(text, n) {
+  const edges = [];
+  const raw = String(text || '').trim();
+  if (!raw) return edges;
+  for (const part of raw.split(/[,;\n]+/)) {
+    const m = part.trim().match(/^(\d+)\s*[-:]\s*(\d+)(?:\s*[:=]\s*(\d+(?:\.\d+)?))?$/);
+    if (!m) continue;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    const w = m[3] != null ? Number(m[3]) : 1;
+    if (a >= 0 && b >= 0 && a < n && b < n && a !== b && Number.isFinite(w)) {
+      edges.push({ a, b, w: Math.max(0.01, w) });
+    }
+  }
+  return edges;
+}
+
+/** Dijkstra：邻接表导入 + 手动画边 + 随机图 */
 export default {
   id: 'dijkstra',
   name: 'Dijkstra 最短路径',
   params: {
     nodes: 10, seed: 11, start: 0, goal: 7, stepDt: 0.12,
     edgeProb: 0.42, wMin: 1, wMax: 12, algo: 0,
+    adjText: '',
+    edgeA: 0, edgeB: 1, edgeW: 3, commitEdge: 0,
   },
   paramSchema: {
     nodes: { group: 'numerics', unit: '—', label: '节点数', min: 4, max: 24 },
     seed: { group: 'initial', unit: '—', label: 'seed', min: 1, max: 9999 },
     start: { group: 'initial', unit: '—', label: '起点', min: 0, max: 23 },
     goal: { group: 'initial', unit: '—', label: '终点', min: 0, max: 23 },
+    adjText: {
+      group: 'initial', unit: '', label: '邻接表 0-1:2,1-2:5', allowText: true,
+    },
     stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.02, max: 1 },
     edgeProb: { group: 'dynamics', unit: '—', label: '边概率', min: 0.05, max: 1 },
     wMin: { group: 'dynamics', unit: '—', label: '权最小', min: 1, max: 50 },
     wMax: { group: 'dynamics', unit: '—', label: '权最大', min: 1, max: 100 },
+    edgeA: { group: 'dynamics', unit: '—', label: '手动画边 A', min: 0, max: 23 },
+    edgeB: { group: 'dynamics', unit: '—', label: '手动画边 B', min: 0, max: 23 },
+    edgeW: { group: 'dynamics', unit: '—', label: '手动画边权', min: 0.1, max: 100 },
+    commitEdge: { group: 'dynamics', unit: '—', label: '提交画边(+1)', min: 0, max: 9999 },
     algo: {
       group: 'dynamics', unit: '', label: 'algo', min: 0, max: 1,
       options: [{ value: 0, label: 'Dijkstra' }, { value: 1, label: 'BFS(无权)' }],
@@ -32,34 +58,39 @@ export default {
     state.nodes = Array.from({ length: n }, (_, i) => ({
       i, x: 0.12 + rnd() * 0.76, y: 0.14 + rnd() * 0.72,
     }));
-    state.edges = [];
-    const pEdge = P(state.params, 'edgeProb', 0.42);
-    const w0 = P(state.params, 'wMin', 1);
-    const w1 = Math.max(w0, P(state.params, 'wMax', 12));
-    for (let i = 0; i < n; i += 1) {
-      for (let j = i + 1; j < n; j += 1) {
-        if (rnd() < pEdge) {
-          const w = w0 + Math.floor(rnd() * (w1 - w0 + 1));
-          state.edges.push({ a: i, b: j, w });
+    const imported = parseAdj(state.params.adjText, n);
+    state.edges = imported.length ? imported : [];
+    if (!state.edges.length) {
+      const pEdge = P(state.params, 'edgeProb', 0.42);
+      const w0 = P(state.params, 'wMin', 1);
+      const w1 = Math.max(w0, P(state.params, 'wMax', 12));
+      for (let i = 0; i < n; i += 1) {
+        for (let j = i + 1; j < n; j += 1) {
+          if (rnd() < pEdge) {
+            state.edges.push({ a: i, b: j, w: w0 + Math.floor(rnd() * (w1 - w0 + 1)) });
+          }
         }
       }
     }
-    // ensure connected-ish star from start
     const start = Math.min(Math.floor(P(state.params, 'start', 0)), n - 1);
     const goal = Math.min(Math.floor(P(state.params, 'goal', 7)), n - 1);
     state.start = start;
     state.goal = goal;
-    for (let i = 0; i < n; i += 1) {
-      if (i === start) continue;
-      if (!state.edges.some((e) => (e.a === start && e.b === i) || (e.b === start && e.a === i))) {
-        state.edges.push({ a: start, b: i, w: w0 + Math.floor(rnd() * (w1 - w0 + 1)) });
-      }
+    if (!state.edges.length) {
+      for (let i = 0; i < n - 1; i += 1) state.edges.push({ a: i, b: i + 1, w: 1 });
     }
+    this.resetSearch(state);
+    state._commit = Math.round(P(state.params, 'commitEdge', 0));
+    state._adj = String(state.params.adjText || '');
+  },
+
+  resetSearch(state) {
+    const n = state.nodes.length;
     state.dist = Array(n).fill(Infinity);
-    state.dist[start] = 0;
+    state.dist[state.start] = 0;
     state.parent = Array(n).fill(-1);
     state.visited = new Set();
-    state.frontier = new Set([start]);
+    state.frontier = new Set([state.start]);
     state.done = false;
     state.path = [];
     state.t = 0;
@@ -68,9 +99,31 @@ export default {
     state.algo = Math.round(P(state.params, 'algo', 0));
   },
 
+  refresh(state) {
+    const adj = String(state.params.adjText || '');
+    if (adj !== state._adj) {
+      state._adj = adj;
+      this.init(state);
+      return;
+    }
+    const commit = Math.round(P(state.params, 'commitEdge', 0));
+    if (commit !== state._commit) {
+      state._commit = commit;
+      const n = state.nodes.length;
+      const a = Math.min(Math.max(0, Math.round(P(state.params, 'edgeA', 0))), n - 1);
+      const b = Math.min(Math.max(0, Math.round(P(state.params, 'edgeB', 1))), n - 1);
+      const w = Math.max(0.01, P(state.params, 'edgeW', 3));
+      if (a !== b) {
+        state.edges.push({ a, b, w });
+        this.resetSearch(state);
+      }
+    }
+  },
+
   step(state, dt) {
+    this.refresh(state);
     const want = Math.round(P(state.params, 'algo', 0));
-    if (want !== state.algo) { this.init(state); return; }
+    if (want !== state.algo) { this.resetSearch(state); }
     state.t += dt;
     state.acc += dt;
     const period = Math.max(P(state.params, 'stepDt', 0.12), 0.02);
@@ -79,7 +132,7 @@ export default {
       if (!state.frontier.size) { state.done = true; break; }
       let u = -1; let best = Infinity;
       for (const i of state.frontier) {
-        const d = state.algo === 1 ? (state.visited.has(i) ? Infinity : state.dist[i]) : state.dist[i];
+        const d = state.dist[i];
         if (d < best) { best = d; u = i; }
       }
       if (u < 0 || !Number.isFinite(best)) { state.done = true; break; }
@@ -136,7 +189,7 @@ export default {
       });
       ctx.stroke();
     }
-    state.nodes.forEach((n, i) => {
+    state.nodes.forEach((_n, i) => {
       const p = pt(i);
       let fill = C.muted;
       if (state.frontier.has(i)) fill = C.vector;
@@ -151,7 +204,11 @@ export default {
       ctx.fillText(String(i), p.x - 3, p.y + 3);
     });
     ctx.fillStyle = C.muted;
-    ctx.fillText(state.done ? `done · cost=${formatNum(state.dist[state.goal], 2)}` : 'searching', 12, 18);
+    ctx.fillText(
+      state.done ? `done · cost=${formatNum(state.dist[state.goal], 2)} · edges=${state.edges.length}` : `searching · edges=${state.edges.length}`,
+      12,
+      18,
+    );
   },
 
   getReadouts(state, opts = {}) {
@@ -161,7 +218,7 @@ export default {
       { label: 'frontier', value: String(state.frontier.size) },
       { label: 'relax', value: String(state.relax) },
       { label: 'cost', value: Number.isFinite(state.dist[state.goal]) ? formatNum(state.dist[state.goal], d) : '∞' },
-      { label: 'path', value: String(state.path.length) },
+      { label: 'edges', value: String(state.edges.length) },
     ];
   },
 

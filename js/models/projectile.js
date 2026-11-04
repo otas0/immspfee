@@ -6,15 +6,19 @@ export default {
   id: 'projectile',
   name: '斜抛运动',
   params: {
-    v0: 20, theta: 45, g: 9.81, k: 0, m: 1, showTheory: true,
+    v0: 20, theta: 45, g: 9.81, k: 0, m: 1, dragExp: 1,
+    windX: 0, windY: 0, showTheory: true,
   },
   paramSchema: {
-    v0: { group: 'initial', unit: 'm/s', label: 'v₀', min: 0, max: 80 },
+    v0: { group: 'initial', unit: 'm/s', label: 'v₀', min: 0, max: 500 },
     theta: { group: 'initial', unit: '°', label: 'θ', min: 0, max: 90 },
-    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 40 },
-    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k', min: 0, max: 200 },
-    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
-    showTheory: { group: 'display', label: 'showTheory' },
+    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 200 },
+    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k', min: 0, max: 5000 },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 1e-6, max: 1e6 },
+    dragExp: { group: 'dynamics', unit: '—', label: '阻力指数', min: 0.5, max: 3 },
+    windX: { group: 'dynamics', unit: 'm/s²', label: '风场 ax', min: -50, max: 50 },
+    windY: { group: 'dynamics', unit: 'm/s²', label: '风场 ay', min: -50, max: 50 },
+    showTheory: { group: 'display', label: '理论抛物线' },
   },
 
   init(state) {
@@ -37,9 +41,14 @@ export default {
     const g = P(state.params, 'g', 9.81);
     const k = P(state.params, 'k', 0);
     const m = Math.max(P(state.params, 'm', 1), 1e-9);
+    const exp = Math.max(P(state.params, 'dragExp', 1), 0.5);
+    const windX = P(state.params, 'windX', 0);
+    const windY = P(state.params, 'windY', 0);
     const locals = { x: state.x, y: state.y, vx: state.vx, vy: state.vy, t: state.t, g, k, m };
-    const ax = -(k / m) * state.vx + accelExtras(state.params, { ...locals, axis: 0 });
-    const ay = -g - (k / m) * state.vy + accelExtras(state.params, locals);
+    const speed = Math.hypot(state.vx, state.vy);
+    const dragMag = k === 0 ? 0 : (k / m) * (speed ** (exp - 1));
+    const ax = -dragMag * state.vx + windX + accelExtras(state.params, { ...locals, axis: 0 });
+    const ay = -g - dragMag * state.vy + windY + accelExtras(state.params, locals);
     state.vx = finiteOr(state.vx + ax * dt, 0);
     state.vy = finiteOr(state.vy + ay * dt, 0);
     state.x = finiteOr(state.x + state.vx * dt, state.x);

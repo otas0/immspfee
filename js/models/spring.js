@@ -8,20 +8,26 @@ export default {
   id: 'spring',
   name: '弹簧振子',
   params: {
-    m: 1, k: 20, c: 0.3, x0: 0.8,
+    m: 1, k: 20, c: 0.3, x0: 0.8, v0: 0,
+    dragExp: 1, windX: 0, driveA: 0, driveF: 0,
   },
   paramSchema: {
-    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
-    k: { group: 'dynamics', unit: 'N/m', label: 'k', min: 0.1, max: 200 },
-    c: { group: 'dynamics', unit: 'N·s/m', label: '阻尼 c', min: 0, max: 50 },
-    x0: { group: 'initial', unit: 'm', label: 'x₀', min: -5, max: 5 },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 1e-6, max: 1e6 },
+    k: { group: 'dynamics', unit: 'N/m', label: 'k', min: 0.01, max: 5000 },
+    c: { group: 'dynamics', unit: 'N·s/m', label: '阻尼 c', min: 0, max: 500 },
+    dragExp: { group: 'dynamics', unit: '—', label: '阻尼指数', min: 0.5, max: 3 },
+    windX: { group: 'dynamics', unit: 'm/s²', label: '外场 a', min: -50, max: 50 },
+    driveA: { group: 'dynamics', unit: 'm/s²', label: '驱动振幅', min: 0, max: 50 },
+    driveF: { group: 'dynamics', unit: 'Hz', label: '驱动频率', min: 0, max: 20 },
+    x0: { group: 'initial', unit: 'm', label: 'x₀', min: -50, max: 50 },
+    v0: { group: 'initial', unit: 'm/s', label: 'v₀', min: -50, max: 50 },
   },
 
   init(state) {
     const p = state.params;
     state.t = 0;
     state.x = P(p, 'x0', 0);
-    state.v = 0;
+    state.v = P(p, 'v0', 0);
     const m = Math.max(P(p, 'm', 1), 1e-9);
     state.a = (-springK(p) * state.x - P(p, 'c', 0) * state.v) / m;
     state.trail = [];
@@ -34,19 +40,23 @@ export default {
     const m = Math.max(P(p, 'm', 1), 1e-9);
     const k = springK(p);
     const c = P(p, 'c', 0);
+    const exp = Math.max(P(p, 'dragExp', 1), 0.5);
+    const wind = P(p, 'windX', 0);
+    const drive = P(p, 'driveA', 0) * Math.sin(2 * Math.PI * P(p, 'driveF', 0) * state.t);
     const locals = { x: state.x, v: state.v, t: state.t, m, k, c };
+    const damp = (v) => (c === 0 ? 0 : (c / m) * Math.sign(v) * (Math.abs(v) ** exp));
 
-    if (c === 0) {
+    if (c === 0 && P(p, 'driveA', 0) === 0 && wind === 0) {
       const aAt = (x) => (-k * x) / m + accelExtras(p, { ...locals, x });
       const next = velocityVerlet1D(state.x, state.v, state.a, aAt, dt);
       state.x = finiteOr(next.x, 0);
       state.v = finiteOr(next.v, 0);
       state.a = finiteOr(next.a, 0);
     } else {
-      state.a = (-k * state.x - c * state.v) / m + accelExtras(p, locals);
+      state.a = (-k * state.x) / m - damp(state.v) + wind + drive + accelExtras(p, locals);
       state.v = finiteOr(state.v + state.a * dt, 0);
       state.x = finiteOr(state.x + state.v * dt, 0);
-      state.a = (-k * state.x - c * state.v) / m + accelExtras(p, { ...locals, x: state.x, v: state.v });
+      state.a = (-k * state.x) / m - damp(state.v) + wind + drive + accelExtras(p, { ...locals, x: state.x, v: state.v });
     }
 
     state.t += dt;

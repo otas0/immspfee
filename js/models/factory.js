@@ -39,7 +39,33 @@ function padBox(W, H, m = 36) {
   return { l: m, r: W - m, t: m, b: H - m, w: W - 2 * m, h: H - 2 * m };
 }
 
+function localizeSchema(schema = {}) {
+  const out = { ...schema };
+  for (const [k, meta] of Object.entries(out)) {
+    if (!meta || typeof meta !== 'object') continue;
+    if (meta.label && meta.label !== k) continue;
+    out[k] = { ...meta, label: ZH_LABELS[k] || meta.label || k };
+  }
+  return out;
+}
+
+const ZH_LABELS = {
+  g: '重力 g', m: '质量 m', k: '系数 k', c: '阻尼 c', e: '恢复系数 e',
+  f: '频率/焦距 f', u: '物距 u', h: '物高/高度 h', n: '数量 n', N: '规模 N',
+  theta: '角度 θ', seed: '随机种子', stepDt: '步进间隔', algo: '算法',
+  v0: '初速 v₀', x0: '初位 x₀', y0: '初位 y₀', T: '温度 T', V: '电压/体积',
+  R: '电阻/半径 R', L: '电感/长度 L', C: '电容 C', Q: '流量 Q',
+  alpha: '扩散率 α', mu: '摩擦/粘度 μ', rho: '密度 ρ', beta: 'β',
+  lr: '学习率', pop: '种群', temp: '温度', speed: '动画速度',
+  nodes: '节点数', start: '起点', goal: '终点', phase: '相位',
+  intensity: '强度', freq: '频率', workFunc: '逸出功', properTime: '固有时',
+  angle: '角度', plates: '片数', I0: '初值 I₀', amplitude: '振幅', offset: '偏置',
+  dragExp: '阻力指数', windX: '风场 vx', windY: '风场 vy',
+  adjText: '邻接表', netlist: '网表',
+};
+
 function enrich(model, spec) {
+  if (model.paramSchema) model.paramSchema = localizeSchema(model.paramSchema);
   if (typeof model.getEnergy !== 'function') {
     model.getEnergy = (state) => {
       if (Number.isFinite(state?.energy)) return { kinetic: state.energy, potential: 0 };
@@ -64,6 +90,12 @@ function enrich(model, spec) {
       return [{ t: state?.t || 0, note: spec.id }];
     };
   }
+  const step0 = model.step?.bind(model);
+  const recompute = model.recompute?.bind(model);
+  model.refresh = (state) => {
+    if (recompute) recompute(state);
+    else if (step0) step0(state, 0);
+  };
   return model;
 }
 
@@ -108,6 +140,12 @@ export function createFactoryModel(spec) {
     os: buildOs,
     compile: buildCompile,
     dist: buildDist,
+    struct: buildStruct,
+    control: buildControl,
+    chaos: buildChaos,
+    traffic: buildTraffic,
+    reactor: buildReactor,
+    aero: buildAero,
   };
   const build = builders[family] || buildGauge;
   return enrich(build(spec), spec);
@@ -1304,32 +1342,69 @@ function buildInduction(spec) {
   };
 }
 
+function lensOptics(params) {
+  const u = Math.max(P(params, 'u', 4), 0.05);
+  const f = Math.max(P(params, 'f', 2), 0.05);
+  const h = P(params, 'h', 1.2);
+  const denom = (1 / f) - (1 / u);
+  let v = Infinity;
+  let m = NaN;
+  let kind = '焦点上';
+  if (Math.abs(denom) > 1e-6) {
+    v = 1 / denom;
+    m = -v / u;
+    kind = v > 0 ? '实像' : '虚像';
+  }
+  return { u, f, h, v, m, kind };
+}
+
 function buildRays(spec) {
   return {
     ...baseMeta(spec),
-    params: { theta: 35, n1: 1, n2: 1.5, u: 4, f: 2, h: 1.2 },
+    params: { theta: 35, n1: 1, n2: 1.5, u: 4, f: 2, h: 1.2, scale: 28 },
     paramSchema: {
-      theta: schemaNum('入射角', 'dynamics', '°', 0, 85),
-      n1: schemaNum('n₁', 'dynamics', '—', 1, 2.5),
-      n2: schemaNum('n₂', 'dynamics', '—', 1, 2.5),
-      u: schemaNum('物距', 'dynamics', '—', 0.5, 10),
-      f: schemaNum('焦距', 'dynamics', '—', 0.5, 6),
-      h: schemaNum('物高', 'dynamics', '—', 0.2, 3),
+      theta: schemaNum('入射角', 'dynamics', '°', 0, 89),
+      n1: schemaNum('n₁', 'dynamics', '—', 1, 3),
+      n2: schemaNum('n₂', 'dynamics', '—', 1, 3),
+      u: schemaNum('物距 u', 'dynamics', '—', 0.2, 30),
+      f: schemaNum('焦距 f', 'dynamics', '—', 0.2, 20),
+      h: schemaNum('物高 h', 'dynamics', '—', 0.05, 8),
+      scale: schemaNum('显示比例', 'dynamics', '—', 8, 60),
     },
-    init(state) { state.t = 0; },
-    step(state, dt) { state.t += dt; },
+    init(state) {
+      state.t = 0;
+      this.recompute(state);
+    },
+    recompute(state) {
+      if (spec.id === 'lens') {
+        const o = lensOptics(state.params);
+        state._v = o.v;
+        state._m = o.m;
+        state._kind = o.kind;
+      } else {
+        const th1 = (P(state.params, 'theta', 35) * Math.PI) / 180;
+        const n1 = Math.max(P(state.params, 'n1', 1), 1e-6);
+        const n2 = Math.max(P(state.params, 'n2', 1.5), 1e-6);
+        const sn = (n1 / n2) * Math.sin(th1);
+        state._th2 = Math.abs(sn) <= 1 ? (Math.asin(sn) * 180) / Math.PI : NaN;
+      }
+    },
+    step(state, dt) {
+      state.t += dt;
+      this.recompute(state);
+    },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
       const box = padBox(W, H);
       title(ctx, spec.name);
       const cx = box.l + box.w * 0.5;
       const cy = box.t + box.h * 0.55;
+      this.recompute(state);
       if (spec.id === 'lens') {
-        const u = P(state.params, 'u', 4);
-        const f = P(state.params, 'f', 2);
-        const v = 1 / (1 / f - 1 / Math.max(u, 1e-3));
-        const h = P(state.params, 'h', 1.2);
-        const m = -v / u;
+        const o = lensOptics(state.params);
+        const sc = P(state.params, 'scale', 28);
+        const maxX = box.w * 0.42;
+        const clampX = (x) => Math.max(-maxX, Math.min(maxX, x));
         ctx.strokeStyle = C.axis;
         ctx.beginPath();
         ctx.moveTo(box.l, cy); ctx.lineTo(box.r, cy);
@@ -1338,24 +1413,44 @@ function buildRays(spec) {
         ctx.moveTo(cx, cy - 70); ctx.quadraticCurveTo(cx + 18, cy, cx, cy + 70);
         ctx.moveTo(cx, cy - 70); ctx.quadraticCurveTo(cx - 18, cy, cx, cy + 70);
         ctx.stroke();
-        const ox = cx - u * 28; const oy = cy - h * 28;
-        const ix = cx + v * 28; const iy = cy - m * h * 28;
-        ctx.strokeStyle = C.body;
-        ctx.beginPath();
-        ctx.moveTo(ox, oy); ctx.lineTo(cx, oy); ctx.lineTo(ix, iy);
-        ctx.moveTo(ox, oy); ctx.lineTo(cx, cy); ctx.lineTo(ix, iy);
-        ctx.stroke();
+        ctx.fillStyle = C.muted;
+        ctx.fillRect(cx + o.f * sc - 2, cy - 6, 4, 12);
+        ctx.fillRect(cx - o.f * sc - 2, cy - 6, 4, 12);
+        const ox = cx + clampX(-o.u * sc);
+        const oy = cy - o.h * sc * 0.35;
         ctx.fillStyle = C.accent;
-        ctx.fillRect(ox - 2, Math.min(oy, cy), 4, Math.abs(oy - cy));
-        ctx.fillStyle = C.vector;
-        ctx.fillRect(ix - 2, Math.min(iy, cy), 4, Math.abs(iy - cy));
-        state._v = v; state._m = m;
+        ctx.fillRect(ox - 2, Math.min(oy, cy), 4, Math.abs(oy - cy) || 2);
+        if (Number.isFinite(o.v)) {
+          const ix = cx + clampX(o.v * sc);
+          const iy = cy - (Number.isFinite(o.m) ? o.m * o.h * sc * 0.35 : 0);
+          ctx.strokeStyle = C.body;
+          ctx.setLineDash(o.v < 0 ? [4, 4] : []);
+          ctx.beginPath();
+          ctx.moveTo(ox, oy); ctx.lineTo(cx, oy); ctx.lineTo(ix, iy);
+          ctx.moveTo(ox, oy); ctx.lineTo(cx, cy); ctx.lineTo(ix, iy);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = C.vector;
+          ctx.fillRect(ix - 2, Math.min(iy, cy), 4, Math.abs(iy - cy) || 2);
+        } else {
+          ctx.strokeStyle = C.body;
+          ctx.beginPath();
+          ctx.moveTo(ox, oy); ctx.lineTo(cx, oy);
+          ctx.moveTo(ox, oy); ctx.lineTo(cx, cy);
+          ctx.stroke();
+          ctx.fillStyle = C.muted;
+          ctx.font = '12px IBM Plex Mono, monospace';
+          ctx.fillText('u = f · 像在无穷远', box.l + 8, box.b - 8);
+        }
+        ctx.fillStyle = C.muted;
+        ctx.font = '11px IBM Plex Mono, monospace';
+        ctx.fillText(o.kind, box.l + 8, box.t + 36);
       } else {
         const th1 = (P(state.params, 'theta', 35) * Math.PI) / 180;
         const n1 = P(state.params, 'n1', 1);
         const n2 = P(state.params, 'n2', 1.5);
-        const s = (n1 / n2) * Math.sin(th1);
-        const th2 = Math.abs(s) <= 1 ? Math.asin(s) : null;
+        const sn = (n1 / n2) * Math.sin(th1);
+        const th2 = Math.abs(sn) <= 1 ? Math.asin(sn) : null;
         ctx.strokeStyle = C.axis;
         ctx.beginPath();
         ctx.moveTo(cx, box.t); ctx.lineTo(cx, box.b);
@@ -1378,16 +1473,23 @@ function buildRays(spec) {
           ctx.moveTo(cx, cy);
           ctx.lineTo(cx + L * Math.sin(th2), cy + L * Math.cos(th2));
           ctx.stroke();
+        } else {
+          ctx.fillStyle = C.muted;
+          ctx.font = '12px IBM Plex Mono, monospace';
+          ctx.fillText('全反射 TIR', box.l + 8, box.b - 8);
         }
-        state._th2 = th2 == null ? NaN : (th2 * 180) / Math.PI;
       }
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
+      this.recompute(state);
       if (spec.id === 'lens') {
+        const o = lensOptics(state.params);
         return [
-          { label: 'v', value: formatNum(state._v, d) },
-          { label: 'm', value: formatNum(state._m, d) },
+          { label: 'u', value: formatNum(o.u, d) },
+          { label: 'v', value: Number.isFinite(o.v) ? formatNum(o.v, d) : '∞' },
+          { label: 'm', value: Number.isFinite(o.m) ? formatNum(o.m, d) : '—' },
+          { label: '像', value: o.kind },
         ];
       }
       return [
@@ -1395,7 +1497,13 @@ function buildRays(spec) {
         { label: 'θ2', value: Number.isFinite(state._th2) ? formatNum(state._th2, d) : 'TIR' },
       ];
     },
-    getTrajectory() { return []; },
+    getTrajectory(state) {
+      if (spec.id === 'lens') {
+        const o = lensOptics(state.params);
+        return [{ u: o.u, f: o.f, v: o.v, m: o.m, kind: o.kind }];
+      }
+      return [{ theta: P(state.params, 'theta', 35), th2: state._th2 }];
+    },
   };
 }
 
@@ -2721,5 +2829,624 @@ function buildDist(spec) {
       ];
     },
     getTrajectory() { return []; },
+  };
+}
+
+function buildStruct(spec) {
+  return {
+    ...baseMeta(spec),
+    params: { load: 10, span: 6, EI: 1, pos: 0.5, shape: 1 },
+    paramSchema: {
+      load: schemaNum('载荷 P', 'dynamics', 'kN', 0, 100),
+      span: schemaNum('跨度 L', 'dynamics', 'm', 1, 40),
+      EI: schemaNum('EI', 'dynamics', '—', 0.1, 50),
+      pos: schemaNum('载荷位置', 'dynamics', '—', 0.05, 0.95),
+      shape: schemaNum('截面系数', 'dynamics', '—', 0.2, 5),
+    },
+    init(state) {
+      state.t = 0;
+      state.sfd = [];
+      state.bmd = [];
+      state.defl = [];
+      this._rebuild(state);
+    },
+    _rebuild(state) {
+      const L = Math.max(P(state.params, 'span', 6), 0.5);
+      const Pload = P(state.params, 'load', 10);
+      const a = Math.max(0.05, Math.min(0.95, P(state.params, 'pos', 0.5))) * L;
+      const b = L - a;
+      const Ra = (Pload * b) / L;
+      const Rb = (Pload * a) / L;
+      const n = 48;
+      state.sfd = [];
+      state.bmd = [];
+      state.defl = [];
+      const EI = Math.max(P(state.params, 'EI', 1), 1e-6);
+      for (let i = 0; i <= n; i += 1) {
+        const x = (i / n) * L;
+        const V = x < a ? Ra : Ra - Pload;
+        const M = x < a ? Ra * x : Ra * x - Pload * (x - a);
+        // 简支梁挠度近似（单位载荷形状）
+        const y = (Pload * b * x * (L * L - b * b - x * x)) / (6 * EI * L);
+        state.sfd.push({ x, v: V });
+        state.bmd.push({ x, m: M });
+        state.defl.push({ x, y: -Math.abs(y) * P(state.params, 'shape', 1) });
+      }
+      state.Ra = Ra;
+      state.Rb = Rb;
+      state.Mmax = Math.max(...state.bmd.map((p) => Math.abs(p.m)));
+      state.ymax = Math.max(...state.defl.map((p) => Math.abs(p.y)));
+    },
+    step(state, dt) {
+      state.t += dt;
+      this._rebuild(state);
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      const box = padBox(W, H, 42);
+      title(ctx, spec.name);
+      const L = Math.max(P(state.params, 'span', 6), 0.5);
+      const midY = box.t + box.h * 0.28;
+      ctx.strokeStyle = C.axis;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(box.l, midY);
+      ctx.lineTo(box.r, midY);
+      ctx.stroke();
+      // supports
+      ctx.fillStyle = C.muted;
+      [[box.l, midY], [box.r, midY]].forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 8, y + 12);
+        ctx.lineTo(x + 8, y + 12);
+        ctx.closePath();
+        ctx.fill();
+      });
+      const a = Math.max(0.05, Math.min(0.95, P(state.params, 'pos', 0.5)));
+      const px = box.l + a * box.w;
+      drawArrow(ctx, px, midY - 40, px, midY - 4, C.accent, 2);
+      const plot = (series, key, y0, h, color) => {
+        const maxA = Math.max(1e-6, ...series.map((p) => Math.abs(p[key])));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        series.forEach((p, i) => {
+          const x = box.l + (p.x / L) * box.w;
+          const y = y0 - (p[key] / maxA) * h;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.stroke();
+        ctx.strokeStyle = C.axis;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(box.l, y0);
+        ctx.lineTo(box.r, y0);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      };
+      plot(state.sfd, 'v', box.t + box.h * 0.55, box.h * 0.12, C.vector);
+      plot(state.bmd, 'm', box.t + box.h * 0.78, box.h * 0.12, C.body);
+      ctx.fillStyle = C.muted;
+      ctx.font = '10px IBM Plex Mono, monospace';
+      ctx.fillText('SFD', box.l, box.t + box.h * 0.48);
+      ctx.fillText('BMD', box.l, box.t + box.h * 0.68);
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return [
+        { label: 'Ra', value: `${formatNum(state.Ra, d)} kN` },
+        { label: 'Rb', value: `${formatNum(state.Rb, d)} kN` },
+        { label: 'Mmax', value: `${formatNum(state.Mmax, d)}` },
+        { label: '|y|max', value: formatNum(state.ymax, d) },
+      ];
+    },
+  };
+}
+
+function buildControl(spec) {
+  return {
+    ...baseMeta(spec),
+    params: { K: 1, zeta: 0.4, wn: 2, Kp: 1.2, Ki: 0.4, Kd: 0.08, speed: 1 },
+    paramSchema: {
+      K: schemaNum('K', 'dynamics', '—', 0.1, 10),
+      zeta: schemaNum('ζ', 'dynamics', '—', 0.05, 2),
+      wn: schemaNum('ωₙ', 'dynamics', 'rad/s', 0.2, 20),
+      Kp: schemaNum('Kp', 'dynamics', '—', 0, 20),
+      Ki: schemaNum('Ki', 'dynamics', '—', 0, 20),
+      Kd: schemaNum('Kd', 'dynamics', '—', 0, 5),
+      speed: schemaNum('动画速', 'dynamics', '—', 0.2, 4),
+    },
+    init(state) {
+      state.t = 0;
+      state.y = 0;
+      state.v = 0;
+      state.ie = 0;
+      state.hist = [];
+      state.ref = 1;
+      state.overshoot = 0;
+    },
+    step(state, dt) {
+      const s = Math.max(0.05, P(state.params, 'speed', 1));
+      const h = dt * s;
+      const zeta = P(state.params, 'zeta', 0.4);
+      const wn = P(state.params, 'wn', 2);
+      const K = P(state.params, 'K', 1);
+      const e = state.ref - state.y;
+      state.ie += e * h;
+      const u = P(state.params, 'Kp', 1.2) * e
+        + P(state.params, 'Ki', 0.4) * state.ie
+        - P(state.params, 'Kd', 0.08) * state.v;
+      // 二阶被控：ÿ + 2ζωṅẏ + ωₙ² y = K ωₙ² (ref + u增益混合)
+      const drive = K * (state.ref + 0.35 * u);
+      const a = drive * wn * wn - 2 * zeta * wn * state.v - wn * wn * state.y;
+      state.v += a * h;
+      state.y += state.v * h;
+      state.t += h;
+      state.overshoot = Math.max(state.overshoot, state.y - state.ref);
+      state.hist.push(state.y);
+      if (state.hist.length > 220) state.hist.shift();
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      const box = padBox(W, H);
+      title(ctx, spec.name);
+      const mid = box.t + box.h * 0.55;
+      ctx.strokeStyle = C.axis;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(box.l, mid - 40);
+      ctx.lineTo(box.r, mid - 40);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = C.body;
+      ctx.beginPath();
+      state.hist.forEach((v, i) => {
+        const x = box.l + (i / 220) * box.w;
+        const y = mid - v * 40;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+      if (spec.id === 'inverted-pendulum' || spec.id === 'flight-attitude') {
+        const ang = state.y * 0.4;
+        const cx = W * 0.5;
+        const cy = H * 0.78;
+        ctx.strokeStyle = C.vector;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.sin(ang) * 70, cy - Math.cos(ang) * 70);
+        ctx.stroke();
+        ctx.fillStyle = C.accent;
+        ctx.fillRect(cx - 28, cy, 56, 10);
+      }
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return [
+        { label: 't', value: `${formatNum(state.t, d)} s` },
+        { label: 'y', value: formatNum(state.y, d) },
+        { label: 'OS', value: formatNum(state.overshoot, d) },
+        { label: 'ζ', value: formatNum(P(state.params, 'zeta', 0.4), d) },
+      ];
+    },
+  };
+}
+
+function buildChaos(spec) {
+  const isMandel = spec.id === 'mandelbrot-julia';
+  return {
+    ...baseMeta(spec),
+    params: isMandel
+      ? { iter: 40, cx: -0.7, cy: 0.27, zoom: 1.2 }
+      : { sigma: 10, rho: 28, beta: 2.67, a: 0.2, b: 0.2, c: 5.7, speed: 1 },
+    paramSchema: isMandel
+      ? {
+        iter: schemaNum('迭代', 'numerics', '—', 10, 120),
+        cx: schemaNum('cᵣ', 'dynamics', '—', -2, 1),
+        cy: schemaNum('cᵢ', 'dynamics', '—', -1.5, 1.5),
+        zoom: schemaNum('缩放', 'dynamics', '—', 0.3, 8),
+      }
+      : {
+        sigma: schemaNum('σ', 'dynamics', '—', 1, 30),
+        rho: schemaNum('ρ', 'dynamics', '—', 1, 50),
+        beta: schemaNum('β', 'dynamics', '—', 0.5, 8),
+        a: schemaNum('a', 'dynamics', '—', 0.05, 1),
+        b: schemaNum('b', 'dynamics', '—', 0.05, 1),
+        c: schemaNum('c', 'dynamics', '—', 1, 20),
+        speed: schemaNum('动画速', 'dynamics', '—', 0.2, 4),
+      },
+    init(state) {
+      state.t = 0;
+      state.x = 0.1;
+      state.y = 0;
+      state.z = 0;
+      state.trail = [];
+      state.frame = 0;
+    },
+    step(state, dt) {
+      if (isMandel) {
+        state.t += dt;
+        state.frame += 1;
+        return;
+      }
+      const h = dt * P(state.params, 'speed', 1) * 0.35;
+      if (spec.id === 'rossler' || spec.id === 'lotka-volterra') {
+        if (spec.id === 'lotka-volterra') {
+          const alpha = P(state.params, 'sigma', 10) * 0.1;
+          const beta = P(state.params, 'rho', 28) * 0.02;
+          const gamma = P(state.params, 'beta', 2.67) * 0.2;
+          const delta = P(state.params, 'a', 0.2);
+          const dx = state.x * (alpha - beta * state.y);
+          const dy = -state.y * (gamma - delta * state.x);
+          state.x = Math.max(0.01, state.x + dx * h);
+          state.y = Math.max(0.01, state.y + dy * h);
+        } else {
+          const a = P(state.params, 'a', 0.2);
+          const b = P(state.params, 'b', 0.2);
+          const c = P(state.params, 'c', 5.7);
+          const dx = -state.y - state.z;
+          const dy = state.x + a * state.y;
+          const dz = b + state.z * (state.x - c);
+          state.x += dx * h;
+          state.y += dy * h;
+          state.z += dz * h;
+        }
+      } else {
+        const sigma = P(state.params, 'sigma', 10);
+        const rho = P(state.params, 'rho', 28);
+        const beta = P(state.params, 'beta', 2.67);
+        const dx = sigma * (state.y - state.x);
+        const dy = state.x * (rho - state.z) - state.y;
+        const dz = state.x * state.y - beta * state.z;
+        state.x += dx * h;
+        state.y += dy * h;
+        state.z += dz * h;
+      }
+      state.t += h;
+      state.trail.push({ x: state.x, y: state.y, z: state.z });
+      if (state.trail.length > 1400) state.trail.shift();
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      title(ctx, spec.name);
+      if (isMandel) {
+        const iterMax = Math.floor(P(state.params, 'iter', 40));
+        const zoom = P(state.params, 'zoom', 1.2);
+        const cx0 = P(state.params, 'cx', -0.7);
+        const cy0 = P(state.params, 'cy', 0.27);
+        const step = 3;
+        for (let py = 30; py < H - 10; py += step) {
+          for (let px = 10; px < W - 10; px += step) {
+            let zx = ((px - W / 2) / (0.25 * W * zoom));
+            let zy = ((py - H / 2) / (0.25 * H * zoom));
+            const cr = cx0;
+            const ci = cy0;
+            // Julia set with c fixed
+            let n = 0;
+            while (zx * zx + zy * zy < 4 && n < iterMax) {
+              const xt = zx * zx - zy * zy + cr;
+              zy = 2 * zx * zy + ci;
+              zx = xt;
+              n += 1;
+            }
+            ctx.fillStyle = n >= iterMax ? '#111' : heatTempColor(n, 0, iterMax);
+            ctx.fillRect(px, py, step, step);
+          }
+        }
+        return;
+      }
+      const box = padBox(W, H);
+      ctx.strokeStyle = C.body;
+      ctx.beginPath();
+      state.trail.forEach((p, i) => {
+        const x = box.l + box.w * 0.5 + p.x * 6;
+        const y = box.t + box.h * 0.5 + p.y * 6;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      if (isMandel) {
+        return [
+          { label: 'iter', value: String(Math.floor(P(state.params, 'iter', 40))) },
+          { label: 'zoom', value: formatNum(P(state.params, 'zoom', 1.2), d) },
+        ];
+      }
+      return [
+        { label: 'x', value: formatNum(state.x, d) },
+        { label: 'y', value: formatNum(state.y, d) },
+        { label: 'z', value: formatNum(state.z, d) },
+        { label: 'pts', value: String(state.trail.length) },
+      ];
+    },
+  };
+}
+
+function buildTraffic(spec) {
+  return {
+    ...baseMeta(spec),
+    params: { density: 0.25, pSlow: 0.2, vmax: 5, green: 0.55, cycle: 30, seed: 7 },
+    paramSchema: {
+      density: schemaNum('密度', 'dynamics', '—', 0.05, 0.9),
+      pSlow: schemaNum('随机慢化', 'dynamics', '—', 0, 0.8),
+      vmax: schemaNum('vmax', 'dynamics', '—', 1, 8),
+      green: schemaNum('绿信比', 'dynamics', '—', 0.2, 0.9),
+      cycle: schemaNum('周期', 'dynamics', 's', 10, 90),
+      seed: schemaNum('seed', 'initial', '—', 1, 9999),
+    },
+    init(state) {
+      const n = 60;
+      const dens = P(state.params, 'density', 0.25);
+      const rand = rnd(P(state.params, 'seed', 7));
+      state.cells = Array.from({ length: n }, () => (rand() < dens ? Math.floor(rand() * P(state.params, 'vmax', 5)) + 1 : -1));
+      state.t = 0;
+      state.acc = 0;
+      state.flow = 0;
+      state.queue = 0;
+      state.n = n;
+    },
+    step(state, dt) {
+      state.t += dt;
+      state.acc += dt;
+      if (state.acc < 0.12) return;
+      state.acc = 0;
+      const vmax = Math.max(1, Math.floor(P(state.params, 'vmax', 5)));
+      const pSlow = P(state.params, 'pSlow', 0.2);
+      const n = state.n;
+      const next = state.cells.slice();
+      const rand = rnd(Math.floor(state.t * 1000) + 1);
+      let moved = 0;
+      for (let i = 0; i < n; i += 1) {
+        if (state.cells[i] < 0) continue;
+        let v = state.cells[i];
+        v = Math.min(v + 1, vmax);
+        let gap = 0;
+        for (let k = 1; k <= vmax; k += 1) {
+          if (state.cells[(i + k) % n] >= 0) break;
+          gap = k;
+        }
+        v = Math.min(v, gap);
+        if (v > 0 && rand() < pSlow) v -= 1;
+        if (spec.id === 'signalized-intersection') {
+          const cyc = Math.max(5, P(state.params, 'cycle', 30));
+          const g = P(state.params, 'green', 0.55);
+          const phase = (state.t % cyc) / cyc;
+          if (i > n * 0.45 && i < n * 0.55 && phase > g) v = 0;
+        }
+        next[i] = -1;
+        const j = (i + v) % n;
+        next[j] = v;
+        if (v > 0) moved += 1;
+      }
+      state.cells = next;
+      state.flow = moved / n;
+      state.queue = state.cells.filter((c) => c === 0).length;
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      title(ctx, spec.name);
+      const n = state.n;
+      const cellW = (W - 40) / n;
+      const y = H * 0.45;
+      for (let i = 0; i < n; i += 1) {
+        const v = state.cells[i];
+        if (v < 0) continue;
+        ctx.fillStyle = heatTempColor(v, 0, Math.max(1, P(state.params, 'vmax', 5)));
+        ctx.fillRect(20 + i * cellW, y - 8, Math.max(2, cellW - 1), 16);
+      }
+      ctx.strokeStyle = C.axis;
+      ctx.strokeRect(20, y - 12, W - 40, 24);
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      const dens = state.cells.filter((c) => c >= 0).length / state.n;
+      return [
+        { label: 'ρ', value: formatNum(dens, d) },
+        { label: 'flow', value: formatNum(state.flow, d) },
+        { label: 'queue', value: String(state.queue) },
+        { label: 't', value: `${formatNum(state.t, 1)} s` },
+      ];
+    },
+  };
+}
+
+function buildReactor(spec) {
+  return {
+    ...baseMeta(spec),
+    params: { tau: 2, k: 0.8, order: 1, cin: 1, T: 350, P: 1, reflux: 1.5, z: 0.5 },
+    paramSchema: {
+      tau: schemaNum('停留 τ', 'dynamics', 's', 0.2, 20),
+      k: schemaNum('速率 k', 'dynamics', '1/s', 0, 5),
+      order: schemaNum('级数', 'dynamics', '—', 1, 2),
+      cin: schemaNum('进料 cᵢₙ', 'dynamics', '—', 0, 5),
+      T: schemaNum('T', 'dynamics', 'K', 250, 600),
+      P: schemaNum('P', 'dynamics', 'bar', 0.2, 20),
+      reflux: schemaNum('回流比', 'dynamics', '—', 0.5, 8),
+      z: schemaNum('进料组成', 'dynamics', '—', 0.05, 0.95),
+    },
+    init(state) {
+      state.t = 0;
+      state.c = P(state.params, 'cin', 1);
+      state.hist = [];
+      state.profile = [];
+      state.stages = 0;
+    },
+    step(state, dt) {
+      const tau = Math.max(0.05, P(state.params, 'tau', 2));
+      const k = P(state.params, 'k', 0.8);
+      const n = Math.max(1, Math.round(P(state.params, 'order', 1)));
+      const cin = P(state.params, 'cin', 1);
+      if (spec.id === 'pfr') {
+        const u = 1 / tau;
+        state.profile = [];
+        let c = cin;
+        for (let i = 0; i <= 40; i += 1) {
+          state.profile.push(c);
+          const r = -k * (c ** n);
+          c = Math.max(0, c + (r / Math.max(u, 1e-6)) * (1 / 40));
+        }
+        state.c = c;
+      } else if (spec.id === 'mccabe-thiele') {
+        const R = P(state.params, 'reflux', 1.5);
+        const z = P(state.params, 'z', 0.5);
+        state.stages = Math.max(2, Math.min(20, Math.round(8 / Math.max(0.2, R)) + Math.round(z * 6)));
+        state.c = z;
+      } else {
+        const r = -k * (state.c ** n);
+        state.c += ((cin - state.c) / tau + r) * dt;
+        state.c = Math.max(0, state.c);
+      }
+      state.t += dt;
+      state.hist.push(state.c);
+      if (state.hist.length > 180) state.hist.shift();
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      const box = padBox(W, H);
+      title(ctx, spec.name);
+      if (spec.id === 'pfr' && state.profile?.length) {
+        ctx.strokeStyle = C.body;
+        ctx.beginPath();
+        state.profile.forEach((c, i) => {
+          const x = box.l + (i / (state.profile.length - 1)) * box.w;
+          const y = box.b - c * box.h * 0.7;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.stroke();
+      } else if (spec.id === 'mccabe-thiele') {
+        ctx.strokeStyle = C.axis;
+        ctx.strokeRect(box.l, box.t, box.w, box.h);
+        ctx.strokeStyle = C.body;
+        ctx.beginPath();
+        ctx.moveTo(box.l, box.b);
+        ctx.lineTo(box.r, box.t);
+        ctx.stroke();
+        ctx.strokeStyle = C.accent;
+        ctx.beginPath();
+        const stages = state.stages || 4;
+        let x = P(state.params, 'z', 0.5);
+        let y = x;
+        for (let i = 0; i < stages; i += 1) {
+          const yEq = Math.sqrt(x); // 示意平衡线
+          const px = box.l + x * box.w;
+          const py = box.b - y * box.h;
+          const pye = box.b - yEq * box.h;
+          ctx.moveTo(px, py);
+          ctx.lineTo(px, pye);
+          x = Math.min(0.98, yEq * (1 + 0.1 * P(state.params, 'reflux', 1.5)));
+          y = yEq;
+          ctx.lineTo(box.l + x * box.w, pye);
+        }
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = C.body;
+        ctx.beginPath();
+        state.hist.forEach((c, i) => {
+          const x = box.l + (i / 180) * box.w;
+          const y = box.b - c * box.h * 0.7;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.stroke();
+      }
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return [
+        { label: 'c', value: formatNum(state.c, d) },
+        { label: 't', value: `${formatNum(state.t, d)} s` },
+        { label: 'stages', value: String(state.stages || 0) },
+        { label: 'X', value: formatNum(1 - state.c / Math.max(1e-6, P(state.params, 'cin', 1)), d) },
+      ];
+    },
+  };
+}
+
+function buildAero(spec) {
+  return {
+    ...baseMeta(spec),
+    params: { alpha: 5, AR: 8, sweep: 20, camber: 0.04, Re: 1e6, thrust: 1.2, mass: 1 },
+    paramSchema: {
+      alpha: schemaNum('攻角 α', 'dynamics', '°', -5, 25),
+      AR: schemaNum('展弦比', 'dynamics', '—', 2, 20),
+      sweep: schemaNum('后掠角', 'dynamics', '°', 0, 45),
+      camber: schemaNum('弯度', 'dynamics', '—', 0, 0.15),
+      Re: schemaNum('Re/10⁶', 'dynamics', '—', 0.1, 10),
+      thrust: schemaNum('推力', 'dynamics', '—', 0.2, 5),
+      mass: schemaNum('质量', 'dynamics', '—', 0.2, 10),
+    },
+    init(state) {
+      state.t = 0;
+      state.x = 0.2;
+      state.y = 0.7;
+      state.vx = 0;
+      state.vy = 0;
+      state.trail = [];
+      state.Cl = 0;
+      state.Cd = 0;
+    },
+    step(state, dt) {
+      const alpha = (P(state.params, 'alpha', 5) * Math.PI) / 180;
+      const AR = P(state.params, 'AR', 8);
+      const camber = P(state.params, 'camber', 0.04);
+      state.Cl = 2 * Math.PI * (alpha + camber) * (AR / (AR + 2));
+      state.Cd = 0.02 + (state.Cl * state.Cl) / (Math.PI * AR * 0.9) + 0.001 * P(state.params, 'sweep', 20);
+      if (spec.id === 'rocket-vt' || spec.id === 'reentry-trajectory') {
+        const T = P(state.params, 'thrust', 1.2);
+        const m = Math.max(0.1, P(state.params, 'mass', 1));
+        state.vy += (T / m - 1.0 - 0.15 * state.Cd) * dt;
+        state.vx += Math.sin(alpha) * 0.2 * dt;
+        state.x += state.vx * dt * 0.05;
+        state.y += state.vy * dt * 0.05;
+        if (state.y < 0.08) {
+          state.y = 0.08;
+          state.vy = 0;
+        }
+        state.trail.push({ x: state.x, y: state.y });
+        if (state.trail.length > 200) state.trail.shift();
+      }
+      state.t += dt;
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      const box = padBox(W, H);
+      title(ctx, spec.name);
+      const alpha = (P(state.params, 'alpha', 5) * Math.PI) / 180;
+      const sweep = (P(state.params, 'sweep', 20) * Math.PI) / 180;
+      const cx = W * 0.5;
+      const cy = H * 0.45;
+      const span = 120;
+      ctx.strokeStyle = C.body;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - span, cy + Math.tan(sweep) * 20);
+      ctx.lineTo(cx, cy - 10 - P(state.params, 'camber', 0.04) * 80);
+      ctx.lineTo(cx + span, cy + Math.tan(sweep) * 20);
+      ctx.lineTo(cx, cy + 18);
+      ctx.closePath();
+      ctx.stroke();
+      drawArrow(ctx, cx, cy, cx + Math.cos(alpha) * 50, cy - Math.sin(alpha) * 50, C.vector, 2);
+      drawArrow(ctx, cx, cy, cx, cy - state.Cl * 25, C.accent, 2);
+      if (state.trail.length) {
+        ctx.strokeStyle = C.trail || C.muted;
+        ctx.beginPath();
+        state.trail.forEach((p, i) => {
+          const x = box.l + p.x * box.w;
+          const y = box.b - p.y * box.h;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.stroke();
+      }
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return [
+        { label: 'Cl', value: formatNum(state.Cl, d) },
+        { label: 'Cd', value: formatNum(state.Cd, d) },
+        { label: 'L/D', value: formatNum(state.Cl / Math.max(1e-6, state.Cd), d) },
+        { label: 't', value: `${formatNum(state.t, d)} s` },
+      ];
+    },
   };
 }

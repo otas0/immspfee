@@ -54,6 +54,18 @@ const handcrafted = [
 
 const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
 
+/** 死规则：每个模型必须有 refresh，改参后 HUD/图立刻可用 */
+function ensureRefresh(model) {
+  if (typeof model.refresh === 'function') return model;
+  model.refresh = function refresh(state) {
+    if (typeof this.recompute === 'function') this.recompute(state);
+    else if (typeof this.step === 'function') this.step(state, 0);
+  };
+  return model;
+}
+
+for (const m of handcrafted) ensureRefresh(m);
+
 function buildAll() {
   const list = [];
   const seen = new Set();
@@ -61,36 +73,36 @@ function buildAll() {
     if (seen.has(spec.id)) continue;
     seen.add(spec.id);
     if (spec.family === 'hand' && byId[spec.id]) {
-      list.push({
+      list.push(ensureRefresh({
         ...byId[spec.id],
         name: spec.name || byId[spec.id].name,
         tags: [spec.domain, spec.sub].filter(Boolean),
         formula: spec.formula || byId[spec.id].formula || '',
         description: spec.description || byId[spec.id].description || '',
         sub: spec.sub || '',
-      });
+      }));
     } else if (byId[spec.id]) {
-      list.push({
+      list.push(ensureRefresh({
         ...byId[spec.id],
         name: spec.name || byId[spec.id].name,
         tags: [spec.domain, spec.sub].filter(Boolean),
         formula: spec.formula || '',
         description: spec.description || '',
         sub: spec.sub || '',
-      });
+      }));
     } else {
-      list.push(createFactoryModel(spec));
+      list.push(ensureRefresh(createFactoryModel(spec)));
     }
   }
   for (const impl of handcrafted) {
     if (!seen.has(impl.id)) {
-      list.push({
+      list.push(ensureRefresh({
         ...impl,
         tags: impl.tags || [],
         formula: impl.formula || '',
         description: impl.description || '',
         sub: '',
-      });
+      }));
     }
   }
   return list;

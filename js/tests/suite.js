@@ -24,6 +24,7 @@ import inclinedPlane from '../models/inclinedPlane.js';
 import collision2d from '../models/collision2d.js';
 import dijkstra from '../models/dijkstra.js';
 import logicGates from '../models/logicGates.js';
+import { runModelContract } from './model-contract.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -248,12 +249,16 @@ export function runSuite() {
 
   // 目录规模 + live/reset 语义
   {
-    assert('catalog ≥ 100 models', models.length >= 100, `n=${models.length}`);
+    assert('catalog ≥ 200 models', models.length >= 200, `n=${models.length}`);
     const ids = new Set(models.map((m) => m.id));
     assert('catalog has free-fall', ids.has('free-fall'));
     assert('catalog has sorting', ids.has('sorting'));
     assert('catalog has raft', ids.has('raft'));
     assert('catalog has photoelectric', ids.has('photoelectric'));
+    assert('catalog has beam-sfd-bmd', ids.has('beam-sfd-bmd'));
+    assert('catalog has pid-tune', ids.has('pid-tune'));
+    assert('catalog has lorenz', ids.has('lorenz'));
+    assert('catalog has nasch-ca', ids.has('nasch-ca'));
 
     // g live：高度不因改 g 而重置
     {
@@ -276,8 +281,12 @@ export function runSuite() {
       assert('reset h₀ 回到新初值', almostEqual(state.y, 25, 1e-9), `y=${state.y}`);
     }
 
-    // 工厂模型冒烟（抽样）
-    const sample = models.filter((m) => !['free-fall', 'sorting', 'rlc'].includes(m.id)).slice(0, 12);
+    // 工厂模型冒烟（抽样 + 新学科家族）
+    const must = ['beam-sfd-bmd', 'pid-tune', 'lorenz', 'nasch-ca', 'cstr', 'vortex-lattice'];
+    const sample = [
+      ...models.filter((m) => must.includes(m.id)),
+      ...models.filter((m) => !['free-fall', 'sorting', 'rlc', ...must].includes(m.id)).slice(0, 8),
+    ];
     let ok = true;
     let detail = '';
     for (const model of sample) {
@@ -295,6 +304,8 @@ export function runSuite() {
     }
     assert('factory sample smoke', ok, detail);
   }
+
+  for (const r of runModelContract()) results.push(r);
 
   return results;
 }
