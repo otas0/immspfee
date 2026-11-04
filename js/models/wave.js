@@ -91,7 +91,7 @@ export default {
     ctx.setLineDash([]);
 
     ctx.setLineDash([3, 4]);
-    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.strokeStyle = C.theory;
     ctx.beginPath();
     for (let i = 0; i <= N + 1; i += 1) {
       const x = i * dx;
@@ -107,7 +107,7 @@ export default {
     ctx.setLineDash([]);
 
     ctx.strokeStyle = C.body;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (let i = 0; i <= N + 1; i += 1) {
       const px = X(i * dx);

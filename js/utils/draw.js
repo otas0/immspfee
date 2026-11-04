@@ -1,5 +1,5 @@
 /** 绘制箭头（从 (x,y) 指向 tip） */
-export function drawArrow(ctx, x, y, tipX, tipY, color = '#ffffff', width = 2) {
+export function drawArrow(ctx, x, y, tipX, tipY, color = '#2dd4bf', width = 2) {
   const dx = tipX - x;
   const dy = tipY - y;
   const len = Math.hypot(dx, dy);

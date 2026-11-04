@@ -5,6 +5,7 @@ import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js
 import { createParamBench } from './ui/paramBench.js';
 import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml } from './ui/icons.js';
+import { setModelPalette } from './utils/theme.js';
 
 const canvas = document.getElementById('canvas');
 const canvasWrap = document.querySelector('.canvas-wrap');
@@ -246,6 +247,7 @@ function measureSysSticky() {
 function switchModel(id) {
   const model = getModelById(id);
   app.model = model;
+  setModelPalette(model.id);
   app.state = createState(model);
   stepper.reset();
   toolbarTitle.textContent = model.name;

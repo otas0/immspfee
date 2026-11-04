@@ -1,12 +1,5 @@
 import { formatNum } from '../utils/draw.js';
-import { C } from '../utils/theme.js';
-
-/** 温度 → 灰度（纯黑白） */
-function tempColor(t, tMin, tMax) {
-  const u = Math.max(0, Math.min(1, (t - tMin) / Math.max(1e-9, tMax - tMin)));
-  const g = Math.round(255 * u);
-  return `rgb(${g},${g},${g})`;
-}
+import { C, heatTempColor } from '../utils/theme.js';
 
 /**
  * 一维热传导：∂T/∂t = α ∂²T/∂x²
@@ -84,9 +77,9 @@ export default {
     const barW = W - margin.l - margin.r;
     const cellW = barW / (N - 1);
 
-    // 灰度温度条
+    // 温度条：蓝冷 → 红热
     for (let i = 0; i < N - 1; i += 1) {
-      ctx.fillStyle = tempColor(T[i], tMin, tMax);
+      ctx.fillStyle = heatTempColor(T[i], tMin, tMax);
       ctx.fillRect(margin.l + i * cellW, barY, cellW + 1, barH);
     }
     ctx.strokeStyle = C.ground;
@@ -121,7 +114,7 @@ export default {
     for (let i = 0; i < 80; i += 1) {
       const u = i / 79;
       const temp = tMin + u * (tMax - tMin);
-      ctx.fillStyle = tempColor(temp, tMin, tMax);
+      ctx.fillStyle = heatTempColor(temp, tMin, tMax);
       ctx.fillRect(margin.l + i * (barW / 80), legendY, barW / 80 + 1, 12);
     }
     ctx.fillStyle = C.muted;

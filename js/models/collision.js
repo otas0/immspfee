@@ -96,14 +96,14 @@ export default {
 
     if (state.flash > 0) {
       const alpha = state.flash / 0.3;
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.35})`;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(250, 204, 21, ${alpha * 0.55})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(X((state.x1 + state.x2) / 2), y, 18 + (1 - alpha) * 10, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // m1：实心亮；m2：深灰填充 + 白线框，避免两球糊成一团
+    // m1 蓝实心；m2 红填充 + 金描边
     ctx.fillStyle = C.vector;
     ctx.beginPath();
     ctx.arc(X(state.x1), y, r1, 0, Math.PI * 2);
@@ -113,7 +113,7 @@ export default {
     ctx.arc(X(state.x2), y, r2, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = C.body;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(X(state.x2), y, r2, 0, Math.PI * 2);
     ctx.stroke();

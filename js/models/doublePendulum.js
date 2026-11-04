@@ -1,12 +1,5 @@
 import { formatNum } from '../utils/draw.js';
-import { C } from '../utils/theme.js';
-
-/** 相空间 → 灰度（θ/ω 映射亮度；纯黑白） */
-function phaseColor(theta, omega, alpha = 0.85) {
-  const u = (Math.sin(theta) * 0.5 + 0.5 + Math.tanh(omega * 0.35) * 0.5) / 1.5;
-  const g = Math.round(40 + 200 * Math.max(0, Math.min(1, u)));
-  return `rgba(${g},${g},${g},${alpha})`;
-}
+import { C, phaseHueColor } from '../utils/theme.js';
 
 /**
  * 双摆：拉格朗日方程数值积分（半隐式欧拉）
@@ -88,13 +81,13 @@ export default {
     const scale = Math.min(W, H) * 0.28 / Math.max(L1 + L2, 0.5);
     const toS = (x, y) => ({ x: pivot.x + x * scale, y: pivot.y - y * scale });
 
-    // 相空间灰度轨迹
+    // 相空间色相轨迹（θ₁/ω₁ → hue）
     for (let i = 1; i < state.trail.length; i += 1) {
       const a = state.trail[i - 1];
       const b = state.trail[i];
       const sa = toS(a.x, a.y);
       const sb = toS(b.x, b.y);
-      ctx.strokeStyle = phaseColor(b.th1, b.w1, 0.55);
+      ctx.strokeStyle = phaseHueColor(b.th1, b.w1, 0.62);
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(sa.x, sa.y);
@@ -132,7 +125,7 @@ export default {
 
     ctx.fillStyle = C.muted;
     ctx.font = '11px IBM Plex Mono, monospace';
-    ctx.fillText('轨迹灰度∝θ₁,ω₁', 12, H - 14);
+    ctx.fillText('轨迹色相∝θ₁,ω₁', 12, H - 14);
   },
 
   getReadouts(state) {
