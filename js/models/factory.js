@@ -1434,6 +1434,9 @@ function lensOptics(params) {
 function buildRays(spec) {
   return {
     ...baseMeta(spec),
+    capabilities: spec.id === 'lens'
+      ? { pointer: true, interaction: 'canvas', hint: '拖动物体调节物距/物高；虚像为虚线' }
+      : { interaction: 'knobs', hint: '调节入射角与折射率' },
     params: { theta: 35, n1: 1, n2: 1.5, u: 4, f: 2, h: 1.2, scale: 28 },
     paramSchema: {
       theta: schemaNum('入射角', 'dynamics', '°', 0, 89),
@@ -1472,6 +1475,7 @@ function buildRays(spec) {
       title(ctx, spec.name);
       const cx = box.l + box.w * 0.5;
       const cy = box.t + box.h * 0.55;
+      state._lens = { cx, cy, box };
       this.recompute(state);
       if (spec.id === 'lens') {
         const o = lensOptics(state.params);
@@ -1489,13 +1493,20 @@ function buildRays(spec) {
         ctx.fillStyle = C.muted;
         ctx.fillRect(cx + o.f * sc - 2, cy - 6, 4, 12);
         ctx.fillRect(cx - o.f * sc - 2, cy - 6, 4, 12);
+        ctx.font = '10px IBM Plex Mono, monospace';
+        ctx.fillText('F', cx + o.f * sc - 4, cy + 18);
         const ox = cx + clampX(-o.u * sc);
         const oy = cy - o.h * sc * 0.35;
+        state._obj = { x: ox, y: Math.min(oy, cy), h: Math.abs(oy - cy) || 2 };
         ctx.fillStyle = C.accent;
-        ctx.fillRect(ox - 2, Math.min(oy, cy), 4, Math.abs(oy - cy) || 2);
+        ctx.fillRect(ox - 2, state._obj.y, 4, state._obj.h);
+        ctx.fillStyle = C.accent;
+        ctx.font = '12px IBM Plex Mono, monospace';
+        ctx.fillText('物 O', ox - 18, state._obj.y - 6);
         if (Number.isFinite(o.v)) {
           const ix = cx + clampX(o.v * sc);
           const iy = cy - (Number.isFinite(o.m) ? o.m * o.h * sc * 0.35 : 0);
+          state._img = { x: ix, y: Math.min(iy, cy), h: Math.abs(iy - cy) || 2, virtual: o.v < 0 };
           ctx.strokeStyle = C.body;
           ctx.setLineDash(o.v < 0 ? [4, 4] : []);
           ctx.beginPath();
@@ -1504,20 +1515,24 @@ function buildRays(spec) {
           ctx.stroke();
           ctx.setLineDash([]);
           ctx.fillStyle = C.vector;
-          ctx.fillRect(ix - 2, Math.min(iy, cy), 4, Math.abs(iy - cy) || 2);
+          if (o.v < 0) ctx.globalAlpha = 0.55;
+          ctx.fillRect(ix - 2, state._img.y, 4, state._img.h);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = C.vector;
+          ctx.fillText(o.v < 0 ? '虚像 I\'' : '实像 I', ix + 6, state._img.y - 6);
         } else {
+          state._img = null;
           ctx.strokeStyle = C.body;
           ctx.beginPath();
           ctx.moveTo(ox, oy); ctx.lineTo(cx, oy);
           ctx.moveTo(ox, oy); ctx.lineTo(cx, cy);
           ctx.stroke();
           ctx.fillStyle = C.muted;
-          ctx.font = '12px IBM Plex Mono, monospace';
           ctx.fillText('u = f · 像在无穷远', box.l + 8, box.b - 8);
         }
         ctx.fillStyle = C.muted;
         ctx.font = '11px IBM Plex Mono, monospace';
-        ctx.fillText(o.kind, box.l + 8, box.t + 36);
+        ctx.fillText(`${o.kind} · 拖动物体`, box.l + 8, box.t + 36);
       } else {
         const th1 = (P(state.params, 'theta', 35) * Math.PI) / 180;
         const n1 = P(state.params, 'n1', 1);
@@ -1552,6 +1567,32 @@ function buildRays(spec) {
           ctx.fillText('全反射 TIR', box.l + 8, box.b - 8);
         }
       }
+    },
+    onPointer(state, ev) {
+      if (spec.id !== 'lens' || !state._lens || !state._obj) return false;
+      const { cx, cy } = state._lens;
+      const sc = P(state.params, 'scale', 28);
+      if (ev.type === 'down') {
+        const o = state._obj;
+        if (ev.x >= o.x - 10 && ev.x <= o.x + 10 && ev.y >= o.y - 4 && ev.y <= o.y + o.h + 4) {
+          state._dragObj = true;
+          return true;
+        }
+        return false;
+      }
+      if (ev.type === 'move' && state._dragObj) {
+        const u = Math.max(0.2, (cx - ev.x) / sc);
+        const h = Math.max(0.05, (cy - ev.y) / (sc * 0.35));
+        state.params.u = u;
+        state.params.h = h;
+        this.recompute(state);
+        return true;
+      }
+      if (ev.type === 'up') {
+        state._dragObj = false;
+        return true;
+      }
+      return false;
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;

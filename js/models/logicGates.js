@@ -175,16 +175,51 @@ export default {
     ctx.font = '12px IBM Plex Mono, monospace';
     ctx.fillText(
       net
-        ? `NET → ${state._outName}=${state.y}  A${state._a}B${state._b}C${state._c}`
+        ? `NET → ${state._outName}=${state.y}  A${state._a}B${state._b}C${state._c} · 拖线编辑`
         : `${GATES[mode] || '?'}  A=${state._a} B=${state._b} C=${state._c} → Y=${state.y}`,
       16,
       22,
     );
 
     if (net) {
+      if (!state._layout || state._layout.length !== state.gates.length) {
+        state._layout = state.gates.map((g, i) => ({
+          i,
+          x: 40 + (i % 3) * 150,
+          y: 60 + Math.floor(i / 3) * 80,
+        }));
+      }
+      state._ports = [];
+      // wires
+      for (const g of state.gates) {
+        for (const inp of g.in) {
+          const src = state.gates.find((x) => x.out === inp);
+          if (!src) continue;
+          const si = state.gates.indexOf(src);
+          const di = state.gates.indexOf(g);
+          const a = state._layout[si];
+          const b = state._layout[di];
+          if (!a || !b) continue;
+          ctx.strokeStyle = C.axis;
+          ctx.beginPath();
+          ctx.moveTo(a.x + 110, a.y + 22);
+          ctx.lineTo(b.x, b.y + 14);
+          ctx.stroke();
+        }
+      }
+      if (state._wire && state._wire.from != null) {
+        const a = state._layout[state._wire.from];
+        ctx.strokeStyle = C.vector;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(a.x + 110, a.y + 22);
+        ctx.lineTo(state._wire.x, state._wire.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       state.gates.forEach((g, i) => {
-        const x = 40 + (i % 3) * 140;
-        const y = 70 + Math.floor(i / 3) * 70;
+        const L = state._layout[i];
+        const x = L.x; const y = L.y;
         ctx.strokeStyle = C.body;
         ctx.strokeRect(x, y, 110, 44);
         ctx.fillStyle = C.body;
@@ -192,6 +227,15 @@ export default {
         ctx.fillText(`${g.op}`, x + 8, y + 18);
         ctx.fillStyle = C.muted;
         ctx.fillText(`${g.in.join(',')}→${g.out}=${state.wires[g.out] ?? '?'}`, x + 8, y + 36);
+        // ports
+        ctx.fillStyle = C.accent;
+        ctx.beginPath(); ctx.arc(x, y + 14, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y + 30, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = C.vector;
+        ctx.beginPath(); ctx.arc(x + 110, y + 22, 5, 0, Math.PI * 2); ctx.fill();
+        state._ports.push({ gate: i, kind: 'in0', x, y: y + 14 });
+        state._ports.push({ gate: i, kind: 'in1', x, y: y + 30 });
+        state._ports.push({ gate: i, kind: 'out', x: x + 110, y: y + 22 });
       });
     } else {
       const gx = W * 0.22; const gy = H * 0.38;
@@ -251,5 +295,72 @@ export default {
 
   getTrajectory(state) {
     return state.table.map((r, i) => ({ i, ...r }));
+  },
+
+  onPointer(state, ev) {
+    if (Math.round(P(state.params, 'useNet', 0)) !== 1) return false;
+    if (!state._layout) return false;
+    const hitPort = (x, y) => {
+      if (!state._ports) return null;
+      for (const p of state._ports) {
+        if ((p.x - x) ** 2 + (p.y - y) ** 2 < 10 * 10) return p;
+      }
+      return null;
+    };
+    const hitGate = (x, y) => {
+      for (const L of state._layout) {
+        if (x >= L.x && x <= L.x + 110 && y >= L.y && y <= L.y + 44) return L;
+      }
+      return null;
+    };
+
+    if (ev.type === 'down') {
+      const port = hitPort(ev.x, ev.y);
+      if (port?.kind === 'out') {
+        state._wire = { from: port.gate, x: ev.x, y: ev.y };
+        state._dragGate = null;
+        return true;
+      }
+      const g = hitGate(ev.x, ev.y);
+      if (g) {
+        state._dragGate = { i: g.i, ox: ev.x - g.x, oy: ev.y - g.y };
+        state._wire = null;
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === 'move') {
+      if (state._wire) {
+        state._wire.x = ev.x;
+        state._wire.y = ev.y;
+        return true;
+      }
+      if (state._dragGate) {
+        const L = state._layout[state._dragGate.i];
+        L.x = ev.x - state._dragGate.ox;
+        L.y = ev.y - state._dragGate.oy;
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === 'up') {
+      if (state._wire) {
+        const port = hitPort(ev.x, ev.y);
+        if (port && (port.kind === 'in0' || port.kind === 'in1') && port.gate !== state._wire.from) {
+          const src = state.gates[state._wire.from];
+          const dst = state.gates[port.gate];
+          const idx = port.kind === 'in0' ? 0 : 1;
+          dst.in[idx] = src.out;
+          // sync netlist text
+          state.params.netlist = state.gates.map((g) => `${g.op} ${g.in[0]} ${g.in[1]} ${g.out}`).join('; ');
+          this.recompute(state);
+        }
+        state._wire = null;
+        return true;
+      }
+      state._dragGate = null;
+      return true;
+    }
+    return false;
   },
 };

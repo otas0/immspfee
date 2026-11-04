@@ -72,6 +72,11 @@
       </header>
 
       <div class="display-bezel">
+        <div class="model-shell" id="model-shell" aria-live="polite">
+          <span class="shell-chip" id="shell-mode">knobs</span>
+          <span class="shell-hint" id="shell-hint">右侧工作台调参</span>
+          <button type="button" id="btn-safe-restore" class="btn quiet shell-safe" hidden title="宽量程 NaN 后一键恢复模型默认参数">恢复安全默认</button>
+        </div>
         <div class="canvas-wrap">
           <canvas id="canvas"></canvas>
         </div>
@@ -80,7 +85,13 @@
       <footer class="hud">
         <div class="hud-label-row">
           <div class="hud-label">readouts</div>
-          <button type="button" id="btn-pin-baseline" class="btn quiet" title="把当前读数钉为对照基线">钉住基线</button>
+          <div class="baseline-tools" id="baseline-tools">
+            <select id="baseline-select" class="baseline-select" aria-label="对照基线快照" title="切换对照基线快照">
+              <option value="">当前对照</option>
+            </select>
+            <button type="button" id="btn-save-baseline" class="btn quiet" title="把当前读数存为新快照">存快照</button>
+            <button type="button" id="btn-pin-baseline" class="btn quiet" title="把当前读数钉为对照基线">钉住基线</button>
+          </div>
         </div>
         <div class="readouts" id="readouts"></div>
       </footer>

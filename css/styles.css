@@ -293,6 +293,52 @@ html.hc .domain-group .domain-count {
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0 0.15rem;
+  flex-wrap: wrap;
+}
+.baseline-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.baseline-select {
+  font: inherit;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+  max-width: 9rem;
+}
+.model-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0.55rem 0.15rem;
+  min-height: 1.6rem;
+}
+.shell-chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.shell-hint {
+  flex: 1;
+  min-width: 8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.shell-safe:not([hidden]) {
+  border: 1px solid var(--ink);
 }
 
 .model-item {
