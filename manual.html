@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>manual · Physics Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#f2f2f2; --ink:#000; --muted:#666; --panel:#fff; --mono:"IBM Plex Mono",monospace; --sans:"Sora","Noto Sans SC",sans-serif; }
+    html.hc { --bg:#000; --ink:#fff; --muted:#aaa; --panel:#111; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:var(--sans); color:var(--ink); background:var(--bg); line-height:1.55; padding:2rem 1.25rem 3rem; font-feature-settings:"tnum" 1; }
+    main { max-width:760px; margin:0 auto; }
+    a { color:inherit; }
+    h1 { font-weight:600; letter-spacing:-0.03em; margin:0 0 0.35rem; }
+    .kicker { font-family:var(--mono); font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
+    h2 { margin:2rem 0 0.55rem; font-size:1.02rem; font-weight:600; }
+    h3 { margin:1.1rem 0 0.4rem; font-size:0.92rem; font-weight:600; }
+    code, pre, th, td { font-family:var(--mono); font-size:0.8rem; }
+    pre { background:var(--panel); padding:0.85rem 1rem; border-radius:10px; overflow:auto; }
+    .card { background:var(--panel); border-radius:12px; padding:0.85rem 1rem; margin:0.7rem 0; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:0.4rem 0.3rem; border-bottom:1px solid rgba(0,0,0,0.08); vertical-align:top; }
+    html.hc th, html.hc td { border-bottom-color:rgba(255,255,255,0.15); }
+    th { color:var(--muted); font-weight:500; }
+    .muted { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="kicker">physics lab / manual</div>
+    <h1>自定义常量如何进入方程</h1>
+    <p class="muted"><a href="./index.html">← back</a> · <a href="#" id="hc">contrast</a></p>
+
+    <h2>1. 现有参数</h2>
+    <p>工作台内数值可任意输入（含科学计数）。电位器仅参考调节；<strong>双击旋钮</strong>恢复默认；方向键按量级步进，Home 复位。</p>
+
+    <h2>2. 自定义键</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>key</th><th>effect</th></tr></thead>
+        <tbody>
+          <tr><td>a_extra / a_*</td><td>累加到加速度 / 角加速度（质点类模型）</td></tr>
+          <tr><td>k_extra</td><td>弹簧 k_eff = k + k_extra</td></tr>
+          <tr><td>expr_a</td><td>受限表达式，结果累加到加速度</td></tr>
+          <tr><td>其它</td><td>写入 params；模型读取同名键则直接生效</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>3. expr_a</h2>
+    <pre>expr_a = -0.2 * v
+expr_a = a_extra + 0.01 * t</pre>
+    <p class="muted">仅允许标识符与 + - * / % ( )。无 Math.*。场 / 冲量模型不走 expr_a，见下节。</p>
+
+    <h2>4. 各模型 locals</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>model</th><th>locals (+ params)</th></tr></thead>
+        <tbody>
+          <tr><td>free-fall</td><td>y, v, t, g, k, m</td></tr>
+          <tr><td>projectile</td><td>x, y, vx, vy, t, g, k, m</td></tr>
+          <tr><td>spring</td><td>x, v, t, m, k, c</td></tr>
+          <tr><td>pendulum</td><td>theta, omega, t, L, g, c</td></tr>
+          <tr><td>collision</td><td>无持续 a → 不用 expr_a</td></tr>
+          <tr><td>double-pendulum</td><td>改 L1/L2/m1/m2/g/theta*</td></tr>
+          <tr><td>wave</td><td>无 expr_a → 改场参数</td></tr>
+          <tr><td>heat</td><td>无 expr_a → 改扩散 / 边界</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>5. 无 expr_a 时怎么改（collision / wave / heat）</h2>
+
+    <h3>collision · 一维碰撞</h3>
+    <p>冲量瞬时发生，没有连续加速度项；<code>expr_a</code> / <code>a_*</code> 不会接入。直接改：</p>
+    <ul class="muted">
+      <li><code>m1</code>, <code>m2</code> — 质量比决定碰后分配</li>
+      <li><code>v1</code>, <code>v2</code> — 初速（符号为方向）</li>
+      <li><code>e</code> — 恢复系数（0 完全非弹，1 完全弹性）</li>
+    </ul>
+    <pre>m1=4  m2=1  v1=2  v2=0  e=0.5</pre>
+
+    <h3>wave · 横波 / 弦</h3>
+    <p>离散弦场，步进是波动方程而非单点 a(t)。改：</p>
+    <ul class="muted">
+      <li><code>c</code> — 波速；<code>damp</code> — 阻尼</li>
+      <li><code>A1</code>… 或模型内振幅 / 初形参数</li>
+      <li>不要加 <code>expr_a</code>（不会驱动网格节点）</li>
+    </ul>
+    <pre>c=1.5  damp=0.02</pre>
+
+    <h3>heat · 热传导</h3>
+    <p>一维扩散场，边界恒温。改：</p>
+    <ul class="muted">
+      <li><code>alpha</code> — 热扩散率（过大显式格式会炸）</li>
+      <li><code>Tleft</code>, <code>Tright</code>, <code>T0</code>, <code>hotspot</code> — 边界与初温</li>
+      <li><code>N</code>, <code>L</code> — 网格分辨率与长度</li>
+    </ul>
+    <pre>alpha=0.01  Tleft=100  Tright=20  hotspot=80</pre>
+
+    <h2>6. 截图选项</h2>
+    <p><code>sys → frame shot</code> 合成机箱外框；<code>shot readouts</code> 叠加当前读数。<code>shots/</code> 纯画布基线用开发服 <code>POST /__shots/</code> 抓取。</p>
+  </main>
+  <script>
+    if (localStorage.getItem('physics-lab-hc') === '1') document.documentElement.classList.add('hc');
+    document.getElementById('hc').onclick = (e) => {
+      e.preventDefault();
+      document.documentElement.classList.toggle('hc');
+      localStorage.setItem('physics-lab-hc', document.documentElement.classList.contains('hc') ? '1' : '0');
+    };
+  </script>
+</body>
+</html>

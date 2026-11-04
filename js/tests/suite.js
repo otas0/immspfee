@@ -1,0 +1,162 @@
+/**
+ * 可在 Node / 浏览器共用的物理断言套件
+ */
+import { velocityVerlet1D } from '../utils/integrator.js';
+
+function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
+  const diff = Math.abs(a - b);
+  const scale = Math.max(Math.abs(a), Math.abs(b), 1e-12);
+  return diff <= absTol || diff / scale <= relTol;
+}
+
+function collide(m1, m2, u1, u2, e) {
+  const v1 = ((m1 - e * m2) * u1 + (1 + e) * m2 * u2) / (m1 + m2);
+  const v2 = ((m2 - e * m1) * u2 + (1 + e) * m1 * u1) / (m1 + m2);
+  return { v1, v2 };
+}
+
+export function runSuite() {
+  const results = [];
+  const assert = (name, cond, detail = '') => {
+    results.push({ name, ok: !!cond, detail });
+  };
+
+  // 自由落体能量
+  {
+    const g = 9.81;
+    const m = 1;
+    const h = 10;
+    const dt = 1 / 240;
+    let y = h;
+    let v = 0;
+    let a = -g;
+    const E0 = m * g * y;
+    let maxRel = 0;
+    while (true) {
+      const next = velocityVerlet1D(y, v, a, () => -g, dt);
+      if (next.x <= 0) break;
+      y = next.x;
+      v = next.v;
+      a = next.a;
+      const E = 0.5 * m * v * v + m * g * y;
+      maxRel = Math.max(maxRel, Math.abs(E - E0) / E0);
+    }
+    assert('自由落体无阻力能量守恒（误差 < 0.1%）', maxRel < 0.001, `maxRel=${(maxRel * 100).toFixed(6)}%`);
+  }
+
+  // 恢复系数
+  {
+    assert('落地 e=1 速度反向等幅', almostEqual(-1 * -5, 5), 'vOut=5');
+    assert('落地 e=0 速度归零', almostEqual(-0 * -5, 0), 'vStop=0');
+  }
+
+  // 弹簧能量
+  {
+    const m = 1;
+    const k = 20;
+    const dt = 1 / 240;
+    let x = 0.8;
+    let v = 0;
+    let a = -(k / m) * x;
+    const E0 = 0.5 * k * x * x;
+    const T = 2 * Math.PI * Math.sqrt(m / k);
+    const steps = Math.floor((3 * T) / dt);
+    let maxRel = 0;
+    for (let i = 0; i < steps; i += 1) {
+      const next = velocityVerlet1D(x, v, a, (xx) => -(k / m) * xx, dt);
+      x = next.x;
+      v = next.v;
+      a = next.a;
+      const E = 0.5 * m * v * v + 0.5 * k * x * x;
+      maxRel = Math.max(maxRel, Math.abs(E - E0) / E0);
+    }
+    assert('弹簧无阻尼能量守恒（3 个周期，误差 < 0.1%）', maxRel < 0.001, `maxRel=${(maxRel * 100).toFixed(6)}%`);
+  }
+
+  // 单摆周期
+  {
+    const L = 1.2;
+    const g = 9.81;
+    const dt = 1 / 240;
+    let th = (5 * Math.PI) / 180;
+    let w = 0;
+    let t = 0;
+    const crossings = [];
+    let lastSign = Math.sign(th);
+    while (t < 25 && crossings.length < 5) {
+      const alpha = -(g / L) * Math.sin(th);
+      w += alpha * dt;
+      th += w * dt;
+      t += dt;
+      const sign = Math.sign(th) || lastSign;
+      if (sign !== lastSign && w > 0) crossings.push(t);
+      lastSign = sign;
+    }
+    const periods = [];
+    for (let i = 1; i < crossings.length; i += 1) periods.push(crossings[i] - crossings[i - 1]);
+    const avg = periods.reduce((a, b) => a + b, 0) / periods.length;
+    const Tth = 2 * Math.PI * Math.sqrt(L / g);
+    const rel = Math.abs(avg - Tth) / Tth;
+    assert('单摆小角度周期 ≈ 2π√(L/g)（相对误差 < 1%）', rel < 0.01, `Tmeas=${avg.toFixed(4)} Tth=${Tth.toFixed(4)} rel=${(rel * 100).toFixed(3)}%`);
+  }
+
+  // 碰撞极限
+  {
+    const m1 = 2;
+    const m2 = 1;
+    const u1 = 3;
+    const u2 = -1;
+    const P0 = m1 * u1 + m2 * u2;
+    const KE0 = 0.5 * m1 * u1 ** 2 + 0.5 * m2 * u2 ** 2;
+    const el = collide(m1, m2, u1, u2, 1);
+    const P1 = m1 * el.v1 + m2 * el.v2;
+    const KE1 = 0.5 * m1 * el.v1 ** 2 + 0.5 * m2 * el.v2 ** 2;
+    assert('碰撞 e=1 动量守恒', almostEqual(P1, P0, 1e-12), `P0=${P0} P1=${P1}`);
+    assert('碰撞 e=1 动能守恒', almostEqual(KE1, KE0, 1e-10), `KE0=${KE0} KE1=${KE1}`);
+    const inel = collide(m1, m2, u1, u2, 0);
+    const P2 = m1 * inel.v1 + m2 * inel.v2;
+    assert('碰撞 e=0 动量守恒', almostEqual(P2, P0, 1e-12), `P0=${P0} P2=${P2}`);
+    assert('碰撞 e=0 两球同速', almostEqual(inel.v1, inel.v2, 1e-12), `v1=${inel.v1} v2=${inel.v2}`);
+  }
+
+  // 热传导 α=0
+  {
+    const N = 20;
+    const T = new Float64Array(N);
+    for (let i = 0; i < N; i += 1) T[i] = 20 + i;
+    const r = 0;
+    const next = new Float64Array(N);
+    next[0] = T[0];
+    next[N - 1] = T[N - 1];
+    for (let i = 1; i < N - 1; i += 1) next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
+    let ok = true;
+    for (let i = 0; i < N; i += 1) if (!almostEqual(next[i], T[i], 1e-12)) ok = false;
+    assert('热传导 α=0 温度场不变', ok, 'α=0 显式步进应恒等');
+  }
+
+  // 波边界
+  {
+    const N = 16;
+    const L = 1;
+    const dx = L / (N + 1);
+    const y = new Float64Array(N + 2);
+    const v = new Float64Array(N + 2);
+    const c = 2;
+    const dt = 1 / 500;
+    for (let i = 1; i <= N; i += 1) y[i] = 0.1 * Math.sin((Math.PI * i * dx) / L);
+    for (let step = 0; step < 200; step += 1) {
+      for (let i = 1; i <= N; i += 1) {
+        const a = (c * c) * (y[i + 1] - 2 * y[i] + y[i - 1]) / (dx * dx);
+        v[i] += a * dt;
+      }
+      for (let i = 1; i <= N; i += 1) y[i] += v[i] * dt;
+      y[0] = 0;
+      y[N + 1] = 0;
+      v[0] = 0;
+      v[N + 1] = 0;
+    }
+    assert('弦振动两端固定边界', almostEqual(y[0], 0) && almostEqual(y[N + 1], 0), `y0=${y[0]} yN=${y[N + 1]}`);
+  }
+
+  return results;
+}

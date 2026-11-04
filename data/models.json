@@ -1,0 +1,58 @@
+[
+  {
+    "id": "free-fall",
+    "name": "自由落体",
+    "tags": ["力学", "重力"],
+    "formula": "y''=-g-(k/m)y'；落地 v'=-e·v",
+    "description": "竖直下落，可选空气阻力与弹性落地反弹"
+  },
+  {
+    "id": "projectile",
+    "name": "斜抛运动",
+    "tags": ["力学", "抛体"],
+    "formula": "x=v₀cosθ·t，y=v₀sinθ·t-½gt²",
+    "description": "二维抛体运动，对比无阻力解析抛物线"
+  },
+  {
+    "id": "spring",
+    "name": "弹簧振子",
+    "tags": ["振动", "简谐"],
+    "formula": "m·x''=-k·x-c·x'；T=2π√(m/k)",
+    "description": "一维阻尼谐振子"
+  },
+  {
+    "id": "pendulum",
+    "name": "单摆",
+    "tags": ["振动", "非线性"],
+    "formula": "θ''=-(g/L)sinθ-c·θ'；T≈2π√(L/g)",
+    "description": "大角度非线性单摆，小角度周期对照"
+  },
+  {
+    "id": "collision",
+    "name": "一维碰撞",
+    "tags": ["力学", "碰撞", "动量"],
+    "formula": "v₁'=[(m₁-em₂)v₁+(1+e)m₂v₂]/(m₁+m₂)",
+    "description": "恢复系数碰撞，多次统计与动量"
+  },
+  {
+    "id": "double-pendulum",
+    "name": "双摆",
+    "tags": ["混沌", "非线性"],
+    "formula": "双摆拉格朗日方程（θ₁,θ₂）",
+    "description": "混沌轨迹，末端按相空间灰度"
+  },
+  {
+    "id": "wave",
+    "name": "横波 / 弦振动",
+    "tags": ["波动", "驻波"],
+    "formula": "y''=c² y_xx；驻波模式 sin(nπx/L)",
+    "description": "离散质点链，多模式驻波叠加"
+  },
+  {
+    "id": "heat",
+    "name": "热传导",
+    "tags": ["热学", "扩散"],
+    "formula": "∂T/∂t = α ∂²T/∂x²",
+    "description": "一维温度场有限差分，灰度可视化"
+  }
+]
