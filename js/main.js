@@ -181,6 +181,7 @@ function syncModelClockPause() {
     if (!app.paused) {
       app.paused = true;
       syncPauseUi();
+      if (app.model?.id === 'projectile') showToast('已落地 · 已暂停');
     }
   }
   if (typeof app.model?.shouldPauseApp === 'function' && app.model.shouldPauseApp(app.state)) {
@@ -365,6 +366,18 @@ function updateShellStrip() {
     resumeDemoBtn.className = 'btn quiet shell-resume-demo';
     resumeDemoBtn.textContent = '恢复自动步进';
     resumeDemoBtn.addEventListener('click', () => {
+      if (typeof app.model?.runAction === 'function') {
+        const ok = app.model.runAction(app.state, 'autoDemo');
+        if (ok) {
+          app.paused = false;
+          syncPauseUi();
+          updateShellStrip();
+          paintFrame();
+          paramBench.refresh?.();
+          showToast('已恢复自动步进');
+          return;
+        }
+      }
       if (!app.state?.params) return;
       app.state.params.demo = 0;
       applyParamChange('demo');
@@ -391,6 +404,20 @@ function updateShellStrip() {
   renderShellActions(cap);
 }
 
+function syncShellActionEnabled() {
+  const bar = document.getElementById('shell-actions');
+  if (!bar || typeof app.model?.actionEnabled !== 'function') return;
+  for (const btn of bar.querySelectorAll('button[data-action-id]')) {
+    const id = btn.getAttribute('data-action-id');
+    const enabled = !!app.model.actionEnabled(app.state, id);
+    btn.disabled = !enabled;
+    btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+    btn.title = enabled
+      ? (btn.textContent || id)
+      : (id === 'redoEdge' ? '无可重做' : id === 'undoEdge' ? '无可撤销' : btn.textContent || id);
+  }
+}
+
 function renderShellActions(cap) {
   let bar = document.getElementById('shell-actions');
   if (!bar) {
@@ -400,11 +427,19 @@ function renderShellActions(cap) {
     document.getElementById('model-shell')?.appendChild(bar);
   }
   const actions = cap?.actions || [];
+  const sig = actions.map((a) => a.id).join('|');
+  // undo/redo 后只刷新 disabled，不整表重建
+  if (bar.dataset.actionSig === sig && bar.childElementCount === actions.length) {
+    syncShellActionEnabled();
+    return;
+  }
+  bar.dataset.actionSig = sig;
   bar.innerHTML = '';
   for (const a of actions) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn quiet';
+    btn.dataset.actionId = a.id;
     btn.textContent = a.label || a.id;
     const enabled = typeof app.model?.actionEnabled === 'function'
       ? !!app.model.actionEnabled(app.state, a.id)
@@ -416,13 +451,21 @@ function renderShellActions(cap) {
       if (btn.disabled || typeof app.model?.runAction !== 'function') return;
       const ok = app.model.runAction(app.state, a.id);
       if (ok) {
-        // 抛体等：runAction 设 state._resumeApp（受 resumeOnLaunch 等参数控制）
         if (app.state?._resumeApp) {
           app.state._resumeApp = false;
           if (app.paused) {
             app.paused = false;
             syncPauseUi();
           }
+        }
+        // 逻辑门 undo/redo：只更新 disabled，不整壳重建
+        if (a.id === 'undoEdge' || a.id === 'redoEdge') {
+          syncShellActionEnabled();
+          paintFrame();
+          paramBench.refresh?.();
+          updateHud({ flash: true });
+          showToast(a.label || a.id);
+          return;
         }
         updateShellStrip();
         paintFrame();
@@ -493,12 +536,22 @@ function activateBaseline(slot) {
 function snapshotSimState(state) {
   if (!state || typeof state !== 'object') return null;
   const out = {};
+  const arrayKeys = new Set([
+    'trail', 'trails', 'hist', 'wave', 'path', 'arr',
+    'grid', 'queue', 'visited', 'parent', 'gScore', 'stack',
+  ]);
+  const objKeys = new Set(['start', 'goal']);
   for (const [k, v] of Object.entries(state)) {
     if (k === 'params' || k.startsWith('_')) continue;
     if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
     else if (typeof v === 'boolean' || typeof v === 'string') out[k] = v;
-    else if (Array.isArray(v) && (k === 'trail' || k === 'trails' || k === 'hist' || k === 'wave' || k === 'path')) {
-      out[k] = JSON.parse(JSON.stringify(v.slice(-400)));
+    else if (Array.isArray(v) && arrayKeys.has(k)) {
+      const sliced = (k === 'trail' || k === 'trails' || k === 'hist' || k === 'wave')
+        ? v.slice(-400)
+        : v;
+      out[k] = JSON.parse(JSON.stringify(sliced));
+    } else if (v && typeof v === 'object' && objKeys.has(k)) {
+      out[k] = JSON.parse(JSON.stringify(v));
     }
   }
   return out;
@@ -791,11 +844,17 @@ function buildSidebar() {
   countEl.textContent = parts.length
     ? `筛选 ${list.length} / ${models.length} · ${parts.join(' · ')}`
     : `全部 ${list.length} 模型`;
-  // 三次点击循环：清 tag/form → 清 q → 提示已空
+  // 三次点击循环：清 tag/form → 清 q → 提示已空；aria-live 播报
   countEl.title = parts.length
     ? '点击：清 tag/form → 再点清 q → 再点提示已空'
     : '点击提示：当前无筛选';
   countEl.style.cursor = 'pointer';
+  countEl.setAttribute('role', 'status');
+  countEl.setAttribute('aria-live', 'polite');
+  const announce = (msg) => {
+    countEl.setAttribute('aria-label', msg);
+    showToast(msg);
+  };
   countEl.addEventListener('click', () => {
     if (app.filter.tag || app.filter.formalism) {
       const keepQ = !!app.filter.q.trim();
@@ -804,17 +863,17 @@ function buildSidebar() {
       if (filterTag) filterTag.value = '';
       if (filterFormalism) filterFormalism.value = '';
       buildSidebar();
-      showToast(keepQ ? '已清除 tag · form（再点清除搜索）' : '已清除 tag · form 筛选');
+      announce(keepQ ? '已清除 tag · form（再点清除搜索）' : '已清除 tag · form 筛选');
       return;
     }
     if (app.filter.q.trim()) {
       app.filter.q = '';
       if (filterQ) filterQ.value = '';
       buildSidebar();
-      showToast('已清除搜索 q');
+      announce('已清除搜索 q');
       return;
     }
-    showToast('筛选已空');
+    announce('筛选已空');
   });
   modelListEl.appendChild(countEl);
   const foldBar = document.createElement('div');
