@@ -9,11 +9,11 @@ export default {
     v0: 20, theta: 45, g: 9.81, k: 0, m: 1, showTheory: true,
   },
   paramSchema: {
-    v0: { group: 'initial', unit: 'm/s', label: 'v₀' },
-    theta: { group: 'initial', unit: '°', label: 'θ' },
-    g: { group: 'dynamics', unit: 'm/s²', label: 'g' },
-    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k' },
-    m: { group: 'dynamics', unit: 'kg', label: 'm' },
+    v0: { group: 'initial', unit: 'm/s', label: 'v₀', min: 0, max: 80 },
+    theta: { group: 'initial', unit: '°', label: 'θ', min: 0, max: 90 },
+    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 40 },
+    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k', min: 0, max: 200 },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
     showTheory: { group: 'display', label: 'showTheory' },
   },
 

@@ -23,16 +23,26 @@ cd ~/physics-demo && npm start
 ## 测试
 
 ```bash
-npm test              # 物理断言
+npm test              # 物理断言 + 参数工具单测
+npm run test:pot      # Playwright：拖 pot 不爆表（需先 npm start）
 npm run shots         # 抓 8 张纯画布基线（需先 npm start）
 npm run baseline:update
 npm run test:visual   # SHA-256 + 像素 diff
 npm run test:all
 ```
 
+## 参数工作台
+
+- 每个参数有显式 **min / max**（见各模型 `paramSchema`）；拖电位器 / 滑条 / 输入超界会钳制，并 toast 一次
+- **− / +**：按量级步进；输入框 ↑↓ 同理（Shift = 大步进）
+- **复位**：电位器 **双击** 或聚焦后按 **Home**（有闪光反馈）
+- **fixedDt** 友好显示为 `1/240`；也可直接输入 `1/120`
+- 拖滑条 / 电位器时 **暂停仿真**，松手后恢复
+- 窄屏：sys / add / presets 默认折叠，dyn 展开
+- 非法自定义常量（坏 key、非有限值、超大数、不安全表达式）**拒绝写入**
+
 ## 说明
 
-- 参数工作台：双击电位器复位；方向键按量级步进（界面显示 `±step`）
 - 截图：`sys → frame shot` / `shot readouts`（导出固定 2× DPR，随后恢复屏幕 DPR）
 - 窄屏：汉堡打开模型列表；点遮罩关闭；宽屏三栏不显示汉堡
 - 自定义常量：见 [manual.html](./manual.html)

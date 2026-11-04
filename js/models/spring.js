@@ -11,10 +11,10 @@ export default {
     m: 1, k: 20, c: 0.3, x0: 0.8,
   },
   paramSchema: {
-    m: { group: 'dynamics', unit: 'kg', label: 'm' },
-    k: { group: 'dynamics', unit: 'N/m', label: 'k' },
-    c: { group: 'dynamics', unit: 'N·s/m', label: '阻尼 c' },
-    x0: { group: 'initial', unit: 'm', label: 'x₀' },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
+    k: { group: 'dynamics', unit: 'N/m', label: 'k', min: 0.1, max: 200 },
+    c: { group: 'dynamics', unit: 'N·s/m', label: '阻尼 c', min: 0, max: 50 },
+    x0: { group: 'initial', unit: 'm', label: 'x₀', min: -5, max: 5 },
   },
 
   init(state) {

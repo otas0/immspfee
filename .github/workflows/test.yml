@@ -35,6 +35,14 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Start lab server
+        run: |
+          node scripts/dev-server.mjs &
+          sleep 2
+
+      - name: Pot regression
+        run: npm run test:pot
+
       - name: Visual baseline
         run: npm run test:visual
 

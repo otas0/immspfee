@@ -2,6 +2,14 @@
  * 可在 Node / 浏览器共用的物理断言套件
  */
 import { velocityVerlet1D } from '../utils/integrator.js';
+import {
+  formatParamNumber,
+  formatDtFriendly,
+  sanitizeGlobals,
+  parseUserNumber,
+  validateCustomParam,
+  clampNumber,
+} from '../utils/params.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -156,6 +164,34 @@ export function runSuite() {
       v[N + 1] = 0;
     }
     assert('弦振动两端固定边界', almostEqual(y[0], 0) && almostEqual(y[N + 1], 0), `y0=${y[0]} yN=${y[N + 1]}`);
+  }
+
+  // 参数显示 / 钳制工具
+  {
+    assert('formatParamNumber 截断长小数', formatParamNumber(1 / 240) === '0.004167', formatParamNumber(1 / 240));
+    assert('formatParamNumber 整数', formatParamNumber(48) === '48');
+    assert('formatParamNumber 大数科学计数', /e\+?212/i.test(formatParamNumber(5.7e212)));
+    assert('formatDtFriendly 1/240', formatDtFriendly(1 / 240) === '1/240', formatDtFriendly(1 / 240));
+    assert('parseUserNumber 分数', almostEqual(parseUserNumber('1/240').value, 1 / 240));
+
+    const g = {
+      timeScale: 5.7e212,
+      fixedDt: -1,
+      maxSubSteps: 0,
+      viewScale: Infinity,
+      readoutDigits: 99,
+    };
+    sanitizeGlobals(g);
+    assert('sanitizeGlobals timeScale', g.timeScale === 8, String(g.timeScale));
+    assert('sanitizeGlobals fixedDt', g.fixedDt >= 1 / 2000 && g.fixedDt <= 1 / 30, String(g.fixedDt));
+    assert('sanitizeGlobals maxSubSteps', g.maxSubSteps === 1, String(g.maxSubSteps));
+    assert('sanitizeGlobals viewScale', g.viewScale === 0.25 || g.viewScale === 4, String(g.viewScale));
+    assert('sanitizeGlobals digits', g.readoutDigits === 8, String(g.readoutDigits));
+    assert('clampNumber', clampNumber(100, 0, 8) === 8);
+
+    assert('validateCustomParam 坏 key', !validateCustomParam('__x', 1).ok);
+    assert('validateCustomParam 超大', !validateCustomParam('a_extra', 1e20).ok);
+    assert('validateCustomParam 合法', validateCustomParam('a_extra', 1.5).ok && validateCustomParam('a_extra', 1.5).value === 1.5);
   }
 
   return results;

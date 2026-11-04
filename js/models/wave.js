@@ -19,13 +19,13 @@ export default {
     A3: 0.03,
   },
   paramSchema: {
-    N: { group: 'numerics', unit: '', label: 'N' },
-    L: { group: 'dynamics', unit: 'm', label: 'L' },
-    c: { group: 'dynamics', unit: 'm/s', label: 'c' },
-    damp: { group: 'dynamics', unit: '1/s', label: 'damp' },
-    A1: { group: 'initial', unit: 'm', label: 'A1' },
-    A2: { group: 'initial', unit: 'm', label: 'A2' },
-    A3: { group: 'initial', unit: 'm', label: 'A3' },
+    N: { group: 'numerics', unit: '', label: 'N', min: 8, max: 256 },
+    L: { group: 'dynamics', unit: 'm', label: 'L', min: 0.1, max: 10 },
+    c: { group: 'dynamics', unit: 'm/s', label: 'c', min: 0.1, max: 20 },
+    damp: { group: 'dynamics', unit: '1/s', label: 'damp', min: 0, max: 5 },
+    A1: { group: 'initial', unit: 'm', label: 'A1', min: 0, max: 2 },
+    A2: { group: 'initial', unit: 'm', label: 'A2', min: 0, max: 2 },
+    A3: { group: 'initial', unit: 'm', label: 'A3', min: 0, max: 2 },
   },
 
   init(state) {

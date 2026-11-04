@@ -3,7 +3,7 @@ import { resizeCanvas } from './utils/canvas.js';
 import { createFixedStepper } from './utils/integrator.js';
 import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js';
 import { createParamBench } from './ui/paramBench.js';
-import { finiteOr } from './utils/params.js';
+import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml } from './ui/icons.js';
 
 const canvas = document.getElementById('canvas');
@@ -71,6 +71,7 @@ function createState(model) {
 }
 
 function applyGlobals() {
+  sanitizeGlobals(app.globals);
   stepper.setFixedDt(app.globals.fixedDt);
   stepper.setMaxSubSteps(app.globals.maxSubSteps);
   speedSlider.value = String(app.globals.timeScale);
@@ -80,6 +81,23 @@ function applyGlobals() {
 function syncPauseUi() {
   btnPause.innerHTML = app.paused ? btnHtml('play', 'play') : btnHtml('pause', 'pause');
   btnPause.classList.toggle('primary', !app.paused);
+}
+
+let scrubResume = null;
+
+function showToast(msg) {
+  let el = document.getElementById('lab-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'lab-toast';
+    el.className = 'lab-toast';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
 const paramBench = createParamBench(paramRoot, {
@@ -93,6 +111,24 @@ const paramBench = createParamBench(paramRoot, {
   onResetDefaults: () => resetToModelDefaults(),
   onGlobalsChange: () => applyGlobals(),
   onLayoutChange: () => measureSysSticky(),
+  onToast: showToast,
+  onScrubStart: () => {
+    if (scrubResume !== null) return;
+    scrubResume = app.paused;
+    if (!app.paused) {
+      app.paused = true;
+      syncPauseUi();
+    }
+  },
+  onScrubEnd: () => {
+    if (scrubResume === null) return;
+    const was = scrubResume;
+    scrubResume = null;
+    if (!was) {
+      app.paused = false;
+      syncPauseUi();
+    }
+  },
 });
 
 function resetToModelDefaults() {
@@ -478,10 +514,15 @@ window.__labCapture = {
   play: () => { if (app.paused) { app.paused = false; syncPauseUi(); } },
   getReadouts: () => app.lastReadouts,
   getState: () => app.state,
+  getGlobals: () => ({ ...app.globals }),
+  getParams: () => ({ ...app.state?.params }),
   setGlobals: (partial) => {
     Object.assign(app.globals, partial || {});
+    sanitizeGlobals(app.globals);
+    applyGlobals();
     paramBench.refresh?.();
   },
+  isPaused: () => !!app.paused,
 };
 
 async function boot() {

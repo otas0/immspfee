@@ -9,11 +9,11 @@ export default {
     m1: 2, m2: 1, v1: 3, v2: -1, e: 1,
   },
   paramSchema: {
-    m1: { group: 'dynamics', unit: 'kg', label: 'm1' },
-    m2: { group: 'dynamics', unit: 'kg', label: 'm2' },
-    v1: { group: 'initial', unit: 'm/s', label: 'v1' },
-    v2: { group: 'initial', unit: 'm/s', label: 'v2' },
-    e: { group: 'dynamics', unit: '—', label: 'e' },
+    m1: { group: 'dynamics', unit: 'kg', label: 'm1', min: 0.01, max: 100 },
+    m2: { group: 'dynamics', unit: 'kg', label: 'm2', min: 0.01, max: 100 },
+    v1: { group: 'initial', unit: 'm/s', label: 'v1', min: -50, max: 50 },
+    v2: { group: 'initial', unit: 'm/s', label: 'v2', min: -50, max: 50 },
+    e: { group: 'dynamics', unit: '—', label: 'e', min: 0, max: 1 },
   },
 
   init(state) {

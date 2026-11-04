@@ -3,21 +3,68 @@ import {
   inferUnit,
   inferGroup,
   GROUP_LABELS,
+  formatParamNumber,
+  formatDtFriendly,
+  clampNumber,
+  inferBounds,
+  sanitizeGlobals,
+  validateCustomParam,
 } from '../utils/params.js';
 import { ICO } from './icons.js';
 
+const GLOBAL_META = {
+  timeScale: { label: 'timeScale', unit: '×', min: 0.05, max: 8, def: 1 },
+  fixedDt: { label: 'fixedDt', unit: 's', min: 1 / 2000, max: 1 / 30, def: 1 / 240, friendlyDt: true },
+  maxSubSteps: { label: 'maxSubSteps', unit: '', min: 1, max: 256, def: 48, integer: true },
+  viewScale: { label: 'viewScale', unit: '×', min: 0.25, max: 4, def: 1 },
+  readoutDigits: { label: 'digits', unit: '', min: 0, max: 8, def: 3, integer: true },
+};
+
 export function createParamBench(root, hooks = {}) {
-  const { onParamChange, onResetDefaults, onGlobalsChange, onLayoutChange } = hooks;
+  const {
+    onParamChange,
+    onResetDefaults,
+    onGlobalsChange,
+    onLayoutChange,
+    onScrubStart,
+    onScrubEnd,
+    onToast,
+  } = hooks;
 
   let currentModel = null;
   let currentParams = null;
   let builtins = new Set();
   let globals = null;
   let sectionIdx = 0;
-  let sysOpen = true;
+  let sysOpen = false;
+  const toastOnce = new Set();
+
+  function isNarrow() {
+    return typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches;
+  }
+
+  function toastClamp(key, from, to) {
+    const id = `clamp:${key}`;
+    if (toastOnce.has(id)) return;
+    toastOnce.add(id);
+    onToast?.(`已钳制 ${key}: ${formatParamNumber(from)} → ${formatParamNumber(to)}`);
+  }
+
+  function displayValue(v, opts) {
+    if (opts.allowExpr && typeof v === 'string') return v;
+    if (opts.friendlyDt) return formatDtFriendly(v);
+    return formatParamNumber(v);
+  }
 
   function render() {
     if (!root || !currentModel || !currentParams || !globals) return;
+    const before = { ...globals };
+    sanitizeGlobals(globals);
+    for (const k of ['timeScale', 'fixedDt', 'maxSubSteps', 'viewScale', 'readoutDigits']) {
+      if (before[k] !== globals[k] && Number.isFinite(before[k])) {
+        toastClamp(k, before[k], globals[k]);
+      }
+    }
     root.innerHTML = '';
     sectionIdx = 0;
     root.appendChild(renderGlobalSection());
@@ -28,50 +75,35 @@ export function createParamBench(root, hooks = {}) {
   }
 
   function renderGlobalSection() {
-    const sec = section('sys', true);
-    const fold = document.createElement('details');
-    fold.className = 'sys-fold';
-    fold.open = sysOpen;
-    const sum = document.createElement('summary');
-    sum.className = 'sys-fold-sum';
-    sum.textContent = 'expand / collapse';
+    const sec = section('sys', { stickySys: true, foldable: true, open: sysOpen });
     const rows = document.createElement('div');
     rows.className = 'param-rows';
     const g = globals;
-    rows.appendChild(numberRow('timeScale', g.timeScale, {
-      label: 'timeScale', unit: '×', defaultValue: 1,
-      onCommit: (v) => { g.timeScale = v; onGlobalsChange?.(g); },
-    }));
-    rows.appendChild(numberRow('fixedDt', g.fixedDt, {
-      label: 'fixedDt', unit: 's', defaultValue: 1 / 240,
-      onCommit: (v) => {
-        if (v <= 0) return false;
-        g.fixedDt = v; onGlobalsChange?.(g); return true;
-      },
-    }));
-    rows.appendChild(numberRow('maxSubSteps', g.maxSubSteps, {
-      label: 'maxSubSteps', unit: '', defaultValue: 48,
-      onCommit: (v) => {
-        const n = Math.floor(v);
-        if (n < 1) return false;
-        g.maxSubSteps = n; onGlobalsChange?.(g); return true;
-      },
-    }));
-    rows.appendChild(numberRow('viewScale', g.viewScale, {
-      label: 'viewScale', unit: '×', defaultValue: 1,
-      onCommit: (v) => {
-        if (v <= 0) return false;
-        g.viewScale = v; onGlobalsChange?.(g); return true;
-      },
-    }));
-    rows.appendChild(numberRow('readoutDigits', g.readoutDigits, {
-      label: 'digits', unit: '', defaultValue: 3,
-      onCommit: (v) => {
-        const n = Math.floor(v);
-        if (n < 0 || n > 12) return false;
-        g.readoutDigits = n; onGlobalsChange?.(g); return true;
-      },
-    }));
+
+    for (const [key, meta] of Object.entries(GLOBAL_META)) {
+      rows.appendChild(numberRow(key, g[key], {
+        label: meta.label,
+        unit: meta.unit,
+        defaultValue: meta.def,
+        min: meta.min,
+        max: meta.max,
+        integer: !!meta.integer,
+        friendlyDt: !!meta.friendlyDt,
+        onCommit: (v) => {
+          const raw = v;
+          let next = clampNumber(v, meta.min, meta.max);
+          if (meta.integer) next = Math.round(next);
+          if (key === 'fixedDt' && next <= 0) return false;
+          if (next !== raw) toastClamp(key, raw, next);
+          g[key] = next;
+          onGlobalsChange?.(g);
+          return true;
+        },
+        onScrubStart,
+        onScrubEnd,
+      }));
+    }
+
     rows.appendChild(boolRow('showVectors', g.showVectors, {
       label: 'vectors', onCommit: (v) => { g.showVectors = v; onGlobalsChange?.(g); },
     }));
@@ -87,12 +119,11 @@ export function createParamBench(root, hooks = {}) {
     rows.appendChild(boolRow('shotReadouts', g.shotReadouts, {
       label: 'shot readouts', onCommit: (v) => { g.shotReadouts = v; onGlobalsChange?.(g); },
     }));
-    fold.append(sum, rows);
-    fold.addEventListener('toggle', () => {
-      sysOpen = fold.open;
-      onLayoutChange?.();
+    appendSectionBody(sec, rows, {
+      foldable: true,
+      open: sysOpen,
+      onToggle: (open) => { sysOpen = open; onLayoutChange?.(); },
     });
-    sec.appendChild(fold);
     return sec;
   }
 
@@ -113,9 +144,15 @@ export function createParamBench(root, hooks = {}) {
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
     });
     for (const g of keys) {
-      const sec = section(GROUP_LABELS[g] || g, false);
+      const title = GROUP_LABELS[g] || g;
+      // dyn 始终展开；sys/add/presets 在各自 render* 里折叠
+      const sec = section(title);
       const rows = document.createElement('div');
       rows.className = 'param-rows';
+      // 窄屏时 dyn 排在前面（order 已保证），便于先调物理量
+      if (g === 'dynamics' && isNarrow()) {
+        sec.dataset.priority = 'dyn';
+      }
       for (const item of groups.get(g)) {
         const def = currentModel.params?.[item.key];
         if (typeof item.value === 'boolean') {
@@ -124,14 +161,31 @@ export function createParamBench(root, hooks = {}) {
             onCommit: (v) => commitParam(item.key, v),
           }));
         } else if (typeof item.value === 'number' || item.key === 'expr_a') {
+          const bounds = inferBounds(item.key, typeof def === 'number' ? def : item.value, item.schema);
+          if (typeof item.value === 'number' && Number.isFinite(item.value)) {
+            const clamped = clampNumber(item.value, bounds.min, bounds.max);
+            if (clamped !== item.value) {
+              toastClamp(item.key, item.value, clamped);
+              currentParams[item.key] = clamped;
+              item.value = clamped;
+            }
+          }
           rows.appendChild(numberRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             unit: item.schema?.unit || inferUnit(item.key),
             allowExpr: item.key === 'expr_a',
             defaultValue: typeof def === 'number' ? def : item.value,
-            onCommit: (v) => commitParam(item.key, v),
+            min: bounds.min,
+            max: bounds.max,
+            onCommit: (v) => {
+              const next = clampNumber(v, bounds.min, bounds.max);
+              if (next !== v) toastClamp(item.key, v, next);
+              return commitParam(item.key, next);
+            },
             removable: !builtins.has(item.key),
             onRemove: () => removeParam(item.key),
+            onScrubStart,
+            onScrubEnd,
           }));
         }
       }
@@ -142,7 +196,7 @@ export function createParamBench(root, hooks = {}) {
   }
 
   function renderCustomSection() {
-    const sec = section('add', false);
+    const sec = section('add', { foldable: true, open: false });
     const box = document.createElement('div');
     box.className = 'custom-add';
     const keyIn = document.createElement('input');
@@ -160,29 +214,27 @@ export function createParamBench(root, hooks = {}) {
 
     btn.addEventListener('click', () => {
       const key = keyIn.value.trim();
-      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
-        hint.textContent = 'bad key'; return;
+      const checked = validateCustomParam(key, valIn.value);
+      if (!checked.ok) {
+        hint.textContent = checked.error || 'rejected';
+        onToast?.(`拒绝写入: ${checked.error}`);
+        return;
       }
-      if (key === 'expr_a') {
-        currentParams[key] = valIn.value.trim();
-        onParamChange?.(key, currentParams[key], true);
-      } else {
-        const parsed = parseUserNumber(valIn.value);
-        if (!parsed.ok) { hint.textContent = parsed.error; return; }
-        currentParams[key] = parsed.value;
-        onParamChange?.(key, parsed.value, true);
-      }
+      currentParams[key] = checked.value;
+      onParamChange?.(key, checked.value, true);
       keyIn.value = ''; valIn.value = '';
       hint.textContent = 'added';
       render();
     });
     box.append(keyIn, valIn, btn);
-    sec.append(box, hint);
+    const body = document.createElement('div');
+    body.append(box, hint);
+    appendSectionBody(sec, body, { foldable: true, open: false });
     return sec;
   }
 
   function renderPresetSection() {
-    const sec = section('presets', false);
+    const sec = section('presets', { foldable: true, open: false });
     const details = document.createElement('details');
     details.className = 'preset-menu';
     details.open = false;
@@ -205,6 +257,7 @@ export function createParamBench(root, hooks = {}) {
         const name = prompt('preset name', `${currentModel.id}-preset`);
         if (!name) return;
         const all = loadPresets();
+        sanitizeGlobals(globals);
         all[name] = {
           modelId: currentModel.id,
           params: { ...currentParams },
@@ -222,11 +275,13 @@ export function createParamBench(root, hooks = {}) {
         Object.keys(currentParams).forEach((k) => delete currentParams[k]);
         Object.assign(currentParams, all[name].params);
         Object.assign(globals, all[name].globals || {});
+        sanitizeGlobals(globals);
         onGlobalsChange?.(globals);
         onParamChange?.('__preset', null, true);
         render();
       }),
       mk('export json', () => {
+        sanitizeGlobals(globals);
         const blob = new Blob([JSON.stringify({
           modelId: currentModel.id, params: currentParams, globals,
         }, null, 2)], { type: 'application/json' });
@@ -248,6 +303,7 @@ export function createParamBench(root, hooks = {}) {
               Object.assign(currentParams, data.params);
             }
             if (data.globals) Object.assign(globals, data.globals);
+            sanitizeGlobals(globals);
             onGlobalsChange?.(globals);
             onParamChange?.('__import', null, true);
             render();
@@ -258,7 +314,7 @@ export function createParamBench(root, hooks = {}) {
       mk('restore defaults', () => onResetDefaults?.()),
     );
     details.append(summary, menu);
-    sec.appendChild(details);
+    appendSectionBody(sec, details, { foldable: true, open: false });
     return sec;
   }
 
@@ -273,7 +329,7 @@ export function createParamBench(root, hooks = {}) {
     render();
   }
 
-  function section(title, stickySys = false) {
+  function section(title, { stickySys = false } = {}) {
     sectionIdx += 1;
     const sec = document.createElement('section');
     sec.className = 'param-section' + (stickySys ? ' is-sys' : '');
@@ -286,14 +342,177 @@ export function createParamBench(root, hooks = {}) {
     return sec;
   }
 
+  function appendSectionBody(sec, body, { foldable, open, onToggle } = {}) {
+    if (!foldable) {
+      sec.appendChild(body);
+      return;
+    }
+    const fold = document.createElement('details');
+    fold.className = 'section-fold';
+    fold.open = !!open;
+    const sum = document.createElement('summary');
+    sum.className = 'section-fold-sum';
+    sum.textContent = open ? 'collapse' : 'expand';
+    fold.append(sum, body);
+    fold.addEventListener('toggle', () => {
+      sum.textContent = fold.open ? 'collapse' : 'expand';
+      onToggle?.(fold.open);
+    });
+    sec.appendChild(fold);
+  }
+
   function bind(model, params, globalState) {
     currentModel = model;
     currentParams = params;
     globals = globalState;
     if (typeof globals.frameShot !== 'boolean') globals.frameShot = false;
     if (typeof globals.shotReadouts !== 'boolean') globals.shotReadouts = false;
+    sanitizeGlobals(globals);
     builtins = new Set(Object.keys(model.params || {}));
     render();
+  }
+
+  function numberRow(key, value, opts) {
+    const row = document.createElement('div');
+    row.className = 'param-row';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const label = document.createElement('span');
+    label.className = 'key';
+    label.textContent = opts.label || key;
+    const unit = document.createElement('span');
+    unit.className = 'unit';
+    unit.textContent = opts.unit || '';
+    meta.append(label, unit);
+
+    const controls = document.createElement('div');
+    controls.className = 'param-controls';
+
+    const inputRow = document.createElement('div');
+    inputRow.className = 'param-input-row';
+
+    const btnMinus = document.createElement('button');
+    btnMinus.type = 'button';
+    btnMinus.className = 'step-btn';
+    btnMinus.textContent = '−';
+    btnMinus.setAttribute('aria-label', 'decrease');
+
+    const btnPlus = document.createElement('button');
+    btnPlus.type = 'button';
+    btnPlus.className = 'step-btn';
+    btnPlus.textContent = '+';
+    btnPlus.setAttribute('aria-label', 'increase');
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.spellcheck = false;
+    input.value = displayValue(value, opts);
+
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+
+    const min = opts.min;
+    const max = opts.max;
+    const defaultValue = opts.defaultValue;
+
+    const writeInput = (v) => {
+      input.value = displayValue(v, opts);
+    };
+
+    let syncControl = () => {};
+
+    const commit = () => {
+      if (opts.allowExpr) {
+        opts.onCommit?.(input.value);
+        input.classList.remove('invalid');
+        hint.textContent = '';
+        return;
+      }
+      const parsed = parseUserNumber(input.value);
+      if (!parsed.ok) {
+        input.classList.add('invalid');
+        hint.textContent = parsed.error;
+        return;
+      }
+      let v = parsed.value;
+      const raw = v;
+      if (Number.isFinite(min) && Number.isFinite(max)) v = clampNumber(v, min, max);
+      if (opts.integer) v = Math.round(v);
+      if (v !== raw) toastClamp(key, raw, v);
+      const ok = opts.onCommit?.(v);
+      if (ok === false) {
+        input.classList.add('invalid');
+        hint.textContent = 'rejected';
+        return;
+      }
+      input.classList.remove('invalid');
+      hint.textContent = '';
+      writeInput(v);
+      syncControl(v);
+    };
+
+    const nudge = (dir, shift) => {
+      if (opts.allowExpr) return;
+      const parsed = parseUserNumber(input.value);
+      let cur = parsed.ok ? parsed.value : Number(defaultValue) || 0;
+      const step = niceStep(cur || max - min || 1, shift);
+      let next = cur + dir * step;
+      if (Number.isFinite(min) && Number.isFinite(max)) next = clampNumber(next, min, max);
+      if (opts.integer) next = Math.round(next);
+      writeInput(next);
+      syncControl(next);
+      opts.onCommit?.(next);
+    };
+
+    input.addEventListener('change', commit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commit();
+        return;
+      }
+      if (opts.allowExpr) return;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        nudge(e.key === 'ArrowUp' ? 1 : -1, e.shiftKey);
+      }
+    });
+    btnMinus.addEventListener('click', () => nudge(-1, false));
+    btnPlus.addEventListener('click', () => nudge(1, false));
+
+    if (!opts.allowExpr) {
+      inputRow.append(btnMinus, input, btnPlus);
+    } else {
+      inputRow.appendChild(input);
+    }
+    controls.appendChild(inputRow);
+
+    if (!opts.allowExpr && typeof value === 'number') {
+      const lo = Number.isFinite(min) ? min : inferBounds(key, defaultValue).min;
+      const hi = Number.isFinite(max) ? max : inferBounds(key, defaultValue).max;
+      const pot = createPot({
+        initial: clampNumber(value, lo, hi),
+        defaultValue: Number.isFinite(defaultValue) ? defaultValue : value,
+        min: lo,
+        max: hi,
+        integer: !!opts.integer,
+        friendlyDt: !!opts.friendlyDt,
+        onChange: (v) => {
+          writeInput(v);
+          opts.onCommit?.(v);
+          hint.textContent = '';
+          input.classList.remove('invalid');
+        },
+        onScrubStart: opts.onScrubStart,
+        onScrubEnd: opts.onScrubEnd,
+      });
+      syncControl = pot.setValue;
+      controls.appendChild(pot.el);
+    }
+
+    row.append(meta, controls, hint);
+    return row;
   }
 
   return { bind, refresh: render };
@@ -305,119 +524,98 @@ function loadPresets() {
   catch { return {}; }
 }
 
-function numberRow(key, value, opts) {
-  const row = document.createElement('div');
-  row.className = 'param-row';
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-  const label = document.createElement('span');
-  label.className = 'key';
-  label.textContent = opts.label || key;
-  const unit = document.createElement('span');
-  unit.className = 'unit';
-  unit.textContent = opts.unit || '';
-  meta.append(label, unit);
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = opts.allowExpr && typeof value === 'string' ? value : String(value);
-  input.spellcheck = false;
-  const hint = document.createElement('div');
-  hint.className = 'hint';
-
-  const defaultValue = opts.defaultValue;
-
-  const commit = () => {
-    if (opts.allowExpr) {
-      opts.onCommit?.(input.value);
-      input.classList.remove('invalid');
-      hint.textContent = '';
-      return;
-    }
-    const parsed = parseUserNumber(input.value);
-    if (!parsed.ok) {
-      input.classList.add('invalid');
-      hint.textContent = parsed.error;
-      return;
-    }
-    const ok = opts.onCommit?.(parsed.value);
-    if (ok === false) {
-      input.classList.add('invalid');
-      hint.textContent = 'rejected';
-      return;
-    }
-    input.classList.remove('invalid');
-    hint.textContent = '';
-    syncPot(parsed.value);
-  };
-
-  input.addEventListener('change', commit);
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') commit(); });
-  row.append(meta, input);
-
-  let syncPot = () => {};
-  if (!opts.allowExpr && typeof value === 'number') {
-    const pot = createPot(value, defaultValue, (v) => {
-      input.value = String(v);
-      commit();
-    });
-    syncPot = pot.setValue;
-    row.appendChild(pot.el);
-  }
-
-  if (opts.removable) {
-    const rm = document.createElement('button');
-    rm.type = 'button';
-    rm.className = 'btn quiet';
-    rm.textContent = 'remove';
-    rm.style.gridColumn = '1 / -1';
-    rm.addEventListener('click', () => opts.onRemove?.());
-    row.appendChild(rm);
-  }
-  row.appendChild(hint);
-  return row;
-}
-
-function createPot(initial, defaultValue, onChange) {
+/**
+ * 电位器：固定 [min,max]，绝不随拖动扩张量程。
+ */
+function createPot({
+  initial, defaultValue, min, max, integer, onChange, onScrubStart, onScrubEnd,
+}) {
   const wrap = document.createElement('div');
   wrap.className = 'pot';
+
   const dial = document.createElement('div');
   dial.className = 'pot-dial';
   dial.tabIndex = 0;
   dial.setAttribute('role', 'slider');
-  dial.setAttribute('aria-label', 'reference pot');
+  dial.setAttribute('aria-label', 'adjust value');
+  dial.setAttribute('aria-valuemin', String(min));
+  dial.setAttribute('aria-valuemax', String(max));
+  dial.title = '拖动调节 · 双击 / Home 复位';
+
   const knob = document.createElement('div');
   knob.className = 'pot-knob';
   dial.appendChild(knob);
-  const ticks = document.createElement('div');
-  ticks.className = 'pot-ticks';
 
-  let center = Math.abs(initial) || 1;
-  let value = initial;
-  const resetTo = Number.isFinite(defaultValue) ? defaultValue : initial;
+  const range = document.createElement('input');
+  range.type = 'range';
+  range.className = 'pot-range';
+  range.min = String(min);
+  range.max = String(max);
+  range.step = integer
+    ? '1'
+    : String(Math.min(
+      niceStep(Math.max(Math.abs(defaultValue), Math.abs(max - min) / 100), false) || 0.001,
+      Math.max((max - min) / 200, 1e-6),
+    ));
+  range.setAttribute('aria-label', 'slider');
+
+  const stepHint = document.createElement('span');
+  stepHint.className = 'pot-step';
+
+  let value = clampNumber(initial, min, max);
+  const resetTo = clampNumber(
+    Number.isFinite(defaultValue) ? defaultValue : initial,
+    min,
+    max,
+  );
+  const span = Math.max(max - min, Number.EPSILON);
+  let scrubbing = false;
+
+  const beginScrub = () => {
+    if (scrubbing) return;
+    scrubbing = true;
+    onScrubStart?.();
+  };
+  const endScrub = () => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    onScrubEnd?.();
+  };
 
   const angFromVal = (v) => {
-    const t = Math.max(-1, Math.min(1, v / (center * 4 || 1)));
-    return -135 + (t + 1) * 135;
+    const t = (clampNumber(v, min, max) - min) / span;
+    return -135 + t * 270;
   };
   const fillFromVal = (v) => {
-    const t = Math.max(0, Math.min(1, (v / (center * 4 || 1) + 1) / 2));
+    const t = (clampNumber(v, min, max) - min) / span;
     return `${t * 100}%`;
   };
+
   const paint = () => {
     dial.style.setProperty('--fill', fillFromVal(value));
     knob.style.setProperty('--ang', `${angFromVal(value)}deg`);
     dial.setAttribute('aria-valuenow', String(value));
+    range.value = String(value);
+    const step = niceStep(value, false);
+    stepHint.textContent = `±${formatParamNumber(step)}`;
   };
-  paint();
 
-  const applyValue = (v) => {
+  const applyValue = (raw, announce = true) => {
+    let v = clampNumber(raw, min, max);
+    if (integer) v = Math.round(v);
+    else v = roundToStep(v, niceStep(v, false));
+    v = clampNumber(v, min, max);
     value = v;
-    const mag = Math.abs(value);
-    value = mag >= 10 ? Math.round(value * 10) / 10 : Math.round(value * 1000) / 1000;
-    if (Math.abs(value) > center) center = Math.abs(value) || 1;
     paint();
-    onChange?.(value);
+    if (announce) onChange?.(value);
+  };
+
+  const flashReset = () => {
+    dial.classList.remove('pot-reset-flash');
+    // restart animation
+    void dial.offsetWidth;
+    dial.classList.add('pot-reset-flash');
+    window.setTimeout(() => dial.classList.remove('pot-reset-flash'), 450);
   };
 
   const setFromPointer = (clientX, clientY) => {
@@ -425,12 +623,13 @@ function createPot(initial, defaultValue, onChange) {
     let deg = (Math.atan2(clientY - (r.top + r.height / 2), clientX - (r.left + r.width / 2)) * 180) / Math.PI + 90;
     deg = Math.max(-135, Math.min(135, deg));
     const t = (deg + 135) / 270;
-    applyValue((t * 2 - 1) * center * 4);
+    applyValue(min + t * span);
   };
 
   let dragging = false;
   const onDown = (e) => {
     dragging = true;
+    beginScrub();
     dial.style.cursor = 'grabbing';
     const pt = e.touches ? e.touches[0] : e;
     setFromPointer(pt.clientX, pt.clientY);
@@ -441,7 +640,12 @@ function createPot(initial, defaultValue, onChange) {
     const pt = e.touches ? e.touches[0] : e;
     setFromPointer(pt.clientX, pt.clientY);
   };
-  const onUp = () => { dragging = false; dial.style.cursor = 'grab'; };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    dial.style.cursor = 'grab';
+    endScrub();
+  };
 
   dial.addEventListener('mousedown', onDown);
   window.addEventListener('mousemove', onMove);
@@ -452,52 +656,57 @@ function createPot(initial, defaultValue, onChange) {
 
   dial.addEventListener('dblclick', (e) => {
     e.preventDefault();
-    center = Math.abs(resetTo) || 1;
     applyValue(resetTo);
+    flashReset();
   });
 
-  const stepHint = document.createElement('span');
-  stepHint.className = 'pot-step';
-  const updateStepHint = (shift = false) => {
-    const mag = Math.max(Math.abs(value), Math.abs(center), Math.abs(resetTo), 1e-12);
-    const decade = 10 ** Math.floor(Math.log10(mag));
-    const step = decade * (shift ? 1 : 0.1);
-    const txt = step >= 1 ? step.toFixed(0) : step.toPrecision(1);
-    stepHint.textContent = `±${txt}`;
-    return step;
-  };
-  updateStepHint();
+  range.addEventListener('pointerdown', beginScrub);
+  range.addEventListener('pointerup', endScrub);
+  range.addEventListener('pointercancel', endScrub);
+  range.addEventListener('change', endScrub);
+  range.addEventListener('input', () => {
+    beginScrub();
+    applyValue(Number(range.value));
+  });
 
   dial.addEventListener('keydown', (e) => {
-    const step = updateStepHint(e.shiftKey);
+    const step = niceStep(value, e.shiftKey);
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
       e.preventDefault(); applyValue(value + step);
-      updateStepHint(e.shiftKey);
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault(); applyValue(value - step);
-      updateStepHint(e.shiftKey);
     } else if (e.key === 'Home') {
       e.preventDefault();
-      center = Math.abs(resetTo) || 1;
       applyValue(resetTo);
-      updateStepHint(e.shiftKey);
+      flashReset();
+    } else if (e.key === 'End') {
+      e.preventDefault(); applyValue(max);
     }
   });
-  dial.addEventListener('keyup', (e) => {
-    if (e.key === 'Shift') updateStepHint(false);
-  });
 
-  wrap.append(dial, ticks, stepHint);
+  paint();
+  wrap.append(dial, range, stepHint);
 
   return {
     el: wrap,
     setValue(v) {
-      value = v;
-      if (Math.abs(v) > center * 0.25) center = Math.abs(v) || 1;
+      value = clampNumber(v, min, max);
       paint();
-      updateStepHint();
     },
   };
+}
+
+function niceStep(value, shift = false) {
+  const mag = Math.max(Math.abs(value), 1e-12);
+  const decade = 10 ** Math.floor(Math.log10(mag));
+  return decade * (shift ? 1 : 0.1);
+}
+
+function roundToStep(v, step) {
+  if (!Number.isFinite(step) || step <= 0) return v;
+  const n = Math.round(v / step) * step;
+  const digits = Math.min(8, Math.max(0, -Math.floor(Math.log10(step)) + 1));
+  return Number(n.toFixed(digits));
 }
 
 function boolRow(_key, value, opts) {

@@ -9,11 +9,11 @@ export default {
     L: 1.2, g: 9.81, c: 0.05, theta0: 40, m: 1,
   },
   paramSchema: {
-    L: { group: 'dynamics', unit: 'm', label: 'L' },
-    g: { group: 'dynamics', unit: 'm/s²', label: 'g' },
-    c: { group: 'dynamics', unit: '1/s', label: '阻尼 c' },
-    theta0: { group: 'initial', unit: '°', label: 'θ₀' },
-    m: { group: 'dynamics', unit: 'kg', label: 'm' },
+    L: { group: 'dynamics', unit: 'm', label: 'L', min: 0.05, max: 10 },
+    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 40 },
+    c: { group: 'dynamics', unit: '1/s', label: '阻尼 c', min: 0, max: 20 },
+    theta0: { group: 'initial', unit: '°', label: 'θ₀', min: -180, max: 180 },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
   },
 
   init(state) {

@@ -20,6 +20,15 @@ export default {
     theta1: 120, // deg
     theta2: -10,
   },
+  paramSchema: {
+    L1: { group: 'dynamics', unit: 'm', label: 'L1', min: 0.05, max: 10 },
+    L2: { group: 'dynamics', unit: 'm', label: 'L2', min: 0.05, max: 10 },
+    m1: { group: 'dynamics', unit: 'kg', label: 'm1', min: 0.01, max: 100 },
+    m2: { group: 'dynamics', unit: 'kg', label: 'm2', min: 0.01, max: 100 },
+    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 40 },
+    theta1: { group: 'initial', unit: '°', label: 'θ1', min: -180, max: 180 },
+    theta2: { group: 'initial', unit: '°', label: 'θ2', min: -180, max: 180 },
+  },
 
   init(state) {
     const p = state.params;

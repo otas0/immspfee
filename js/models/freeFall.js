@@ -14,11 +14,11 @@ export default {
     g: 9.81, h: 10, k: 0, m: 1, e: 0.7,
   },
   paramSchema: {
-    g: { group: 'dynamics', unit: 'm/s²', label: 'g' },
-    h: { group: 'initial', unit: 'm', label: 'h₀' },
-    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k' },
-    m: { group: 'dynamics', unit: 'kg', label: 'm' },
-    e: { group: 'dynamics', unit: '—', label: '恢复系数 e' },
+    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 40 },
+    h: { group: 'initial', unit: 'm', label: 'h₀', min: 0, max: 100 },
+    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k', min: 0, max: 200 },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
+    e: { group: 'dynamics', unit: '—', label: '恢复系数 e', min: 0, max: 1 },
   },
 
   init(state) {
