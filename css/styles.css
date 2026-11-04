@@ -275,11 +275,22 @@ html.hc .domain-group .domain-count {
 .fold-bar {
   display: flex;
   gap: 0.35rem;
-  padding: 0.25rem 0.45rem 0.45rem;
+  padding: 0.25rem 0.45rem 0.15rem;
   position: sticky;
   top: 0;
   z-index: 2;
   background: var(--panel);
+}
+.fold-hint {
+  margin: 0 0.45rem 0.55rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.canvas-wrap.has-pointer,
+canvas.has-pointer {
+  cursor: crosshair;
 }
 .add-templates {
   display: flex;

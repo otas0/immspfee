@@ -324,7 +324,11 @@ export function runSuite() {
     assert('factory sample smoke', ok, detail);
   }
 
-  for (const r of runModelContract()) results.push(r);
+  {
+    const contract = runModelContract();
+    for (const r of contract) results.push(r);
+    if (contract._contractFailures) results._contractFailures = contract._contractFailures;
+  }
 
   return results;
 }
