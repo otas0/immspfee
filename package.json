@@ -9,6 +9,7 @@
     "test:catalog": "node scripts/validate-catalog.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
     "report:schema": "node scripts/schema-coverage.mjs",
+    "gen:families": "node scripts/generate-families.mjs",
     "test:visual": "node scripts/visual-baseline.mjs check",
     "baseline:update": "node scripts/visual-baseline.mjs update",
     "shots": "node scripts/capture-shots.mjs",

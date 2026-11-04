@@ -1,87 +1,70 @@
 # Lab · 演示实验室
 
-纯前端学术演示实验室：**1300+ 模型**（物理 / CS / CE / 工程学科扩展表 110×10 + 专项精调）· 子类侧栏 · 自定义参数工作台 · 黑白外壳 + 分模型语义彩绘。
+纯前端学术演示实验室：**3000+ 模型**（族×维度生成 + 手写/工厂精调）· 统一 Model 接口 · Web/Canvas 可视化 · 高自定义参数工作台。
+
+## 架构原则
+
+对齐 [scikit-complexity](https://pypi.org/project/scikit-complexity/) 的 **catalog 分类 + 统一接口**，但可视化层用 **Web/Canvas 重实现**，不依赖 Python / Rerun：
+
+| 借鉴 | 用在本项目 |
+|------|------------|
+| scikit-complexity | `catalog` + `family`/`formalism`；同一套 `init/step/draw/getReadouts/refresh` |
+| PhET / oPhysics / SimuPhysics | 单模型交互：拖物距、读数对照、虚像虚线、刻度尺 |
+| Algorithm Visualizer / eigenvue | CS：步进高亮、点选连边、网表拖线（思路复用，非嵌入其运行时） |
+| 工程教学台 | **原理性可视化**（简化方程），非 FEA/SPICE/工业求解器，保持浏览器轻量 |
+
+Fidelity 默认 `principle`。工厂族能力见 `js/lab/formalism.js`。
 
 ## 开发约束（死规则）
 
-**每个模型必须可用。** 注册进目录的模型一律满足：
+**每个模型必须可用。**
 
-- `params` + `paramSchema`（含 group / label / unit / min·max）
+- `params` + `paramSchema`（group / 中文 label / unit / min·max）
 - `init` / `step` / `draw` / `getReadouts` / `refresh`
-- 改参后 HUD 与画布立即响应（`dyn`=live，`init`/`num`=重置）
-- 合同测试 `js/tests/model-contract.js` 全绿；失败时写出 `artifacts/contract-failures.json`（含 **failedModelIds** 清单）
-- 可选：`onPointer`、`getEnergy`、`getTrajectory`、`capabilities`（万能壳据此自适应）
+- live/reset **完全以 `schema.group` 为准**（dynamics/display/custom=live；initial/numerics=reset）
+- 合同测试全绿；失败写出 `artifacts/contract-failures.json`（含 failedModelIds）
+- 可选：`onPointer`、`runAction`、`getEnergy`/`getEnergyAt`、`capabilities.actions`
 
-新增模型未过合同测试，不得合入。
-
-## 万能壳：多模型同一站点
-
-同一套 **chassis**（侧栏目录 · 画布舞台 · 参数工作台），用能力协议适配任意模型，而不是为每个模型做一套 UI：
+## 万能壳
 
 | 层 | 职责 |
 |----|------|
-| Catalog | `data/catalog.json` + 工厂/手写注册；侧栏折叠按领域/子类 |
-| Shell | `js/ui/modelShell.js` → `deriveCapabilities`：interaction / hint / pointer / energy |
-| Stage | 统一 canvas；有 `onPointer` 时启用拖点/连边/拖线 |
-| Bench | 同一旋钮/文本/下拉台；参数多时自动折叠非 dyn 组 |
-| HUD | 读数对照、多快照基线切换、安全默认恢复 |
+| Catalog | `data/catalog.json`；侧栏领域/子类；窄屏左右滑切域 |
+| Shell | `deriveCapabilities`：formalism / hint / pointer / actions |
+| Stage | 统一 canvas；透镜/Dijkstra/逻辑门走 pointer + 壳工具条 |
+| Bench | schema 控件；≥20 参默认只展开 dyn |
+| HUD | 多快照对照、导入/导出课堂对照卷 JSON、安全默认 |
 
-高自定义参数靠：schema 驱动控件 + 宽量程文本输入 + ADD 自定义常量 + 全局 sys（dt / 向量 / 对照）。画布交互只声明 `capabilities`，壳负责呈现。
+## 族×维度扩库
 
-## 领域对照
+模型族与变体维度定义在 [`scripts/family-defs.mjs`](./scripts/family-defs.mjs)（同步写出 [`data/families.json`](./data/families.json)）。生成器合并进 `catalog.json` / `models.json`，跳过已有 id，并为新 id 批量写领域色相色板：
 
-| 领域 | 覆盖子类（节选） | 侧栏 / 搜索 |
-|------|------------------|-------------|
-| **物理** | 经典力学、流体、波与振动、热力学、电磁学、光学、近代物理、天体物理 | tag `物理` · 搜索 `phy` |
-| **计算机科学** | 算法与数据结构、计算理论、密码学、信息论、机器学习、优化 | tag `计算机科学` · 搜索 `CS` |
-| **计算机工程** | 数字逻辑、体系结构、嵌入式、通信、网络、操作系统、编译、数据库、分布式 | tag `计算机工程` · 搜索 `CE` |
+```bash
+npm run gen:families                 # 默认可达 catalog ≥3000（确定性抽样）
+npm run gen:families -- --full       # 逼近四主域目标合计 ~5000
+npm run gen:families -- --dry-run    # 只打印计数
+npm run gen:families -- --max-per-family 20 --target 4000
+```
 
-完整目录见 [`data/catalog.json`](./data/catalog.json)。手写精调模型 + 工厂教学可视化合并注册。
+生成条目 id 形如 `fam-<slug>-vNN`，`family` 映射现有 factory（ode1d / wave1d / ml / …）；运行时走薄 `variant` 构建器读取 `dims`/`defaults`。
 
-## 启动
+## 启动与测试
 
 ```bash
 npm start
-```
-
-打开 http://127.0.0.1:8765/
-
-端口占用：`PORT=8766 npm start`。
-
-## 测试
-
-```bash
-npm test                 # 物理断言 + 目录规模 + 模型合同（失败写 artifacts/）
-npm run test:pot         # Playwright：拖 pot 不爆表（需先 npm start）
-npm run test:contract-browser  # Playwright draw 像素抽检（需先 npm start）
-npm run report:schema    # 中文 schema 覆盖率 → artifacts/schema-coverage.md
-npm run shots
-npm run shots:extra
-npm run baseline:update
-npm run test:visual
+npm test
+npm run test:catalog
+npm run report:schema          # → docs/schema-coverage.md
+npm run test:contract-browser  # 按领域分层抽检（每域≥3）
+CONTRACT_SAMPLE=800 npm test   # 大目录时可抽样合同（默认全量）
 npm run test:all
 ```
 
-## 参数工作台
+覆盖率与交互说明见 [manual.html](./manual.html) · [docs/schema-coverage.md](./docs/schema-coverage.md)。
 
-- **live vs reset**：`dyn` 带 `live` 标记立即生效；`init` / `num` 与强制键会 `init()` 重置（见 [manual.html](./manual.html)）
-- 顶部固定「万能工作台」能力条；改参立即 refresh
-- 每个参数有显式 **min / max**；宽量程开时文本可超界，NaN 时出现「恢复安全默认」
-- 离散 `algo` / `mode` / `hazardMode` 等为**下拉**
-- **− / +**、↑↓、电位器双击 / Home 复位
-- 拖旋钮暂停；`blur` / `pointercancel` / `touchcancel` 强制恢复播放
-- 对照基线：钉住 / 存快照 / 下拉切换多快照
-- CSV：按轨迹点字段插值 `getEnergy`，不整表重复末态
-- 调试：`localStorage.physics-lab-debug-params=1`
+## 参数与窄屏
 
-## 窄屏折叠栏
-
-- **按钮**：侧栏顶「全部展开 / 全部收起」一键改领域与子类
-- **手势**：点领域 / 子类 `<summary>` 单独开合；状态写入 `localStorage`（`physics-lab-folds-v1`）
-- **抽屉**：≤900px 汉堡开模型列表、params 开工作台；侧栏左右拖、工作台上下拖（橡皮筋）与按钮并存，互不替代
-
-## 说明
-
-- 色板：[`data/palettes.json`](./data/palettes.json)；未登记模型自动合成色相
-- 自定义常量：见 [manual.html](./manual.html)
-- 交互示例：透镜拖动物体 · Dijkstra 点选连边 · 逻辑门网表拖线
+- 宽量程 NaN →「恢复安全默认」
+- 对照：钉住 / 存快照 / 切换 / **导出·导入 JSON**
+- CSV 优先 `getEnergyAt(row)`，按轨迹点能量而非末态重复
+- 折叠：按钮全开全收 + 点标题 + **左右滑切领域**（与按钮并存）

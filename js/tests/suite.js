@@ -268,7 +268,7 @@ export function runSuite() {
 
   // 目录规模 + live/reset 语义
   {
-    assert('catalog ≥ 1200 models', models.length >= 1200, `n=${models.length}`);
+    assert('catalog ≥ 3000 models', models.length >= 3000, `n=${models.length}`);
     const ids = new Set(models.map((m) => m.id));
     assert('catalog has free-fall', ids.has('free-fall'));
     assert('catalog has sorting', ids.has('sorting'));

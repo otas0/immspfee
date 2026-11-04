@@ -1,0 +1,8852 @@
+{
+  "version": 1,
+  "description": "Lab 模型族 × 变体维度；由 npm run gen:families 生成 catalog 变体",
+  "domainTargets": {
+    "物理": 2000,
+    "计算机科学": 1200,
+    "计算机工程": 1000,
+    "工程": 800
+  },
+  "sections": [
+    {
+      "id": "1.1",
+      "domain": "物理",
+      "sub": "经典力学",
+      "target": 350,
+      "families": [
+        {
+          "slug": "projectile",
+          "name": "抛体运动",
+          "factory": "ode2d",
+          "formula": "抛体方程",
+          "axes": [
+            [
+              "平抛",
+              "斜抛"
+            ],
+            [
+              "无阻力",
+              "有阻力"
+            ],
+            [
+              "常g",
+              "可变g"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "g",
+              "label": "g",
+              "unit": "m/s²",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                9.81,
+                1.62,
+                3.71
+              ]
+            },
+            {
+              "key": "v0",
+              "label": "v₀",
+              "unit": "m/s",
+              "min": 1,
+              "max": 50,
+              "samples": [
+                10,
+                20,
+                35
+              ]
+            },
+            {
+              "key": "theta",
+              "label": "θ",
+              "unit": "°",
+              "min": 0,
+              "max": 80,
+              "samples": [
+                0,
+                30,
+                45
+              ]
+            },
+            {
+              "key": "k",
+              "label": "阻力",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                0.2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "inclined",
+          "name": "斜面运动",
+          "factory": "ode1d",
+          "formula": "a=g(sinθ-μcosθ)",
+          "axes": [
+            [
+              "无摩擦",
+              "有摩擦"
+            ],
+            [
+              "上滑",
+              "下滑",
+              "静止"
+            ],
+            [
+              "缓坡",
+              "陡坡"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "mu",
+              "label": "μ",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0,
+                0.2,
+                0.5
+              ]
+            },
+            {
+              "key": "theta",
+              "label": "θ",
+              "unit": "°",
+              "min": 5,
+              "max": 70,
+              "samples": [
+                15,
+                30,
+                50
+              ]
+            },
+            {
+              "key": "m",
+              "label": "m",
+              "unit": "kg",
+              "min": 0.1,
+              "max": 20,
+              "samples": [
+                1,
+                5,
+                10
+              ]
+            },
+            {
+              "key": "v0",
+              "label": "初速",
+              "unit": "m/s",
+              "min": -10,
+              "max": 10,
+              "samples": [
+                -5,
+                0,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "atwood",
+          "name": "连接体",
+          "factory": "ode1d",
+          "formula": "滑轮/连接体",
+          "axes": [
+            [
+              "滑轮组",
+              "绳连",
+              "杆连"
+            ],
+            [
+              "2体",
+              "3体",
+              "5体"
+            ],
+            [
+              "无摩擦",
+              "有摩擦"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "mRatio",
+              "label": "质量比",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "mu",
+              "label": "μ",
+              "unit": "—",
+              "min": 0,
+              "max": 0.8,
+              "samples": [
+                0,
+                0.15,
+                0.4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "circular",
+          "name": "圆周运动",
+          "factory": "circular",
+          "formula": "a=ω²r",
+          "axes": [
+            [
+              "水平",
+              "竖直",
+              "倾斜"
+            ],
+            [
+              "匀速",
+              "变速"
+            ],
+            [
+              "绳约束",
+              "杆约束"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "r",
+              "label": "半径",
+              "unit": "m",
+              "min": 0.2,
+              "max": 8,
+              "samples": [
+                1,
+                2,
+                4
+              ]
+            },
+            {
+              "key": "omega",
+              "label": "角速度",
+              "unit": "rad/s",
+              "min": 0.2,
+              "max": 12,
+              "samples": [
+                1,
+                3,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rigid-plane",
+          "name": "刚体平面运动",
+          "factory": "euler",
+          "formula": "滚动/滑动",
+          "axes": [
+            [
+              "滚动",
+              "滑动",
+              "纯滚"
+            ],
+            [
+              "圆盘",
+              "圆环",
+              "球"
+            ],
+            [
+              "平面",
+              "斜面"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "I",
+              "label": "转动惯量",
+              "unit": "kg·m²",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                0.5,
+                1,
+                4
+              ]
+            },
+            {
+              "key": "slope",
+              "label": "坡度",
+              "unit": "°",
+              "min": 0,
+              "max": 40,
+              "samples": [
+                0,
+                15,
+                30
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "collision",
+          "name": "碰撞",
+          "factory": "particles",
+          "formula": "恢复系数碰撞",
+          "axes": [
+            [
+              "一维",
+              "二维"
+            ],
+            [
+              "弹性",
+              "非弹性"
+            ],
+            [
+              "等质量",
+              "质量比"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "e",
+              "label": "e",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0,
+                0.5,
+                1
+              ]
+            },
+            {
+              "key": "mRatio",
+              "label": "m₁/m₂",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                3
+              ]
+            },
+            {
+              "key": "angle",
+              "label": "碰撞角",
+              "unit": "°",
+              "min": 0,
+              "max": 90,
+              "samples": [
+                0,
+                30,
+                60
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "variable-mass",
+          "name": "变质量系统",
+          "factory": "ode1d",
+          "formula": "火箭方程",
+          "axes": [
+            [
+              "火箭",
+              "雨滴",
+              "传送带"
+            ],
+            [
+              "快喷",
+              "慢喷"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "dmdt",
+              "label": "dm/dt",
+              "unit": "kg/s",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                1,
+                3
+              ]
+            },
+            {
+              "key": "uRel",
+              "label": "相对速度",
+              "unit": "m/s",
+              "min": 10,
+              "max": 500,
+              "samples": [
+                50,
+                200,
+                400
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "noninertial",
+          "name": "非惯性系",
+          "factory": "ode2d",
+          "formula": "科里奥利/惯性力",
+          "axes": [
+            [
+              "加速车厢",
+              "旋转平台",
+              "科里奥利"
+            ],
+            [
+              "直线运动",
+              "抛射"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "aFrame",
+              "label": "加速度",
+              "unit": "m/s²",
+              "min": 0,
+              "max": 20,
+              "samples": [
+                2,
+                5,
+                10
+              ]
+            },
+            {
+              "key": "omega",
+              "label": "角速度",
+              "unit": "rad/s",
+              "min": 0,
+              "max": 8,
+              "samples": [
+                0.5,
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pendulum-chain",
+          "name": "约束运动",
+          "factory": "ode1d",
+          "formula": "摆/约束",
+          "axes": [
+            [
+              "单摆",
+              "双摆",
+              "多摆"
+            ],
+            [
+              "等长",
+              "不等长"
+            ],
+            [
+              "等质量",
+              "质量梯度"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "L",
+              "label": "摆长",
+              "unit": "m",
+              "min": 0.2,
+              "max": 4,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "m",
+              "label": "质量",
+              "unit": "kg",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                1,
+                2,
+                5
+              ]
+            },
+            {
+              "key": "theta0",
+              "label": "初角",
+              "unit": "°",
+              "min": 5,
+              "max": 160,
+              "samples": [
+                15,
+                45,
+                120
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "orbit",
+          "name": "天体轨道",
+          "factory": "nbody",
+          "formula": "开普勒/引力",
+          "axes": [
+            [
+              "圆",
+              "椭圆",
+              "抛物",
+              "双曲"
+            ],
+            [
+              "轻中心",
+              "重中心"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "M",
+              "label": "中心质量",
+              "unit": "—",
+              "min": 0.5,
+              "max": 50,
+              "samples": [
+                1,
+                5,
+                20
+              ]
+            },
+            {
+              "key": "v0",
+              "label": "初速",
+              "unit": "—",
+              "min": 0.2,
+              "max": 8,
+              "samples": [
+                0.8,
+                1.2,
+                2
+              ]
+            },
+            {
+              "key": "r0",
+              "label": "r₀",
+              "unit": "—",
+              "min": 0.5,
+              "max": 8,
+              "samples": [
+                1,
+                2,
+                4
+              ]
+            },
+            {
+              "key": "e",
+              "label": "偏心率",
+              "unit": "—",
+              "min": 0,
+              "max": 1.5,
+              "samples": [
+                0,
+                0.4,
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1.2",
+      "domain": "物理",
+      "sub": "波与振动",
+      "target": 300,
+      "families": [
+        {
+          "slug": "sho",
+          "name": "简谐振子",
+          "factory": "ode1d",
+          "formula": "x''=-(k/m)x",
+          "axes": [
+            [
+              "弹簧-质量",
+              "单摆",
+              "扭摆",
+              "LC振子"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "k",
+              "label": "k",
+              "unit": "—",
+              "min": 1,
+              "max": 80,
+              "samples": [
+                5,
+                20,
+                50
+              ]
+            },
+            {
+              "key": "m",
+              "label": "m",
+              "unit": "kg",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                0.5,
+                1,
+                4
+              ]
+            },
+            {
+              "key": "x0",
+              "label": "初位移",
+              "unit": "—",
+              "min": -2,
+              "max": 2,
+              "samples": [
+                -1,
+                0.5,
+                1.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "damped",
+          "name": "阻尼振动",
+          "factory": "ode1d",
+          "formula": "欠/临界/过阻尼",
+          "axes": [
+            [
+              "欠阻尼",
+              "临界",
+              "过阻尼"
+            ],
+            [
+              "线性阻尼",
+              "非线性阻尼"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "c",
+              "label": "c",
+              "unit": "—",
+              "min": 0.05,
+              "max": 20,
+              "samples": [
+                0.2,
+                2,
+                10
+              ]
+            },
+            {
+              "key": "k",
+              "label": "k",
+              "unit": "—",
+              "min": 1,
+              "max": 50,
+              "samples": [
+                10,
+                25
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "forced",
+          "name": "受迫振动",
+          "factory": "ode1d",
+          "formula": "共振/扫频",
+          "axes": [
+            [
+              "简谐激励",
+              "周期激励",
+              "随机激励"
+            ],
+            [
+              "欠阻尼",
+              "近共振"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "F0",
+              "label": "激励幅值",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                0.5,
+                2,
+                5
+              ]
+            },
+            {
+              "key": "fDrive",
+              "label": "频率",
+              "unit": "Hz",
+              "min": 0.1,
+              "max": 8,
+              "samples": [
+                0.5,
+                1.2,
+                3
+              ]
+            },
+            {
+              "key": "c",
+              "label": "阻尼",
+              "unit": "—",
+              "min": 0.05,
+              "max": 5,
+              "samples": [
+                0.2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "coupled",
+          "name": "耦合振子",
+          "factory": "ode1d",
+          "formula": "简正模",
+          "axes": [
+            [
+              "链式",
+              "环式",
+              "全连接"
+            ],
+            [
+              "N=2",
+              "N=4",
+              "N=8"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "N",
+              "label": "N",
+              "unit": "—",
+              "min": 2,
+              "max": 12,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "kappa",
+              "label": "耦合",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "nonlinear-osc",
+          "name": "非线性振子",
+          "factory": "chaos",
+          "formula": "Duffing/VdP",
+          "axes": [
+            [
+              "杜芬",
+              "范德波尔",
+              "大角度摆"
+            ],
+            [
+              "弱驱动",
+              "强驱动"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "beta",
+              "label": "非线性",
+              "unit": "—",
+              "min": 0,
+              "max": 5,
+              "samples": [
+                0.2,
+                1,
+                3
+              ]
+            },
+            {
+              "key": "drive",
+              "label": "驱动",
+              "unit": "—",
+              "min": 0,
+              "max": 4,
+              "samples": [
+                0.3,
+                1.2,
+                2.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "wave1d",
+          "name": "一维波",
+          "factory": "wave1d",
+          "formula": "波动方程",
+          "axes": [
+            [
+              "绳波",
+              "声波"
+            ],
+            [
+              "固定",
+              "自由",
+              "周期"
+            ],
+            [
+              "行波",
+              "驻波"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "c",
+              "label": "波速",
+              "unit": "—",
+              "min": 0.5,
+              "max": 8,
+              "samples": [
+                1,
+                2,
+                4
+              ]
+            },
+            {
+              "key": "f",
+              "label": "激励频率",
+              "unit": "Hz",
+              "min": 0.2,
+              "max": 6,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "wave2d",
+          "name": "二维波",
+          "factory": "field2d",
+          "formula": "膜振动",
+          "axes": [
+            [
+              "矩形",
+              "圆形",
+              "环形"
+            ],
+            [
+              "基模",
+              "高模叠加"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "T",
+              "label": "张力",
+              "unit": "—",
+              "min": 0.5,
+              "max": 20,
+              "samples": [
+                2,
+                5,
+                12
+              ]
+            },
+            {
+              "key": "rho",
+              "label": "密度",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "interfere",
+          "name": "波的干涉",
+          "factory": "interference",
+          "formula": "双源干涉",
+          "axes": [
+            [
+              "双源",
+              "多源"
+            ],
+            [
+              "同相",
+              "反相"
+            ],
+            [
+              "二维",
+              "三维示意"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "d",
+              "label": "源间距",
+              "unit": "—",
+              "min": 0.2,
+              "max": 6,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            },
+            {
+              "key": "phi",
+              "label": "相位差",
+              "unit": "rad",
+              "min": 0,
+              "max": 3.14,
+              "samples": [
+                0,
+                1.57,
+                3.14
+              ]
+            },
+            {
+              "key": "lam",
+              "label": "波长",
+              "unit": "—",
+              "min": 0.2,
+              "max": 3,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "diffract",
+          "name": "波的衍射",
+          "factory": "interference",
+          "formula": "单缝/圆孔衍射",
+          "axes": [
+            [
+              "单缝",
+              "双缝",
+              "多缝",
+              "圆孔"
+            ],
+            [
+              "近场",
+              "远场"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "a",
+              "label": "缝宽",
+              "unit": "—",
+              "min": 0.05,
+              "max": 2,
+              "samples": [
+                0.1,
+                0.4,
+                1
+              ]
+            },
+            {
+              "key": "lam",
+              "label": "波长",
+              "unit": "—",
+              "min": 0.2,
+              "max": 2,
+              "samples": [
+                0.4,
+                0.8,
+                1.2
+              ]
+            },
+            {
+              "key": "L",
+              "label": "屏距",
+              "unit": "—",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                5,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "doppler",
+          "name": "多普勒效应",
+          "factory": "doppler",
+          "formula": "f'=f(v±vo)/(v±vs)",
+          "axes": [
+            [
+              "源动",
+              "观察者动",
+              "两者动"
+            ],
+            [
+              "一维",
+              "二维"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "vs",
+              "label": "源速比",
+              "unit": "—",
+              "min": 0,
+              "max": 0.9,
+              "samples": [
+                0.1,
+                0.3,
+                0.6
+              ]
+            },
+            {
+              "key": "vo",
+              "label": "观察者速比",
+              "unit": "—",
+              "min": 0,
+              "max": 0.9,
+              "samples": [
+                0,
+                0.2,
+                0.5
+              ]
+            },
+            {
+              "key": "ang",
+              "label": "角度",
+              "unit": "°",
+              "min": 0,
+              "max": 180,
+              "samples": [
+                0,
+                45,
+                90
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1.3",
+      "domain": "物理",
+      "sub": "热力学",
+      "target": 250,
+      "families": [
+        {
+          "slug": "ideal-gas",
+          "name": "理想气体过程",
+          "factory": "piston",
+          "formula": "PV^n=const",
+          "axes": [
+            [
+              "等温",
+              "等压",
+              "等容",
+              "绝热",
+              "多方"
+            ],
+            [
+              "可逆",
+              "不可逆"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "过程指数",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                1,
+                1.4
+              ]
+            },
+            {
+              "key": "T0",
+              "label": "初温",
+              "unit": "K",
+              "min": 200,
+              "max": 800,
+              "samples": [
+                300,
+                500
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "heat-engine",
+          "name": "热机循环",
+          "factory": "cycle",
+          "formula": "卡诺/奥托/…",
+          "axes": [
+            [
+              "卡诺",
+              "奥托",
+              "狄塞尔",
+              "布雷顿",
+              "朗肯"
+            ],
+            [
+              "理想气体",
+              "蒸汽"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "r",
+              "label": "压缩比",
+              "unit": "—",
+              "min": 2,
+              "max": 20,
+              "samples": [
+                4,
+                8,
+                12
+              ]
+            },
+            {
+              "key": "TR",
+              "label": "温度比",
+              "unit": "—",
+              "min": 1.2,
+              "max": 5,
+              "samples": [
+                2,
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "heat-cond",
+          "name": "热传导",
+          "factory": "field2d",
+          "formula": "傅里叶律",
+          "axes": [
+            [
+              "一维",
+              "二维"
+            ],
+            [
+              "稳态",
+              "瞬态"
+            ],
+            [
+              "定温边界",
+              "绝热边界"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "k",
+              "label": "导热系数",
+              "unit": "—",
+              "min": 0.1,
+              "max": 50,
+              "samples": [
+                1,
+                10,
+                30
+              ]
+            },
+            {
+              "key": "Tb",
+              "label": "边界温度",
+              "unit": "°C",
+              "min": 0,
+              "max": 400,
+              "samples": [
+                0,
+                100,
+                300
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "convection",
+          "name": "热对流",
+          "factory": "flow",
+          "formula": "牛顿冷却",
+          "axes": [
+            [
+              "自然对流",
+              "强制对流"
+            ],
+            [
+              "平板",
+              "圆柱",
+              "球"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "h",
+              "label": "换热系数",
+              "unit": "—",
+              "min": 1,
+              "max": 200,
+              "samples": [
+                10,
+                50,
+                100
+              ]
+            },
+            {
+              "key": "U",
+              "label": "流速",
+              "unit": "m/s",
+              "min": 0,
+              "max": 20,
+              "samples": [
+                0.5,
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "radiation",
+          "name": "热辐射",
+          "factory": "gauge",
+          "formula": "σT⁴",
+          "axes": [
+            [
+              "黑体",
+              "灰体"
+            ],
+            [
+              "斯特藩",
+              "温室效应"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "eps",
+              "label": "发射率",
+              "unit": "—",
+              "min": 0.05,
+              "max": 1,
+              "samples": [
+                0.2,
+                0.6,
+                1
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 200,
+              "max": 2000,
+              "samples": [
+                300,
+                800,
+                1500
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "kinetic-gas",
+          "name": "气体动理论",
+          "factory": "particles",
+          "formula": "麦克斯韦分布",
+          "axes": [
+            [
+              "速度分布",
+              "速度空间"
+            ],
+            [
+              "升温",
+              "降温"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 50,
+              "max": 1000,
+              "samples": [
+                100,
+                300,
+                600
+              ]
+            },
+            {
+              "key": "mMol",
+              "label": "分子质量",
+              "unit": "—",
+              "min": 1,
+              "max": 100,
+              "samples": [
+                4,
+                28,
+                44
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "brownian",
+          "name": "布朗运动",
+          "factory": "particles",
+          "formula": "扩散",
+          "axes": [
+            [
+              "一维",
+              "二维"
+            ],
+            [
+              "短时",
+              "长时"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "D",
+              "label": "扩散系数",
+              "unit": "—",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                0.5,
+                2
+              ]
+            },
+            {
+              "key": "dt",
+              "label": "时间步",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.2,
+              "samples": [
+                0.01,
+                0.05
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "ising",
+          "name": "伊辛模型",
+          "factory": "discrete",
+          "formula": "Ising",
+          "axes": [
+            [
+              "一维",
+              "二维"
+            ],
+            [
+              "铁磁",
+              "反铁磁"
+            ],
+            [
+              "无外场",
+              "有外场"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "J",
+              "label": "耦合",
+              "unit": "—",
+              "min": -2,
+              "max": 2,
+              "samples": [
+                -1,
+                0.5,
+                1
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                2.27,
+                4
+              ]
+            },
+            {
+              "key": "H",
+              "label": "外场",
+              "unit": "—",
+              "min": -2,
+              "max": 2,
+              "samples": [
+                0,
+                0.5,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "percolation",
+          "name": "渗流模型",
+          "factory": "discrete",
+          "formula": "渗流临界",
+          "axes": [
+            [
+              "点渗流",
+              "键渗流"
+            ],
+            [
+              "二维",
+              "三维示意"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "p",
+              "label": "占据概率",
+              "unit": "—",
+              "min": 0.1,
+              "max": 0.9,
+              "samples": [
+                0.4,
+                0.59,
+                0.7
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "entropy-mix",
+          "name": "熵与混合",
+          "factory": "particles",
+          "formula": "混合熵",
+          "axes": [
+            [
+              "两种气体",
+              "多种气体"
+            ],
+            [
+              "可逆",
+              "不可逆"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "xA",
+              "label": "摩尔分数",
+              "unit": "—",
+              "min": 0.05,
+              "max": 0.95,
+              "samples": [
+                0.2,
+                0.5,
+                0.8
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 200,
+              "max": 600,
+              "samples": [
+                300,
+                450
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1.4",
+      "domain": "物理",
+      "sub": "电磁学",
+      "target": 350,
+      "families": [
+        {
+          "slug": "electrostatic",
+          "name": "静电场",
+          "factory": "field2d",
+          "formula": "库仑/叠加",
+          "axes": [
+            [
+              "点电荷",
+              "线电荷",
+              "面电荷"
+            ],
+            [
+              "单个",
+              "多个"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "q",
+              "label": "电荷",
+              "unit": "—",
+              "min": -5,
+              "max": 5,
+              "samples": [
+                -2,
+                1,
+                3
+              ]
+            },
+            {
+              "key": "geom",
+              "label": "几何尺度",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "fieldlines",
+          "name": "电场线",
+          "factory": "fieldlines",
+          "formula": "多极展开",
+          "axes": [
+            [
+              "偶极子",
+              "四极子",
+              "多极子"
+            ],
+            [
+              "二维",
+              "三维示意"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "p",
+              "label": "极矩",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            },
+            {
+              "key": "sep",
+              "label": "间距",
+              "unit": "—",
+              "min": 0.2,
+              "max": 4,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "gauss",
+          "name": "高斯定理应用",
+          "factory": "field2d",
+          "formula": "∮E·dA=Q/ε₀",
+          "axes": [
+            [
+              "球对称",
+              "柱对称",
+              "面对称"
+            ],
+            [
+              "均匀",
+              "非均匀"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rho",
+              "label": "电荷密度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                1,
+                3,
+                6
+              ]
+            },
+            {
+              "key": "R",
+              "label": "几何尺寸",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "capacitor",
+          "name": "导体与电容",
+          "factory": "circuit",
+          "formula": "C=εA/d",
+          "axes": [
+            [
+              "平行板",
+              "球形",
+              "柱形"
+            ],
+            [
+              "真空",
+              "有介质"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "eps",
+              "label": "介电常数",
+              "unit": "—",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                1,
+                4,
+                10
+              ]
+            },
+            {
+              "key": "d",
+              "label": "间距",
+              "unit": "—",
+              "min": 0.01,
+              "max": 2,
+              "samples": [
+                0.1,
+                0.5,
+                1
+              ]
+            },
+            {
+              "key": "A",
+              "label": "面积",
+              "unit": "—",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "dc-network",
+          "name": "稳恒电流",
+          "factory": "circuit",
+          "formula": "基尔霍夫",
+          "axes": [
+            [
+              "串联",
+              "并联",
+              "混联"
+            ],
+            [
+              "含源",
+              "无源"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "R",
+              "label": "电阻",
+              "unit": "Ω",
+              "min": 1,
+              "max": 1000,
+              "samples": [
+                10,
+                100,
+                470
+              ]
+            },
+            {
+              "key": "E",
+              "label": "电动势",
+              "unit": "V",
+              "min": 0.5,
+              "max": 24,
+              "samples": [
+                1.5,
+                5,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rlc",
+          "name": "RC/RL/RLC电路",
+          "factory": "circuit",
+          "formula": "一阶/二阶电路",
+          "axes": [
+            [
+              "RC",
+              "RL",
+              "RLC"
+            ],
+            [
+              "充电",
+              "放电",
+              "振荡"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "R",
+              "label": "R",
+              "unit": "Ω",
+              "min": 1,
+              "max": 500,
+              "samples": [
+                10,
+                50,
+                200
+              ]
+            },
+            {
+              "key": "L",
+              "label": "L",
+              "unit": "H",
+              "min": 0.001,
+              "max": 2,
+              "samples": [
+                0.01,
+                0.1,
+                0.5
+              ]
+            },
+            {
+              "key": "C",
+              "label": "C",
+              "unit": "F",
+              "min": 0.000001,
+              "max": 0.1,
+              "samples": [
+                0.001,
+                0.01
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "ac",
+          "name": "交流电路",
+          "factory": "circuit",
+          "formula": "相量/阻抗",
+          "axes": [
+            [
+              "单相",
+              "三相"
+            ],
+            [
+              "阻性",
+              "感性",
+              "容性"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "f",
+              "label": "频率",
+              "unit": "Hz",
+              "min": 10,
+              "max": 1000,
+              "samples": [
+                50,
+                60,
+                400
+              ]
+            },
+            {
+              "key": "phi",
+              "label": "阻抗角",
+              "unit": "°",
+              "min": -90,
+              "max": 90,
+              "samples": [
+                -60,
+                0,
+                60
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "magnetostat",
+          "name": "磁场",
+          "factory": "field2d",
+          "formula": "毕奥-萨伐尔",
+          "axes": [
+            [
+              "直导线",
+              "圆环",
+              "螺线管"
+            ],
+            [
+              "单个",
+              "多个"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "I",
+              "label": "电流",
+              "unit": "A",
+              "min": 0.1,
+              "max": 50,
+              "samples": [
+                1,
+                5,
+                20
+              ]
+            },
+            {
+              "key": "geom",
+              "label": "几何",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "lorentz",
+          "name": "洛伦兹力",
+          "factory": "particles",
+          "formula": "F=q(E+v×B)",
+          "axes": [
+            [
+              "仅E",
+              "仅B",
+              "EB场"
+            ],
+            [
+              "非相对论",
+              "相对论示意"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "E",
+              "label": "场强E",
+              "unit": "—",
+              "min": 0,
+              "max": 10,
+              "samples": [
+                0,
+                2,
+                5
+              ]
+            },
+            {
+              "key": "B",
+              "label": "场强B",
+              "unit": "—",
+              "min": 0,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            },
+            {
+              "key": "v",
+              "label": "速度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                1,
+                3,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "induction",
+          "name": "电磁感应",
+          "factory": "induction",
+          "formula": "法拉第定律",
+          "axes": [
+            [
+              "动生",
+              "感生"
+            ],
+            [
+              "线圈",
+              "导体棒"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "dPhi",
+              "label": "磁通变化率",
+              "unit": "—",
+              "min": 0.01,
+              "max": 20,
+              "samples": [
+                0.5,
+                2,
+                8
+              ]
+            },
+            {
+              "key": "N",
+              "label": "匝数",
+              "unit": "—",
+              "min": 1,
+              "max": 200,
+              "samples": [
+                10,
+                50,
+                100
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "inductance",
+          "name": "自感与互感",
+          "factory": "circuit",
+          "formula": "M、L",
+          "axes": [
+            [
+              "单线圈",
+              "耦合线圈"
+            ],
+            [
+              "空芯",
+              "铁芯"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "L",
+              "label": "电感",
+              "unit": "H",
+              "min": 0.001,
+              "max": 5,
+              "samples": [
+                0.01,
+                0.2,
+                1
+              ]
+            },
+            {
+              "key": "k",
+              "label": "耦合系数",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0.2,
+                0.6,
+                0.95
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "maxwell",
+          "name": "麦克斯韦方程组",
+          "factory": "wave1d",
+          "formula": "平面波/腔模",
+          "axes": [
+            [
+              "平面波",
+              "波导",
+              "腔体"
+            ],
+            [
+              "金属壁",
+              "开放"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "f",
+              "label": "频率",
+              "unit": "Hz",
+              "min": 100000000,
+              "max": 100000000000,
+              "samples": [
+                1000000000,
+                5000000000
+              ]
+            },
+            {
+              "key": "mode",
+              "label": "模式号",
+              "unit": "—",
+              "min": 1,
+              "max": 5,
+              "samples": [
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "tline",
+          "name": "传输线",
+          "factory": "wave1d",
+          "formula": "电报方程",
+          "axes": [
+            [
+              "无损耗",
+              "有损耗"
+            ],
+            [
+              "短路",
+              "开路",
+              "匹配"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Z0",
+              "label": "特性阻抗",
+              "unit": "Ω",
+              "min": 25,
+              "max": 300,
+              "samples": [
+                50,
+                75,
+                100
+              ]
+            },
+            {
+              "key": "len",
+              "label": "线长",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                0.5,
+                2,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "antenna",
+          "name": "天线",
+          "factory": "field2d",
+          "formula": "方向图",
+          "axes": [
+            [
+              "偶极子",
+              "单极子",
+              "阵列"
+            ],
+            [
+              "半波",
+              "全波"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "len",
+              "label": "长度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 2,
+              "samples": [
+                0.25,
+                0.5,
+                1
+              ]
+            },
+            {
+              "key": "d",
+              "label": "间距",
+              "unit": "—",
+              "min": 0.1,
+              "max": 2,
+              "samples": [
+                0.25,
+                0.5
+              ]
+            },
+            {
+              "key": "phi",
+              "label": "相位",
+              "unit": "°",
+              "min": 0,
+              "max": 180,
+              "samples": [
+                0,
+                90
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1.5",
+      "domain": "物理",
+      "sub": "光学",
+      "target": 250,
+      "families": [
+        {
+          "slug": "geo-optics",
+          "name": "几何光学",
+          "factory": "rays",
+          "formula": "反射/折射",
+          "axes": [
+            [
+              "反射",
+              "折射",
+              "全反射"
+            ],
+            [
+              "平面",
+              "球面"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "theta",
+              "label": "入射角",
+              "unit": "°",
+              "min": 0,
+              "max": 89,
+              "samples": [
+                10,
+                30,
+                50
+              ]
+            },
+            {
+              "key": "n",
+              "label": "折射率",
+              "unit": "—",
+              "min": 1,
+              "max": 2.5,
+              "samples": [
+                1.33,
+                1.5,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "lens",
+          "name": "透镜成像",
+          "factory": "rays",
+          "formula": "1/u+1/v=1/f",
+          "axes": [
+            [
+              "凸透镜",
+              "凹透镜"
+            ],
+            [
+              "单透镜",
+              "组合"
+            ],
+            [
+              "实物",
+              "虚物"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "f",
+              "label": "焦距",
+              "unit": "cm",
+              "min": -20,
+              "max": 20,
+              "samples": [
+                -10,
+                5,
+                12
+              ]
+            },
+            {
+              "key": "u",
+              "label": "物距",
+              "unit": "cm",
+              "min": -40,
+              "max": 40,
+              "samples": [
+                -20,
+                15,
+                30
+              ]
+            },
+            {
+              "key": "h",
+              "label": "物高",
+              "unit": "cm",
+              "min": 0.5,
+              "max": 8,
+              "samples": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "prism",
+          "name": "棱镜与色散",
+          "factory": "rays",
+          "formula": "色散偏折",
+          "axes": [
+            [
+              "单棱镜",
+              "多棱镜"
+            ],
+            [
+              "冕牌",
+              "火石"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "A",
+              "label": "顶角",
+              "unit": "°",
+              "min": 10,
+              "max": 70,
+              "samples": [
+                30,
+                45,
+                60
+              ]
+            },
+            {
+              "key": "nF",
+              "label": "n_F",
+              "unit": "—",
+              "min": 1.4,
+              "max": 1.9,
+              "samples": [
+                1.5,
+                1.7
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "opt-interfere",
+          "name": "干涉",
+          "factory": "interference",
+          "formula": "薄膜/杨氏",
+          "axes": [
+            [
+              "双缝",
+              "多缝",
+              "薄膜",
+              "牛顿环",
+              "迈克耳孙"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "d",
+              "label": "缝距/膜厚",
+              "unit": "—",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                0.5,
+                2
+              ]
+            },
+            {
+              "key": "lam",
+              "label": "波长",
+              "unit": "nm",
+              "min": 380,
+              "max": 780,
+              "samples": [
+                450,
+                550,
+                650
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "opt-diffract",
+          "name": "衍射",
+          "factory": "interference",
+          "formula": "夫琅禾费/菲涅耳",
+          "axes": [
+            [
+              "单缝",
+              "圆孔",
+              "光栅"
+            ],
+            [
+              "夫琅禾费",
+              "菲涅耳"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "a",
+              "label": "缝宽",
+              "unit": "—",
+              "min": 0.01,
+              "max": 2,
+              "samples": [
+                0.05,
+                0.2,
+                0.8
+              ]
+            },
+            {
+              "key": "lam",
+              "label": "波长",
+              "unit": "nm",
+              "min": 380,
+              "max": 780,
+              "samples": [
+                500,
+                600
+              ]
+            },
+            {
+              "key": "L",
+              "label": "屏距",
+              "unit": "—",
+              "min": 0.2,
+              "max": 20,
+              "samples": [
+                1,
+                5,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "polarization",
+          "name": "偏振",
+          "factory": "gauge",
+          "formula": "Malus",
+          "axes": [
+            [
+              "线偏振",
+              "圆偏振",
+              "椭圆偏振"
+            ],
+            [
+              "单片",
+              "组合"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "ang",
+              "label": "偏振角",
+              "unit": "°",
+              "min": 0,
+              "max": 180,
+              "samples": [
+                0,
+                45,
+                90
+              ]
+            },
+            {
+              "key": "dphi",
+              "label": "相位差",
+              "unit": "°",
+              "min": 0,
+              "max": 180,
+              "samples": [
+                0,
+                90,
+                180
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "fiber",
+          "name": "光纤",
+          "factory": "rays",
+          "formula": "全反射导光",
+          "axes": [
+            [
+              "阶跃",
+              "渐变"
+            ],
+            [
+              "单模",
+              "多模"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nCore",
+              "label": "纤芯n",
+              "unit": "—",
+              "min": 1.4,
+              "max": 1.6,
+              "samples": [
+                1.45,
+                1.48,
+                1.52
+              ]
+            },
+            {
+              "key": "nClad",
+              "label": "包层n",
+              "unit": "—",
+              "min": 1.3,
+              "max": 1.55,
+              "samples": [
+                1.4,
+                1.44
+              ]
+            },
+            {
+              "key": "a",
+              "label": "半径",
+              "unit": "μm",
+              "min": 1,
+              "max": 50,
+              "samples": [
+                4,
+                25
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "laser",
+          "name": "激光",
+          "factory": "gauge",
+          "formula": "增益/谐振腔",
+          "axes": [
+            [
+              "连续",
+              "脉冲"
+            ],
+            [
+              "短腔",
+              "长腔"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "L",
+              "label": "腔长",
+              "unit": "m",
+              "min": 0.01,
+              "max": 2,
+              "samples": [
+                0.1,
+                0.5,
+                1
+              ]
+            },
+            {
+              "key": "g",
+              "label": "增益",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            },
+            {
+              "key": "loss",
+              "label": "损耗",
+              "unit": "—",
+              "min": 0.01,
+              "max": 2,
+              "samples": [
+                0.1,
+                0.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "nlo",
+          "name": "非线性光学",
+          "factory": "gauge",
+          "formula": "倍频/OPA",
+          "axes": [
+            [
+              "倍频",
+              "和频",
+              "参量振荡"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "chi",
+              "label": "非线性系数",
+              "unit": "—",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "dk",
+              "label": "相位失配",
+              "unit": "—",
+              "min": 0,
+              "max": 5,
+              "samples": [
+                0,
+                0.5,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "qoptics",
+          "name": "量子光学",
+          "factory": "gauge",
+          "formula": "压缩态/Wigner",
+          "axes": [
+            [
+              "压缩态",
+              "纠缠态",
+              "Wigner"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "r",
+              "label": "压缩参数",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0.2,
+                0.8,
+                1.5
+              ]
+            },
+            {
+              "key": "alpha",
+              "label": "相干振幅",
+              "unit": "—",
+              "min": 0,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1.6",
+      "domain": "物理",
+      "sub": "近代物理",
+      "target": 300,
+      "families": [
+        {
+          "slug": "well1d",
+          "name": "一维势阱",
+          "factory": "wave1d",
+          "formula": "定态薛定谔",
+          "axes": [
+            [
+              "无限深",
+              "有限深"
+            ],
+            [
+              "方阱",
+              "谐振子阱"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "a",
+              "label": "阱宽",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "V0",
+              "label": "阱深",
+              "unit": "—",
+              "min": 1,
+              "max": 50,
+              "samples": [
+                5,
+                15,
+                30
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "tunnel",
+          "name": "势垒隧穿",
+          "factory": "wave1d",
+          "formula": "隧穿几率",
+          "axes": [
+            [
+              "方势垒",
+              "双势垒"
+            ],
+            [
+              "低能",
+              "高能"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "V0",
+              "label": "势垒高度",
+              "unit": "—",
+              "min": 1,
+              "max": 40,
+              "samples": [
+                5,
+                15,
+                25
+              ]
+            },
+            {
+              "key": "w",
+              "label": "宽度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 3,
+              "samples": [
+                0.3,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "E",
+              "label": "能量",
+              "unit": "—",
+              "min": 0.5,
+              "max": 30,
+              "samples": [
+                2,
+                10,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "qho",
+          "name": "谐振子",
+          "factory": "wave1d",
+          "formula": "量子谐振子",
+          "axes": [
+            [
+              "一维",
+              "二维",
+              "三维"
+            ],
+            [
+              "各向同性",
+              "各向异性"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "omega",
+              "label": "频率",
+              "unit": "—",
+              "min": 0.2,
+              "max": 8,
+              "samples": [
+                0.5,
+                1,
+                3
+              ]
+            },
+            {
+              "key": "coup",
+              "label": "耦合",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                0.5,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "hydrogen",
+          "name": "氢原子",
+          "factory": "bohr",
+          "formula": "波函数/能级",
+          "axes": [
+            [
+              "波函数",
+              "轨道",
+              "能级"
+            ],
+            [
+              "基态",
+              "激发态"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "n",
+              "unit": "—",
+              "min": 1,
+              "max": 6,
+              "samples": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "key": "l",
+              "label": "l",
+              "unit": "—",
+              "min": 0,
+              "max": 5,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "m",
+              "label": "m",
+              "unit": "—",
+              "min": -3,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                -1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "angmom",
+          "name": "角动量",
+          "factory": "gauge",
+          "formula": "自旋/轨道耦合",
+          "axes": [
+            [
+              "自旋",
+              "轨道",
+              "耦合"
+            ],
+            [
+              "矩阵表示",
+              "布洛赫球"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "j",
+              "label": "量子数",
+              "unit": "—",
+              "min": 0.5,
+              "max": 4,
+              "samples": [
+                0.5,
+                1,
+                1.5
+              ]
+            },
+            {
+              "key": "coup",
+              "label": "耦合",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0.2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "entangle",
+          "name": "纠缠与贝尔态",
+          "factory": "gauge",
+          "formula": "贝尔不等式示意",
+          "axes": [
+            [
+              "两量子比特",
+              "多量子比特"
+            ],
+            [
+              "计算基",
+              "贝尔基"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "conc",
+              "label": "纠缠度",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0.2,
+                0.7,
+                1
+              ]
+            },
+            {
+              "key": "basis",
+              "label": "测量基",
+              "unit": "°",
+              "min": 0,
+              "max": 90,
+              "samples": [
+                0,
+                45,
+                90
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "qgate",
+          "name": "量子门",
+          "factory": "discrete",
+          "formula": "幺正门",
+          "axes": [
+            [
+              "单比特",
+              "双比特"
+            ],
+            [
+              "H",
+              "CNOT",
+              "旋转"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "theta",
+              "label": "旋转角",
+              "unit": "°",
+              "min": 0,
+              "max": 360,
+              "samples": [
+                45,
+                90,
+                180
+              ]
+            },
+            {
+              "key": "ctrl",
+              "label": "控制位",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "qalgo",
+          "name": "量子算法",
+          "factory": "discrete",
+          "formula": "Deutsch/Grover",
+          "axes": [
+            [
+              "Deutsch",
+              "Grover",
+              "Shor示意"
+            ],
+            [
+              "小规模",
+              "中规模"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nBits",
+              "label": "比特数",
+              "unit": "—",
+              "min": 2,
+              "max": 8,
+              "samples": [
+                2,
+                4,
+                6
+              ]
+            },
+            {
+              "key": "iters",
+              "label": "迭代数",
+              "unit": "—",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                1,
+                3,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "wavepacket",
+          "name": "波包演化",
+          "factory": "wave1d",
+          "formula": "自由/势场传播",
+          "axes": [
+            [
+              "自由",
+              "势场中"
+            ],
+            [
+              "窄包",
+              "宽包"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "sigma",
+              "label": "初始宽度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 3,
+              "samples": [
+                0.3,
+                0.8,
+                1.5
+              ]
+            },
+            {
+              "key": "V",
+              "label": "势场强度",
+              "unit": "—",
+              "min": 0,
+              "max": 10,
+              "samples": [
+                0,
+                2,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rel-kin",
+          "name": "相对论运动学",
+          "factory": "gauge",
+          "formula": "γ、时间膨胀",
+          "axes": [
+            [
+              "时间膨胀",
+              "长度收缩",
+              "质能"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "beta",
+              "label": "β=v/c",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.99,
+              "samples": [
+                0.3,
+                0.6,
+                0.9
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rel-dyn",
+          "name": "相对论动力学",
+          "factory": "particles",
+          "formula": "四动量",
+          "axes": [
+            [
+              "碰撞",
+              "衰变"
+            ],
+            [
+              "质心系",
+              "实验室系"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "E",
+              "label": "能量",
+              "unit": "—",
+              "min": 1,
+              "max": 100,
+              "samples": [
+                5,
+                20,
+                50
+              ]
+            },
+            {
+              "key": "p",
+              "label": "动量",
+              "unit": "—",
+              "min": 0.1,
+              "max": 80,
+              "samples": [
+                2,
+                10,
+                40
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "photoelectric",
+          "name": "光电效应",
+          "factory": "gauge",
+          "formula": "K=hf-W",
+          "axes": [
+            [
+              "低频率",
+              "高频率"
+            ],
+            [
+              "弱光",
+              "强光"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nu",
+              "label": "频率",
+              "unit": "—",
+              "min": 0.5,
+              "max": 10,
+              "samples": [
+                1,
+                3,
+                6
+              ]
+            },
+            {
+              "key": "I",
+              "label": "光强",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                0.5,
+                2,
+                5
+              ]
+            },
+            {
+              "key": "W",
+              "label": "逸出功",
+              "unit": "—",
+              "min": 0.5,
+              "max": 5,
+              "samples": [
+                1,
+                2.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "compton",
+          "name": "康普顿散射",
+          "factory": "particles",
+          "formula": "Δλ=λc(1-cosθ)",
+          "axes": [
+            [
+              "小角",
+              "大角"
+            ],
+            [
+              "软光子",
+              "硬光子"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "theta",
+              "label": "散射角",
+              "unit": "°",
+              "min": 0,
+              "max": 180,
+              "samples": [
+                30,
+                90,
+                150
+              ]
+            },
+            {
+              "key": "E",
+              "label": "入射能量",
+              "unit": "keV",
+              "min": 10,
+              "max": 500,
+              "samples": [
+                50,
+                150,
+                300
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "radioactive",
+          "name": "放射性衰变",
+          "factory": "decay",
+          "formula": "N=N0 e^{-λt}",
+          "axes": [
+            [
+              "单步",
+              "级联"
+            ],
+            [
+              "短寿命",
+              "长寿命"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "lam",
+              "label": "λ",
+              "unit": "—",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                0.5,
+                2
+              ]
+            },
+            {
+              "key": "N0",
+              "label": "初始核素",
+              "unit": "—",
+              "min": 10,
+              "max": 10000,
+              "samples": [
+                100,
+                1000
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1.7",
+      "domain": "物理",
+      "sub": "流体",
+      "target": 200,
+      "families": [
+        {
+          "slug": "ideal-fluid",
+          "name": "理想流体",
+          "factory": "flow",
+          "formula": "伯努利",
+          "axes": [
+            [
+              "管道",
+              "机翼",
+              "文丘里"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "v",
+              "label": "流速",
+              "unit": "m/s",
+              "min": 0.1,
+              "max": 50,
+              "samples": [
+                1,
+                5,
+                20
+              ]
+            },
+            {
+              "key": "A",
+              "label": "截面积",
+              "unit": "m²",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                0.5,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "viscous",
+          "name": "粘性流体",
+          "factory": "flow",
+          "formula": "泊肃叶/库埃特",
+          "axes": [
+            [
+              "泊肃叶",
+              "库埃特"
+            ],
+            [
+              "低Re",
+              "高Re"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "mu",
+              "label": "粘度",
+              "unit": "—",
+              "min": 0.001,
+              "max": 5,
+              "samples": [
+                0.01,
+                0.1,
+                1
+              ]
+            },
+            {
+              "key": "U",
+              "label": "流速",
+              "unit": "—",
+              "min": 0.01,
+              "max": 20,
+              "samples": [
+                0.5,
+                2,
+                8
+              ]
+            },
+            {
+              "key": "D",
+              "label": "管径",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.5,
+              "samples": [
+                0.01,
+                0.05
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "boundary-layer",
+          "name": "边界层",
+          "factory": "flow",
+          "formula": "Blasius示意",
+          "axes": [
+            [
+              "平板",
+              "圆柱",
+              "球"
+            ],
+            [
+              "层流",
+              "湍流"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Re",
+              "label": "雷诺数",
+              "unit": "—",
+              "min": 10,
+              "max": 1000000,
+              "samples": [
+                100,
+                10000,
+                100000
+              ]
+            },
+            {
+              "key": "rough",
+              "label": "粗糙度",
+              "unit": "—",
+              "min": 0,
+              "max": 0.1,
+              "samples": [
+                0,
+                0.01,
+                0.05
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "turbulence",
+          "name": "湍流",
+          "factory": "flow",
+          "formula": "RANS示意",
+          "axes": [
+            [
+              "RANS",
+              "LES示意",
+              "DNS示意"
+            ],
+            [
+              "槽道",
+              "射流"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Cmu",
+              "label": "模型参数",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.2,
+              "samples": [
+                0.09,
+                0.12
+              ]
+            },
+            {
+              "key": "grid",
+              "label": "网格尺度",
+              "unit": "—",
+              "min": 0.01,
+              "max": 1,
+              "samples": [
+                0.05,
+                0.2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "multiphase",
+          "name": "多相流",
+          "factory": "particles",
+          "formula": "气泡/液滴",
+          "axes": [
+            [
+              "气泡",
+              "液滴",
+              "颗粒"
+            ],
+            [
+              "小密度比",
+              "大密度比"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "sigma",
+              "label": "表面张力",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.2,
+              "samples": [
+                0.01,
+                0.07
+              ]
+            },
+            {
+              "key": "drho",
+              "label": "密度差",
+              "unit": "—",
+              "min": 0.1,
+              "max": 1000,
+              "samples": [
+                1,
+                100,
+                800
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "plasma",
+          "name": "等离子体",
+          "factory": "particles",
+          "formula": "单粒子/MHD",
+          "axes": [
+            [
+              "单粒子",
+              "磁流体",
+              "动理学"
+            ],
+            [
+              "磁镜",
+              "托卡马克示意"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "B",
+              "label": "磁场",
+              "unit": "—",
+              "min": 0.01,
+              "max": 10,
+              "samples": [
+                0.1,
+                1,
+                5
+              ]
+            },
+            {
+              "key": "n",
+              "label": "密度",
+              "unit": "—",
+              "min": 10000000000,
+              "max": 100000000000000000000,
+              "samples": [
+                100000000000000,
+                1000000000000000000
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "—",
+              "min": 1,
+              "max": 10000,
+              "samples": [
+                10,
+                100,
+                1000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "supercon",
+          "name": "超导",
+          "factory": "field2d",
+          "formula": "伦敦/GL",
+          "axes": [
+            [
+              "伦敦方程",
+              "金兹堡-朗道"
+            ],
+            [
+              "薄膜",
+              "体材"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "lam",
+              "label": "穿透深度",
+              "unit": "nm",
+              "min": 10,
+              "max": 500,
+              "samples": [
+                50,
+                100,
+                200
+              ]
+            },
+            {
+              "key": "xi",
+              "label": "相干长度",
+              "unit": "—",
+              "min": 5,
+              "max": 200,
+              "samples": [
+                20,
+                80
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "magnetism",
+          "name": "磁性",
+          "factory": "field2d",
+          "formula": "交换作用",
+          "axes": [
+            [
+              "铁磁",
+              "反铁磁",
+              "亚铁磁"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "J",
+              "label": "交换常数",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10,
+              "samples": [
+                1,
+                3,
+                6
+              ]
+            },
+            {
+              "key": "K",
+              "label": "各向异性",
+              "unit": "—",
+              "min": 0,
+              "max": 5,
+              "samples": [
+                0.2,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "semiconductor",
+          "name": "半导体",
+          "factory": "gauge",
+          "formula": "PN/MOS",
+          "axes": [
+            [
+              "PN结",
+              "MOS",
+              "异质结"
+            ],
+            [
+              "轻掺",
+              "重掺"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Nd",
+              "label": "掺杂浓度",
+              "unit": "cm⁻³",
+              "min": 100000000000000,
+              "max": 10000000000000000000,
+              "samples": [
+                1000000000000000,
+                100000000000000000
+              ]
+            },
+            {
+              "key": "dE",
+              "label": "能带偏移",
+              "unit": "eV",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0.1,
+                0.4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "topo",
+          "name": "拓扑材料",
+          "factory": "field2d",
+          "formula": "霍尔/TI",
+          "axes": [
+            [
+              "霍尔效应",
+              "拓扑绝缘体"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Chern",
+              "label": "陈数",
+              "unit": "—",
+              "min": -2,
+              "max": 2,
+              "samples": [
+                -1,
+                0,
+                1
+              ]
+            },
+            {
+              "key": "bc",
+              "label": "边界",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0,
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.1",
+      "domain": "计算机科学",
+      "sub": "算法与数据结构",
+      "target": 400,
+      "families": [
+        {
+          "slug": "sort",
+          "name": "排序算法",
+          "factory": "discrete",
+          "formula": "比较排序",
+          "axes": [
+            [
+              "冒泡",
+              "选择",
+              "插入",
+              "归并",
+              "快排",
+              "堆排",
+              "希尔",
+              "计数",
+              "基数"
+            ],
+            [
+              "随机",
+              "近有序",
+              "逆序"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "规模",
+              "unit": "—",
+              "min": 8,
+              "max": 256,
+              "samples": [
+                16,
+                64,
+                128
+              ]
+            },
+            {
+              "key": "sortedness",
+              "label": "有序度",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0,
+                0.5,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "search",
+          "name": "查找算法",
+          "factory": "discrete",
+          "formula": "查找",
+          "axes": [
+            [
+              "线性",
+              "二分",
+              "插值",
+              "哈希"
+            ],
+            [
+              "均匀键",
+              "偏斜键"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "表大小",
+              "unit": "—",
+              "min": 8,
+              "max": 1024,
+              "samples": [
+                32,
+                128,
+                512
+              ]
+            },
+            {
+              "key": "collide",
+              "label": "冲突策略",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "graph-trav",
+          "name": "图遍历",
+          "factory": "graph",
+          "formula": "BFS/DFS",
+          "axes": [
+            [
+              "BFS",
+              "DFS"
+            ],
+            [
+              "有向",
+              "无向"
+            ],
+            [
+              "连通",
+              "非连通"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "节点数",
+              "unit": "—",
+              "min": 5,
+              "max": 80,
+              "samples": [
+                10,
+                25,
+                50
+              ]
+            },
+            {
+              "key": "p",
+              "label": "边密度",
+              "unit": "—",
+              "min": 0.05,
+              "max": 0.6,
+              "samples": [
+                0.1,
+                0.25,
+                0.4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "shortest",
+          "name": "最短路径",
+          "factory": "graph",
+          "formula": "Dijkstra/BF/Floyd/A*",
+          "axes": [
+            [
+              "Dijkstra",
+              "Bellman-Ford",
+              "Floyd",
+              "A*"
+            ],
+            [
+              "正权",
+              "含负权"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "图规模",
+              "unit": "—",
+              "min": 5,
+              "max": 60,
+              "samples": [
+                10,
+                20,
+                40
+              ]
+            },
+            {
+              "key": "wSpread",
+              "label": "权重分布",
+              "unit": "—",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                2,
+                5,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "mst",
+          "name": "最小生成树",
+          "factory": "graph",
+          "formula": "Prim/Kruskal",
+          "axes": [
+            [
+              "Prim",
+              "Kruskal"
+            ],
+            [
+              "稠密",
+              "稀疏"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "节点数",
+              "unit": "—",
+              "min": 5,
+              "max": 60,
+              "samples": [
+                12,
+                24,
+                40
+              ]
+            },
+            {
+              "key": "p",
+              "label": "边密度",
+              "unit": "—",
+              "min": 0.05,
+              "max": 0.5,
+              "samples": [
+                0.1,
+                0.3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "string-match",
+          "name": "字符串匹配",
+          "factory": "discrete",
+          "formula": "KMP/BM/AC",
+          "axes": [
+            [
+              "KMP",
+              "Rabin-Karp",
+              "BM",
+              "AC自动机"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "m",
+              "label": "模式长",
+              "unit": "—",
+              "min": 2,
+              "max": 40,
+              "samples": [
+                4,
+                12,
+                24
+              ]
+            },
+            {
+              "key": "n",
+              "label": "文本规模",
+              "unit": "—",
+              "min": 20,
+              "max": 500,
+              "samples": [
+                50,
+                150,
+                300
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "dp",
+          "name": "动态规划",
+          "factory": "discrete",
+          "formula": "DP表",
+          "axes": [
+            [
+              "背包",
+              "LCS",
+              "LIS",
+              "矩阵链",
+              "编辑距离"
+            ],
+            [
+              "小规模",
+              "中规模"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "问题规模",
+              "unit": "—",
+              "min": 4,
+              "max": 64,
+              "samples": [
+                8,
+                16,
+                32
+              ]
+            },
+            {
+              "key": "cap",
+              "label": "约束",
+              "unit": "—",
+              "min": 5,
+              "max": 100,
+              "samples": [
+                10,
+                40
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "tree-ds",
+          "name": "树结构",
+          "factory": "tree",
+          "formula": "BST/AVL/RB/B",
+          "axes": [
+            [
+              "BST",
+              "AVL",
+              "红黑",
+              "B树",
+              "跳表"
+            ],
+            [
+              "插入重",
+              "删除重"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "键数",
+              "unit": "—",
+              "min": 8,
+              "max": 200,
+              "samples": [
+                20,
+                50,
+                100
+              ]
+            },
+            {
+              "key": "order",
+              "label": "树阶",
+              "unit": "—",
+              "min": 2,
+              "max": 8,
+              "samples": [
+                2,
+                4,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "hashtable",
+          "name": "哈希表",
+          "factory": "discrete",
+          "formula": "链地址/开放寻址",
+          "axes": [
+            [
+              "链地址",
+              "开放寻址"
+            ],
+            [
+              "乘法哈希",
+              "通用哈希"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "cap",
+              "label": "表容量",
+              "unit": "—",
+              "min": 8,
+              "max": 512,
+              "samples": [
+                16,
+                64,
+                256
+              ]
+            },
+            {
+              "key": "load",
+              "label": "负载因子",
+              "unit": "—",
+              "min": 0.2,
+              "max": 0.95,
+              "samples": [
+                0.5,
+                0.7,
+                0.9
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "uf",
+          "name": "并查集",
+          "factory": "discrete",
+          "formula": "路径压缩/按秩",
+          "axes": [
+            [
+              "路径压缩",
+              "按秩合并",
+              "两者"
+            ],
+            [
+              "随机合并",
+              "链式合并"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "元素数",
+              "unit": "—",
+              "min": 8,
+              "max": 500,
+              "samples": [
+                32,
+                100,
+                250
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "heap",
+          "name": "堆结构",
+          "factory": "tree",
+          "formula": "二叉堆/斐波那契",
+          "axes": [
+            [
+              "二叉堆",
+              "斐波那契堆"
+            ],
+            [
+              "建堆",
+              "插入",
+              "删除"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "元素数",
+              "unit": "—",
+              "min": 8,
+              "max": 300,
+              "samples": [
+                20,
+                64,
+                128
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "segtree",
+          "name": "线段树/树状数组",
+          "factory": "discrete",
+          "formula": "区间查询",
+          "axes": [
+            [
+              "线段树",
+              "树状数组"
+            ],
+            [
+              "区间查询",
+              "区间更新"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "数组规模",
+              "unit": "—",
+              "min": 8,
+              "max": 512,
+              "samples": [
+                32,
+                128,
+                256
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.2",
+      "domain": "计算机科学",
+      "sub": "计算理论",
+      "target": 200,
+      "families": [
+        {
+          "slug": "fa",
+          "name": "有限自动机",
+          "factory": "fsm",
+          "formula": "DFA/NFA",
+          "axes": [
+            [
+              "DFA",
+              "NFA"
+            ],
+            [
+              "接受",
+              "拒绝"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "states",
+              "label": "状态数",
+              "unit": "—",
+              "min": 2,
+              "max": 20,
+              "samples": [
+                3,
+                6,
+                12
+              ]
+            },
+            {
+              "key": "alpha",
+              "label": "字母表",
+              "unit": "—",
+              "min": 2,
+              "max": 8,
+              "samples": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pda",
+          "name": "下推自动机",
+          "factory": "fsm",
+          "formula": "CFG→PDA",
+          "axes": [
+            [
+              "简单CFG",
+              "嵌套CFG"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "stackA",
+              "label": "栈字母",
+              "unit": "—",
+              "min": 2,
+              "max": 8,
+              "samples": [
+                2,
+                4
+              ]
+            },
+            {
+              "key": "states",
+              "label": "状态数",
+              "unit": "—",
+              "min": 2,
+              "max": 12,
+              "samples": [
+                3,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "tm",
+          "name": "图灵机",
+          "factory": "turing",
+          "formula": "单带/多带",
+          "axes": [
+            [
+              "单带",
+              "多带"
+            ],
+            [
+              "判定",
+              "识别"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "states",
+              "label": "状态数",
+              "unit": "—",
+              "min": 2,
+              "max": 16,
+              "samples": [
+                3,
+                5,
+                8
+              ]
+            },
+            {
+              "key": "alpha",
+              "label": "纸带字母",
+              "unit": "—",
+              "min": 2,
+              "max": 8,
+              "samples": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "regex",
+          "name": "正则表达式",
+          "factory": "fsm",
+          "formula": "正则匹配",
+          "axes": [
+            [
+              "匹配",
+              "不匹配"
+            ],
+            [
+              "简单",
+              "复杂"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "complexity",
+              "label": "正则复杂度",
+              "unit": "—",
+              "min": 1,
+              "max": 10,
+              "samples": [
+                2,
+                5,
+                8
+              ]
+            },
+            {
+              "key": "len",
+              "label": "输入串",
+              "unit": "—",
+              "min": 4,
+              "max": 64,
+              "samples": [
+                8,
+                20,
+                40
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "grammar",
+          "name": "文法",
+          "factory": "tree",
+          "formula": "CFG/CSG推导",
+          "axes": [
+            [
+              "上下文无关",
+              "上下文相关"
+            ],
+            [
+              "短推导",
+              "长推导"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "size",
+              "label": "文法规模",
+              "unit": "—",
+              "min": 2,
+              "max": 20,
+              "samples": [
+                4,
+                8,
+                12
+              ]
+            },
+            {
+              "key": "steps",
+              "label": "推导步数",
+              "unit": "—",
+              "min": 2,
+              "max": 30,
+              "samples": [
+                5,
+                10,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "computability",
+          "name": "可计算性",
+          "factory": "turing",
+          "formula": "停机问题示意",
+          "axes": [
+            [
+              "停机问题",
+              "可判定性"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "encoding",
+              "label": "编码方式",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "input",
+              "label": "输入规模",
+              "unit": "—",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                3,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "complexity",
+          "name": "复杂度类",
+          "factory": "discrete",
+          "formula": "P/NP示意",
+          "axes": [
+            [
+              "P",
+              "NP",
+              "PSPACE"
+            ],
+            [
+              "小n",
+              "中n"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "问题规模",
+              "unit": "—",
+              "min": 4,
+              "max": 40,
+              "samples": [
+                8,
+                16,
+                24
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "ca",
+          "name": "细胞自动机",
+          "factory": "traffic",
+          "formula": "生命/初等CA",
+          "axes": [
+            [
+              "生命游戏",
+              "一维CA",
+              "初等CA"
+            ],
+            [
+              "规则30",
+              "规则110",
+              "规则90"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rule",
+              "label": "规则号",
+              "unit": "—",
+              "min": 0,
+              "max": 255,
+              "samples": [
+                30,
+                90,
+                110
+              ]
+            },
+            {
+              "key": "seed",
+              "label": "初始构型",
+              "unit": "—",
+              "min": 0,
+              "max": 100,
+              "samples": [
+                1,
+                7,
+                42
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "ca-app",
+          "name": "元胞自动机应用",
+          "factory": "traffic",
+          "formula": "火灾/交通/沙堆",
+          "axes": [
+            [
+              "森林火灾",
+              "交通",
+              "沙堆"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "p",
+              "label": "概率",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.8,
+              "samples": [
+                0.1,
+                0.3,
+                0.5
+              ]
+            },
+            {
+              "key": "thresh",
+              "label": "阈值",
+              "unit": "—",
+              "min": 1,
+              "max": 8,
+              "samples": [
+                2,
+                4
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.3",
+      "domain": "计算机科学",
+      "sub": "机器学习",
+      "target": 350,
+      "families": [
+        {
+          "slug": "linear-model",
+          "name": "线性模型",
+          "factory": "ml",
+          "formula": "回归/分类",
+          "axes": [
+            [
+              "线性回归",
+              "逻辑回归",
+              "岭回归",
+              "Lasso"
+            ],
+            [
+              "弱正则",
+              "强正则"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "lr",
+              "label": "学习率",
+              "unit": "—",
+              "min": 0.001,
+              "max": 1,
+              "samples": [
+                0.01,
+                0.1,
+                0.5
+              ]
+            },
+            {
+              "key": "reg",
+              "label": "正则系数",
+              "unit": "—",
+              "min": 0,
+              "max": 10,
+              "samples": [
+                0,
+                0.1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "tree-model",
+          "name": "树模型",
+          "factory": "ml",
+          "formula": "树集成",
+          "axes": [
+            [
+              "决策树",
+              "随机森林",
+              "GBDT",
+              "XGBoost"
+            ],
+            [
+              "浅树",
+              "深树"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "trees",
+              "label": "树数",
+              "unit": "—",
+              "min": 1,
+              "max": 100,
+              "samples": [
+                5,
+                20,
+                50
+              ]
+            },
+            {
+              "key": "depth",
+              "label": "深度",
+              "unit": "—",
+              "min": 1,
+              "max": 16,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "sample",
+              "label": "采样率",
+              "unit": "—",
+              "min": 0.3,
+              "max": 1,
+              "samples": [
+                0.6,
+                0.8,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "kernel",
+          "name": "核方法",
+          "factory": "ml",
+          "formula": "SVM/核岭",
+          "axes": [
+            [
+              "SVM",
+              "核岭回归"
+            ],
+            [
+              "RBF",
+              "多项式",
+              "线性核"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "gamma",
+              "label": "核参数",
+              "unit": "—",
+              "min": 0.01,
+              "max": 10,
+              "samples": [
+                0.1,
+                1,
+                4
+              ]
+            },
+            {
+              "key": "C",
+              "label": "C",
+              "unit": "—",
+              "min": 0.1,
+              "max": 100,
+              "samples": [
+                1,
+                10,
+                50
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "cluster",
+          "name": "聚类",
+          "factory": "ml",
+          "formula": "无监督聚类",
+          "axes": [
+            [
+              "K-means",
+              "层次",
+              "DBSCAN",
+              "GMM"
+            ],
+            [
+              "少簇",
+              "多簇"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "k",
+              "label": "簇数",
+              "unit": "—",
+              "min": 2,
+              "max": 12,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "metric",
+              "label": "距离度量",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "dimred",
+          "name": "降维",
+          "factory": "ml",
+          "formula": "PCA/t-SNE",
+          "axes": [
+            [
+              "PCA",
+              "t-SNE",
+              "UMAP",
+              "LDA"
+            ],
+            [
+              "2D",
+              "3D"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "k",
+              "label": "目标维数",
+              "unit": "—",
+              "min": 1,
+              "max": 10,
+              "samples": [
+                2,
+                3,
+                5
+              ]
+            },
+            {
+              "key": "nn",
+              "label": "邻域",
+              "unit": "—",
+              "min": 5,
+              "max": 50,
+              "samples": [
+                10,
+                15,
+                30
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "nn",
+          "name": "神经网络",
+          "factory": "ml",
+          "formula": "前向/反传",
+          "axes": [
+            [
+              "MLP",
+              "CNN",
+              "RNN",
+              "LSTM",
+              "Transformer"
+            ],
+            [
+              "窄",
+              "宽"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "layers",
+              "label": "层数",
+              "unit": "—",
+              "min": 1,
+              "max": 12,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "width",
+              "label": "宽度",
+              "unit": "—",
+              "min": 4,
+              "max": 256,
+              "samples": [
+                16,
+                64,
+                128
+              ]
+            },
+            {
+              "key": "act",
+              "label": "激活",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "conv",
+          "name": "卷积",
+          "factory": "ml",
+          "formula": "卷积特征",
+          "axes": [
+            [
+              "小核",
+              "大核"
+            ],
+            [
+              "同填充",
+              "有效填充"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "k",
+              "label": "核尺寸",
+              "unit": "—",
+              "min": 1,
+              "max": 11,
+              "samples": [
+                3,
+                5,
+                7
+              ]
+            },
+            {
+              "key": "stride",
+              "label": "步长",
+              "unit": "—",
+              "min": 1,
+              "max": 4,
+              "samples": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "ch",
+              "label": "通道数",
+              "unit": "—",
+              "min": 1,
+              "max": 64,
+              "samples": [
+                8,
+                16,
+                32
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "attention",
+          "name": "注意力",
+          "factory": "ml",
+          "formula": "自注意力",
+          "axes": [
+            [
+              "自注意力",
+              "多头"
+            ],
+            [
+              "短序列",
+              "长序列"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "heads",
+              "label": "头数",
+              "unit": "—",
+              "min": 1,
+              "max": 16,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "dk",
+              "label": "d_k",
+              "unit": "—",
+              "min": 8,
+              "max": 128,
+              "samples": [
+                16,
+                32,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rl",
+          "name": "强化学习",
+          "factory": "ml",
+          "formula": "Q/DQN/PPO",
+          "axes": [
+            [
+              "Q-learning",
+              "DQN",
+              "PPO",
+              "A2C"
+            ],
+            [
+              "简单环境",
+              "网格环境"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "gamma",
+              "label": "折扣",
+              "unit": "—",
+              "min": 0.5,
+              "max": 0.99,
+              "samples": [
+                0.9,
+                0.95,
+                0.99
+              ]
+            },
+            {
+              "key": "lr",
+              "label": "学习率",
+              "unit": "—",
+              "min": 0.0001,
+              "max": 0.5,
+              "samples": [
+                0.001,
+                0.01
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "opt-algo",
+          "name": "优化算法",
+          "factory": "opt",
+          "formula": "GD/Adam",
+          "axes": [
+            [
+              "梯度下降",
+              "动量",
+              "Adam",
+              "RMSprop"
+            ],
+            [
+              "凸",
+              "非凸"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "lr",
+              "label": "学习率",
+              "unit": "—",
+              "min": 0.0001,
+              "max": 1,
+              "samples": [
+                0.01,
+                0.1
+              ]
+            },
+            {
+              "key": "mom",
+              "label": "动量",
+              "unit": "—",
+              "min": 0,
+              "max": 0.99,
+              "samples": [
+                0,
+                0.9
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "evo",
+          "name": "进化算法",
+          "factory": "opt",
+          "formula": "GA/PSO/SA",
+          "axes": [
+            [
+              "遗传算法",
+              "粒子群",
+              "蚁群",
+              "模拟退火"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "pop",
+              "label": "种群",
+              "unit": "—",
+              "min": 10,
+              "max": 200,
+              "samples": [
+                20,
+                50,
+                100
+              ]
+            },
+            {
+              "key": "mut",
+              "label": "变异率",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.5,
+              "samples": [
+                0.05,
+                0.1,
+                0.2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pgm",
+          "name": "概率图模型",
+          "factory": "ml",
+          "formula": "BN/MRF/HMM",
+          "axes": [
+            [
+              "贝叶斯网络",
+              "马尔可夫随机场",
+              "HMM"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nodes",
+              "label": "结构规模",
+              "unit": "—",
+              "min": 3,
+              "max": 20,
+              "samples": [
+                4,
+                8,
+                12
+              ]
+            },
+            {
+              "key": "params",
+              "label": "参数尺度",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.4",
+      "domain": "计算机科学",
+      "sub": "密码学",
+      "target": 150,
+      "families": [
+        {
+          "slug": "classical-cipher",
+          "name": "经典密码",
+          "factory": "crypto",
+          "formula": "替换/转置",
+          "axes": [
+            [
+              "凯撒",
+              "维吉尼亚",
+              "替换",
+              "转置"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "keyspace",
+              "label": "密钥空间",
+              "unit": "—",
+              "min": 26,
+              "max": 1000000,
+              "samples": [
+                26,
+                312,
+                10000
+              ]
+            },
+            {
+              "key": "len",
+              "label": "明文长度",
+              "unit": "—",
+              "min": 4,
+              "max": 200,
+              "samples": [
+                16,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "sym-enc",
+          "name": "对称加密",
+          "factory": "crypto",
+          "formula": "DES/AES",
+          "axes": [
+            [
+              "DES",
+              "AES",
+              "流密码"
+            ],
+            [
+              "ECB",
+              "CBC",
+              "CTR"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "keyBits",
+              "label": "密钥长度",
+              "unit": "—",
+              "min": 64,
+              "max": 256,
+              "samples": [
+                64,
+                128,
+                256
+              ]
+            },
+            {
+              "key": "mode",
+              "label": "分组模式",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pubkey",
+          "name": "公钥密码",
+          "factory": "crypto",
+          "formula": "RSA/DH/ECC",
+          "axes": [
+            [
+              "RSA",
+              "DH",
+              "ECC"
+            ],
+            [
+              "短钥",
+              "长钥"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "bits",
+              "label": "素数/曲线",
+              "unit": "—",
+              "min": 32,
+              "max": 2048,
+              "samples": [
+                64,
+                256,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "hash",
+          "name": "哈希函数",
+          "factory": "crypto",
+          "formula": "MD5/SHA",
+          "axes": [
+            [
+              "MD5",
+              "SHA-1",
+              "SHA-256"
+            ],
+            [
+              "短输入",
+              "长输入"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "len",
+              "label": "输入长度",
+              "unit": "—",
+              "min": 1,
+              "max": 10000,
+              "samples": [
+                16,
+                256,
+                2048
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "mac",
+          "name": "消息认证",
+          "factory": "crypto",
+          "formula": "HMAC/签名",
+          "axes": [
+            [
+              "HMAC",
+              "CMAC",
+              "数字签名"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "key",
+              "label": "密钥尺度",
+              "unit": "—",
+              "min": 8,
+              "max": 256,
+              "samples": [
+                16,
+                32,
+                128
+              ]
+            },
+            {
+              "key": "msg",
+              "label": "消息长",
+              "unit": "—",
+              "min": 4,
+              "max": 1000,
+              "samples": [
+                32,
+                128
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "ecc-code",
+          "name": "纠错码",
+          "factory": "comm",
+          "formula": "汉明/CRC/LDPC",
+          "axes": [
+            [
+              "汉明码",
+              "CRC",
+              "卷积码",
+              "LDPC"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rate",
+              "label": "码率",
+              "unit": "—",
+              "min": 0.2,
+              "max": 0.95,
+              "samples": [
+                0.5,
+                0.75
+              ]
+            },
+            {
+              "key": "K",
+              "label": "约束长度",
+              "unit": "—",
+              "min": 2,
+              "max": 9,
+              "samples": [
+                3,
+                5,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "infotheory",
+          "name": "信息论",
+          "factory": "gauge",
+          "formula": "熵/容量",
+          "axes": [
+            [
+              "熵",
+              "互信息",
+              "信道容量"
+            ],
+            [
+              "二元源",
+              "多元源"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "p",
+              "label": "分布",
+              "unit": "—",
+              "min": 0.05,
+              "max": 0.95,
+              "samples": [
+                0.1,
+                0.5,
+                0.8
+              ]
+            },
+            {
+              "key": "snr",
+              "label": "信噪比",
+              "unit": "dB",
+              "min": -5,
+              "max": 40,
+              "samples": [
+                0,
+                10,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "compress",
+          "name": "压缩",
+          "factory": "tree",
+          "formula": "Huffman/LZ",
+          "axes": [
+            [
+              "哈夫曼",
+              "算术",
+              "LZ77"
+            ],
+            [
+              "英文",
+              "重复文本"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "dict",
+              "label": "字典大小",
+              "unit": "—",
+              "min": 16,
+              "max": 4096,
+              "samples": [
+                256,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "zkp",
+          "name": "零知识证明",
+          "factory": "crypto",
+          "formula": "交互/非交互示意",
+          "axes": [
+            [
+              "交互式",
+              "非交互式"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rounds",
+              "label": "协议轮数",
+              "unit": "—",
+              "min": 1,
+              "max": 20,
+              "samples": [
+                3,
+                8,
+                15
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.5",
+      "domain": "计算机科学",
+      "sub": "操作系统",
+      "target": 100,
+      "families": [
+        {
+          "slug": "sched",
+          "name": "进程调度",
+          "factory": "os",
+          "formula": "FCFS/SJF/RR",
+          "axes": [
+            [
+              "FCFS",
+              "SJF",
+              "RR",
+              "优先级"
+            ],
+            [
+              "轻负载",
+              "重负载"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "arrival",
+              "label": "到达跨度",
+              "unit": "—",
+              "min": 0,
+              "max": 50,
+              "samples": [
+                5,
+                15,
+                30
+              ]
+            },
+            {
+              "key": "burst",
+              "label": "执行时间",
+              "unit": "—",
+              "min": 1,
+              "max": 40,
+              "samples": [
+                4,
+                10,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "mem",
+          "name": "内存管理",
+          "factory": "os",
+          "formula": "分页/置换",
+          "axes": [
+            [
+              "分页",
+              "分段",
+              "段页式"
+            ],
+            [
+              "FIFO",
+              "LRU",
+              "Clock"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "page",
+              "label": "页大小",
+              "unit": "—",
+              "min": 1,
+              "max": 16,
+              "samples": [
+                1,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "refs",
+              "label": "访问序列长",
+              "unit": "—",
+              "min": 10,
+              "max": 200,
+              "samples": [
+                30,
+                80
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "deadlock",
+          "name": "死锁",
+          "factory": "os",
+          "formula": "银行家/资源图",
+          "axes": [
+            [
+              "银行家算法",
+              "资源分配图"
+            ],
+            [
+              "少进程",
+              "多进程"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nProc",
+              "label": "进程数",
+              "unit": "—",
+              "min": 2,
+              "max": 12,
+              "samples": [
+                3,
+                5,
+                8
+              ]
+            },
+            {
+              "key": "nRes",
+              "label": "资源数",
+              "unit": "—",
+              "min": 1,
+              "max": 8,
+              "samples": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "fs",
+          "name": "文件系统",
+          "factory": "os",
+          "formula": "inode/FAT",
+          "axes": [
+            [
+              "inode",
+              "FAT",
+              "日志"
+            ],
+            [
+              "顺序读",
+              "随机读"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "block",
+              "label": "块大小",
+              "unit": "—",
+              "min": 0.5,
+              "max": 64,
+              "samples": [
+                1,
+                4,
+                16
+              ]
+            },
+            {
+              "key": "fsize",
+              "label": "文件大小",
+              "unit": "—",
+              "min": 1,
+              "max": 1000,
+              "samples": [
+                16,
+                128
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "netproto",
+          "name": "网络协议",
+          "factory": "net",
+          "formula": "TCP/UDP",
+          "axes": [
+            [
+              "TCP",
+              "UDP"
+            ],
+            [
+              "Reno",
+              "Cubic"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "bw",
+              "label": "带宽",
+              "unit": "—",
+              "min": 0.1,
+              "max": 100,
+              "samples": [
+                1,
+                10,
+                50
+              ]
+            },
+            {
+              "key": "rtt",
+              "label": "延迟",
+              "unit": "ms",
+              "min": 1,
+              "max": 500,
+              "samples": [
+                20,
+                80,
+                200
+              ]
+            },
+            {
+              "key": "loss",
+              "label": "丢包",
+              "unit": "—",
+              "min": 0,
+              "max": 0.2,
+              "samples": [
+                0,
+                0.02,
+                0.1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "routing",
+          "name": "路由",
+          "factory": "graph",
+          "formula": "DV/LS",
+          "axes": [
+            [
+              "距离矢量",
+              "链路状态"
+            ],
+            [
+              "小拓扑",
+              "中拓扑"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "节点数",
+              "unit": "—",
+              "min": 4,
+              "max": 40,
+              "samples": [
+                6,
+                12,
+                24
+              ]
+            },
+            {
+              "key": "cost",
+              "label": "链路代价跨度",
+              "unit": "—",
+              "min": 1,
+              "max": 50,
+              "samples": [
+                5,
+                15
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "queueing",
+          "name": "排队系统",
+          "factory": "os",
+          "formula": "M/M/1/c",
+          "axes": [
+            [
+              "M/M/1",
+              "M/M/c",
+              "M/G/1"
+            ],
+            [
+              "轻载",
+              "近饱和"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "lam",
+              "label": "到达率",
+              "unit": "—",
+              "min": 0.1,
+              "max": 20,
+              "samples": [
+                1,
+                5,
+                10
+              ]
+            },
+            {
+              "key": "mu",
+              "label": "服务率",
+              "unit": "—",
+              "min": 0.2,
+              "max": 25,
+              "samples": [
+                2,
+                6,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "consensus",
+          "name": "分布式共识",
+          "factory": "dist",
+          "formula": "Raft/Paxos",
+          "axes": [
+            [
+              "Raft",
+              "Paxos"
+            ],
+            [
+              "无故障",
+              "有故障"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "节点数",
+              "unit": "—",
+              "min": 3,
+              "max": 11,
+              "samples": [
+                3,
+                5,
+                7
+              ]
+            },
+            {
+              "key": "fault",
+              "label": "故障类型",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3.1",
+      "domain": "计算机工程",
+      "sub": "数字逻辑",
+      "target": 300,
+      "families": [
+        {
+          "slug": "gates",
+          "name": "逻辑门",
+          "factory": "logic",
+          "formula": "布尔门",
+          "axes": [
+            [
+              "与",
+              "或",
+              "非",
+              "与非",
+              "或非",
+              "异或",
+              "同或"
+            ],
+            [
+              "2输入",
+              "3输入",
+              "4输入"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "combo",
+              "label": "输入组合",
+              "unit": "—",
+              "min": 0,
+              "max": 15,
+              "samples": [
+                0,
+                5,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "combo",
+          "name": "组合逻辑模块",
+          "factory": "logic",
+          "formula": "加法器/MUX",
+          "axes": [
+            [
+              "半加",
+              "全加",
+              "比较器",
+              "编码器",
+              "译码器",
+              "MUX"
+            ],
+            [
+              "4位",
+              "8位",
+              "16位"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "width",
+              "label": "位宽",
+              "unit": "—",
+              "min": 1,
+              "max": 32,
+              "samples": [
+                4,
+                8,
+                16
+              ]
+            },
+            {
+              "key": "inputs",
+              "label": "输入数",
+              "unit": "—",
+              "min": 2,
+              "max": 16,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "seq",
+          "name": "时序模块",
+          "factory": "fsm",
+          "formula": "触发器",
+          "axes": [
+            [
+              "SR",
+              "D",
+              "JK",
+              "T"
+            ],
+            [
+              "电平触发",
+              "边沿触发"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "init",
+              "label": "初态",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "reg",
+          "name": "寄存器",
+          "factory": "arch",
+          "formula": "移位/并行",
+          "axes": [
+            [
+              "并行",
+              "移位",
+              "通用"
+            ],
+            [
+              "左移",
+              "右移"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "width",
+              "label": "位宽",
+              "unit": "—",
+              "min": 4,
+              "max": 64,
+              "samples": [
+                8,
+                16,
+                32
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "counter",
+          "name": "计数器",
+          "factory": "fsm",
+          "formula": "计数",
+          "axes": [
+            [
+              "二进制",
+              "BCD",
+              "环形",
+              "约翰逊"
+            ],
+            [
+              "同步",
+              "异步"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "mod",
+              "label": "模数",
+              "unit": "—",
+              "min": 2,
+              "max": 256,
+              "samples": [
+                10,
+                16,
+                60
+              ]
+            },
+            {
+              "key": "dir",
+              "label": "计数方向",
+              "unit": "—",
+              "min": -1,
+              "max": 1,
+              "samples": [
+                -1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "fsm-ce",
+          "name": "有限状态机",
+          "factory": "fsm",
+          "formula": "Moore/Mealy",
+          "axes": [
+            [
+              "Moore",
+              "Mealy"
+            ],
+            [
+              "少状态",
+              "多状态"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "states",
+              "label": "状态数",
+              "unit": "—",
+              "min": 2,
+              "max": 16,
+              "samples": [
+                3,
+                6,
+                10
+              ]
+            },
+            {
+              "key": "alpha",
+              "label": "输入字母表",
+              "unit": "—",
+              "min": 2,
+              "max": 8,
+              "samples": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "minimize",
+          "name": "逻辑化简",
+          "factory": "logic",
+          "formula": "卡诺/QM",
+          "axes": [
+            [
+              "卡诺图",
+              "奎因-麦克拉斯基"
+            ],
+            [
+              "少变量",
+              "多变量"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "vars",
+              "label": "变量数",
+              "unit": "—",
+              "min": 2,
+              "max": 6,
+              "samples": [
+                3,
+                4,
+                5
+              ]
+            },
+            {
+              "key": "minterms",
+              "label": "最小项数",
+              "unit": "—",
+              "min": 1,
+              "max": 32,
+              "samples": [
+                4,
+                8,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pld",
+          "name": "可编程逻辑",
+          "factory": "logic",
+          "formula": "PLA/PAL/LUT",
+          "axes": [
+            [
+              "PLA",
+              "PAL",
+              "FPGA查找表"
+            ],
+            [
+              "小配置",
+              "大配置"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "inputs",
+              "label": "输入数",
+              "unit": "—",
+              "min": 2,
+              "max": 16,
+              "samples": [
+                4,
+                8,
+                12
+              ]
+            },
+            {
+              "key": "products",
+              "label": "乘积项",
+              "unit": "—",
+              "min": 2,
+              "max": 64,
+              "samples": [
+                8,
+                16,
+                32
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3.2",
+      "domain": "计算机工程",
+      "sub": "计算机体系结构",
+      "target": 300,
+      "families": [
+        {
+          "slug": "isa",
+          "name": "指令集模拟",
+          "factory": "arch",
+          "formula": "ISA示意",
+          "axes": [
+            [
+              "RISC",
+              "CISC"
+            ],
+            [
+              "MIPS",
+              "ARM",
+              "RISC-V"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nInst",
+              "label": "指令数",
+              "unit": "—",
+              "min": 4,
+              "max": 64,
+              "samples": [
+                8,
+                16,
+                32
+              ]
+            },
+            {
+              "key": "addr",
+              "label": "寻址模式",
+              "unit": "—",
+              "min": 1,
+              "max": 6,
+              "samples": [
+                1,
+                3,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "datapath",
+          "name": "数据通路",
+          "factory": "arch",
+          "formula": "单/多周期",
+          "axes": [
+            [
+              "单周期",
+              "多周期",
+              "流水线"
+            ],
+            [
+              "16位",
+              "32位",
+              "64位"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "width",
+              "label": "位宽",
+              "unit": "—",
+              "min": 8,
+              "max": 64,
+              "samples": [
+                16,
+                32,
+                64
+              ]
+            },
+            {
+              "key": "ctrl",
+              "label": "控制信号数",
+              "unit": "—",
+              "min": 4,
+              "max": 40,
+              "samples": [
+                8,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pipeline",
+          "name": "流水线",
+          "factory": "arch",
+          "formula": "冒险/超标量",
+          "axes": [
+            [
+              "5级",
+              "超标量",
+              "超流水"
+            ],
+            [
+              "无冒险",
+              "数据冒险",
+              "控制冒险"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "stages",
+              "label": "级数",
+              "unit": "—",
+              "min": 3,
+              "max": 12,
+              "samples": [
+                5,
+                7,
+                10
+              ]
+            },
+            {
+              "key": "issue",
+              "label": "发射宽度",
+              "unit": "—",
+              "min": 1,
+              "max": 4,
+              "samples": [
+                1,
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "cache",
+          "name": "缓存",
+          "factory": "arch",
+          "formula": "命中率",
+          "axes": [
+            [
+              "直接映射",
+              "组相联",
+              "全相联"
+            ],
+            [
+              "LRU",
+              "FIFO",
+              "随机"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "cap",
+              "label": "容量",
+              "unit": "—",
+              "min": 4,
+              "max": 1024,
+              "samples": [
+                16,
+                64,
+                256
+              ]
+            },
+            {
+              "key": "block",
+              "label": "块大小",
+              "unit": "—",
+              "min": 4,
+              "max": 128,
+              "samples": [
+                16,
+                32,
+                64
+              ]
+            },
+            {
+              "key": "assoc",
+              "label": "相联度",
+              "unit": "—",
+              "min": 1,
+              "max": 16,
+              "samples": [
+                1,
+                4,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "vmem",
+          "name": "虚拟内存",
+          "factory": "arch",
+          "formula": "页表/TLB",
+          "axes": [
+            [
+              "页表",
+              "TLB",
+              "多级页表"
+            ],
+            [
+              "小页",
+              "大页"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "page",
+              "label": "页大小",
+              "unit": "—",
+              "min": 1,
+              "max": 64,
+              "samples": [
+                4,
+                16
+              ]
+            },
+            {
+              "key": "tlb",
+              "label": "TLB条目",
+              "unit": "—",
+              "min": 4,
+              "max": 128,
+              "samples": [
+                8,
+                32,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "branch",
+          "name": "分支预测",
+          "factory": "arch",
+          "formula": "静态/动态预测",
+          "axes": [
+            [
+              "静态",
+              "2-bit",
+              "BTB"
+            ],
+            [
+              "短历史",
+              "长历史"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "hist",
+              "label": "历史长度",
+              "unit": "—",
+              "min": 1,
+              "max": 32,
+              "samples": [
+                2,
+                8,
+                16
+              ]
+            },
+            {
+              "key": "table",
+              "label": "表大小",
+              "unit": "—",
+              "min": 16,
+              "max": 4096,
+              "samples": [
+                64,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "bus",
+          "name": "总线与互连",
+          "factory": "net",
+          "formula": "总线/NoC",
+          "axes": [
+            [
+              "共享总线",
+              "交叉开关",
+              "NoC"
+            ],
+            [
+              "固定仲裁",
+              "轮询"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "masters",
+              "label": "主从数",
+              "unit": "—",
+              "min": 2,
+              "max": 32,
+              "samples": [
+                4,
+                8,
+                16
+              ]
+            },
+            {
+              "key": "bw",
+              "label": "带宽",
+              "unit": "—",
+              "min": 1,
+              "max": 100,
+              "samples": [
+                10,
+                40
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "memhier",
+          "name": "存储层次",
+          "factory": "arch",
+          "formula": "DRAM/SRAM",
+          "axes": [
+            [
+              "DRAM",
+              "SRAM",
+              "闪存"
+            ],
+            [
+              "FCFS",
+              "FR-FCFS"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "lat",
+              "label": "延迟",
+              "unit": "—",
+              "min": 1,
+              "max": 200,
+              "samples": [
+                10,
+                50,
+                100
+              ]
+            },
+            {
+              "key": "bw",
+              "label": "带宽",
+              "unit": "—",
+              "min": 1,
+              "max": 100,
+              "samples": [
+                10,
+                40
+              ]
+            },
+            {
+              "key": "cap",
+              "label": "容量",
+              "unit": "—",
+              "min": 16,
+              "max": 1000000,
+              "samples": [
+                256,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "multicore",
+          "name": "多核与一致性",
+          "factory": "dist",
+          "formula": "MESI/目录",
+          "axes": [
+            [
+              "监听",
+              "目录协议"
+            ],
+            [
+              "双核",
+              "四核",
+              "八核"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "cores",
+              "label": "核数",
+              "unit": "—",
+              "min": 2,
+              "max": 16,
+              "samples": [
+                2,
+                4,
+                8
+              ]
+            },
+            {
+              "key": "proto",
+              "label": "一致性状态",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3.3",
+      "domain": "计算机工程",
+      "sub": "嵌入式",
+      "target": 200,
+      "families": [
+        {
+          "slug": "gpio",
+          "name": "GPIO/中断",
+          "factory": "embed",
+          "formula": "边沿/电平",
+          "axes": [
+            [
+              "边沿触发",
+              "电平触发"
+            ],
+            [
+              "低优先",
+              "高优先"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "trig",
+              "label": "触发方式",
+              "unit": "—",
+              "min": 0,
+              "max": 1,
+              "samples": [
+                0,
+                1
+              ]
+            },
+            {
+              "key": "prio",
+              "label": "优先级",
+              "unit": "—",
+              "min": 0,
+              "max": 15,
+              "samples": [
+                1,
+                7,
+                15
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pwm",
+          "name": "定时器/PWM",
+          "factory": "embed",
+          "formula": "PWM",
+          "axes": [
+            [
+              "边沿对齐",
+              "中心对齐"
+            ],
+            [
+              "低占空",
+              "高占空"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "prescale",
+              "label": "预分频",
+              "unit": "—",
+              "min": 1,
+              "max": 256,
+              "samples": [
+                1,
+                8,
+                64
+              ]
+            },
+            {
+              "key": "period",
+              "label": "周期",
+              "unit": "—",
+              "min": 10,
+              "max": 10000,
+              "samples": [
+                100,
+                1000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "adc",
+          "name": "ADC/DAC",
+          "factory": "embed",
+          "formula": "采样量化",
+          "axes": [
+            [
+              "低分辨",
+              "高分辨"
+            ],
+            [
+              "慢采样",
+              "快采样"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "bits",
+              "label": "位数",
+              "unit": "—",
+              "min": 4,
+              "max": 24,
+              "samples": [
+                8,
+                12,
+                16
+              ]
+            },
+            {
+              "key": "fs",
+              "label": "采样率",
+              "unit": "Hz",
+              "min": 100,
+              "max": 1000000,
+              "samples": [
+                1000,
+                48000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "serial",
+          "name": "串行通信",
+          "factory": "comm",
+          "formula": "UART/SPI/I2C/CAN",
+          "axes": [
+            [
+              "UART",
+              "SPI",
+              "I2C",
+              "CAN"
+            ],
+            [
+              "低速",
+              "高速"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "baud",
+              "label": "波特率",
+              "unit": "—",
+              "min": 1200,
+              "max": 1000000,
+              "samples": [
+                9600,
+                115200,
+                1000000
+              ]
+            },
+            {
+              "key": "frame",
+              "label": "帧格式",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "dma",
+          "name": "DMA",
+          "factory": "embed",
+          "formula": "DMA传输",
+          "axes": [
+            [
+              "单通道",
+              "多通道"
+            ],
+            [
+              "软件触发",
+              "外设触发"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "size",
+              "label": "传输大小",
+              "unit": "—",
+              "min": 4,
+              "max": 65536,
+              "samples": [
+                64,
+                1024,
+                8192
+              ]
+            },
+            {
+              "key": "prio",
+              "label": "优先级",
+              "unit": "—",
+              "min": 0,
+              "max": 7,
+              "samples": [
+                0,
+                3,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "wdt",
+          "name": "看门狗/低功耗",
+          "factory": "embed",
+          "formula": "超时/休眠",
+          "axes": [
+            [
+              "短超时",
+              "长超时"
+            ],
+            [
+              "浅睡",
+              "深睡"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "timeout",
+              "label": "超时",
+              "unit": "s",
+              "min": 1,
+              "max": 60,
+              "samples": [
+                2,
+                10,
+                30
+              ]
+            },
+            {
+              "key": "wake",
+              "label": "唤醒源",
+              "unit": "—",
+              "min": 0,
+              "max": 4,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rtsched",
+          "name": "实时调度",
+          "factory": "os",
+          "formula": "RM/EDF",
+          "axes": [
+            [
+              "RM",
+              "EDF"
+            ],
+            [
+              "可调度",
+              "过载"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "period",
+              "label": "周期",
+              "unit": "—",
+              "min": 5,
+              "max": 200,
+              "samples": [
+                20,
+                50,
+                100
+              ]
+            },
+            {
+              "key": "exec",
+              "label": "执行时间",
+              "unit": "—",
+              "min": 1,
+              "max": 80,
+              "samples": [
+                5,
+                15,
+                30
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "irq-nest",
+          "name": "中断嵌套",
+          "factory": "embed",
+          "formula": "优先级/屏蔽",
+          "axes": [
+            [
+              "可嵌套",
+              "不可嵌套"
+            ],
+            [
+              "低中断率",
+              "高中断率"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "levels",
+              "label": "优先级数",
+              "unit": "—",
+              "min": 2,
+              "max": 16,
+              "samples": [
+                4,
+                8,
+                12
+              ]
+            },
+            {
+              "key": "rate",
+              "label": "中断率",
+              "unit": "—",
+              "min": 1,
+              "max": 1000,
+              "samples": [
+                10,
+                100,
+                400
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3.4",
+      "domain": "计算机工程",
+      "sub": "通信",
+      "target": 200,
+      "families": [
+        {
+          "slug": "sample-quant",
+          "name": "采样与量化",
+          "factory": "comm",
+          "formula": "Nyquist",
+          "axes": [
+            [
+              "欠采样",
+              "奈奎斯特",
+              "过采样"
+            ],
+            [
+              "正弦",
+              "方波"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "fs",
+              "label": "采样率",
+              "unit": "Hz",
+              "min": 100,
+              "max": 96000,
+              "samples": [
+                8000,
+                44100
+              ]
+            },
+            {
+              "key": "N",
+              "label": "位数",
+              "unit": "—",
+              "min": 4,
+              "max": 24,
+              "samples": [
+                8,
+                16
+              ]
+            },
+            {
+              "key": "f0",
+              "label": "信号频率",
+              "unit": "Hz",
+              "min": 50,
+              "max": 20000,
+              "samples": [
+                440,
+                1000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "fft",
+          "name": "傅里叶变换",
+          "factory": "comm",
+          "formula": "DFT/FFT",
+          "axes": [
+            [
+              "DFT",
+              "FFT"
+            ],
+            [
+              "矩形窗",
+              "汉宁",
+              "汉明"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "N",
+              "label": "点数",
+              "unit": "—",
+              "min": 16,
+              "max": 2048,
+              "samples": [
+                64,
+                256,
+                1024
+              ]
+            },
+            {
+              "key": "win",
+              "label": "窗类型",
+              "unit": "—",
+              "min": 0,
+              "max": 2,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "filter",
+          "name": "数字滤波",
+          "factory": "comm",
+          "formula": "FIR/IIR",
+          "axes": [
+            [
+              "FIR",
+              "IIR"
+            ],
+            [
+              "低通",
+              "高通",
+              "带通",
+              "带阻"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "order",
+              "label": "阶数",
+              "unit": "—",
+              "min": 1,
+              "max": 64,
+              "samples": [
+                4,
+                16,
+                32
+              ]
+            },
+            {
+              "key": "fc",
+              "label": "截止频率",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.49,
+              "samples": [
+                0.05,
+                0.2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "mod",
+          "name": "调制",
+          "factory": "comm",
+          "formula": "AM/FM/QAM",
+          "axes": [
+            [
+              "AM",
+              "FM",
+              "PM",
+              "ASK",
+              "FSK",
+              "PSK",
+              "QAM",
+              "OFDM"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "m",
+              "label": "调制指数",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "fc",
+              "label": "载波频率",
+              "unit": "Hz",
+              "min": 100,
+              "max": 1000000,
+              "samples": [
+                1000,
+                10000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "linecode",
+          "name": "编码",
+          "factory": "comm",
+          "formula": "线路码",
+          "axes": [
+            [
+              "NRZ",
+              "曼彻斯特",
+              "4B5B",
+              "8B10B"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rate",
+              "label": "码率",
+              "unit": "—",
+              "min": 0.5,
+              "max": 1,
+              "samples": [
+                0.8,
+                1
+              ]
+            },
+            {
+              "key": "code",
+              "label": "线路码型",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "chancode",
+          "name": "信道编码",
+          "factory": "comm",
+          "formula": "卷积/LDPC",
+          "axes": [
+            [
+              "卷积",
+              "维特比",
+              "LDPC",
+              "Turbo"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rate",
+              "label": "码率",
+              "unit": "—",
+              "min": 0.2,
+              "max": 0.95,
+              "samples": [
+                0.33,
+                0.5,
+                0.75
+              ]
+            },
+            {
+              "key": "K",
+              "label": "约束长度",
+              "unit": "—",
+              "min": 2,
+              "max": 9,
+              "samples": [
+                3,
+                5,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "equalize",
+          "name": "均衡",
+          "factory": "comm",
+          "formula": "线性/DFE",
+          "axes": [
+            [
+              "线性",
+              "判决反馈",
+              "自适应"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "taps",
+              "label": "抽头数",
+              "unit": "—",
+              "min": 2,
+              "max": 64,
+              "samples": [
+                5,
+                16,
+                32
+              ]
+            },
+            {
+              "key": "mu",
+              "label": "步长",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.5,
+              "samples": [
+                0.01,
+                0.1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "sync",
+          "name": "同步",
+          "factory": "comm",
+          "formula": "载波/定时",
+          "axes": [
+            [
+              "载波",
+              "定时",
+              "帧同步"
+            ],
+            [
+              "低抖动",
+              "高抖动"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "bw",
+              "label": "环路带宽",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.5,
+              "samples": [
+                0.01,
+                0.05,
+                0.2
+              ]
+            },
+            {
+              "key": "jitter",
+              "label": "抖动",
+              "unit": "—",
+              "min": 0,
+              "max": 0.2,
+              "samples": [
+                0.01,
+                0.05
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4.1",
+      "domain": "工程",
+      "sub": "机械与结构",
+      "target": 250,
+      "families": [
+        {
+          "slug": "axial",
+          "name": "杆件拉伸/压缩",
+          "factory": "struct",
+          "formula": "σ=F/A",
+          "axes": [
+            [
+              "等截面",
+              "变截面"
+            ],
+            [
+              "弹性",
+              "塑性"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "A",
+              "label": "截面积",
+              "unit": "m²",
+              "min": 0.001,
+              "max": 0.5,
+              "samples": [
+                0.01,
+                0.05
+              ]
+            },
+            {
+              "key": "F",
+              "label": "力",
+              "unit": "N",
+              "min": 100,
+              "max": 1000000,
+              "samples": [
+                1000,
+                10000,
+                100000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "beam-bend",
+          "name": "梁弯曲",
+          "factory": "struct",
+          "formula": "SFD/BMD",
+          "axes": [
+            [
+              "简支",
+              "悬臂",
+              "外伸"
+            ],
+            [
+              "集中载荷",
+              "分布载荷"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "L",
+              "label": "跨度",
+              "unit": "m",
+              "min": 1,
+              "max": 30,
+              "samples": [
+                4,
+                8,
+                16
+              ]
+            },
+            {
+              "key": "EI",
+              "label": "EI",
+              "unit": "—",
+              "min": 10000,
+              "max": 100000000,
+              "samples": [
+                100000,
+                1000000
+              ]
+            },
+            {
+              "key": "P",
+              "label": "载荷",
+              "unit": "N",
+              "min": 100,
+              "max": 100000,
+              "samples": [
+                1000,
+                10000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "beam-defl",
+          "name": "梁变形",
+          "factory": "struct",
+          "formula": "挠度/转角",
+          "axes": [
+            [
+              "简支",
+              "固支",
+              "悬臂"
+            ],
+            [
+              "跨中",
+              "偏载"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "delta",
+              "label": "挠度尺度",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.2,
+              "samples": [
+                0.01,
+                0.05
+              ]
+            },
+            {
+              "key": "theta",
+              "label": "转角",
+              "unit": "—",
+              "min": 0.001,
+              "max": 0.2,
+              "samples": [
+                0.01,
+                0.05
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "buckling",
+          "name": "压杆稳定",
+          "factory": "struct",
+          "formula": "欧拉屈曲",
+          "axes": [
+            [
+              "欧拉",
+              "非弹性"
+            ],
+            [
+              "两端铰",
+              "一端固"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "L",
+              "label": "长度",
+              "unit": "m",
+              "min": 0.5,
+              "max": 20,
+              "samples": [
+                2,
+                5,
+                10
+              ]
+            },
+            {
+              "key": "EI",
+              "label": "EI",
+              "unit": "—",
+              "min": 1000,
+              "max": 10000000,
+              "samples": [
+                10000,
+                100000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "torsion",
+          "name": "轴扭转",
+          "factory": "struct",
+          "formula": "τ=Tρ/J",
+          "axes": [
+            [
+              "实心",
+              "空心"
+            ],
+            [
+              "圆截面",
+              "薄壁"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "d",
+              "label": "直径",
+              "unit": "m",
+              "min": 0.01,
+              "max": 0.5,
+              "samples": [
+                0.05,
+                0.1,
+                0.2
+              ]
+            },
+            {
+              "key": "T",
+              "label": "扭矩",
+              "unit": "N·m",
+              "min": 10,
+              "max": 100000,
+              "samples": [
+                100,
+                1000,
+                10000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "combined",
+          "name": "组合变形",
+          "factory": "struct",
+          "formula": "弯扭/拉弯",
+          "axes": [
+            [
+              "弯扭",
+              "拉弯"
+            ],
+            [
+              "弱组合",
+              "强组合"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "N",
+              "label": "轴力",
+              "unit": "—",
+              "min": 0,
+              "max": 100000,
+              "samples": [
+                0,
+                5000
+              ]
+            },
+            {
+              "key": "M",
+              "label": "弯矩",
+              "unit": "—",
+              "min": 0,
+              "max": 100000,
+              "samples": [
+                1000,
+                10000
+              ]
+            },
+            {
+              "key": "T",
+              "label": "扭矩",
+              "unit": "—",
+              "min": 0,
+              "max": 100000,
+              "samples": [
+                500,
+                5000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "truss",
+          "name": "桁架",
+          "factory": "struct",
+          "formula": "节点法",
+          "axes": [
+            [
+              "静定",
+              "超静定"
+            ],
+            [
+              "简单桁架",
+              "复杂桁架"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "nodes",
+              "label": "节点数",
+              "unit": "—",
+              "min": 3,
+              "max": 30,
+              "samples": [
+                6,
+                12,
+                20
+              ]
+            },
+            {
+              "key": "bars",
+              "label": "杆数",
+              "unit": "—",
+              "min": 3,
+              "max": 50,
+              "samples": [
+                8,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "frame",
+          "name": "框架",
+          "factory": "struct",
+          "formula": "刚架",
+          "axes": [
+            [
+              "单层",
+              "多层"
+            ],
+            [
+              "铰接",
+              "刚接"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "span",
+              "label": "跨度",
+              "unit": "m",
+              "min": 2,
+              "max": 40,
+              "samples": [
+                6,
+                12
+              ]
+            },
+            {
+              "key": "story",
+              "label": "层高",
+              "unit": "m",
+              "min": 2,
+              "max": 6,
+              "samples": [
+                3,
+                4
+              ]
+            },
+            {
+              "key": "k",
+              "label": "刚度",
+              "unit": "—",
+              "min": 100,
+              "max": 1000000,
+              "samples": [
+                1000,
+                10000
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "struct-dyn",
+          "name": "结构动力学",
+          "factory": "control",
+          "formula": "SDOF/MDOF",
+          "axes": [
+            [
+              "SDOF",
+              "MDOF"
+            ],
+            [
+              "自由",
+              "受迫"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "m",
+              "label": "m",
+              "unit": "—",
+              "min": 1,
+              "max": 100000,
+              "samples": [
+                10,
+                1000
+              ]
+            },
+            {
+              "key": "k",
+              "label": "k",
+              "unit": "—",
+              "min": 10,
+              "max": 10000000,
+              "samples": [
+                1000,
+                100000
+              ]
+            },
+            {
+              "key": "c",
+              "label": "c",
+              "unit": "—",
+              "min": 0.1,
+              "max": 10000,
+              "samples": [
+                10,
+                100
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "seismic",
+          "name": "地震响应",
+          "factory": "control",
+          "formula": "反应谱示意",
+          "axes": [
+            [
+              "短周期",
+              "长周期"
+            ],
+            [
+              "低阻尼",
+              "高阻尼"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "pga",
+              "label": "峰值加速度",
+              "unit": "g",
+              "min": 0.05,
+              "max": 1.5,
+              "samples": [
+                0.1,
+                0.4,
+                0.8
+              ]
+            },
+            {
+              "key": "zeta",
+              "label": "阻尼比",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.2,
+              "samples": [
+                0.02,
+                0.05,
+                0.1
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4.2",
+      "domain": "工程",
+      "sub": "流体与热工",
+      "target": 200,
+      "families": [
+        {
+          "slug": "pipe-flow",
+          "name": "管道流动",
+          "factory": "flow",
+          "formula": "Darcy-Weisbach",
+          "axes": [
+            [
+              "层流",
+              "湍流"
+            ],
+            [
+              "光滑管",
+              "粗糙管"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Re",
+              "label": "Re",
+              "unit": "—",
+              "min": 100,
+              "max": 1000000,
+              "samples": [
+                1000,
+                10000,
+                100000
+              ]
+            },
+            {
+              "key": "eps",
+              "label": "相对粗糙度",
+              "unit": "—",
+              "min": 0,
+              "max": 0.05,
+              "samples": [
+                0,
+                0.001,
+                0.02
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "open-channel",
+          "name": "明渠流",
+          "factory": "flow",
+          "formula": "曼宁公式",
+          "axes": [
+            [
+              "均匀",
+              "非均匀"
+            ],
+            [
+              "缓坡",
+              "陡坡"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "曼宁n",
+              "unit": "—",
+              "min": 0.01,
+              "max": 0.05,
+              "samples": [
+                0.012,
+                0.025
+              ]
+            },
+            {
+              "key": "S",
+              "label": "底坡",
+              "unit": "—",
+              "min": 0.0001,
+              "max": 0.05,
+              "samples": [
+                0.001,
+                0.01
+              ]
+            },
+            {
+              "key": "Q",
+              "label": "流量",
+              "unit": "m³/s",
+              "min": 0.1,
+              "max": 500,
+              "samples": [
+                1,
+                20,
+                100
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "weir",
+          "name": "堰流/闸孔",
+          "factory": "flow",
+          "formula": "堰流公式",
+          "axes": [
+            [
+              "薄壁堰",
+              "宽顶堰",
+              "闸孔"
+            ],
+            [
+              "小开度",
+              "大开度"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "H",
+              "label": "水头",
+              "unit": "m",
+              "min": 0.05,
+              "max": 5,
+              "samples": [
+                0.2,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "a",
+              "label": "开度",
+              "unit": "—",
+              "min": 0.01,
+              "max": 2,
+              "samples": [
+                0.1,
+                0.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pump-fan",
+          "name": "泵与风机",
+          "factory": "flow",
+          "formula": "特性曲线",
+          "axes": [
+            [
+              "串联",
+              "并联"
+            ],
+            [
+              "低速",
+              "高速"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "rpm",
+              "label": "转速",
+              "unit": "—",
+              "min": 500,
+              "max": 6000,
+              "samples": [
+                1450,
+                2900
+              ]
+            },
+            {
+              "key": "units",
+              "label": "台数",
+              "unit": "—",
+              "min": 1,
+              "max": 4,
+              "samples": [
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "hx",
+          "name": "换热器",
+          "factory": "cycle",
+          "formula": "LMTD",
+          "axes": [
+            [
+              "顺流",
+              "逆流",
+              "叉流"
+            ],
+            [
+              "洁净",
+              "污垢"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "U",
+              "label": "传热系数",
+              "unit": "—",
+              "min": 10,
+              "max": 2000,
+              "samples": [
+                100,
+                500
+              ]
+            },
+            {
+              "key": "A",
+              "label": "面积",
+              "unit": "m²",
+              "min": 0.1,
+              "max": 100,
+              "samples": [
+                1,
+                10,
+                40
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "cond-eng",
+          "name": "热传导工程",
+          "factory": "field2d",
+          "formula": "多层壁",
+          "axes": [
+            [
+              "一维",
+              "二维"
+            ],
+            [
+              "单层",
+              "多层"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "k",
+              "label": "导热系数",
+              "unit": "—",
+              "min": 0.02,
+              "max": 200,
+              "samples": [
+                0.5,
+                20,
+                100
+              ]
+            },
+            {
+              "key": "thk",
+              "label": "厚度",
+              "unit": "m",
+              "min": 0.001,
+              "max": 0.5,
+              "samples": [
+                0.01,
+                0.1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "conv-eng",
+          "name": "对流换热",
+          "factory": "flow",
+          "formula": "Nu关联式示意",
+          "axes": [
+            [
+              "自然",
+              "强制"
+            ],
+            [
+              "平板",
+              "管束"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "h",
+              "label": "h",
+              "unit": "—",
+              "min": 1,
+              "max": 500,
+              "samples": [
+                10,
+                50,
+                200
+              ]
+            },
+            {
+              "key": "U",
+              "label": "流速",
+              "unit": "m/s",
+              "min": 0.1,
+              "max": 30,
+              "samples": [
+                1,
+                5,
+                15
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "rad-eng",
+          "name": "辐射换热",
+          "factory": "gauge",
+          "formula": "视角因子",
+          "axes": [
+            [
+              "平行面",
+              "垂直面"
+            ],
+            [
+              "黑体",
+              "灰体"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "eps",
+              "label": "发射率",
+              "unit": "—",
+              "min": 0.05,
+              "max": 1,
+              "samples": [
+                0.2,
+                0.8
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 300,
+              "max": 1500,
+              "samples": [
+                400,
+                800
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "thermo-cycle",
+          "name": "热工循环",
+          "factory": "cycle",
+          "formula": "朗肯/布雷顿/制冷",
+          "axes": [
+            [
+              "朗肯",
+              "布雷顿",
+              "制冷"
+            ],
+            [
+              "低压比",
+              "高压比"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "P",
+              "label": "压力",
+              "unit": "bar",
+              "min": 0.1,
+              "max": 200,
+              "samples": [
+                1,
+                20,
+                100
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 250,
+              "max": 1500,
+              "samples": [
+                300,
+                600,
+                1200
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "combustion",
+          "name": "燃烧",
+          "factory": "reactor",
+          "formula": "当量比",
+          "axes": [
+            [
+              "预混",
+              "扩散"
+            ],
+            [
+              "贫燃",
+              "富燃"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "phi",
+              "label": "φ",
+              "unit": "—",
+              "min": 0.4,
+              "max": 2,
+              "samples": [
+                0.7,
+                1,
+                1.4
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 500,
+              "max": 2500,
+              "samples": [
+                800,
+                1500
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4.3",
+      "domain": "工程",
+      "sub": "电气与能源",
+      "target": 200,
+      "families": [
+        {
+          "slug": "dc-motor",
+          "name": "直流电机",
+          "factory": "control",
+          "formula": "他励/串励",
+          "axes": [
+            [
+              "他励",
+              "并励",
+              "串励"
+            ],
+            [
+              "轻载",
+              "重载"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "V",
+              "label": "电压",
+              "unit": "V",
+              "min": 6,
+              "max": 600,
+              "samples": [
+                24,
+                110,
+                220
+              ]
+            },
+            {
+              "key": "TL",
+              "label": "负载转矩",
+              "unit": "N·m",
+              "min": 0.1,
+              "max": 200,
+              "samples": [
+                1,
+                10,
+                50
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "ind-motor",
+          "name": "感应电机",
+          "factory": "control",
+          "formula": "转差",
+          "axes": [
+            [
+              "笼型",
+              "绕线型"
+            ],
+            [
+              "小转差",
+              "大转差"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "f",
+              "label": "频率",
+              "unit": "Hz",
+              "min": 40,
+              "max": 400,
+              "samples": [
+                50,
+                60
+              ]
+            },
+            {
+              "key": "V",
+              "label": "电压",
+              "unit": "V",
+              "min": 100,
+              "max": 690,
+              "samples": [
+                220,
+                380
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "sync-motor",
+          "name": "同步电机",
+          "factory": "control",
+          "formula": "功角",
+          "axes": [
+            [
+              "欠励",
+              "过励"
+            ],
+            [
+              "并网",
+              "孤岛"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "If",
+              "label": "励磁电流",
+              "unit": "A",
+              "min": 0.1,
+              "max": 50,
+              "samples": [
+                1,
+                5,
+                20
+              ]
+            },
+            {
+              "key": "delta",
+              "label": "功角",
+              "unit": "°",
+              "min": 0,
+              "max": 90,
+              "samples": [
+                10,
+                30,
+                60
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "transformer",
+          "name": "变压器",
+          "factory": "circuit",
+          "formula": "匝比",
+          "axes": [
+            [
+              "单相",
+              "三相"
+            ],
+            [
+              "Yd",
+              "Yy",
+              "Dy"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "a",
+              "label": "匝比",
+              "unit": "—",
+              "min": 0.1,
+              "max": 20,
+              "samples": [
+                0.5,
+                2,
+                10
+              ]
+            },
+            {
+              "key": "load",
+              "label": "负载",
+              "unit": "—",
+              "min": 0.1,
+              "max": 1.5,
+              "samples": [
+                0.5,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "pe",
+          "name": "电力电子",
+          "factory": "circuit",
+          "formula": "整流/逆变/斩波",
+          "axes": [
+            [
+              "整流",
+              "逆变",
+              "斩波"
+            ],
+            [
+              "半桥",
+              "全桥"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "fs",
+              "label": "开关频率",
+              "unit": "Hz",
+              "min": 100,
+              "max": 100000,
+              "samples": [
+                1000,
+                20000
+              ]
+            },
+            {
+              "key": "duty",
+              "label": "占空比",
+              "unit": "—",
+              "min": 0.05,
+              "max": 0.95,
+              "samples": [
+                0.3,
+                0.5,
+                0.8
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "powerflow",
+          "name": "潮流计算",
+          "factory": "graph",
+          "formula": "潮流示意",
+          "axes": [
+            [
+              "辐射网",
+              "环网"
+            ],
+            [
+              "轻载",
+              "重载"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "n",
+              "label": "节点数",
+              "unit": "—",
+              "min": 3,
+              "max": 40,
+              "samples": [
+                5,
+                12,
+                24
+              ]
+            },
+            {
+              "key": "load",
+              "label": "负荷",
+              "unit": "—",
+              "min": 0.1,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "stability",
+          "name": "稳定性",
+          "factory": "control",
+          "formula": "暂态稳定示意",
+          "axes": [
+            [
+              "暂态",
+              "静态"
+            ],
+            [
+              "短路",
+              "断线"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "fault",
+              "label": "故障类型",
+              "unit": "—",
+              "min": 0,
+              "max": 3,
+              "samples": [
+                0,
+                1,
+                2
+              ]
+            },
+            {
+              "key": "clear",
+              "label": "切除时间",
+              "unit": "s",
+              "min": 0.01,
+              "max": 1,
+              "samples": [
+                0.05,
+                0.15,
+                0.4
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "renewable",
+          "name": "光伏/风电",
+          "factory": "control",
+          "formula": "MPPT",
+          "axes": [
+            [
+              "光伏",
+              "风电"
+            ],
+            [
+              "低资源",
+              "高资源"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "irr",
+              "label": "光照",
+              "unit": "W/m²",
+              "min": 50,
+              "max": 1200,
+              "samples": [
+                200,
+                800
+              ]
+            },
+            {
+              "key": "wind",
+              "label": "风速",
+              "unit": "m/s",
+              "min": 1,
+              "max": 25,
+              "samples": [
+                5,
+                12,
+                18
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "storage",
+          "name": "储能",
+          "factory": "circuit",
+          "formula": "电池/电容/飞轮",
+          "axes": [
+            [
+              "电池",
+              "超级电容",
+              "飞轮"
+            ],
+            [
+              "小容量",
+              "大容量"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "E",
+              "label": "容量",
+              "unit": "kWh",
+              "min": 0.1,
+              "max": 1000,
+              "samples": [
+                1,
+                50,
+                200
+              ]
+            },
+            {
+              "key": "P",
+              "label": "功率",
+              "unit": "kW",
+              "min": 0.1,
+              "max": 500,
+              "samples": [
+                5,
+                50,
+                200
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4.4",
+      "domain": "工程",
+      "sub": "化工与过程",
+      "target": 150,
+      "families": [
+        {
+          "slug": "reactor",
+          "name": "反应器",
+          "factory": "reactor",
+          "formula": "CSTR/PFR",
+          "axes": [
+            [
+              "CSTR",
+              "PFR",
+              "间歇",
+              "半间歇"
+            ],
+            [
+              "一级",
+              "二级"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "V",
+              "label": "体积",
+              "unit": "m³",
+              "min": 0.1,
+              "max": 100,
+              "samples": [
+                1,
+                10,
+                40
+              ]
+            },
+            {
+              "key": "v",
+              "label": "流速",
+              "unit": "m³/s",
+              "min": 0.01,
+              "max": 20,
+              "samples": [
+                0.5,
+                2
+              ]
+            },
+            {
+              "key": "k",
+              "label": "k",
+              "unit": "—",
+              "min": 0.01,
+              "max": 10,
+              "samples": [
+                0.1,
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "distill",
+          "name": "精馏",
+          "factory": "reactor",
+          "formula": "麦凯布-锡勒",
+          "axes": [
+            [
+              "二元",
+              "多元"
+            ],
+            [
+              "低回流",
+              "高回流"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "N",
+              "label": "板数",
+              "unit": "—",
+              "min": 3,
+              "max": 60,
+              "samples": [
+                8,
+                20,
+                40
+              ]
+            },
+            {
+              "key": "feed",
+              "label": "进料位置",
+              "unit": "—",
+              "min": 1,
+              "max": 40,
+              "samples": [
+                4,
+                10,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "absorb",
+          "name": "吸收",
+          "factory": "reactor",
+          "formula": "液气比",
+          "axes": [
+            [
+              "物理",
+              "化学"
+            ],
+            [
+              "散堆",
+              "规整"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "LGq",
+              "label": "液气比",
+              "unit": "—",
+              "min": 0.5,
+              "max": 10,
+              "samples": [
+                1,
+                2,
+                5
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 280,
+              "max": 400,
+              "samples": [
+                300,
+                340
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "extract",
+          "name": "萃取",
+          "factory": "reactor",
+          "formula": "多级萃取",
+          "axes": [
+            [
+              "单级",
+              "多级"
+            ],
+            [
+              "低溶剂比",
+              "高溶剂比"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "stages",
+              "label": "级数",
+              "unit": "—",
+              "min": 1,
+              "max": 12,
+              "samples": [
+                1,
+                3,
+                6
+              ]
+            },
+            {
+              "key": "S",
+              "label": "溶剂比",
+              "unit": "—",
+              "min": 0.2,
+              "max": 5,
+              "samples": [
+                0.5,
+                1.5,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "hen",
+          "name": "换热网络",
+          "factory": "cycle",
+          "formula": "夹点",
+          "axes": [
+            [
+              "紧夹点",
+              "松夹点"
+            ],
+            [
+              "少流股",
+              "多流股"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "Q",
+              "label": "热负荷",
+              "unit": "—",
+              "min": 10,
+              "max": 100000,
+              "samples": [
+                100,
+                5000
+              ]
+            },
+            {
+              "key": "dT",
+              "label": "温差",
+              "unit": "K",
+              "min": 1,
+              "max": 50,
+              "samples": [
+                5,
+                10,
+                20
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "drying",
+          "name": "干燥",
+          "factory": "reactor",
+          "formula": "干燥曲线",
+          "axes": [
+            [
+              "热风",
+              "真空"
+            ],
+            [
+              "颗粒",
+              "膏状"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 300,
+              "max": 500,
+              "samples": [
+                330,
+                380
+              ]
+            },
+            {
+              "key": "RH",
+              "label": "湿度",
+              "unit": "—",
+              "min": 0.05,
+              "max": 0.95,
+              "samples": [
+                0.2,
+                0.5
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "fluidbed",
+          "name": "流化床",
+          "factory": "flow",
+          "formula": "流化",
+          "axes": [
+            [
+              "起始流化",
+              "鼓泡"
+            ],
+            [
+              "细粒",
+              "粗粒"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "dp",
+              "label": "粒径",
+              "unit": "μm",
+              "min": 10,
+              "max": 2000,
+              "samples": [
+                50,
+                200,
+                800
+              ]
+            },
+            {
+              "key": "Ug",
+              "label": "气速",
+              "unit": "m/s",
+              "min": 0.01,
+              "max": 5,
+              "samples": [
+                0.1,
+                0.5,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "slug": "crystal",
+          "name": "结晶",
+          "factory": "reactor",
+          "formula": "过饱和",
+          "axes": [
+            [
+              "冷却",
+              "蒸发"
+            ],
+            [
+              "低过饱和",
+              "高过饱和"
+            ]
+          ],
+          "dims": [
+            {
+              "key": "S",
+              "label": "过饱和度",
+              "unit": "—",
+              "min": 1.01,
+              "max": 1.5,
+              "samples": [
+                1.05,
+                1.15,
+                1.3
+              ]
+            },
+            {
+              "key": "T",
+              "label": "温度",
+              "unit": "K",
+              "min": 270,
+              "max": 370,
+              "samples": [
+                290,
+                320
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

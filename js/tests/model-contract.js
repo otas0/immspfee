@@ -70,6 +70,40 @@ function checkOne(model) {
   return null;
 }
 
+function pickContractModels(all) {
+  // CONTRACT_SAMPLE=0|unset → 全量；CONTRACT_SAMPLE=N → 分层抽样（大目录加速）
+  const raw = typeof process !== 'undefined' ? process.env?.CONTRACT_SAMPLE : '';
+  const n = raw === undefined || raw === '' ? 0 : Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || n >= all.length) return all;
+  const byDomain = new Map();
+  for (const m of all) {
+    const d = (m.tags && m.tags[0]) || '其他';
+    if (!byDomain.has(d)) byDomain.set(d, []);
+    byDomain.get(d).push(m);
+  }
+  const domains = [...byDomain.keys()];
+  const per = Math.max(1, Math.floor(n / Math.max(1, domains.length)));
+  const picked = [];
+  const seen = new Set();
+  for (const d of domains) {
+    const list = byDomain.get(d);
+    for (let i = 0; i < list.length && picked.length < n; i += 1) {
+      if (i >= per && picked.length >= per * (domains.indexOf(d) + 1)) break;
+      const m = list[Math.floor((i * list.length) / per) % list.length];
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      picked.push(m);
+    }
+  }
+  for (const m of all) {
+    if (picked.length >= n) break;
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    picked.push(m);
+  }
+  return picked;
+}
+
 export function runModelContract() {
   const results = [];
   const assert = (name, cond, detail = '') => {
@@ -78,9 +112,10 @@ export function runModelContract() {
 
   assert('contract models ≥ 100', models.length >= 100, `n=${models.length}`);
 
+  const sample = pickContractModels(models);
   const failedIds = [];
   const failedDetails = [];
-  for (const model of models) {
+  for (const model of sample) {
     try {
       const err = checkOne(model);
       if (err) {
@@ -96,16 +131,17 @@ export function runModelContract() {
   results._contractFailures = {
     ids: failedIds,
     details: failedDetails,
-    total: models.length,
-    ok: models.length - failedIds.length,
+    total: sample.length,
+    catalogTotal: models.length,
+    ok: sample.length - failedIds.length,
   };
 
   assert(
     'all models usable (init/step/refresh/readouts)',
     failedIds.length === 0,
     failedIds.length
-      ? `failed ${failedIds.length}: ${failedIds.slice(0, 12).join(', ')}${failedIds.length > 12 ? '…' : ''}`
-      : `ok n=${models.length}`,
+      ? `failed ${failedIds.length}/${sample.length}: ${failedIds.slice(0, 12).join(', ')}${failedIds.length > 12 ? '…' : ''}`
+      : `ok n=${sample.length}/${models.length}`,
   );
   return results;
 }
