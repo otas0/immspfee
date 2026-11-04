@@ -20,6 +20,10 @@ import pipeline from './pipeline.js';
 import fifo from './fifo.js';
 import rcCircuit from './rcCircuit.js';
 import rlc from './rlc.js';
+import inclinedPlane from './inclinedPlane.js';
+import collision2d from './collision2d.js';
+import dijkstra from './dijkstra.js';
+import logicGates from './logicGates.js';
 import { createFactoryModel } from './factory.js';
 import catalog from '../../data/catalog.json' with { type: 'json' };
 
@@ -42,6 +46,10 @@ const handcrafted = [
   fifo,
   rcCircuit,
   rlc,
+  inclinedPlane,
+  collision2d,
+  dijkstra,
+  logicGates,
 ];
 
 const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));

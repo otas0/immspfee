@@ -23,6 +23,15 @@ const MODELS = [
   ['fifo', 'fifo.png'],
   ['rc-circuit', 'rc-circuit.png'],
   ['rlc', 'rlc.png'],
+  // 新抽检
+  ['inclined-plane', 'inclined-plane.png'],
+  ['collision-2d', 'collision-2d.png'],
+  ['dijkstra', 'dijkstra.png'],
+  ['logic-gates', 'logic-gates.png'],
+  ['photoelectric', 'photoelectric.png'],
+  ['raft', 'raft.png'],
+  ['attention', 'attention.png'],
+  ['membrane-2d', 'membrane-2d.png'],
 ];
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
@@ -36,7 +45,7 @@ for (const [id, file] of MODELS) {
     const cap = window.__labCapture;
     cap.switchModel(modelId);
     cap.play();
-    await new Promise((r) => setTimeout(r, modelId === 'life' || modelId === 'bfs-grid' ? 900 : 550));
+    await new Promise((r) => setTimeout(r, /life|bfs|dijkstra|membrane|attention/.test(modelId) ? 900 : 550));
     cap.pause();
   }, id);
   const png = await page.evaluate(() => window.__labCapture.canvasPng());

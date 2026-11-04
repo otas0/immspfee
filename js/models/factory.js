@@ -39,6 +39,34 @@ function padBox(W, H, m = 36) {
   return { l: m, r: W - m, t: m, b: H - m, w: W - 2 * m, h: H - 2 * m };
 }
 
+function enrich(model, spec) {
+  if (typeof model.getEnergy !== 'function') {
+    model.getEnergy = (state) => {
+      if (Number.isFinite(state?.energy)) return { kinetic: state.energy, potential: 0 };
+      if (Number.isFinite(state?.loss)) return { kinetic: 0, potential: state.loss };
+      if (Array.isArray(state?.parts)) {
+        const ke = state.parts.reduce((s, p) => s + 0.5 * (p.vx * p.vx + p.vy * p.vy), 0);
+        return { kinetic: ke, potential: 0 };
+      }
+      if (Number.isFinite(state?.v) && Number.isFinite(state?.y)) {
+        const m = P(state.params, 'm', 1);
+        const g = P(state.params, 'g', 9.81);
+        return { kinetic: 0.5 * m * state.v * state.v, potential: m * g * state.y };
+      }
+      return { kinetic: 0, potential: 0 };
+    };
+  }
+  if (typeof model.getTrajectory !== 'function') {
+    model.getTrajectory = (state) => {
+      if (Array.isArray(state?.trail)) return state.trail;
+      if (Array.isArray(state?.hist)) return state.hist.map((v, i) => ({ i, v }));
+      if (Array.isArray(state?.wave)) return state.wave.map((v, i) => ({ i, v }));
+      return [{ t: state?.t || 0, note: spec.id }];
+    };
+  }
+  return model;
+}
+
 /** @param {object} spec catalog entry */
 export function createFactoryModel(spec) {
   const family = spec.family || 'gauge';
@@ -82,7 +110,7 @@ export function createFactoryModel(spec) {
     dist: buildDist,
   };
   const build = builders[family] || buildGauge;
-  return build(spec);
+  return enrich(build(spec), spec);
 }
 
 function buildOde1d(spec) {
@@ -1372,30 +1400,68 @@ function buildRays(spec) {
 }
 
 function buildGauge(spec) {
+  const presets = {
+    photoelectric: {
+      params: { freq: 2.2, intensity: 1, workFunc: 1.5, speed: 1 },
+      schema: {
+        freq: schemaNum('频率 f', 'dynamics', 'Hz', 0.1, 20),
+        intensity: schemaNum('光强', 'dynamics', '—', 0, 10),
+        workFunc: schemaNum('逸出功 W', 'dynamics', 'eV', 0.1, 10),
+        speed: schemaNum('动画速', 'dynamics', '—', 0.1, 4),
+      },
+      step(state, dt) {
+        state.t += dt * P(state.params, 'speed', 1);
+        state.val = Math.max(0, P(state.params, 'freq', 2.2) - P(state.params, 'workFunc', 1.5))
+          * P(state.params, 'intensity', 1);
+      },
+    },
+    'time-dilation': {
+      params: { beta: 0.6, properTime: 1, speed: 1 },
+      schema: {
+        beta: schemaNum('β=v/c', 'dynamics', '—', 0, 0.999),
+        properTime: schemaNum('固有时 Δτ', 'dynamics', 's', 0.1, 100),
+        speed: schemaNum('动画速', 'dynamics', '—', 0.1, 4),
+      },
+      step(state, dt) {
+        state.t += dt * P(state.params, 'speed', 1);
+        const beta = Math.min(0.999, Math.max(0, P(state.params, 'beta', 0.6)));
+        state.val = P(state.params, 'properTime', 1) / Math.sqrt(1 - beta * beta);
+      },
+    },
+    polarization: {
+      params: { angle: 45, plates: 1, I0: 1, speed: 1 },
+      schema: {
+        angle: schemaNum('偏振角', 'dynamics', '°', 0, 180),
+        plates: schemaNum('偏振片数', 'dynamics', '—', 1, 6),
+        I0: schemaNum('入射光强', 'dynamics', '—', 0, 10),
+        speed: schemaNum('动画速', 'dynamics', '—', 0.1, 4),
+      },
+      step(state, dt) {
+        state.t += dt * P(state.params, 'speed', 1);
+        const n = Math.max(1, Math.round(P(state.params, 'plates', 1)));
+        const ang = (P(state.params, 'angle', 45) * Math.PI) / 180;
+        state.val = P(state.params, 'I0', 1) * (Math.cos(ang) ** (2 * n));
+      },
+    },
+  };
+  const preset = presets[spec.id];
   return {
     ...baseMeta(spec),
-    params: { a: 1, b: 0.5, c: 0.2, speed: 1 },
-    paramSchema: {
-      a: schemaNum('a', 'dynamics', '—', 0, 10),
-      b: schemaNum('b', 'dynamics', '—', 0, 10),
-      c: schemaNum('c', 'dynamics', '—', 0, 10),
-      speed: schemaNum('speed', 'dynamics', '—', 0.1, 4),
+    params: preset?.params || { amplitude: 1, offset: 0.5, phase: 0, speed: 1 },
+    paramSchema: preset?.schema || {
+      amplitude: schemaNum('振幅', 'dynamics', '—', 0, 20),
+      offset: schemaNum('偏置', 'dynamics', '—', -10, 10),
+      phase: schemaNum('相位', 'dynamics', 'rad', -6.28, 6.28),
+      speed: schemaNum('动画速', 'dynamics', '—', 0.1, 8),
     },
     init(state) { state.t = 0; state.val = 0; state.hist = []; },
     step(state, dt) {
-      state.t += dt * P(state.params, 'speed', 1);
-      if (spec.id === 'photoelectric') {
-        const f = P(state.params, 'a', 1);
-        const W = P(state.params, 'b', 0.5);
-        state.val = Math.max(0, f - W);
-      } else if (spec.id === 'time-dilation') {
-        const beta = Math.min(0.99, P(state.params, 'a', 0.6));
-        state.val = 1 / Math.sqrt(1 - beta * beta);
-      } else if (spec.id === 'polarization') {
-        const ang = (P(state.params, 'a', 45) * Math.PI) / 180;
-        state.val = Math.cos(ang) ** 2;
+      if (preset?.step) {
+        preset.step(state, dt);
       } else {
-        state.val = P(state.params, 'a', 1) * Math.sin(state.t) + P(state.params, 'b', 0.5);
+        state.t += dt * P(state.params, 'speed', 1);
+        state.val = P(state.params, 'amplitude', 1) * Math.sin(state.t + P(state.params, 'phase', 0))
+          + P(state.params, 'offset', 0.5);
       }
       state.hist.push(state.val);
       if (state.hist.length > 160) state.hist.shift();

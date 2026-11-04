@@ -24,7 +24,7 @@
     "name": "斜面滑动物块",
     "formula": "a=g(sinθ-μcosθ)",
     "description": "斜面、物块、受力分解；调斜面角、摩擦系数、质量",
-    "family": "ode1d"
+    "family": "hand"
   },
   {
     "domain": "物理",
@@ -60,7 +60,7 @@
     "name": "二维刚体碰撞",
     "formula": "冲量 + 恢复系数",
     "description": "圆盘、碰撞线、角动量；调质量、半径、速度、e",
-    "family": "particles"
+    "family": "hand"
   },
   {
     "domain": "物理",
@@ -510,7 +510,7 @@
     "name": "Dijkstra 最短路径",
     "formula": "优先队列松弛",
     "description": "带权图、路径高亮；调图结构、起点/终点",
-    "family": "graph"
+    "family": "hand"
   },
   {
     "domain": "计算机科学",
@@ -735,7 +735,7 @@
     "name": "基本逻辑门",
     "formula": "AND/OR/NOT…",
     "description": "输入开关、门符号、真值表；调输入组合",
-    "family": "logic"
+    "family": "hand"
   },
   {
     "domain": "计算机工程",

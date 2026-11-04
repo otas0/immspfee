@@ -50,7 +50,7 @@ export function validateCustomParam(key, rawValue) {
   const parsed = parseUserNumber(rawValue);
   if (!parsed.ok) return parsed;
   if (!Number.isFinite(parsed.value)) return { ok: false, error: 'non-finite' };
-  if (Math.abs(parsed.value) > 1e12) return { ok: false, error: 'out of range' };
+  if (Math.abs(parsed.value) > 1e15) return { ok: false, error: 'out of range' };
   return { ok: true, value: parsed.value };
 }
 

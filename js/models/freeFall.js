@@ -11,25 +11,32 @@ export default {
   id: 'free-fall',
   name: '自由落体',
   params: {
-    g: 9.81, h: 10, k: 0, m: 1, e: 0.7,
+    g: 9.81, h: 10, v0: 0, k: 0, m: 1, e: 0.7,
+    dragExp: 1, restVel: 0.05, ground: 0,
   },
   paramSchema: {
-    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 40 },
-    h: { group: 'initial', unit: 'm', label: 'h₀', min: 0, max: 100 },
-    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k', min: 0, max: 200 },
-    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 0.01, max: 100 },
+    g: { group: 'dynamics', unit: 'm/s²', label: 'g', min: 0, max: 200 },
+    k: { group: 'dynamics', unit: 'kg/s', label: '阻力 k', min: 0, max: 5000 },
+    m: { group: 'dynamics', unit: 'kg', label: 'm', min: 1e-6, max: 1e6 },
     e: { group: 'dynamics', unit: '—', label: '恢复系数 e', min: 0, max: 1 },
+    dragExp: { group: 'dynamics', unit: '—', label: '阻力指数', min: 0.5, max: 3 },
+    restVel: { group: 'dynamics', unit: 'm/s', label: '静止阈值', min: 0, max: 2 },
+    ground: { group: 'dynamics', unit: 'm', label: '地面高度', min: -50, max: 50 },
+    h: { group: 'initial', unit: 'm', label: 'h₀', min: 0, max: 1e4 },
+    v0: { group: 'initial', unit: 'm/s', label: 'v₀', min: -500, max: 500 },
   },
 
   init(state) {
     const h = Math.max(P(state.params, 'h', 10), 0);
+    const ground = P(state.params, 'ground', 0);
     state.t = 0;
     state.y = h;
-    state.v = 0;
+    state.v = P(state.params, 'v0', 0);
     state.a = -P(state.params, 'g', 9.81);
     state.bounces = 0;
     state.resting = false;
     state.trail = [];
+    state.ground = ground;
   },
 
   step(state, dt) {
@@ -38,7 +45,16 @@ export default {
     const k = P(state.params, 'k', 0);
     const m = Math.max(P(state.params, 'm', 1), 1e-9);
     const e = P(state.params, 'e', 0);
-    const locals = { y: state.y, v: state.v, t: state.t, g, k, m };
+    const exp = Math.max(P(state.params, 'dragExp', 1), 0.5);
+    const ground = P(state.params, 'ground', 0);
+    const restVel = P(state.params, 'restVel', 0.05);
+    const locals = { y: state.y, v: state.v, t: state.t, g, k, m, ground };
+
+    const drag = (v) => {
+      if (k === 0) return 0;
+      const mag = Math.abs(v) ** exp;
+      return -(k / m) * MagSign(v, mag);
+    };
 
     if (k === 0) {
       const aAt = (y) => -g + accelExtras(state.params, { ...locals, y });
@@ -47,19 +63,19 @@ export default {
       state.v = finiteOr(next.v, 0);
       state.a = finiteOr(next.a, -g);
     } else {
-      let a = -g - (k / m) * state.v + accelExtras(state.params, locals);
+      let a = -g + drag(state.v) + accelExtras(state.params, locals);
       state.v = finiteOr(state.v + a * dt, 0);
       state.y = finiteOr(state.y + state.v * dt, 0);
-      state.a = -g - (k / m) * state.v + accelExtras(state.params, { ...locals, v: state.v, y: state.y });
+      state.a = -g + drag(state.v) + accelExtras(state.params, { ...locals, v: state.v, y: state.y });
     }
 
     state.t += dt;
-    if (state.y <= 0 && state.v < 0) {
-      state.y = 0;
+    if (state.y <= ground && state.v < 0) {
+      state.y = ground;
       state.v = -e * state.v;
       state.bounces += 1;
       state.a = -g;
-      if (Math.abs(state.v) < 0.05 || e <= 0) {
+      if (Math.abs(state.v) < restVel || e <= 0) {
         state.v = 0;
         state.a = 0;
         state.resting = true;
@@ -142,3 +158,8 @@ export default {
     return state.trail;
   },
 };
+
+function MagSign(v, mag) {
+  if (v === 0) return 0;
+  return Math.sign(v) * mag;
+}

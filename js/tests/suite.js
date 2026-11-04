@@ -20,6 +20,10 @@ import rcCircuit from '../models/rcCircuit.js';
 import rlc from '../models/rlc.js';
 import { models, loadModelMetadata } from '../models/index.js';
 import freeFall from '../models/freeFall.js';
+import inclinedPlane from '../models/inclinedPlane.js';
+import collision2d from '../models/collision2d.js';
+import dijkstra from '../models/dijkstra.js';
+import logicGates from '../models/logicGates.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -236,6 +240,10 @@ export function runSuite() {
       assert('CE RC 趋向 Vin', Math.abs(state.Vc - 5) < 0.2, `Vc=${state.Vc}`);
     }
     assert('CE RLC readout', smoke(rlc, 500, 1 / 120).r.length >= 3);
+    assert('inclined-plane readout', smoke(inclinedPlane, 200).r.length >= 4);
+    assert('collision-2d readout', smoke(collision2d, 200).r.length >= 4);
+    assert('dijkstra readout', smoke(dijkstra, 400, 0.1).r.length >= 3);
+    assert('logic-gates readout', smoke(logicGates, 50, 0.2).r.length >= 4);
   }
 
   // 目录规模 + live/reset 语义
@@ -253,9 +261,19 @@ export function runSuite() {
       freeFall.init(state);
       for (let i = 0; i < 120; i += 1) freeFall.step(state, 1 / 240);
       const yBefore = state.y;
+      const tBefore = state.t;
       state.params.g = 20;
       for (let i = 0; i < 5; i += 1) freeFall.step(state, 1 / 240);
-      assert('live g 不跳回 h₀', state.y < yBefore && state.y > 0, `y0=${yBefore} y=${state.y}`);
+      assert('live g 不跳回 h₀', state.y < yBefore && state.y > 0 && state.t > tBefore, `y0=${yBefore} y=${state.y}`);
+    }
+    // h₀ reset：改 h 后 init 应回到新高度
+    {
+      const state = { params: { ...freeFall.params, h: 10 } };
+      freeFall.init(state);
+      for (let i = 0; i < 80; i += 1) freeFall.step(state, 1 / 240);
+      state.params.h = 25;
+      freeFall.init(state);
+      assert('reset h₀ 回到新初值', almostEqual(state.y, 25, 1e-9), `y=${state.y}`);
     }
 
     // 工厂模型冒烟（抽样）

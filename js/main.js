@@ -55,8 +55,23 @@ const app = {
     frameShot: false,
     shotReadouts: false,
     shotLegend: false,
+    compareReadouts: false,
+    wideBounds: true,
   },
 };
+
+const FOLD_KEY = 'physics-lab-folds-v1';
+const HOT_SUBS = new Set([
+  '经典力学', '算法与数据结构', '计算机体系结构', '波与振动', '电磁学', '数字逻辑',
+]);
+
+function loadFolds() {
+  try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveFolds(map) {
+  try { localStorage.setItem(FOLD_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+}
 
 function isCompact() {
   return window.matchMedia('(max-width: 1100px)').matches;
@@ -114,7 +129,8 @@ const REINIT_KEYS = new Set([
   'capacity', 'uniq', 'depth', 'hazardMode', 'hazardRate',
   'h', 'x0', 'y0', 'v0', 'vx0', 'vy0', 'theta', 'theta0', 'theta1', 'theta2',
   'V0', 'I0', 'T0', 'hotspot', 'Tleft', 'Tright', 'A1', 'A2', 'A3',
-  'v1', 'v2',
+  'v1', 'v2', 's0', 'vx1', 'vy1', 'vx2', 'vy2', 'x1', 'y1', 'x2', 'y2',
+  'start', 'goal', 'density', 'rule',
 ]);
 
 function shouldReinitModel(key) {
@@ -225,11 +241,23 @@ function expandSearchQuery(raw) {
 }
 
 function filteredModels() {
+  const raw = app.filter.q.trim();
+  const rawLower = raw.toLowerCase();
+  // 子类全名精确匹配（中英不区分大小写）
+  if (raw) {
+    const exactSub = models.filter((m) => {
+      const sub = modelSub(m);
+      return sub === raw || sub.toLowerCase() === rawLower;
+    });
+    if (exactSub.length) {
+      return exactSub.filter((m) => !app.filter.tag || (m.tags || []).includes(app.filter.tag));
+    }
+  }
   const tokens = expandSearchQuery(app.filter.q);
   return models.filter((m) => {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
     if (!tokens.length) return true;
-    const hay = `${m.name} ${m.id} ${m.formula || ''} ${(m.tags || []).join(' ')} ${m.description || ''}`.toLowerCase();
+    const hay = `${m.name} ${m.id} ${m.sub || ''} ${m.formula || ''} ${(m.tags || []).join(' ')} ${m.description || ''}`.toLowerCase();
     return tokens.some((t) => hay.includes(t));
   });
 }
@@ -256,9 +284,15 @@ function modelSub(m) {
   return tags.find((t) => !DOMAIN_ORDER.includes(t)) || '未分类';
 }
 
+function foldKey(domain, sub) {
+  return sub ? `${domain}::${sub}` : domain;
+}
+
 function buildSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
+  const folds = loadFolds();
+  const searching = !!app.filter.q.trim() || !!app.filter.tag;
   if (!list.length) {
     const empty = document.createElement('div');
     empty.style.cssText = 'padding:0.75rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--muted)';
@@ -281,7 +315,13 @@ function buildSidebar() {
     const count = [...subMap.values()].reduce((n, arr) => n + arr.length, 0);
     const details = document.createElement('details');
     details.className = 'domain-group';
-    details.open = domain === '物理' || count < 40;
+    const dKey = foldKey(domain);
+    details.open = searching || (folds[dKey] != null ? !!folds[dKey] : domain === '物理');
+    details.addEventListener('toggle', () => {
+      const next = loadFolds();
+      next[dKey] = details.open;
+      saveFolds(next);
+    });
     const sum = document.createElement('summary');
     sum.innerHTML = `<span class="domain-name">${domain}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');
@@ -289,7 +329,14 @@ function buildSidebar() {
     for (const [sub, items] of subMap) {
       const subEl = document.createElement('details');
       subEl.className = 'sub-group';
-      subEl.open = true;
+      const sKey = foldKey(domain, sub);
+      const defaultOpen = searching || HOT_SUBS.has(sub) || items.length <= 3;
+      subEl.open = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
+      subEl.addEventListener('toggle', () => {
+        const next = loadFolds();
+        next[sKey] = subEl.open;
+        saveFolds(next);
+      });
       const subSum = document.createElement('summary');
       subSum.innerHTML = `<span class="sub-name">${sub}</span><span class="sub-count">${items.length}</span>`;
       const subBody = document.createElement('div');
@@ -388,12 +435,27 @@ function updateHud(opts = {}) {
   app.lastReadouts = readouts;
   const accent = getModelColors(app.model?.id).body || '#fff';
   readoutsEl.style.setProperty('--hud-accent', accent);
+  const compare = !!app.globals.compareReadouts;
+  readoutsEl.classList.toggle('is-compare', compare);
+  const baseline = prevReadoutMap;
   readoutsEl.innerHTML = readouts.map((r) => {
-    const prev = prevReadoutMap.get(r.label);
+    const prev = baseline.get(r.label);
     const changed = opts.flash && prev != null && prev !== r.value;
-    return `<div class="readout-card${changed ? ' is-changed' : ''}"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value">${r.value}</span></div>`;
+    const prevHtml = compare
+      ? `<span class="prev" title="改前">${prev != null ? prev : '—'}</span>`
+      : '';
+    return `<div class="readout-card${changed ? ' is-changed' : ''}${compare ? ' has-compare' : ''}"><span class="dot" aria-hidden="true"></span><span class="label">${r.label}</span><span class="value-row">${prevHtml}<span class="value">${r.value}</span></span></div>`;
   }).join('');
-  prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+  if (!compare) {
+    prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+  } else if (opts.flash) {
+    clearTimeout(updateHud._cmpT);
+    updateHud._cmpT = setTimeout(() => {
+      prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+    }, 120);
+  } else if (opts.snapshotPrev || baseline.size === 0) {
+    prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+  }
   if (opts.flash) {
     clearTimeout(updateHud._flashT);
     updateHud._flashT = setTimeout(() => {
@@ -657,6 +719,11 @@ window.__labCapture = {
   getState: () => app.state,
   getGlobals: () => ({ ...app.globals }),
   getParams: () => ({ ...app.state?.params }),
+  setParam: (key, value) => {
+    if (!app.state?.params) return;
+    app.state.params[key] = value;
+    applyParamChange(key);
+  },
   setGlobals: (partial) => {
     Object.assign(app.globals, partial || {});
     sanitizeGlobals(app.globals);
@@ -664,6 +731,7 @@ window.__labCapture = {
     paramBench.refresh?.();
   },
   isPaused: () => !!app.paused,
+  snapshotReadouts: () => updateHud({ snapshotPrev: true }),
 };
 
 async function boot() {

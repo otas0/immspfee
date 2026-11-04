@@ -20,6 +20,9 @@ const GLOBAL_META = {
   readoutDigits: { label: 'digits', unit: '', min: 0, max: 8, def: 3, integer: true },
 };
 
+/** 宽量程：文本输入几乎不钳制；电位器仍用 schema 可视范围 */
+const WIDE = { min: -1e9, max: 1e9 };
+
 export function createParamBench(root, hooks = {}) {
   const {
     onParamChange,
@@ -130,6 +133,12 @@ export function createParamBench(root, hooks = {}) {
     rows.appendChild(boolRow('shotLegend', g.shotLegend, {
       label: 'shot legend', onCommit: (v) => { g.shotLegend = v; onGlobalsChange?.(g); },
     }));
+    rows.appendChild(boolRow('compareReadouts', g.compareReadouts, {
+      label: 'readout 对照', onCommit: (v) => { g.compareReadouts = v; onGlobalsChange?.(g); },
+    }));
+    rows.appendChild(boolRow('wideBounds', g.wideBounds !== false, {
+      label: '宽量程输入', onCommit: (v) => { g.wideBounds = v; onGlobalsChange?.(g); render(); },
+    }));
     appendSectionBody(sec, rows, {
       foldable: true,
       open: sysOpen,
@@ -181,7 +190,10 @@ export function createParamBench(root, hooks = {}) {
           }));
         } else if (typeof item.value === 'number' || item.key === 'expr_a') {
           const bounds = inferBounds(item.key, typeof def === 'number' ? def : item.value, item.schema);
-          if (typeof item.value === 'number' && Number.isFinite(item.value)) {
+          const wide = globals?.wideBounds !== false;
+          const commitMin = wide ? WIDE.min : bounds.min;
+          const commitMax = wide ? WIDE.max : bounds.max;
+          if (typeof item.value === 'number' && Number.isFinite(item.value) && !wide) {
             const clamped = clampNumber(item.value, bounds.min, bounds.max);
             if (clamped !== item.value) {
               toastClamp(item.key, item.value, clamped);
@@ -196,8 +208,11 @@ export function createParamBench(root, hooks = {}) {
             defaultValue: typeof def === 'number' ? def : item.value,
             min: bounds.min,
             max: bounds.max,
+            commitMin,
+            commitMax,
+            wide,
             onCommit: (v) => {
-              const next = clampNumber(v, bounds.min, bounds.max);
+              const next = clampNumber(v, commitMin, commitMax);
               if (next !== v) toastClamp(item.key, v, next);
               return commitParam(item.key, next);
             },
@@ -389,6 +404,8 @@ export function createParamBench(root, hooks = {}) {
     if (typeof globals.frameShot !== 'boolean') globals.frameShot = false;
     if (typeof globals.shotReadouts !== 'boolean') globals.shotReadouts = false;
     if (typeof globals.shotLegend !== 'boolean') globals.shotLegend = false;
+    if (typeof globals.compareReadouts !== 'boolean') globals.compareReadouts = false;
+    if (typeof globals.wideBounds !== 'boolean') globals.wideBounds = true;
     sanitizeGlobals(globals);
     builtins = new Set(Object.keys(model.params || {}));
     render();
@@ -459,7 +476,9 @@ export function createParamBench(root, hooks = {}) {
       }
       let v = parsed.value;
       const raw = v;
-      if (Number.isFinite(min) && Number.isFinite(max)) v = clampNumber(v, min, max);
+      const cMin = Number.isFinite(opts.commitMin) ? opts.commitMin : min;
+      const cMax = Number.isFinite(opts.commitMax) ? opts.commitMax : max;
+      if (Number.isFinite(cMin) && Number.isFinite(cMax)) v = clampNumber(v, cMin, cMax);
       if (opts.integer) v = Math.round(v);
       if (v !== raw) toastClamp(key, raw, v);
       const ok = opts.onCommit?.(v);

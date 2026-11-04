@@ -599,6 +599,24 @@ html.hc .btn.primary {
   from { filter: brightness(1.45); }
   to { filter: none; }
 }
+.readout-card .value-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-top: 0.12rem;
+}
+.readout-card.has-compare .value-row .prev {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--phosphor-dim);
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+.readout-card.has-compare .value-row .value {
+  margin-top: 0;
+}
 
 .bench {
   background: var(--panel);

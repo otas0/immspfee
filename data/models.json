@@ -33,7 +33,7 @@
     "formula": "a=g(sinθ-μcosθ)",
     "description": "斜面、物块、受力分解；调斜面角、摩擦系数、质量",
     "sub": "经典力学",
-    "family": "ode1d"
+    "family": "hand"
   },
   {
     "id": "spring",
@@ -81,7 +81,7 @@
     "formula": "冲量 + 恢复系数",
     "description": "圆盘、碰撞线、角动量；调质量、半径、速度、e",
     "sub": "经典力学",
-    "family": "particles"
+    "family": "hand"
   },
   {
     "id": "circular-motion",
@@ -681,7 +681,7 @@
     "formula": "优先队列松弛",
     "description": "带权图、路径高亮；调图结构、起点/终点",
     "sub": "算法与数据结构",
-    "family": "graph"
+    "family": "hand"
   },
   {
     "id": "astar-grid",
@@ -981,7 +981,7 @@
     "formula": "AND/OR/NOT…",
     "description": "输入开关、门符号、真值表；调输入组合",
     "sub": "数字逻辑",
-    "family": "logic"
+    "family": "hand"
   },
   {
     "id": "adder",

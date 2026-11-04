@@ -7,13 +7,21 @@ export default {
   id: 'life',
   name: '生命游戏',
   params: {
-    n: 36, stepDt: 0.12, density: 0.28, seed: 3,
+    n: 36, stepDt: 0.12, density: 0.28, seed: 3, algo: 0,
   },
   paramSchema: {
-    n: { group: 'numerics', unit: '', label: 'n', min: 12, max: 64 },
-    stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.04, max: 0.5 },
-    density: { group: 'initial', unit: '', label: 'density', min: 0.05, max: 0.6 },
+    n: { group: 'numerics', unit: '', label: 'n', min: 8, max: 128 },
+    stepDt: { group: 'dynamics', unit: 's', label: 'stepDt', min: 0.02, max: 2 },
+    density: { group: 'initial', unit: '', label: 'density', min: 0, max: 1 },
     seed: { group: 'initial', unit: '', label: 'seed', min: 1, max: 9999 },
+    algo: {
+      group: 'dynamics', unit: '', label: '规则', min: 0, max: 2,
+      options: [
+        { value: 0, label: 'B3/S23 Conway' },
+        { value: 1, label: 'B3/S23 HighLife≈' },
+        { value: 2, label: 'seeds B2/S' },
+      ],
+    },
   },
 
   init(state) {
@@ -30,13 +38,20 @@ export default {
     state.alive = state.grid.flat().reduce((a, b) => a + b, 0);
     state.acc = 0;
     state.t = 0;
+    state.algo = Math.round(P(state.params, 'algo', 0));
   },
 
   step(state, dt) {
+    const want = Math.round(P(state.params, 'algo', 0));
+    if (want !== state.algo) {
+      this.init(state);
+      return;
+    }
     const period = Math.max(P(state.params, 'stepDt', 0.12), 0.02);
     state.acc += dt;
     state.t += dt;
     const n = state.n;
+    const algo = state.algo;
     while (state.acc >= period) {
       state.acc -= period;
       const next = Array.from({ length: n }, () => Array(n).fill(0));
@@ -53,7 +68,16 @@ export default {
             }
           }
           const live = state.grid[y][x];
-          const v = live ? (nb === 2 || nb === 3 ? 1 : 0) : (nb === 3 ? 1 : 0);
+          let v = 0;
+          if (algo === 2) {
+            // seeds: born on 2, never survive
+            v = !live && nb === 2 ? 1 : 0;
+          } else if (algo === 1) {
+            // HighLife B36/S23
+            v = live ? (nb === 2 || nb === 3 ? 1 : 0) : (nb === 3 || nb === 6 ? 1 : 0);
+          } else {
+            v = live ? (nb === 2 || nb === 3 ? 1 : 0) : (nb === 3 ? 1 : 0);
+          }
           next[y][x] = v;
           alive += v;
         }
