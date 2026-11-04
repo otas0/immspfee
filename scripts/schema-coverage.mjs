@@ -7,10 +7,9 @@ import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { models, loadModelMetadata } = await import(
+const { models } = await import(
   pathToFileURL(path.join(root, 'js/models/index.js')).href
 );
-await loadModelMetadata(pathToFileURL(path.join(root, 'data/models.json')).href);
 
 const ZH = /[\u4e00-\u9fff]/;
 const GROUPS = new Set(['dynamics', 'initial', 'numerics', 'display', 'custom']);

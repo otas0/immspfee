@@ -269,10 +269,6 @@ function modelBaselineBucket() {
   return baselineStore.byModel[id];
 }
 
-function readoutMapFromList(readouts) {
-  return new Map((readouts || []).map((r) => [r.label, r.value]));
-}
-
 function activateBaseline(slot) {
   if (!slot) return;
   baselineStore.activeId = slot.id;
@@ -1047,6 +1043,9 @@ window.__labCapture = {
   },
   isPaused: () => !!app.paused,
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
+  restoreSafeDefaults: () => restoreSafeDefaults(),
+  getCapabilities: () => deriveCapabilities(app.model),
+  saveBaseline: (name) => saveBaselineSnapshot(name),
 };
 
 function bindCanvasPointer() {
