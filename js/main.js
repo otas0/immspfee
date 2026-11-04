@@ -6,6 +6,7 @@ import { createParamBench } from './ui/paramBench.js';
 import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml, ICO } from './ui/icons.js';
 import { setModelPalette, getModelSwatch, getModelColors } from './utils/theme.js';
+import { deriveCapabilities } from './ui/modelShell.js';
 
 const canvas = document.getElementById('canvas');
 const canvasWrap = document.querySelector('.canvas-wrap');
@@ -62,10 +63,32 @@ const app = {
 };
 
 const FOLD_KEY = 'physics-lab-folds-v1';
+const BASELINE_KEY = 'physics-lab-baselines-v1';
 const HOT_SUBS = new Set([
   '经典力学', '算法与数据结构', '计算机体系结构', '波与振动', '电磁学', '数字逻辑',
   '梁与框架', '动力循环', '经典控制', '气动', '交通流', '静力与强度',
 ]);
+
+/** 多快照对照基线（按模型 id 分桶，最多 8 个） */
+const baselineStore = {
+  byModel: loadBaselines(),
+  activeId: null,
+};
+
+function loadBaselines() {
+  try { return JSON.parse(localStorage.getItem(BASELINE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveBaselines() {
+  try { localStorage.setItem(BASELINE_KEY, JSON.stringify(baselineStore.byModel)); }
+  catch { /* ignore */ }
+}
+
+const shellModeEl = document.getElementById('shell-mode');
+const shellHintEl = document.getElementById('shell-hint');
+const btnSafeRestore = document.getElementById('btn-safe-restore');
+const baselineSelect = document.getElementById('baseline-select');
+const btnSaveBaseline = document.getElementById('btn-save-baseline');
 
 function loadFolds() {
   try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '{}'); }
@@ -184,9 +207,10 @@ function applyParamChange(key) {
   }
   const check = sanitizeSimState(app.state);
   if (!check.ok) {
-    showToast(`非有限值保护: ${check.bad.slice(0, 3).join(', ')} — 已暂停，请调回合理范围`);
+    showToast(`非有限值保护: ${check.bad.slice(0, 3).join(', ')} — 可点「恢复安全默认」`);
     app.paused = true;
     syncPauseUi();
+    setSafeRestoreVisible(true);
   }
   if (DEBUG_PARAM_LOG) {
     clearTimeout(paramLogTimer);
@@ -197,6 +221,118 @@ function applyParamChange(key) {
   }
   paintFrame();
   updateHud({ flash: true });
+}
+
+function setSafeRestoreVisible(on) {
+  if (!btnSafeRestore) return;
+  btnSafeRestore.hidden = !on;
+}
+
+function updateShellStrip() {
+  const cap = deriveCapabilities(app.model);
+  if (shellModeEl) shellModeEl.textContent = cap.interaction || 'knobs';
+  if (shellHintEl) {
+    shellHintEl.textContent = [
+      cap.hint,
+      cap.hasPointer ? '· 画布可交互' : '',
+      cap.hasEnergy ? '· CSV 含能量' : '',
+      `· ${cap.paramCount} 参`,
+    ].filter(Boolean).join(' ');
+  }
+  canvas?.classList.toggle('has-pointer', !!cap.hasPointer);
+}
+
+/** 宽量程 NaN / 发散后：一键回到模型 schema 默认 + 安全全局量 */
+function restoreSafeDefaults() {
+  if (!app.model) return;
+  app.globals.timeScale = 1;
+  app.globals.fixedDt = 1 / 240;
+  app.globals.maxSubSteps = 48;
+  app.globals.viewScale = 1;
+  sanitizeGlobals(app.globals);
+  applyGlobals();
+  app.state = createState(app.model);
+  stepper.reset();
+  paramBench.bind(app.model, app.state.params, app.globals);
+  setSafeRestoreVisible(false);
+  app.paused = false;
+  syncPauseUi();
+  updateShellStrip();
+  paintFrame();
+  updateHud({ flash: true });
+  showToast('已恢复安全默认参数');
+}
+
+function modelBaselineBucket() {
+  const id = app.model?.id || '_';
+  if (!baselineStore.byModel[id]) baselineStore.byModel[id] = [];
+  return baselineStore.byModel[id];
+}
+
+function readoutMapFromList(readouts) {
+  return new Map((readouts || []).map((r) => [r.label, r.value]));
+}
+
+function activateBaseline(slot) {
+  if (!slot) return;
+  baselineStore.activeId = slot.id;
+  prevReadoutMap = new Map(Object.entries(slot.values || {}));
+  app.globals.compareReadouts = true;
+  app.globals.pinBaseline = true;
+  paramBench.refresh?.();
+  renderBaselineSelect();
+  updateHud();
+}
+
+function saveBaselineSnapshot(name) {
+  const readouts = app.lastReadouts?.length
+    ? app.lastReadouts
+    : (app.model?.getReadouts(app.state, { digits: app.globals.readoutDigits }) || []);
+  const values = Object.fromEntries(readouts.map((r) => [r.label, r.value]));
+  const bucket = modelBaselineBucket();
+  const slot = {
+    id: `s${Date.now()}`,
+    name: name || `快照 ${bucket.length + 1}`,
+    values,
+    ts: Date.now(),
+  };
+  bucket.push(slot);
+  while (bucket.length > 8) bucket.shift();
+  saveBaselines();
+  activateBaseline(slot);
+  showToast(`已存对照快照「${slot.name}」`);
+}
+
+function renderBaselineSelect() {
+  if (!baselineSelect) return;
+  const bucket = modelBaselineBucket();
+  const cur = baselineStore.activeId;
+  baselineSelect.innerHTML = '<option value=\"\">当前对照</option>'
+    + bucket.map((s) => `<option value="${s.id}"${s.id === cur ? ' selected' : ''}>${s.name}</option>`).join('');
+}
+
+/** 按轨迹点字段叠到临时 state，再调 getEnergy — 避免整表重复末态能量 */
+function energyAtTrajectoryRow(model, state, row) {
+  if (!row || typeof row !== 'object') return null;
+  if (Number.isFinite(row.E_kin) || Number.isFinite(row.kinetic)) {
+    const kinetic = Number.isFinite(row.E_kin) ? row.E_kin : row.kinetic;
+    const potential = Number.isFinite(row.E_pot) ? row.E_pot : row.potential;
+    return { kinetic, potential };
+  }
+  if (typeof model.getEnergyAt === 'function') {
+    try { return model.getEnergyAt(state, row); } catch { /* fall through */ }
+  }
+  if (typeof model.getEnergy !== 'function') return null;
+  const probe = { params: state.params };
+  for (const [k, v] of Object.entries(state)) {
+    if (k === 'params' || k === 'trail' || k === 'trails' || k.startsWith('_')) continue;
+    probe[k] = v;
+  }
+  for (const [k, v] of Object.entries(row)) {
+    if (k.startsWith('E_') || k === 'note' || k === 'kind') continue;
+    if (typeof v === 'number' && Number.isFinite(v)) probe[k] = v;
+  }
+  try { return model.getEnergy(probe); } catch { return null; }
 }
 
 const paramBench = createParamBench(paramRoot, {
@@ -240,10 +376,7 @@ window.addEventListener('pointercancel', endScrubResume);
 window.addEventListener('touchcancel', endScrubResume);
 
 function resetToModelDefaults() {
-  app.state = createState(app.model);
-  stepper.reset();
-  paramBench.bind(app.model, app.state.params, app.globals);
-  updateHud();
+  restoreSafeDefaults();
 }
 
 function resetSim() {
@@ -251,6 +384,7 @@ function resetSim() {
   const kept = { ...app.state.params };
   app.state = { params: kept };
   app.model.init(app.state);
+  setSafeRestoreVisible(false);
   updateHud();
 }
 
@@ -373,8 +507,12 @@ function buildSidebar() {
   btnCollapse.className = 'btn quiet';
   btnCollapse.textContent = '全部收起';
   btnCollapse.addEventListener('click', () => setAllFolds(false));
+  const foldHint = document.createElement('p');
+  foldHint.className = 'fold-hint';
+  foldHint.textContent = '折叠：按钮一键全开/全收；也可点领域/子类标题手势切换（状态会记住）';
   foldBar.append(btnExpand, btnCollapse);
   modelListEl.appendChild(foldBar);
+  modelListEl.appendChild(foldHint);
 
   if (!list.length) {
     const empty = document.createElement('div');
@@ -529,11 +667,15 @@ function switchModel(id) {
   app.state = createState(model);
   stepper.reset();
   prevReadoutMap = new Map();
+  baselineStore.activeId = null;
+  setSafeRestoreVisible(false);
   toolbarTitle.textContent = model.name;
   toolbarSub.textContent = [model.sub, ...(model.tags || []).filter((t) => t !== model.sub)].filter(Boolean).join(' / ') || 'model';
   metaFormula.textContent = [model.formula, model.description].filter(Boolean).join('\n');
   paramBench.bind(model, app.state.params, app.globals);
   syncSidebarActive();
+  updateShellStrip();
+  renderBaselineSelect();
   updateHud();
   setBenchOpen(!isCompact());
   requestAnimationFrame(measureSysSticky);
@@ -612,15 +754,17 @@ function frame(now) {
         app.model.step(app.state, dt);
         const check = sanitizeSimState(app.state);
         if (!check.ok) {
-          showToast(`非有限值保护: ${check.bad.slice(0, 2).join(', ')}`);
+          showToast(`非有限值保护: ${check.bad.slice(0, 2).join(', ')} — 可恢复安全默认`);
           app.paused = true;
           syncPauseUi();
+          setSafeRestoreVisible(true);
         }
       } catch (err) {
         console.warn('step error', err);
-        showToast('仿真步进异常，已暂停');
+        showToast('仿真步进异常，已暂停 — 可恢复安全默认');
         app.paused = true;
         syncPauseUi();
+        setSafeRestoreVisible(true);
       }
     });
   }
