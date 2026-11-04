@@ -173,7 +173,7 @@ export function createParamBench(root, hooks = {}) {
               item.value = clamped;
             }
           }
-          rows.appendChild(numberRow(item.key, item.value, {
+          const row = numberRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             unit: item.schema?.unit || inferUnit(item.key),
             allowExpr: item.key === 'expr_a',
@@ -189,7 +189,9 @@ export function createParamBench(root, hooks = {}) {
             onRemove: () => removeParam(item.key),
             onScrubStart,
             onScrubEnd,
-          }));
+          });
+          if ((item.schema?.group || g) === 'dynamics') row.classList.add('is-live');
+          rows.appendChild(row);
         }
       }
       sec.appendChild(rows);

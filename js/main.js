@@ -4,7 +4,7 @@ import { createFixedStepper } from './utils/integrator.js';
 import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js';
 import { createParamBench } from './ui/paramBench.js';
 import { finiteOr, sanitizeGlobals } from './utils/params.js';
-import { btnHtml } from './ui/icons.js';
+import { btnHtml, ICO } from './ui/icons.js';
 import { setModelPalette, getModelSwatch, getModelColors } from './utils/theme.js';
 
 const canvas = document.getElementById('canvas');
@@ -102,14 +102,36 @@ function showToast(msg) {
   showToast._t = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-const paramBench = createParamBench(paramRoot, {
-  onParamChange: () => {
+/** 改这些键必须 re-init；动力学量（g/k/m…）就地生效，避免“调参无反应” */
+const REINIT_KEYS = new Set([
+  'n', 'N', 'seed', 'algo', 'cols', 'rows', 'wallDensity',
+  'capacity', 'uniq', 'depth', 'hazardMode', 'hazardRate',
+  'h', 'x0', 'y0', 'v0', 'vx0', 'vy0', 'theta', 'theta0', 'theta1', 'theta2',
+  'V0', 'I0', 'T0', 'hotspot', 'Tleft', 'Tright', 'A1', 'A2', 'A3',
+  'v1', 'v2',
+]);
+
+function shouldReinitModel(key) {
+  if (!key || String(key).startsWith('__')) return true;
+  if (REINIT_KEYS.has(key)) return true;
+  const schema = app.model?.paramSchema?.[key];
+  const group = schema?.group || '';
+  return group === 'initial' || group === 'numerics';
+}
+
+function applyParamChange(key) {
+  if (shouldReinitModel(key)) {
     stepper.reset();
     const kept = { ...app.state.params };
     app.state = { params: kept };
     app.model.init(app.state);
-    updateHud();
-  },
+  }
+  // 动力学参数已写回同一 params 对象，下一帧 step/draw 直接使用
+  updateHud();
+}
+
+const paramBench = createParamBench(paramRoot, {
+  onParamChange: (key) => applyParamChange(key),
   onResetDefaults: () => resetToModelDefaults(),
   onGlobalsChange: () => applyGlobals(),
   onLayoutChange: () => measureSysSticky(),
@@ -131,6 +153,17 @@ const paramBench = createParamBench(paramRoot, {
       syncPauseUi();
     }
   },
+});
+
+// 防止松手事件丢失导致仿真一直停在 scrub 暂停
+window.addEventListener('blur', () => {
+  if (scrubResume === null) return;
+  const was = scrubResume;
+  scrubResume = null;
+  if (!was) {
+    app.paused = false;
+    syncPauseUi();
+  }
 });
 
 function resetToModelDefaults() {
@@ -588,6 +621,7 @@ async function boot() {
   if (localStorage.getItem('physics-lab-hc') === '1') {
     document.documentElement.classList.add('hc');
   }
+  btnMenu.innerHTML = ICO.menu;
   btnReset.innerHTML = btnHtml('reset', 'reset');
   btnShot.innerHTML = btnHtml('cam', 'png');
   btnCsv.innerHTML = btnHtml('csv', 'csv');
