@@ -35,6 +35,7 @@ const MODELS = [
   // 精调 / 新学科抽检
   ['beam-sfd-bmd', 'beam-sfd-bmd.png'],
   ['pid-tune', 'pid-tune.png'],
+  ['root-locus', 'root-locus.png'],
   ['hodgkin-huxley', 'hodgkin-huxley.png'],
   ['lorenz', 'lorenz.png'],
   ['nasch-ca', 'nasch-ca.png'],

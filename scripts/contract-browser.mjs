@@ -145,6 +145,24 @@ const interaction = await page.evaluate(async () => {
     check('projectile-launch', launched && st1.landed === false && Math.hypot(st1.vx || 0, st1.vy || 0) > 0.1,
       launched ? `vx=${st1.vx}` : 'runAction failed');
 
+    // pauseOnLand → _pauseApp
+    {
+      const stP = cap.getState?.();
+      const modelP = cap.getModel?.();
+      if (stP?.params) stP.params.pauseOnLand = 1;
+      if (stP) {
+        stP.landed = false;
+        stP.y = -0.1;
+        stP.t = 1;
+        stP.vx = 0;
+        stP.vy = 0;
+        stP._pauseApp = false;
+        modelP?.step?.(stP, 0.01);
+      }
+      check('projectile-pauseOnLand', !!(stP?.landed && stP?._pauseApp),
+        `landed=${stP?.landed} pauseApp=${stP?._pauseApp}`);
+    }
+
     cap.switchModel('bfs-grid');
     cap.pause();
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -174,6 +192,31 @@ const interaction = await page.evaluate(async () => {
     }
     check('bfs-button-2-wall', wallOk, wallOk ? '' : 'right-click wall toggle failed');
 
+    // Shift+右键 = 只刷墙
+    {
+      const stSh = cap.getState?.();
+      const g2 = stSh?._gridHit;
+      const modelB = cap.getModel?.();
+      let shiftOk = false;
+      if (stSh?.grid && g2 && modelB?.onPointer) {
+        let tx = 3; let ty = 3;
+        for (let y = 1; y < stSh.rows - 1; y += 1) {
+          for (let x = 1; x < stSh.cols - 1; x += 1) {
+            const isS = stSh.start?.x === x && stSh.start?.y === y;
+            const isG = stSh.goal?.x === x && stSh.goal?.y === y;
+            if (!isS && !isG) { tx = x; ty = y; break; }
+          }
+        }
+        stSh.grid[ty][tx] = 0;
+        const px = g2.pad + (tx + 0.5) * g2.cw;
+        const py = g2.pad + (ty + 0.5) * g2.ch;
+        modelB.onPointer(stSh, { type: 'down', x: px, y: py, button: 2, shiftKey: true });
+        modelB.onPointer(stSh, { type: 'up', x: px, y: py, button: 2, shiftKey: true });
+        shiftOk = stSh.grid[ty][tx] === 1 && stSh._lastPaintMode === '刷墙';
+      }
+      check('bfs-shift-paint-wall', shiftOk, shiftOk ? '' : `mode=${stSh?._lastPaintMode}`);
+    }
+
     cap.switchModel('sorting');
     const stS = cap.getState?.();
     if (stS?.params) stS.params.demo = 1;
@@ -181,6 +224,8 @@ const interaction = await page.evaluate(async () => {
     const pauseFn = modelS?.shouldPauseApp;
     check('sorting-shouldPauseApp', typeof pauseFn === 'function' && pauseFn(stS) === true,
       typeof pauseFn === 'function' ? `demo=${stS?.params?.demo}` : 'missing shouldPauseApp');
+    const autoOk = modelS?.runAction?.(stS, 'autoDemo') === true && Math.round(stS?.params?.demo) === 0;
+    check('sorting-autoDemo', autoOk, `demo=${stS?.params?.demo}`);
 
     // layoutSteps（numerics）改参应 reinit + toast「布局已重算」
     cap.switchModel('routing');

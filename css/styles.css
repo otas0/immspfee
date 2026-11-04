@@ -106,8 +106,7 @@ html.hc .sidebar-drag span { background: rgba(255,255,255,0.35); }
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.35rem;
-  padding: 0.85rem 0.75rem 0.65rem;
+  padding: 0.85rem 0.75rem 0.55rem;
 }
 .brand-logo {
   display: block;
@@ -115,29 +114,18 @@ html.hc .sidebar-drag span { background: rgba(255,255,255,0.35); }
   text-decoration: none;
   color: inherit;
 }
+.brand-logo picture,
 .brand-logo img {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 36px;
+  max-height: 40px;
   object-fit: contain;
   object-position: left center;
 }
 /* 高对比黑底：反相字标，保持可辨 */
 html.hc .brand-logo img {
   filter: invert(1) grayscale(1);
-}
-.brand-badge {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--ink);
-  color: var(--panel);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
 }
 
 .filters {

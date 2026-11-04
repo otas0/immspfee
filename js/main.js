@@ -1257,6 +1257,7 @@ document.addEventListener('keydown', (e) => {
       const ok = app.model.runAction(app.state, actionId);
       if (ok) {
         e.preventDefault();
+        syncShellActionEnabled();
         paintFrame();
         paramBench.refresh?.();
         updateHud({ flash: true });

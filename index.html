@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IMMSPFEE · Lab</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="450x68" href="./assets/immspfee-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -17,16 +17,18 @@
       <div class="sidebar-drag" id="sidebar-drag" aria-hidden="true"><span></span></div>
       <header class="brand">
         <a class="brand-logo" href="./index.html" aria-label="IMMSPFEE">
-          <img
-            src="./assets/immspfee-logo.svg"
-            width="458"
-            height="76"
-            alt="IMMSPFEE"
-            decoding="async"
-            fetchpriority="high"
-          />
+          <picture>
+            <source type="image/webp" srcset="./assets/immspfee-logo.webp" />
+            <img
+              src="./assets/immspfee-logo.png"
+              width="450"
+              height="68"
+              alt="IMMSPFEE"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
         </a>
-        <p class="brand-tagline">physics · cs · ce · lab</p>
       </header>
 
       <div class="filters">

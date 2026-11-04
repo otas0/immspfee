@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IMMSPFEE"
-     viewBox="0 0 458 76" width="458" height="76">
+     viewBox="0 0 450 68" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <title>IMMSPFEE</title>
-  <path id="L0-I" data-letter="I" fill="#060606" d="M6 9h32v60h-32z"/>
-  <path id="L1-M" data-letter="M" fill="#575757" d="M102 6h1v1h-1zM42 7h61v14h-61zM43 21h60v35h-60zM43 56h61v13h-61z"/>
-  <path id="L2-M" data-letter="M" fill="#575757" d="M167 6h1v1h-1zM107 7h61v14h-61zM108 21h60v35h-60zM108 56h61v13h-61z"/>
-  <path id="L3-S" data-letter="S" fill="#080808" d="M181 9h50v1h-50zM179 10h52v1h-52zM177 11h54v1h-54zM176 12h55v1h-55zM175 13h56v1h-56zM174 14h57v1h-57zM173 15h58v2h-58zM172 17h59v2h-59zM171 19h60v11h-60zM172 30h59v2h-59zM173 32h58v1h-58zM174 33h57v1h-57zM175 34h56v1h-56zM176 35h55v1h-55zM178 36h53v1h-53zM180 37h51v1h-51zM182 38h49v1h-49zM172 39h59v1h-59zM172 40h52v1h-52zM172 41h54v1h-54zM172 42h55v1h-55zM172 43h56v1h-56zM172 44h57v1h-57zM172 45h58v2h-58zM172 47h59v2h-59zM172 49h60v10h-60zM172 59h59v3h-59zM172 62h58v1h-58zM172 63h57v2h-57zM172 65h56v1h-56zM172 66h54v1h-54zM172 67h53v1h-53zM172 68h51v1h-51zM172 69h46v1h-46z"/>
-  <path id="L4-P" data-letter="P" fill="#050505" d="M235 9h35v1h-35zM235 10h39v1h-39zM235 11h41v1h-41zM235 12h42v1h-42zM235 13h44v1h-44zM235 14h45v1h-45zM235 15h46v1h-46zM235 16h47v1h-47zM235 17h48v1h-48zM235 18h49v1h-49zM235 19h50v2h-50zM235 21h51v2h-51zM235 23h52v3h-52zM235 26h53v4h-53zM235 30h54v6h-54zM235 36h53v5h-53zM235 41h52v3h-52zM235 44h51v1h-51zM235 45h50v2h-50zM235 47h49v1h-49zM235 48h48v2h-48zM235 50h47v1h-47zM235 51h46v1h-46zM235 52h45v1h-45zM235 53h43v1h-43zM235 54h42v1h-42zM235 55h40v1h-40zM235 56h37v1h-37zM235 57h34v1h-34zM235 58h30v11h-30z"/>
-  <path id="L5-F" data-letter="F" fill="#0b0b0b" d="M291 9h51v21h-51zM291 30h39v1h-39zM291 31h51v21h-51zM291 52h38v17h-38z"/>
-  <path id="L6-E" data-letter="E" fill="#5d5d5d" d="M347 8h49v1h-49zM346 9h51v21h-51zM346 30h38v1h-38zM346 31h51v15h-51zM346 46h50v1h-50zM346 47h38v1h-38zM346 48h51v21h-51z"/>
-  <path id="L7-E" data-letter="E" fill="#5d5d5d" d="M401 8h50v1h-50zM401 9h51v20h-51zM401 29h50v1h-50zM401 30h38v1h-38zM401 31h51v15h-51zM401 46h50v1h-50zM401 47h38v1h-38zM401 48h51v21h-51z"/>
+  <image width="450" height="68" href="./immspfee-logo.png"/>
 </svg>
