@@ -1,31 +1,31 @@
 {
   "01-free-fall.png": {
-    "sha256": "7c45b83104b5a38f0db27ef8912905bbfcfa3266de8bb47333760bcc32919967",
-    "bytes": 64224
+    "sha256": "4cafd91a67054127b70ba408a068b9edc6c364ef3e889a300ef2f4a14983fa0f",
+    "bytes": 64336
   },
   "02-projectile.png": {
-    "sha256": "8c4d8fff257a0534f38a8239d50195e9e1b9548ce39e2f2aa2f34703814d85fb",
-    "bytes": 77613
+    "sha256": "a91e917fbb67f988f95f4b66eafc17b89418bf38b23ca1b5360ef056480eb683",
+    "bytes": 77646
   },
   "03-spring.png": {
     "sha256": "83a9246c9c56192708ffd5c0e1cf529f752e9d73618303751729ecc5b4aabb8f",
     "bytes": 59790
   },
   "04-pendulum.png": {
-    "sha256": "de6698a0c46b39290dcb34842607a5d31b1d27b5d58272b590a29b2599cb61e2",
-    "bytes": 64082
+    "sha256": "f66bf841c3c72549e7008e3dd5bdd0424ff08c8e77ce1448364c04c96f7f37eb",
+    "bytes": 63245
   },
   "05-collision.png": {
-    "sha256": "a1f39aded17fded99975faad625c37c213d3ccd639d070f70634f5db99eb5590",
-    "bytes": 61243
+    "sha256": "af38c348895a01bbbbe0bd8f19eb9cdcb74b95e36f57f1395200b8f7c6856a5d",
+    "bytes": 60555
   },
   "06-double-pendulum.png": {
-    "sha256": "1a39dbf1b8490c4be9e89a35637c5eae318e5551b72cd0aeb86ac8ba0c953825",
-    "bytes": 73561
+    "sha256": "41c975282770b9532c0415b9c63fc83452f017aa0d8c51cd77f08b74ae1dcb29",
+    "bytes": 84635
   },
   "07-wave.png": {
-    "sha256": "6fe1aa0878fbcd4a465378403e9450bf0ea694641c6dc12c818f06d699a1b1fd",
-    "bytes": 86295
+    "sha256": "4c0ae456c5cb152ab06a0af2c8c515e8f5df6cd347690eb60abdff0c419c2cd6",
+    "bytes": 86789
   },
   "08-heat.png": {
     "sha256": "3739d30a1b445794f21869c3c031a8d3560208ff1476666b0b2613c04eea9ad2",

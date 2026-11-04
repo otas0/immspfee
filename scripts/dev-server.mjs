@@ -57,7 +57,8 @@ const server = http.createServer(async (req, res) => {
   let rel = decodeURIComponent(url.pathname);
   if (rel === '/') rel = '/index.html';
   const file = path.normalize(path.join(root, rel));
-  if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+  const underRoot = file === root || file.startsWith(root + path.sep);
+  if (!underRoot || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404); res.end('not found'); return;
   }
   const ext = path.extname(file);
@@ -65,6 +66,16 @@ const server = http.createServer(async (req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`physics-demo http://127.0.0.1:${port}`);
+server.on('error', (err) => {
+  console.error('server error', err);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('uncaught', err);
+});
+
+const host = process.env.HOST || '0.0.0.0';
+server.listen(port, host, () => {
+  console.log(`physics-demo http://127.0.0.1:${port} (bind ${host})`);
 });

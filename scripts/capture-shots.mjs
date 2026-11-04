@@ -52,7 +52,7 @@ for (const [id, file] of MODELS) {
         await new Promise((r) => setTimeout(r, 50));
       }
     } else if (modelId === 'double-pendulum') {
-      await new Promise((r) => setTimeout(r, 1200));
+      await new Promise((r) => setTimeout(r, 2000));
     } else {
       await new Promise((r) => setTimeout(r, 550));
     }

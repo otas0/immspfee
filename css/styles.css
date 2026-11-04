@@ -53,14 +53,32 @@ body {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-.chassis { height: 100%; padding: 10px; }
-.app {
+.chassis {
   height: 100%;
+  padding: 10px;
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--bench-w);
   background: var(--chassis);
   border-radius: 16px;
   box-shadow: var(--elev);
+  /* 不用 overflow:hidden，避免裁切 fixed 侧栏/工作台 */
+  overflow: visible;
+}
+.chassis > .sidebar {
+  background: var(--panel);
+  border-radius: 16px 0 0 16px;
+  min-height: 0;
+}
+.chassis > .bench {
+  background: var(--panel);
+  border-radius: 0 16px 16px 0;
+  min-height: 0;
+}
+.chassis > .stage {
+  background: var(--chassis);
+  border-radius: 0;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -69,7 +87,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  z-index: 20;
+  z-index: 30; /* 高于 drawer-backdrop(24)，否则打开后被遮罩盖住看不见 */
 }
 .sidebar-drag {
   display: none;
@@ -745,7 +763,9 @@ html.hc .pot-ticks {
 }
 
 @media (max-width: 1100px) {
-  .app { grid-template-columns: var(--sidebar-w) 1fr; }
+  .chassis { grid-template-columns: var(--sidebar-w) 1fr; }
+  .chassis > .sidebar { border-radius: 16px 0 0 16px; }
+  .chassis > .stage { border-radius: 0 16px 16px 0; }
   .bench {
     position: fixed;
     top: 10px;
@@ -756,25 +776,33 @@ html.hc .pot-ticks {
     transition: transform 0.2s ease;
     border-radius: 14px;
     box-shadow: var(--elev);
+    z-index: 31;
   }
   .bench.open { transform: translateX(0); }
   .bench-close { display: inline-flex; }
 }
 
 @media (max-width: 900px) {
-  .chassis { padding: 6px; }
-  .app { grid-template-columns: 1fr; border-radius: 14px; }
+  .chassis {
+    padding: 6px;
+    grid-template-columns: 1fr;
+  }
+  .chassis > .sidebar,
+  .chassis > .stage,
+  .chassis > .bench { border-radius: 14px; }
   .sidebar {
     position: fixed;
     inset: 6px auto 6px 6px;
     width: min(86vw, 300px);
     transform: translateX(-110%);
-    transition: transform 0.2s ease;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     border-radius: 14px;
     box-shadow: var(--elev);
+    z-index: 30;
   }
   .sidebar.open { transform: translateX(0); }
   .sidebar-drag { display: flex; cursor: grab; touch-action: none; }
+  /* 宽屏三栏已有列表；仅窄屏显示汉堡 */
   .btn.ghost, .icon-btn.ghost { display: inline-flex; }
 
   .bench {
@@ -788,6 +816,11 @@ html.hc .pot-ticks {
   }
   .bench.open { transform: translateY(0); }
   .bench-drag { display: flex; }
+}
+
+body.drawer-open {
+  overflow: hidden;
+  touch-action: none;
 }
 
 .tb-more {

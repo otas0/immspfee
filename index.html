@@ -10,99 +10,98 @@
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
+  <!-- sidebar / bench 与 stage 同级，避免 .app overflow 裁切 fixed 抽屉 -->
   <div class="chassis" id="chassis">
-    <div class="app">
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-drag" id="sidebar-drag" aria-hidden="true"><span></span></div>
-        <header class="brand">
-          <div class="brand-badge">PL</div>
-          <div>
-            <h1>physics lab</h1>
-            <p>instrument / sim</p>
-          </div>
-        </header>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-drag" id="sidebar-drag" aria-hidden="true"><span></span></div>
+      <header class="brand">
+        <div class="brand-badge">PL</div>
+        <div>
+          <h1>physics lab</h1>
+          <p>instrument / sim</p>
+        </div>
+      </header>
 
-        <div class="filters">
-          <label class="field">
-            <span>search</span>
-            <input type="search" id="filter-q" placeholder="model / formula" aria-label="搜索模型" />
+      <div class="filters">
+        <label class="field">
+          <span>search</span>
+          <input type="search" id="filter-q" placeholder="model / formula" aria-label="搜索模型" />
+        </label>
+        <label class="field">
+          <span>tag</span>
+          <select id="filter-tag" aria-label="按标签筛选">
+            <option value="">all</option>
+          </select>
+        </label>
+      </div>
+
+      <nav class="model-list" id="model-list" aria-label="模型列表"></nav>
+
+      <footer class="sidebar-foot">
+        <a href="./tests.html">tests</a>
+        <a href="./manual.html">manual</a>
+        <a href="#" id="btn-hc">contrast</a>
+      </footer>
+    </aside>
+
+    <main class="stage">
+      <header class="toolbar">
+        <button type="button" id="btn-menu" class="icon-btn ghost" aria-label="打开模型列表" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="toolbar-title-block">
+          <div class="toolbar-kicker" id="toolbar-sub">mechanics</div>
+          <div class="toolbar-title" id="toolbar-title">自由落体</div>
+        </div>
+        <div class="toolbar-actions">
+          <label class="speed-control">
+            <span>spd</span>
+            <input type="range" id="speed-slider" min="0.1" max="4" step="0.1" value="1" />
+            <output id="speed-label">1.0×</output>
           </label>
-          <label class="field">
-            <span>tag</span>
-            <select id="filter-tag" aria-label="按标签筛选">
-              <option value="">all</option>
-            </select>
-          </label>
+          <button type="button" id="btn-pause" class="btn primary" data-priority="high">pause</button>
+          <button type="button" id="btn-reset" class="btn" data-priority="high">reset</button>
+          <button type="button" id="btn-shot" class="btn" data-priority="mid">png</button>
+          <button type="button" id="btn-csv" class="btn" data-priority="low">csv</button>
+          <details class="tb-more" id="tb-more">
+            <summary class="btn" aria-label="more actions">⋯</summary>
+            <div class="tb-more-menu">
+              <button type="button" id="btn-csv-more" class="btn quiet">csv</button>
+            </div>
+          </details>
+          <button type="button" id="btn-params" class="btn ghost-always" data-priority="high" aria-expanded="false" aria-controls="bench"><span class="lbl">params</span></button>
         </div>
+      </header>
 
-        <nav class="model-list" id="model-list" aria-label="模型列表"></nav>
-
-        <footer class="sidebar-foot">
-          <a href="./tests.html">tests</a>
-          <a href="./manual.html">manual</a>
-          <a href="#" id="btn-hc">contrast</a>
-        </footer>
-      </aside>
-
-      <main class="stage">
-        <header class="toolbar">
-          <button type="button" id="btn-menu" class="icon-btn ghost" aria-label="打开模型列表">
-            <span></span><span></span><span></span>
-          </button>
-          <div class="toolbar-title-block">
-            <div class="toolbar-kicker" id="toolbar-sub">mechanics</div>
-            <div class="toolbar-title" id="toolbar-title">自由落体</div>
-          </div>
-          <div class="toolbar-actions">
-            <label class="speed-control">
-              <span>spd</span>
-              <input type="range" id="speed-slider" min="0.1" max="4" step="0.1" value="1" />
-              <output id="speed-label">1.0×</output>
-            </label>
-            <button type="button" id="btn-pause" class="btn primary" data-priority="high">pause</button>
-            <button type="button" id="btn-reset" class="btn" data-priority="high">reset</button>
-            <button type="button" id="btn-shot" class="btn" data-priority="mid">png</button>
-            <button type="button" id="btn-csv" class="btn" data-priority="low">csv</button>
-            <details class="tb-more" id="tb-more">
-              <summary class="btn" aria-label="more actions">⋯</summary>
-              <div class="tb-more-menu">
-                <button type="button" id="btn-csv-more" class="btn quiet">csv</button>
-              </div>
-            </details>
-            <button type="button" id="btn-params" class="btn ghost-always" data-priority="high"><span class="lbl">params</span></button>
-          </div>
-        </header>
-
-        <div class="display-bezel">
-          <div class="canvas-wrap">
-            <canvas id="canvas"></canvas>
-          </div>
+      <div class="display-bezel">
+        <div class="canvas-wrap">
+          <canvas id="canvas"></canvas>
         </div>
+      </div>
 
-        <footer class="hud">
-          <div class="hud-label">readouts</div>
-          <div class="readouts" id="readouts"></div>
-        </footer>
-      </main>
+      <footer class="hud">
+        <div class="hud-label">readouts</div>
+        <div class="readouts" id="readouts"></div>
+      </footer>
+    </main>
 
-      <aside class="bench" id="bench">
-        <div class="bench-drag" id="bench-drag" aria-hidden="true"><span></span></div>
-        <div class="bench-head">
-          <div>
-            <div class="bench-kicker">param module</div>
-            <h2>工作台</h2>
-          </div>
-          <button type="button" id="btn-close-bench" class="btn ghost-always bench-close">close</button>
+    <aside class="bench" id="bench">
+      <div class="bench-drag" id="bench-drag" aria-hidden="true"><span></span></div>
+      <div class="bench-head">
+        <div>
+          <div class="bench-kicker">param module</div>
+          <h2>工作台</h2>
         </div>
+        <button type="button" id="btn-close-bench" class="btn ghost-always bench-close">close</button>
+      </div>
 
-        <details class="bench-help" id="bench-help">
-          <summary>formula / notes</summary>
-          <div id="meta-formula" class="meta-formula"></div>
-        </details>
+      <details class="bench-help" id="bench-help">
+        <summary>formula / notes</summary>
+        <div id="meta-formula" class="meta-formula"></div>
+      </details>
 
-        <div id="param-root" class="param-root"></div>
-      </aside>
-    </div>
+      <div id="param-root" class="param-root"></div>
+    </aside>
   </div>
 
   <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>

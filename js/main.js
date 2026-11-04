@@ -139,8 +139,7 @@ function buildSidebar() {
     btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
     btn.addEventListener('click', () => {
       switchModel(m.id);
-      sidebar.classList.remove('open');
-      sidebar.style.transform = '';
+      setSidebarOpen(false);
     });
     modelListEl.appendChild(btn);
   }
@@ -162,19 +161,42 @@ function populateTagFilter() {
   }
 }
 
+function syncDrawerChrome() {
+  const sideOpen = sidebar.classList.contains('open');
+  const benchOpen = isCompact() && bench.classList.contains('open');
+  btnMenu?.setAttribute('aria-expanded', sideOpen ? 'true' : 'false');
+  btnParams?.setAttribute('aria-expanded', benchOpen ? 'true' : 'false');
+  const showBackdrop = sideOpen || benchOpen;
+  drawerBackdrop.hidden = !showBackdrop;
+  document.body.classList.toggle('drawer-open', showBackdrop && isMobileDrawer());
+}
+
+function setSidebarOpen(open) {
+  if (!isMobileDrawer()) {
+    sidebar.classList.remove('open');
+    sidebar.style.transform = '';
+    syncDrawerChrome();
+    return;
+  }
+  sidebar.classList.toggle('open', open);
+  sidebar.style.transform = '';
+  syncDrawerChrome();
+}
+
 function setBenchOpen(open) {
   if (!isCompact()) {
     bench.classList.add('open');
-    drawerBackdrop.hidden = true;
     bench.style.transform = '';
+    bench.style.height = '';
+    syncDrawerChrome();
     return;
   }
   bench.classList.toggle('open', open);
-  drawerBackdrop.hidden = !open;
   if (!open) {
     bench.style.transform = '';
     bench.style.height = '';
   }
+  syncDrawerChrome();
 }
 
 function measureSysSticky() {
@@ -264,17 +286,22 @@ btnPause.addEventListener('click', () => {
   syncPauseUi();
 });
 btnReset.addEventListener('click', () => resetSim());
-btnMenu.addEventListener('click', () => {
-  sidebar.classList.toggle('open');
-  if (sidebar.classList.contains('open')) drawerBackdrop.hidden = false;
+btnMenu.addEventListener('click', (e) => {
+  // 菜单在 stage 内，必须阻止冒泡，否则 stage click 会立刻关掉侧栏
+  e.stopPropagation();
+  setSidebarOpen(!sidebar.classList.contains('open'));
 });
-btnParams.addEventListener('click', () => setBenchOpen(!bench.classList.contains('open')));
-btnCloseBench.addEventListener('click', () => setBenchOpen(false));
+btnParams.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setBenchOpen(!bench.classList.contains('open'));
+});
+btnCloseBench.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setBenchOpen(false);
+});
 drawerBackdrop.addEventListener('click', () => {
   setBenchOpen(false);
-  sidebar.classList.remove('open');
-  sidebar.style.transform = '';
-  drawerBackdrop.hidden = true;
+  setSidebarOpen(false);
 });
 
 btnShot.addEventListener('click', () => {
@@ -283,6 +310,8 @@ btnShot.addEventListener('click', () => {
     framed: !!app.globals.frameShot,
     readouts: app.globals.shotReadouts ? app.lastReadouts : null,
   });
+  // 导出后恢复屏幕 DPR，避免下一帧糊一下
+  requestAnimationFrame(() => paintFrame());
 });
 function exportCsv() {
   let rows = typeof app.model.getTrajectory === 'function'
@@ -316,11 +345,10 @@ btnHc?.addEventListener('click', (e) => {
   localStorage.setItem('physics-lab-hc', document.documentElement.classList.contains('hc') ? '1' : '0');
 });
 
-document.querySelector('.stage')?.addEventListener('click', () => {
-  if (isMobileDrawer()) {
-    sidebar.classList.remove('open');
-    sidebar.style.transform = '';
-  }
+document.querySelector('.stage')?.addEventListener('click', (e) => {
+  if (!isMobileDrawer()) return;
+  if (e.target.closest('#btn-menu, #btn-params, .toolbar-actions, .tb-more')) return;
+  if (sidebar.classList.contains('open')) setSidebarOpen(false);
 });
 sidebar.addEventListener('click', (e) => e.stopPropagation());
 bench.addEventListener('click', (e) => e.stopPropagation());
@@ -389,11 +417,9 @@ function bindDrawerDrag(handle, panel, axis) {
     } else if (lastOffset < -(base * 0.4)) {
       panel.style.transform = 'translateX(-110%)';
       const finish = () => {
-        panel.classList.remove('open');
-        panel.style.transform = '';
         panel.style.transition = '';
-        drawerBackdrop.hidden = !bench.classList.contains('open');
         panel.removeEventListener('transitionend', finish);
+        setSidebarOpen(false);
       };
       panel.addEventListener('transitionend', finish);
     } else {
@@ -419,11 +445,14 @@ bindDrawerDrag(sidebarDrag, sidebar, 'x');
 window.addEventListener('resize', () => {
   if (!isCompact()) {
     bench.classList.add('open');
-    drawerBackdrop.hidden = true;
     bench.style.transform = '';
     bench.style.height = '';
+  }
+  if (!isMobileDrawer()) {
+    sidebar.classList.remove('open');
     sidebar.style.transform = '';
   }
+  syncDrawerChrome();
   measureSysSticky();
 });
 
@@ -431,14 +460,18 @@ window.addEventListener('resize', () => {
 window.__labCapture = {
   canvasPng: () => {
     paintFrame({ forceDpr: 2 });
-    return document.getElementById('canvas').toDataURL('image/png');
+    const url = document.getElementById('canvas').toDataURL('image/png');
+    paintFrame();
+    return url;
   },
   composedPng: (framed, withReadouts) => {
     paintFrame({ forceDpr: 2 });
-    return composeExport(document.getElementById('canvas'), {
+    const url = composeExport(document.getElementById('canvas'), {
       framed: !!framed,
       readouts: withReadouts ? app.lastReadouts : null,
     }).toDataURL('image/png');
+    paintFrame();
+    return url;
   },
   switchModel: (id) => switchModel(id),
   pause: () => { if (!app.paused) { app.paused = true; syncPauseUi(); } },
@@ -468,6 +501,7 @@ async function boot() {
   buildSidebar();
   switchModel('free-fall');
   if (!isCompact()) bench.classList.add('open');
+  syncDrawerChrome();
   requestAnimationFrame(frame);
 }
 

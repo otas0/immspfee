@@ -96,10 +96,11 @@ export default {
 
     if (state.flash > 0) {
       const alpha = state.flash / 0.3;
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.45})`;
+      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.35})`;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(X((state.x1 + state.x2) / 2), y, 28 + (1 - alpha) * 20, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(X((state.x1 + state.x2) / 2), y, 18 + (1 - alpha) * 10, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
     // m1：实心亮；m2：深灰填充 + 白线框，避免两球糊成一团
