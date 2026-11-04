@@ -307,7 +307,7 @@ function renderBaselineSelect() {
   if (!baselineSelect) return;
   const bucket = modelBaselineBucket();
   const cur = baselineStore.activeId;
-  baselineSelect.innerHTML = '<option value=\"\">当前对照</option>'
+  baselineSelect.innerHTML = '<option value="">当前对照</option>'
     + bucket.map((s) => `<option value="${s.id}"${s.id === cur ? ' selected' : ''}>${s.name}</option>`).join('');
 }
 
@@ -818,20 +818,10 @@ function exportCsv() {
     ? app.model.getTrajectory(app.state)
     : null;
   if (!rows || !rows.length) rows = [{ t: finiteOr(app.state.t, 0), note: 'no-trajectory' }];
-  const energy = typeof app.model.getEnergy === 'function'
-    ? app.model.getEnergy(app.state)
-    : null;
-  rows = rows.map((row, i) => {
-    const out = { ...row };
-    if (energy && i === 0) {
-      if (Number.isFinite(energy.kinetic)) out.E_kin = energy.kinetic;
-      if (Number.isFinite(energy.potential)) out.E_pot = energy.potential;
-      if (Number.isFinite(energy.kinetic) && Number.isFinite(energy.potential)) {
-        out.E_tot = energy.kinetic + energy.potential;
-      }
-    } else if (energy && typeof app.model.getEnergy === 'function') {
-      // 逐行尽量附当前能量（轨迹点无独立能量时重复末态）
-      const e = app.model.getEnergy(app.state);
+  rows = rows.map((row) => {
+    const out = { ...(typeof row === 'object' && row ? row : { v: row }) };
+    const e = energyAtTrajectoryRow(app.model, app.state, out);
+    if (e) {
       if (Number.isFinite(e.kinetic)) out.E_kin = e.kinetic;
       if (Number.isFinite(e.potential)) out.E_pot = e.potential;
       if (Number.isFinite(e.kinetic) && Number.isFinite(e.potential)) {
@@ -850,9 +840,39 @@ document.getElementById('btn-pin-baseline')?.addEventListener('click', () => {
   app.globals.compareReadouts = true;
   app.globals.pinBaseline = true;
   updateHud({ snapshotPrev: true });
+  const bucket = modelBaselineBucket();
+  const values = Object.fromEntries([...prevReadoutMap.entries()]);
+  const slot = {
+    id: `pin-${Date.now()}`,
+    name: `钉住 ${bucket.length + 1}`,
+    values,
+    ts: Date.now(),
+  };
+  bucket.push(slot);
+  while (bucket.length > 8) bucket.shift();
+  baselineStore.activeId = slot.id;
+  saveBaselines();
+  renderBaselineSelect();
   paramBench.refresh?.();
   showToast('已钉住基线（对照开）');
 });
+
+btnSaveBaseline?.addEventListener('click', () => saveBaselineSnapshot());
+baselineSelect?.addEventListener('change', () => {
+  const id = baselineSelect.value;
+  if (!id) {
+    baselineStore.activeId = null;
+    app.globals.pinBaseline = false;
+    updateHud({ snapshotPrev: true });
+    return;
+  }
+  const slot = modelBaselineBucket().find((s) => s.id === id);
+  if (slot) {
+    activateBaseline(slot);
+    showToast(`对照切换：${slot.name}`);
+  }
+});
+btnSafeRestore?.addEventListener('click', () => restoreSafeDefaults());
 
 speedSlider.addEventListener('input', () => {
   app.globals.timeScale = Number(speedSlider.value) || 1;
@@ -1051,6 +1071,7 @@ function bindCanvasPointer() {
       dragging = true;
       canvas.setPointerCapture?.(e.pointerId);
       e.preventDefault();
+      paintFrame();
       paramBench.refresh?.();
       updateHud({ flash: true });
     }
@@ -1059,6 +1080,7 @@ function bindCanvasPointer() {
     if (!dragging || typeof app.model?.onPointer !== 'function') return;
     const p = pt(e);
     if (app.model.onPointer(app.state, { type: 'move', x: p.x, y: p.y })) {
+      paintFrame();
       paramBench.refresh?.();
       updateHud({ flash: true });
     }
@@ -1068,6 +1090,9 @@ function bindCanvasPointer() {
     dragging = false;
     const p = pt(e);
     app.model?.onPointer?.(app.state, { type: 'up', x: p.x, y: p.y });
+    paintFrame();
+    paramBench.refresh?.();
+    updateHud({ flash: true });
   };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
