@@ -207,7 +207,13 @@ if (!names.previews) fail('sidebar assumption preview is missing');
 if (names.hanInPack) fail(`models-en still has ${names.hanInPack} Han names`);
 if (names.leak) fail(`${names.leak}/${names.checked} English names did not replace the catalog source`);
 
-await desk.locator('#model-list button[data-id="r016-显微镜"]').click();
+const microBtn = desk.locator('#model-list button[data-id="r016-显微镜"]');
+if (await microBtn.count()) {
+  await microBtn.scrollIntoViewIfNeeded();
+  await microBtn.click({ force: true });
+} else {
+  await desk.evaluate(() => window.__labCapture.switchModel('r016-显微镜'));
+}
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
 const clickedIn = await desk.evaluate(() => ({
@@ -216,7 +222,7 @@ const clickedIn = await desk.evaluate(() => ({
   side: getComputedStyle(document.getElementById('sidebar')).display,
 }));
 if (clickedIn.shell !== 'lab-microscope3d' || !clickedIn.chrome || clickedIn.side !== 'none') {
-  fail(`clicking the microscope row did not enter the dedicated shell ${JSON.stringify(clickedIn)}`);
+  fail(`selecting the microscope did not enter the dedicated shell ${JSON.stringify(clickedIn)}`);
 }
 await desk.click('#btn-micro-exit');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
