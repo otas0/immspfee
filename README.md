@@ -2,94 +2,109 @@
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-otas0.github.io%2Fimmspfee-0B3D2E?logo=github)](https://otas0.github.io/immspfee/)
 
-纯前端学术演示实验室：**1500+ 模型**（手写/工厂精调 + 每族 1 条引擎条目；轴/参数进工作台而非侧栏克隆）· 统一 Model 接口 · Web/Canvas 可视化 · 高自定义参数工作台。
+Browser-based simulation workbench: **1500+ models** (hand-tuned + one engine entry per family; axis/presets live on the param bench, not as sidebar clones) · shared Model contract · Web/Canvas visuals · customizable parameter bench.
 
-## 架构原则
+**Repo language:** English is the source of truth for README, docs, UI chrome defaults, commits, and new code comments. Locale packs (`zh` / `ja` / …) localize the running Lab; catalog source strings may still include Chinese titles until packs cover them.
 
-对齐 [scikit-complexity](https://pypi.org/project/scikit-complexity/) 的 **catalog 分类 + 统一接口**，但可视化层用 **Web/Canvas 重实现**，不依赖 Python / Rerun：
+## Architecture
 
-| 借鉴 | 用在本项目 |
-|------|------------|
-| scikit-complexity | `catalog` + `family`/`formalism`；同一套 `init/step/draw/getReadouts/refresh` |
-| PhET / oPhysics / SimuPhysics | 单模型交互：拖物距、读数对照、虚像虚线、刻度尺 |
-| Algorithm Visualizer / eigenvue | CS：步进高亮、点选连边、网表拖线（思路复用，非嵌入其运行时） |
-| 工程教学台 | **原理性可视化**（简化方程），非 FEA/SPICE/工业求解器，保持浏览器轻量 |
+Aligned with [scikit-complexity](https://pypi.org/project/scikit-complexity/) **catalog + unified interface**, with the visualization layer reimplemented in Web/Canvas (no Python / Rerun runtime):
 
-Fidelity 默认 `principle`。工厂族能力见 `js/lab/formalism.js`。
+| Borrowed from | Used here |
+|---------------|-----------|
+| scikit-complexity | `catalog` + `family`/`formalism`; shared `init/step/draw/getReadouts/refresh` |
+| PhET / oPhysics / SimuPhysics | Single-model interaction: drag, readout compare, construction lines |
+| Algorithm Visualizer / eigenvue | CS: step highlights, pick edges, netlist wiring (ideas only) |
+| Engineering teaching benches | Teaching → industrial-grade paths in one shell |
 
-## 开发约束（死规则）
+Default fidelity is often `principle` unless stamped otherwise. Factory families: `js/lab/formalism.js`.
 
-**每个模型必须可用。**
+## Hard rules
 
-- `params` + `paramSchema`（group / 中文 label / unit / min·max）
+**Every model must be usable** — rich params; check ethics/theory against authoritative sources before claiming engineering fidelity.
+
+- `params` + `paramSchema` (group / label / unit / min·max; prefer ≥4 keys)
 - `init` / `step` / `draw` / `getReadouts` / `refresh`
-- live/reset **完全以 `schema.group` 为准**（dynamics/display/custom=live；initial/numerics=reset）
-- 合同测试全绿；失败写出 `artifacts/contract-failures.json`（含 failedModelIds）
-- 可选：`onPointer`、`runAction`、`getEnergy`/`getEnergyAt`、`capabilities.actions`
+- Live vs reinit follows `schema.group` (dynamics/display/custom = live; initial/numerics = reinit)
+- Contract tests green; failures → `artifacts/contract-failures.json`
+- Optional: `onPointer`, `runAction`, energy helpers, `capabilities.actions`
+- Correctness: catalog `authority` / `assumptions` / `fidelity` — see [docs/model-correctness.md](./docs/model-correctness.md)
+- Custom models: sidebar “+ custom model”; edit/delete/export/import JSON (`localStorage`)
+- Ethics-sensitive families: [docs/ethics-audit.md](./docs/ethics-audit.md)
+- Coverage: `npm run report:authority`
 
-## 万能壳
+## Shell layers
 
-| 层 | 职责 |
-|----|------|
-| Catalog | `data/catalog.json`；侧栏领域/子类 |
-| Shell | `deriveCapabilities`：formalism / hint / pointer / actions |
-| Stage | 统一 canvas；透镜/Dijkstra/逻辑门走 pointer + 壳工具条 |
-| Bench | schema 控件；≥20 参默认只展开 dyn |
-| HUD | 多快照对照、导入/导出课堂对照卷 JSON、安全默认 |
+| Layer | Role |
+|-------|------|
+| Catalog | `data/catalog.json`; domain / subcategory sidebar |
+| Shell | `deriveCapabilities`: formalism / hint / pointer / actions |
+| Stage | Shared canvas |
+| Bench | Schema controls; ≥20 params → focus dynamics by default |
+| HUD | Snapshot compare, class-pack JSON/ZIP, safe defaults |
 
-## 族×维度扩库
+## Family generator
 
-模型族与变体维度定义在 [`scripts/family-defs.mjs`](./scripts/family-defs.mjs)（同步写出 [`data/families.json`](./data/families.json)）。生成器合并进 `catalog.json` / `models.json`，跳过已有 id，并为新 id 批量写领域色相色板：
+Definitions: [`scripts/family-defs.mjs`](./scripts/family-defs.mjs) → [`data/families.json`](./data/families.json).
 
 ```bash
-npm run gen:families                 # 每缺失族补 1 条（唯一仿真引擎，不展开预设）
-node scripts/dedupe-family-variants.mjs  # 折叠历史族×变体克隆（已跑过可跳过）
-npm run gen:families -- --dry-run    # 只打印计数
-npm run gen:families -- --max-per-family 20 --target 4000
+npm run gen:families
+node scripts/dedupe-family-variants.mjs
+npm run gen:families -- --dry-run
+npm run gen:model-locales   # data/locales/models-en.json + models-ja.json
 ```
 
-生成条目 id 形如 `fam-<slug>-vNN`，`family` 映射现有 factory（ode1d / wave1d / ml / …）；运行时走薄 `variant` 构建器读取 `dims`/`defaults`。
+IDs look like `fam-<slug>-vNN`. Prefer one `-v01` entry per family engine.
 
 ## Live
 
-GitHub Pages（project site）：**https://otas0.github.io/immspfee/**
+**https://otas0.github.io/immspfee/**
 
 [![Open Lab](https://img.shields.io/badge/Live-immspfee%20Lab-1F6F4A?style=for-the-badge)](https://otas0.github.io/immspfee/)
 
-静态根目录由 `.github/workflows/pages.yml`（`actions/deploy-pages`）在 `main` 推送后发布；仓库名 `immspfee` → 站点前缀 `/immspfee/`。本地与 Pages 均用相对路径 `./…`。
+Deployed by `.github/workflows/pages.yml` from repo root. Relative asset paths (`./…`). Deep link: `#m=<id>`. Locale: `?lang=en` (also `zh`, `ja`, `ko`, `es`, `fr`, `de`) synced with `localStorage`.
 
-## 启动与测试
+## Scripts
 
 ```bash
 npm start
 npm test
 npm run test:catalog
-npm run report:schema          # → docs/schema-coverage.md
-npm run test:contract-browser  # 按领域分层抽检（每域≥3）
-CONTRACT_SAMPLE=800 npm test   # 大目录时可抽样合同（默认全量）
+npm run report:schema
+npm run test:contract-browser
+CONTRACT_SAMPLE=800 npm test
 npm run test:all
 ```
 
-覆盖率与交互说明见 [manual.html](./manual.html) · [docs/schema-coverage.md](./docs/schema-coverage.md)。
+See [manual.html](./manual.html) and [docs/schema-coverage.md](./docs/schema-coverage.md).
 
-## 贡献入口：新增 factory family
+## Adding a factory family
 
-新增一族可视化时，先读 **[docs/add-factory-family.md](./docs/add-factory-family.md)**（统一接口 · Canvas · 原理级保真），再用脚手架：
+Read **[docs/add-factory-family.md](./docs/add-factory-family.md)**, then:
 
 ```bash
 npm run new:family -- name=fluid
-npm run new:family -- name=rcmesh --formalism=circuit
 ```
 
-然后在 `data/catalog.json` 挂 `"family": "fluid"` 条目，并跑 `npm test`。
+Attach `"family": "fluid"` in `data/catalog.json` and run `npm test`.
 
-手写精调模型（`family: "hand"`）对照说明见 **[docs/hand-models.md](./docs/hand-models.md)**。
+Hand models (`family: "hand"`): **[docs/hand-models.md](./docs/hand-models.md)**.
 
-品牌字标 **IMMSPFEE**：纯矢量逐字 path — [`assets/immspfee-logo.svg`](./assets/immspfee-logo.svg)；favicon [`assets/favicon.svg`](./assets/favicon.svg)。
+Brand mark: [`assets/immspfee-logo.png`](./assets/immspfee-logo.png) · favicon [`assets/favicon.svg`](./assets/favicon.svg).
 
-## 参数与窄屏
+Instructor briefing poster (local): [`docs/promo/poster.html`](./docs/promo/poster.html) or root [`poster.html`](./poster.html).
 
-- 宽量程 NaN →「恢复安全默认」
-- 对照：钉住 / 存快照 / 切换 / **导出·导入 JSON**
-- CSV 优先 `getEnergyAt(row)`，按轨迹点能量而非末态重复
-- 折叠：按钮全开全收 + 点标题
+## Params & compact UI
+
+- Wide-range NaN → “safe defaults”
+- Compare: pin / save / switch / export·import
+- Fold: expand/collapse all + click headings
+- Compact: icon toolbar; menu drawer; params drawer
+
+| State | Shot |
+|-------|------|
+| Menu closed | ![menu closed](./shots/ui-mobile-menu-closed.png) |
+| Menu open | ![menu open](./shots/ui-mobile-menu-open.png) |
+| Toolbar | ![toolbar](./shots/ui-mobile-toolbar.png) |
+| Bezel | ![bezel](./shots/ui-mobile-bezel.png) |
+| HC toolbar | ![hc](./shots/ui-hc-toolbar.png) |

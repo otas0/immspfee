@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>manual · Physics Lab</title>
+  <title>manual · IMMSPFEE Lab</title>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root { --bg:#f2f2f2; --ink:#000; --muted:#666; --panel:#fff; --mono:"IBM Plex Mono",monospace; --sans:"Sora","Noto Sans SC",sans-serif; }
@@ -30,7 +30,19 @@
   <main>
     <div class="kicker">physics lab / manual</div>
     <h1>自定义常量如何进入方程</h1>
-    <p class="muted"><a href="./index.html">← back</a> · <a href="#" id="hc">contrast</a> · <a href="./docs/schema-coverage.md">schema 覆盖率</a> · <a href="./docs/add-factory-family.md">新增 factory family</a></p>
+    <p class="muted"><a href="./index.html">← back</a> · <a href="#" id="hc">contrast</a> · <a href="./docs/schema-coverage.md">schema coverage</a> · <a href="./docs/add-factory-family.md">add factory family</a></p>
+
+    <h2>Language</h2>
+    <div class="card">
+      <p>The Lab shell supports <strong>zh / en / ja / ko / es / fr / de</strong> via the sidebar <em>language</em> select.</p>
+      <ul class="muted">
+        <li><strong>URL:</strong> <code>?lang=en</code> (etc.) wins over <code>localStorage</code> key <code>physics-lab-locale-v1</code>, then syncs both ways.</li>
+        <li><strong><code>html.lang</code>:</strong> updated on switch for assistive tech (e.g. <code>zh-CN</code>, <code>en</code>, <code>ja</code>).</li>
+        <li><strong>Focus:</strong> after a language change, focus returns to <code>#locale-select</code>.</li>
+        <li><strong>Model titles:</strong> lazy packs <code>data/locales/models-en.json</code> / <code>models-ja.json</code> (<code>npm run gen:model-locales</code>). Other locales fall back to catalog source strings.</li>
+        <li><strong>Repo policy:</strong> README / docs / new UI chrome are English-first; see <code>AGENTS.md</code>.</li>
+      </ul>
+    </div>
 
     <h2>0. 架构原则（统一接口 · Canvas）</h2>
     <div class="card">
@@ -38,7 +50,7 @@
         <li>对齐 <strong>scikit-complexity</strong>：catalog 分类 + 同一套 Model API；可视化层用 Web/Canvas，不依赖 Python/Rerun。</li>
         <li>物理交互借鉴 <strong>PhET / oPhysics / SimuPhysics</strong>（拖物、读数对照、虚像虚线）。</li>
         <li>CS 步进/高亮借鉴 <strong>Algorithm Visualizer / eigenvue</strong> 思路（图算法点选连边、网表拖线）。</li>
-        <li>工程为<strong>原理性可视化</strong>（简化方程），非工业求解器，保持浏览器轻量。</li>
+        <li><strong>工业级硬规则</strong>：每个模型须有权威来源与适用假设、高自定义参数；概念不符则修或下架。保真度 <code>engineering</code>（假设内可对照文献）与 <code>principle</code>（原理示意，非工业求解器）在壳层芯片上区分。详见 <a href="./docs/model-correctness.md">model-correctness</a> · <a href="./docs/ethics-audit.md">伦理审计</a> · <a href="./docs/hand-priority.md">手写优先队列</a>。</li>
       </ul>
     </div>
 

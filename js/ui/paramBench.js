@@ -2,7 +2,6 @@ import {
   parseUserNumber,
   inferUnit,
   inferGroup,
-  GROUP_LABELS,
   formatParamNumber,
   formatDtFriendly,
   clampNumber,
@@ -12,6 +11,7 @@ import {
 } from '../utils/params.js';
 import { ICO } from './icons.js';
 import { shouldAutoFoldGroup, deriveCapabilities } from './modelShell.js';
+import { t, groupLabels } from '../i18n/index.js';
 
 const GLOBAL_META = {
   timeScale: { label: 'timeScale', unit: '×', min: 0.05, max: 8, def: 1 },
@@ -87,27 +87,34 @@ export function createParamBench(root, hooks = {}) {
         || currentModel?.id === 'beam-sfd-bmd' || currentModel?.id === 'pid-tune')
         ? '原理级，非 FEA/工业调参'
         : '');
-    const applyLine = `动力学即时生效；初值/数值会重置状态 · ${cap.paramCount} 参`;
+    const applyLine = `${t('ui.applyBanner')} · ${cap.paramCount} ${t('ui.paramsUnit')}`;
     if (note) {
       bar.classList.add('is-principle');
       bar.innerHTML = `<div class="principle-badge">${note}</div>`
-        + `<strong>万能工作台 · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
+        + `<strong>${t('ui.bench')} · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
         + `<span>${applyLine}</span>`;
     } else {
-      bar.innerHTML = `<strong>万能工作台 · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
+      bar.innerHTML = `<strong>${t('ui.bench')} · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
         + `<span>${applyLine}</span>`;
     }
     return bar;
   }
 
-  /** dynamics → is-live；initial / numerics → is-reinit（::after 文案由 CSS 提供） */
+  /** dynamics → is-live；initial / numerics → is-reinit（文案挂在 .key[data-apply-label]） */
   function markApplyMode(row, group) {
-    if (group === 'dynamics') row.classList.add('is-live');
-    else if (group === 'initial' || group === 'numerics') row.classList.add('is-reinit');
+    const keyEl = row.querySelector('.key');
+    if (group === 'dynamics') {
+      row.classList.add('is-live');
+      if (keyEl) keyEl.dataset.applyLabel = t('ui.live');
+    } else if (group === 'initial' || group === 'numerics') {
+      row.classList.add('is-reinit');
+      if (keyEl) keyEl.dataset.applyLabel = t('ui.reinit');
+    }
   }
 
   function renderGlobalSection() {
-    const sec = section(GROUP_LABELS.global || '系统', { stickySys: true, foldable: true, open: sysOpen });
+    const labels = groupLabels();
+    const sec = section(labels.global || t('group.global'), { stickySys: true, foldable: true, open: sysOpen });
     const rows = document.createElement('div');
     rows.className = 'param-rows';
     const g = globals;
@@ -197,8 +204,9 @@ export function createParamBench(root, hooks = {}) {
     });
     const paramCount = Object.keys(currentParams || {}).length;
     const cap = deriveCapabilities(currentModel);
+    const labels = groupLabels();
     for (const g of keys) {
-      const title = GROUP_LABELS[g] || g;
+      const title = labels[g] || g;
       const fold = shouldAutoFoldGroup(g, paramCount, cap.focusGroups);
       const sec = section(title);
       const rows = document.createElement('div');
