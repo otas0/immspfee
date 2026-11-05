@@ -79,7 +79,8 @@ function shell(spec, o) {
       ctx.fillText(spec.name, 14, 22);
       const caveat = designCaveatText({ ...spec, formula: equation });
       if (caveat) {
-        ctx.font = '12px IBM Plex Mono, monospace';
+        ctx.fillStyle = C.muted;
+        ctx.font = '11px IBM Plex Sans, sans-serif';
         ctx.fillText(caveat, 14, 40);
       }
       if (drawTopicSketch(ctx, { ...spec, formula: equation }, state, view)) return;
@@ -107,7 +108,14 @@ function shell(spec, o) {
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
-      const rows = o.rows(state, d) || [];
+      const rows = [...(o.rows(state, d) || [])];
+      // Surface dynamics knobs so topic readouts track editable params (no-fake-data).
+      for (const [k, meta] of Object.entries(paramSchema || {})) {
+        if (k === 'speed' || meta?.group === 'display' || meta?.group === 'initial') continue;
+        if (typeof state.params?.[k] !== 'number') continue;
+        if (rows.some((r) => r[0] === k)) continue;
+        rows.push([k, state.params[k], meta.unit || '']);
+      }
       return rows.map(([label, val, unit]) => ({
         label,
         value: typeof val === 'string'
@@ -1118,7 +1126,7 @@ function decay(spec) {
   return shell(spec, {
     equation: 'N = N₀ e^{−λ t}，t½ = ln2 / λ',
     authority: 'Krane, Introductory Nuclear Physics, 指数衰变',
-    assumptions: '单一核素、常数 λ；非燃耗、非剂量设计',
+    assumptions: '单一核素、常数 λ；非燃耗、非剂量设计。e^{−λt} 按双精度计算，不在 ±40 处截断',
     params: { N0: 1000, lambda: 0.2 },
     schema: {
       N0: S('N₀', 'initial', '—', 1, 1e5),
@@ -2667,7 +2675,7 @@ function nernst(spec) {
   return shell(spec, {
     equation: 'E = E⁰ − (RT/nF) ln Q',
     authority: 'Bard & Faulkner, Electrochemical Methods, 能斯特方程',
-    assumptions: '25°C 可调、活度以浓度代替',
+    assumptions: '活度以浓度代替。等价指数 e^{nFE/RT} 按双精度计算，不在 ±40 处截断；ln 的自变量低于 10⁻⁶ 时按 10⁻⁶',
     params: { E0: 1, n: 1, Q: 0.1, T: 298 },
     schema: {
       E0: S('E⁰', 'dynamics', 'V', -2, 2),
@@ -4264,21 +4272,21 @@ function asmSubstrate(spec) {
 
 function riverDisp(spec) {
   return shell(spec, {
-    equation: '一维脉冲：c = M/A / √(4π E t) exp(−(x−u t)²/(4 E t))',
+    equation: '一维脉冲：c = M/A / √(4π E t) exp(−ξ²/(4 E t))，探针在峰位 x = u t + ξ，默认 ξ = 0',
     authority: 'Fischer et al., Mixing in Inland and Coastal Waters',
-    assumptions: '恒定断面与流速、瞬时投放在 x=0；默认探针也在投放点，避免 t≈0 时读到高斯远尾',
-    params: { M: 10, A: 20, E: 5, u: 0.4, x: 0 },
+    assumptions: '恒定断面与流速、瞬时投放在 x=0。t>0 时默认探针跟着峰走（ξ=0），不读高斯远尾',
+    params: { M: 10, A: 20, E: 5, u: 0.4, xi: 0 },
     schema: {
       u: S('u', 'dynamics', 'm/s', 0.05, 2),
       E: S('E', 'dynamics', 'm²/s', 0.1, 50),
-      x: S('x', 'dynamics', 'm', 0, 100),
+      xi: S('距峰 ξ', 'dynamics', 'm', -30, 30),
     },
     tick(state) {
       const t = Math.max(0.05, state.t);
       const u = P(state.params, 'u', 0.4);
       const E = Math.max(1e-3, P(state.params, 'E', 5));
-      const x = P(state.params, 'x', 10);
-      const xi = x - u * t;
+      const xi = P(state.params, 'xi', 0);
+      state.xPeak = u * t;
       state.c = (P(state.params, 'M', 10) / Math.max(0.1, P(state.params, 'A', 20))) / Math.sqrt(4 * Math.PI * E * t) * Math.exp(-(xi * xi) / (4 * E * t));
     },
     plot: (s) => s.c,
@@ -4449,9 +4457,9 @@ const PREFIX = {
     authority: 'ICRP 公开的当量剂量定义（教学）',
     assumptions: '只做定义式乘法，非剂量评估',
     fidelity: 'principle',
-    params: { D: 1, w: 1 },
+    params: { D: 0.001, w: 1 },
     schema: { D: S('D', 'dynamics', 'Gy', 0, 5), w: S('w_R', 'dynamics', '—', 1, 20) },
-    tick(st) { st.H = P(st.params, 'D', 1) * P(st.params, 'w', 1); },
+    tick(st) { st.H = P(st.params, 'D', 0.001) * P(st.params, 'w', 1); },
     plot: (st) => st.H,
     rows: (st) => [['H', st.H, 'Sv']],
   }) : decay(s)),

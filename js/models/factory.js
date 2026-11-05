@@ -9,6 +9,7 @@ import { localizeSchema } from '../utils/zhLabels.js';
 import { familyCapabilities } from '../lab/formalism.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { forceGraphStep, mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
+import { buildTopicModel } from '../lab/topicModel.js';
 
 function schemaNum(label, group, unit, min, max) {
   return { label, group, unit, min, max };
@@ -51,9 +52,20 @@ function enrich(model, spec) {
   if (model.paramSchema) model.paramSchema = localizeSchema(model.paramSchema);
   const fam = spec.family || 'gauge';
   const caps = familyCapabilities(fam, spec);
+  const topicBound = !!model.topicBound;
   model.capabilities = { ...caps, ...(model.capabilities || {}) };
   model.formalism = model.capabilities.formalism || caps.formalism;
-  model.fidelity = 'principle';
+  model.fidelity = topicBound
+    ? (model.fidelity || spec.fidelity || 'principle')
+    : (spec.fidelity || model.fidelity || 'principle');
+  model.capabilities.fidelity = model.fidelity;
+  if (topicBound) {
+    model.authority = model.authority || spec.authority || '';
+    model.assumptions = model.assumptions || spec.assumptions || '';
+  } else {
+    model.authority = spec.authority || model.authority || '';
+    model.assumptions = spec.assumptions || model.assumptions || '';
+  }
   if (typeof model.getEnergy !== 'function') {
     model.getEnergy = (state) => {
       if (Number.isFinite(state?.energy)) return { kinetic: state.energy, potential: 0 };
@@ -134,6 +146,11 @@ function enrich(model, spec) {
 
 /** @param {object} spec catalog entry */
 export function createFactoryModel(spec) {
+  // Prefer textbook topic engines (overrides + PREFIX) over generic family demos.
+  if (!(spec.dims || spec.generated)) {
+    const topic = buildTopicModel(spec);
+    if (topic) return enrich(topic, spec);
+  }
   const family = spec.family || 'gauge';
   const builders = {
     ode1d: buildOde1d,

@@ -1,10 +1,18 @@
 #!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.join(root, '..');
+const gen = spawnSync(process.execPath, [path.join(root, 'gen-equation-index.mjs')], { cwd: repo, stdio: 'inherit' });
+if (gen.status) process.exit(gen.status ?? 1);
+const indexHtml = fs.readFileSync(path.join(repo, 'equation-index.html'), 'utf8');
+if (!indexHtml.includes('d = 0.61') || !indexHtml.includes('handwritten assembly')) {
+  console.error('equation-index.html is missing the microscope pair');
+  process.exit(1);
+}
 const suiteUrl = pathToFileURL(path.join(root, '../js/tests/suite.js')).href;
 const { runSuite } = await import(suiteUrl);
 const results = runSuite();
@@ -18,22 +26,31 @@ const total = results.length;
 console.log(`\n${pass}/${total} passed`);
 
 const failures = results._contractFailures;
-if (failures && failures.ids?.length) {
+if (failures) {
   const outDir = path.join(repo, 'artifacts');
   fs.mkdirSync(outDir, { recursive: true });
   const payload = {
     generatedAt: new Date().toISOString(),
     total: failures.total,
     ok: failures.ok,
-    failedCount: failures.ids.length,
-    failedModelIds: failures.ids,
-    details: failures.details,
+    failedCount: failures.ids?.length || 0,
+    failedModelIds: failures.ids || [],
+    constantReadoutCount: failures.constantReadoutIds?.length || 0,
+    constantReadoutIds: failures.constantReadoutIds || [],
+    details: failures.details || [],
   };
   const jsonPath = path.join(outDir, 'contract-failures.json');
   const txtPath = path.join(outDir, 'contract-failed-ids.txt');
+  const constPath = path.join(outDir, 'constant-readout-ids.txt');
   fs.writeFileSync(jsonPath, `${JSON.stringify(payload, null, 2)}\n`);
-  fs.writeFileSync(txtPath, `${failures.ids.join('\n')}\n`);
-  console.error(`contract artifact → ${jsonPath} (${failures.ids.length} ids)`);
+  fs.writeFileSync(txtPath, `${(failures.ids || []).join('\n')}${(failures.ids || []).length ? '\n' : ''}`);
+  fs.writeFileSync(constPath, `${(failures.constantReadoutIds || []).join('\n')}${(failures.constantReadoutIds || []).length ? '\n' : ''}`);
+  if (failures.ids?.length) {
+    console.error(`contract artifact → ${jsonPath} (${failures.ids.length} ids)`);
+  }
+  if (failures.constantReadoutIds?.length) {
+    console.log(`constant-readout artifact → ${constPath} (${failures.constantReadoutIds.length} ids, non-blocking)`);
+  }
 }
 
 if (pass !== total) process.exit(1);

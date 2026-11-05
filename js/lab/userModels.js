@@ -61,6 +61,9 @@ export function validateUserModelDraft(draft, opts = {}) {
   if (assumptions.length < 12) {
     return { ok: false, error: '须写清适用假设与局限（工业级不可省略）' };
   }
+  if (!/(忽略|适用|范围|不是|线性|小角|集总|limit|neglect|assume|valid)/i.test(assumptions)) {
+    return { ok: false, error: '缺少假设：适用范围或忽略项（请写明例如「忽略摩擦」或「不是设计工具」）' };
+  }
   if (description.length < 12) {
     return { ok: false, error: '描述须说明状态量/输入输出与文献对应' };
   }

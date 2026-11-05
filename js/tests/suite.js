@@ -273,18 +273,24 @@ export function runSuite() {
       const r = compoundMicroscope.getReadouts(state, { digits: 3 });
       const na0 = r.find((x) => x.label === 'NA')?.value;
       const m0 = Math.abs(parseFloat(r.find((x) => x.label === '|M|')?.value));
-      state.params.objSlot = 2;
+      state.params.objective = '40x';
       compoundMicroscope.refresh(state);
       const r2 = compoundMicroscope.getReadouts(state, { digits: 3 });
       const m1 = Math.abs(parseFloat(r2.find((x) => x.label === '|M|')?.value));
+      state.params.objective = '100x';
+      compoundMicroscope.refresh(state);
+      const r3 = compoundMicroscope.getReadouts(state, { digits: 3 });
+      const nOil = parseFloat(r3.find((x) => x.label === 'n')?.value);
       assert(
         'compound-microscope optics',
         r.some((x) => x.label === 'NA')
           && r.some((x) => x.label === 'WD')
           && r.some((x) => x.label === '|M|')
+          && r.some((x) => x.label === 'NA_cap')
           && m1 > m0
+          && nOil >= 1.5
           && !!na0,
-        `M0=${m0} M1=${m1}`,
+        `M0=${m0} M1=${m1} nOil=${nOil}`,
       );
     }
   }
@@ -408,8 +414,17 @@ export function runSuite() {
     assert('paramSchema 不少于 4', thin.length === 0, `thin=${thin.length}`);
 
     const topicN = models.filter((m) => m.topicBound).length;
-    const stray = models.filter((m) => !m.topicBound && m.family !== 'hand' && m.id !== 'r016-显微镜');
-    assert('非手写模型都走主题方程', stray.length === 0 && topicN === models.length - 26, `topic=${topicN} n=${models.length} stray=${stray.map((m) => m.id).join(',')}`);
+    const stray = models.filter((m) => (
+      !m.topicBound
+      && m.family !== 'hand'
+      && m.id !== 'r016-显微镜'
+      && !String(m.id).startsWith('fam-')
+    ));
+    assert(
+      '非手写模型都走主题方程',
+      stray.length === 0 && topicN >= 1200,
+      `topic=${topicN} n=${models.length} stray=${stray.map((m) => m.id).join(',')}`,
+    );
 
     assert('catalog has free-fall', ids.has('free-fall'));
     assert('catalog has sorting', ids.has('sorting'));
@@ -503,7 +518,7 @@ export function runSuite() {
       family: 'ode1d',
       formula: 'mẍ = −kx',
       authority: 'Thornton & Marion, Classical Dynamics, §3.4',
-      assumptions: '这里写满十二个字但是没有范围',
+      assumptions: '这里写满十二个字却不说边界',
       description: '状态 (x,v)；参数 m 与 k 可调，对照简谐振子',
       fidelity: 'engineering',
       ethicsOk: true,

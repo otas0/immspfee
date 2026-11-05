@@ -1,7 +1,6 @@
 /**
  * Multiple Lab shells may coexist (different projects / teaching layouts).
  * Switch with ?shell=<id> or localStorage key immspfee-shell.
- * Add a new entry here; do not fork the whole app for a second chassis.
  */
 
 export const SHELL_STORAGE_KEY = 'immspfee-shell';
@@ -15,6 +14,7 @@ export const SHELL_STORAGE_KEY = 'immspfee-shell';
  *   stageMode: 'canvas2d' | 'webgl3d',
  *   hideSidebar?: boolean,
  *   dprCap?: number,
+ *   modelId?: string,
  * }} ShellDef
  */
 
@@ -31,7 +31,7 @@ export const SHELLS = [
   {
     id: 'lab-focus',
     label: 'Lab Focus',
-    description: 'Same engines; denser stage, larger readouts for demos',
+    description: 'Denser stage, larger readouts for demos / 1080p projection',
     rootClass: 'shell-lab-focus',
     stageMode: 'canvas2d',
     dprCap: 3,
@@ -39,11 +39,20 @@ export const SHELLS = [
   {
     id: 'lab-projector',
     label: 'Lab Projector',
-    description: 'Classroom projection: large readouts, sidebar hidden by default',
+    description: 'Classroom projection: large readouts; sidebar hidden (menu toggles overlay)',
     rootClass: 'shell-lab-projector',
     stageMode: 'canvas2d',
     hideSidebar: true,
     dprCap: 3,
+  },
+  {
+    id: 'lab-microscope3d',
+    label: 'Microscope 3D',
+    description: 'Single WebGL stage for compound microscope (same optical params)',
+    rootClass: 'shell-lab-microscope3d',
+    stageMode: 'webgl3d',
+    dprCap: 3,
+    modelId: 'r016-显微镜',
   },
 ];
 
@@ -75,7 +84,6 @@ export function persistShellId(id) {
 }
 
 /**
- * Apply shell chrome classes on documentElement / chassis.
  * @param {string} id
  * @param {{ document?: Document, onHideSidebar?: (hide: boolean) => void }} [opts]
  */
@@ -95,6 +103,7 @@ export function applyShell(id, opts = {}) {
     for (const s of SHELLS) chassis.classList.remove(s.rootClass);
     chassis.classList.add(shell.rootClass);
     chassis.classList.toggle('shell-hide-sidebar', !!shell.hideSidebar);
+    chassis.classList.remove('shell-sidebar-overlay');
   }
   if (typeof opts.onHideSidebar === 'function') {
     opts.onHideSidebar(!!shell.hideSidebar);

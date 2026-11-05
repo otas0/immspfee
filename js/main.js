@@ -7,7 +7,6 @@ import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml, iconOnly, ICO } from './ui/icons.js';
 import { setModelPalette, getModelColors } from './utils/theme.js';
 import { deriveCapabilities } from './ui/modelShell.js';
-import { designCaveatText } from './lab/designCaveat.js';
 import { buildZipStore, readZipStore } from './utils/zipStore.js';
 import { FAMILY_META } from './lab/formalism.js';
 import {
@@ -34,10 +33,15 @@ import {
   resolveShellId,
   persistShellId,
   applyShell,
+  getShell,
 } from './shells/registry.js';
+import { createMicroscopeWebgl } from './viz/microscopeWebgl.js';
 
 const canvas = document.getElementById('canvas');
+const canvasWebgl = document.getElementById('canvas-webgl');
 const canvasWrap = document.querySelector('.canvas-wrap');
+let webglStage = null;
+let activeShellId = resolveShellId();
 const readoutsEl = document.getElementById('readouts');
 const modelListEl = document.getElementById('model-list');
 const toolbarTitle = document.getElementById('toolbar-title');
@@ -276,14 +280,14 @@ function pushRecent(id) {
   try { localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
 }
 
-/** 窄屏默认开；可用 localStorage physics-lab-auto-open-bench=0|1 覆盖 */
+/** 窄屏默认收起，避免抽屉盖住公式。localStorage physics-lab-auto-open-bench=1 才自动打开。 */
 function autoOpenBenchOnSelect() {
   try {
     const v = localStorage.getItem(AUTO_OPEN_BENCH_KEY);
     if (v === '0') return false;
     if (v === '1') return true;
   } catch { /* ignore */ }
-  return isCompact();
+  return false;
 }
 
 function scrollBenchToDynamics() {
@@ -381,26 +385,9 @@ function updateShellStrip() {
     const isDisclaimer = /原理级|非\s*(FEA|工业|临床|设计|CFD|SPICE|N\s*体)|不作长期|假设/.test(hint);
     shellHintEl.textContent = isDisclaimer ? '' : hint;
   }
-  const shell = document.getElementById('model-shell');
-  const ensureLine = (id, className) => {
-    let el = document.getElementById(id);
-    if (!el && shell) {
-      el = document.createElement('p');
-      el.id = id;
-      el.className = className;
-      shell.appendChild(el);
-    }
-    return el;
-  };
-  const formulaEl = ensureLine('shell-formula', 'shell-formula');
-  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
-  const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
-  if (formulaEl) formulaEl.textContent = app.model?.formula ? `公式 ${app.model.formula}` : '';
-  if (asmLine) asmLine.textContent = app.model?.assumptions ? `假设 ${app.model.assumptions}` : '';
-  if (caveatEl) {
-    const caveat = designCaveatText(app.model);
-    caveatEl.hidden = !caveat;
-    caveatEl.textContent = caveat || '';
+  // Never paint formula / assumption / caveat banners on the stage shell.
+  for (const id of ['shell-formula', 'shell-assumptions', 'shell-caveat']) {
+    document.getElementById(id)?.remove();
   }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
@@ -822,11 +809,8 @@ function makeModelButton(raw) {
   if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
     .map((t) => `<span class="tag">${t}</span>`).join('');
-  const fid = (raw.fidelity || raw.capabilities?.fidelity) === 'engineering' ? 'engineering' : 'principle';
-  const asm = String(raw.assumptions || '').replace(/\s+/g, ' ').trim();
-  const asmShort = asm.length > 80 ? `${asm.slice(0, 80)}…` : asm;
-  btn.title = asm || m.name;
-  btn.innerHTML = `<span class="name">${m.name}</span><span class="preview"><span class="fid is-${fid}">${fid}</span><span class="asm">${asmShort}</span></span><span class="tags">${tags}</span>`;
+  btn.title = m.name;
+  btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
   btn.addEventListener('click', () => {
     switchModel(m.id);
     setSidebarOpen(false);
@@ -1094,15 +1078,30 @@ function syncDrawerChrome() {
     btnCloseBench.tabIndex = compact ? 0 : -1;
     btnCloseBench.setAttribute('aria-hidden', compact ? 'false' : 'true');
   }
-  const showBackdrop = sideOpen || (compact && bench.classList.contains('open'));
+  const overlayOpen = document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay');
+  const showBackdrop = sideOpen || overlayOpen || (compact && bench.classList.contains('open'));
   drawerBackdrop.hidden = !showBackdrop;
-  document.body.classList.toggle('drawer-open', showBackdrop && isMobileDrawer());
+  document.body.classList.toggle('drawer-open', !!(showBackdrop && (isMobileDrawer() || overlayOpen)));
+}
+
+function isProjectorShell() {
+  return document.getElementById('chassis')?.classList.contains('shell-hide-sidebar');
 }
 
 function setSidebarOpen(open) {
+  const chassis = document.getElementById('chassis');
+  // Projector: menu toggles temporary overlay sidebar without leaving the shell.
+  if (isProjectorShell() && !isMobileDrawer()) {
+    chassis?.classList.toggle('shell-sidebar-overlay', open);
+    sidebar.classList.toggle('open', open);
+    sidebar.style.transform = '';
+    syncDrawerChrome();
+    return;
+  }
   if (!isMobileDrawer()) {
     sidebar.classList.remove('open');
     sidebar.style.transform = '';
+    chassis?.classList.remove('shell-sidebar-overlay');
     syncDrawerChrome();
     return;
   }
@@ -1232,7 +1231,43 @@ function updateHud(opts = {}) {
   }
 }
 
+function ensureWebglStage() {
+  if (!canvasWebgl) return null;
+  if (!webglStage) webglStage = createMicroscopeWebgl(canvasWebgl);
+  return webglStage;
+}
+
+function syncStageMode() {
+  const shell = getShell(activeShellId);
+  const useGl = shell.stageMode === 'webgl3d' && app.model?.id === 'r016-显微镜';
+  if (canvas) canvas.hidden = !!useGl;
+  if (canvasWebgl) canvasWebgl.hidden = !useGl;
+  document.documentElement.dataset.stageMode = useGl ? 'webgl3d' : 'canvas2d';
+  return useGl;
+}
+
 function paintFrame(opts = {}) {
+  const useGl = syncStageMode();
+  if (useGl) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const view = {
+      width: Math.max(1, Math.floor(rect.width)),
+      height: Math.max(1, Math.floor(rect.height)),
+      dpr: Number(document.documentElement.dataset.dprCap) || 2.5,
+      scale: app.globals.viewScale,
+      showVectors: app.globals.showVectors,
+      showTrail: app.globals.showTrail,
+      showAxes: app.globals.showAxes,
+    };
+    const stage = ensureWebglStage();
+    if (stage) stage.draw(app.state, view);
+    else {
+      // Fallback to 2D if WebGL unavailable
+      if (canvas) canvas.hidden = false;
+      if (canvasWebgl) canvasWebgl.hidden = true;
+    }
+    return view;
+  }
   const viewBase = resizeCanvas(canvas, canvasWrap, opts);
   const view = {
     width: viewBase.width,
@@ -1296,7 +1331,11 @@ btnReset.addEventListener('click', () => resetSim());
 btnMenu.addEventListener('click', (e) => {
   // 菜单在 stage 内，必须阻止冒泡，否则 stage click 会立刻关掉侧栏
   e.stopPropagation();
-  const willOpen = !sidebar.classList.contains('open');
+  const chassis = document.getElementById('chassis');
+  const overlayOn = chassis?.classList.contains('shell-sidebar-overlay');
+  const willOpen = isProjectorShell()
+    ? !overlayOn
+    : !sidebar.classList.contains('open');
   setSidebarOpen(willOpen);
 });
 btnParams.addEventListener('click', (e) => {
@@ -1722,6 +1761,8 @@ window.addEventListener('resize', () => {
     bench.classList.add('open');
     bench.style.transform = '';
     bench.style.height = '';
+  } else if (localStorage.getItem(AUTO_OPEN_BENCH_KEY) !== '1') {
+    setBenchOpen(false);
   }
   if (!isMobileDrawer()) {
     sidebar.classList.remove('open');
@@ -1880,14 +1921,19 @@ function syncChromeI18n() {
 }
 
 function applyActiveShell(id) {
-  applyShell(id, {
+  activeShellId = id;
+  const shell = applyShell(id, {
     onHideSidebar: (hide) => {
       const chassis = document.getElementById('chassis');
       chassis?.classList.toggle('shell-hide-sidebar', hide);
+      chassis?.classList.remove('shell-sidebar-overlay');
       if (hide) setSidebarOpen(false);
     },
   });
-  if (app.model && canvas && canvasWrap) paintFrame();
+  if (shell.modelId && app.model?.id !== shell.modelId) {
+    switchModel(shell.modelId);
+  }
+  if (app.model && canvasWrap) paintFrame();
 }
 
 function mountShellSelect(el) {
@@ -1934,6 +1980,8 @@ async function boot() {
       metaFormula.textContent = [view.formula, view.description].filter(Boolean).join('\n');
     }
     paramBench.refresh?.();
+    updateShellStrip();
+    if (app.model && canvas && canvasWrap) paintFrame();
     syncPauseUi();
     syncDrawerChrome();
   });
@@ -2083,6 +2131,8 @@ function bindUserModelUi() {
       showToast(checked.error);
       return;
     }
+    showUserModelError('');
+    showToast(t('dialog.validOk') || 'Validation passed');
     persistUserSpec(checked.spec);
     reloadAfterUserModels(
       checked.spec.id,

@@ -19,7 +19,8 @@ const IGNORE = /^(speed|dt|tol|show|seed|demo|steps|nStep|fps|view|zoom|scale)$/
 function numericMap(readouts) {
   const map = new Map();
   for (const r of readouts || []) {
-    const n = parseFloat(String(r.value).replace(/[^\d.eE+-]/g, ''));
+    const m = String(r.value).trim().match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/);
+    const n = m ? Number(m[0]) : NaN;
     if (Number.isFinite(n)) map.set(r.label, n);
   }
   return map;
@@ -29,7 +30,7 @@ function differs(a, b) {
   for (const [k, va] of a) {
     if (!b.has(k)) continue;
     const vb = b.get(k);
-    if (Math.abs(va - vb) > 1e-9 + 1e-6 * Math.max(Math.abs(va), Math.abs(vb))) return true;
+    if (Math.abs(va - vb) > 1e-30 + 1e-6 * Math.max(Math.abs(va), Math.abs(vb), 1e-30)) return true;
   }
   return false;
 }
