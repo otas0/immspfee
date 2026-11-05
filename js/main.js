@@ -7,10 +7,10 @@ import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js
 import { createParamBench } from './ui/paramBench.js';
 import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml, iconOnly, ICO } from './ui/icons.js';
-import { setModelPalette, getModelColors } from './utils/theme.js';
+import { setModelPalette, getModelColors, palettesReady, palettesReadyNow } from './utils/theme.js';
 import { deriveCapabilities } from './ui/modelShell.js';
 import { buildZipStore, readZipStore } from './utils/zipStore.js';
-import { FAMILY_META } from './lab/formalism.js';
+import { FAMILY_META, formalismFor } from './lab/formalism.js';
 import {
   USER_MODEL_FAMILIES,
   validateUserModelDraft,
@@ -32,7 +32,8 @@ import {
   bootI18n,
   ensureSidebarLocales,
 } from './i18n/index.js';
-import { ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
+import { assumptionBody, ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
+import { designCaveatText } from './lab/designCaveat.js';
 import {
   listShells,
   resolveShellId,
@@ -197,6 +198,27 @@ function isCompact() {
 }
 function isMobileDrawer() {
   return window.matchMedia('(max-width: 900px)').matches;
+}
+
+/** Keep the active row inside the list and below a toolbar that covers the drawer. */
+function revealCatalogButton(btn) {
+  const list = btn?.closest?.('.model-list');
+  if (!(list instanceof HTMLElement) || !(btn instanceof HTMLElement)) return;
+  const toolbar = document.querySelector('.toolbar');
+  const tr = toolbar?.getBoundingClientRect();
+  const lr = list.getBoundingClientRect();
+  let pad = 12;
+  if (tr && tr.width > 0 && tr.bottom > lr.top && tr.right > lr.left && tr.left > lr.left - 4) {
+    pad = Math.max(pad, tr.bottom - lr.top + 12);
+  }
+  const before = list.scrollTop;
+  const delta = btn.getBoundingClientRect().top - (lr.top + pad);
+  if (Math.abs(delta) > 1) list.scrollTop = before + delta;
+  if (Math.abs(btn.getBoundingClientRect().top - (list.getBoundingClientRect().top + pad)) > 2) {
+    try { btn.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch { /* ignore */ }
+    const again = btn.getBoundingClientRect().top - (list.getBoundingClientRect().top + pad);
+    if (Math.abs(again) > 1) list.scrollTop += again;
+  }
 }
 
 function createState(model) {
@@ -406,11 +428,16 @@ async function updateShellStrip() {
   };
   const loc = getLocale();
   if (loc !== 'zh') await ensureCatalogGloss(loc);
-  // Formula stays; assumption / caveat chrome stay off the stage (catalog metadata only).
-  document.getElementById('shell-assumptions')?.remove();
-  document.getElementById('shell-caveat')?.remove();
   const formulaEl = ensureLine('shell-formula', 'shell-formula');
+  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
+  const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
   if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
+  if (asmLine) asmLine.textContent = assumptionBody(loc, app.model?.assumptions || '');
+  if (caveatEl) {
+    const caveat = designCaveatText(app.model);
+    caveatEl.hidden = !caveat;
+    caveatEl.textContent = caveat || '';
+  }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
   if (!pauseBadge) {
@@ -800,10 +827,7 @@ function filteredModels() {
     if (exactSub.length) {
       return exactSub.filter((m) => {
         if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
-        if (app.filter.formalism) {
-          const f = m.formalism || m.capabilities?.formalism || '';
-          if (f !== app.filter.formalism) return false;
-        }
+        if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
         return true;
       });
     }
@@ -811,10 +835,7 @@ function filteredModels() {
   const tokens = expandSearchQuery(app.filter.q);
   return models.filter((m) => {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
-    if (app.filter.formalism) {
-      const f = m.formalism || m.capabilities?.formalism || '';
-      if (f !== app.filter.formalism) return false;
-    }
+    if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
     if (!tokens.length) return true;
     const hay = `${m.name} ${m.id} ${m.sub || ''} ${m.formula || ''} ${(m.tags || []).join(' ')} ${m.description || ''} ${m.formalism || ''}`.toLowerCase();
     return tokens.some((t) => hay.includes(t));
@@ -1050,8 +1071,12 @@ function paintSidebar() {
       }
       if (details.dataset.loading === '1') return;
       details.dataset.loading = '1';
-      void loadDomain(domain).then(() => {
+      void loadDomain(domain).then(async () => {
         details.dataset.loading = '';
+        const lang = getLocale();
+        if (lang !== 'zh') {
+          try { await ensureSidebarLocales(); } catch { /* ignore */ }
+        }
         fillBody();
       }).catch(() => { details.dataset.loading = ''; });
     };
@@ -1333,6 +1358,10 @@ function syncStageMode() {
 }
 
 function paintFrame(opts = {}) {
+  if (app.model && !palettesReadyNow()) {
+    window.__neutralPaints = (window.__neutralPaints || 0) + 1;
+    return;
+  }
   const useGl = syncStageMode();
   if (useGl) {
     const rect = canvasWrap.getBoundingClientRect();
@@ -1733,10 +1762,7 @@ function rowMatchesFilter(row) {
   const tag = app.filter.tag;
   const formalism = app.filter.formalism;
   if (tag && row.domain !== tag && row.sub !== tag) return false;
-  if (formalism) {
-    const form = FAMILY_META[row.family]?.formalism || '';
-    if (form !== formalism) return false;
-  }
+  if (formalism && formalismFor(row) !== formalism) return false;
   const tokens = expandSearchQuery(app.filter.q);
   if (!tokens.length) return true;
   const hay = `${row.name || ''} ${row.id || ''} ${row.sub || ''} ${row.domain || ''} ${row.family || ''} ${row.formula || ''}`.toLowerCase();
@@ -2144,8 +2170,24 @@ async function boot() {
     folds[foldKey(loc.domain)] = true;
     folds[foldKey(loc.domain, loc.sub)] = true;
     saveFolds(folds);
+    const tryLoad = async () => {
+      try {
+        await loadDomain(loc.domain);
+        return true;
+      } catch (err) {
+        console.warn('focusCatalogModel loadDomain', err);
+        return false;
+      }
+    };
     if (!models.some((model) => model.id === id)) {
-      try { await loadDomain(loc.domain); } catch { /* ignore */ }
+      let ok = await tryLoad();
+      if (!ok || !models.some((model) => model.id === id)) {
+        showToast(`Catalog load failed for ${loc.domain} — retrying…`);
+        ok = await tryLoad();
+        if (!ok || !models.some((model) => model.id === id)) {
+          showToast(`Could not load ${loc.domain}; open the sidebar and expand it manually`);
+        }
+      }
     }
     const lang = getLocale();
     if (lang !== 'zh') {
@@ -2154,8 +2196,9 @@ async function boot() {
     }
     paintSidebar();
     syncSidebarActive();
-    const domainEl = modelListEl?.querySelector(`.domain-group[data-domain="${loc.domain}"]`);
-    if (domainEl instanceof HTMLDetailsElement) {
+    const openFolds = () => {
+      const domainEl = modelListEl?.querySelector(`.domain-group[data-domain="${loc.domain}"]`);
+      if (!(domainEl instanceof HTMLDetailsElement)) return;
       domainEl.open = true;
       for (const subEl of domainEl.querySelectorAll('details.sub-group')) {
         const name = subEl.querySelector('.sub-name')?.dataset.sub
@@ -2163,28 +2206,27 @@ async function boot() {
           || '';
         if (name === loc.sub) subEl.open = true;
       }
-    }
-    // Domain chunk may paint async; open folds again after a microtask.
+    };
+    openFolds();
     await Promise.resolve();
-    const domainEl2 = modelListEl?.querySelector(`.domain-group[data-domain="${loc.domain}"]`);
-    if (domainEl2 instanceof HTMLDetailsElement) {
-      domainEl2.open = true;
-      for (const subEl of domainEl2.querySelectorAll('details.sub-group')) {
-        const name = subEl.querySelector('.sub-name')?.dataset.sub
-          || subEl.querySelector('.sub-name')?.textContent
-          || '';
-        if (name === loc.sub) subEl.open = true;
-      }
-    }
+    if (lang !== 'zh') await ensureSidebarLocales();
+    paintSidebar();
+    syncSidebarActive();
+    openFolds();
     const btn = modelListEl?.querySelector(`[data-id="${CSS.escape(id)}"]`);
     if (btn) {
       btn.classList.add('active');
       btn.setAttribute('aria-current', 'page');
-      try { btn.scrollIntoView({ block: 'nearest' }); } catch { /* ignore */ }
     }
-    // Classic/Focus drawers: reveal the active row. Projector keeps the catalog
-    // closed until the menu is pressed — auto-open would leave the overlay up on boot.
     if (isMobileDrawer() && !isProjectorShell()) setSidebarOpen(true);
+    const settle = () => {
+      const current = modelListEl?.querySelector(`[data-id="${CSS.escape(id)}"]`);
+      if (current) revealCatalogButton(current);
+    };
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    settle();
+    await new Promise((resolve) => setTimeout(resolve, 320));
+    settle();
   }
 
   microUi = createMicroscopeChrome({
@@ -2210,13 +2252,30 @@ async function boot() {
       fillShellSelectOptions(document.getElementById('shell-select'), { microOnly });
     },
     captureWebglPng: () => {
-      paintFrame({ skipMicroRefresh: true });
       const gl = document.getElementById('canvas-webgl');
       if (!gl || gl.hidden) return;
+      const rect = canvasWrap.getBoundingClientRect();
+      const view = {
+        width: Math.max(1, Math.floor(rect.width)),
+        height: Math.max(1, Math.floor(rect.height)),
+        dpr: Number(document.documentElement.dataset.dprCap) || 2.5,
+        scale: app.globals.viewScale,
+        showVectors: app.globals.showVectors,
+        showTrail: app.globals.showTrail,
+        showAxes: app.globals.showAxes,
+      };
+      const stage = ensureWebglStage();
       try {
+        const href = (typeof stage?.capturePng === 'function')
+          ? stage.capturePng(app.state, view)
+          : (paintFrame({ skipMicroRefresh: true }), gl.toDataURL('image/png'));
+        if (!href || href === 'data:,') {
+          showToast('WebGL capture failed');
+          return;
+        }
         const a = document.createElement('a');
         a.download = `microscope-${Date.now()}.png`;
-        a.href = gl.toDataURL('image/png');
+        a.href = href;
         a.click();
       } catch (err) {
         console.warn('webgl png', err);
@@ -2250,10 +2309,10 @@ async function boot() {
   await loadIndex();
   const pinned = readModelIdFromUrl() || readModelIdFromStorage();
   if (pinned) {
-    if (!(await ensureId(pinned))) primeHandModel(DEFAULT_MODEL_ID);
+    if (!(await ensureId(pinned))) await primeHandModel(DEFAULT_MODEL_ID);
   } else {
     // Hand model only — keep subjects folded so cold boot does not fetch domain JSON.
-    primeHandModel(DEFAULT_MODEL_ID);
+    await primeHandModel(DEFAULT_MODEL_ID);
   }
   try {
     const loadIndexMs = performance.measure('boot-loadIndex', 'boot-loadIndex-start', 'boot-loadIndex-end').duration;
@@ -2274,7 +2333,16 @@ async function boot() {
   applyGlobals();
   syncPauseUi();
   buildSidebar();
-  switchModel(resolveInitialModelId());
+  await palettesReady;
+  const fromUrl = readModelIdFromUrl();
+  const initialId = resolveInitialModelId();
+  switchModel(initialId);
+  if (fromUrl) {
+    const activeRow = domainIndex.find((row) => row.id === fromUrl);
+    if (activeRow) {
+      await focusCatalogModel(fromUrl, { domain: activeRow.domain || '其他', sub: activeRow.sub || '' });
+    }
+  }
   if (!isCompact()) bench.classList.add('open');
   bindCanvasPointer();
   syncDrawerChrome();
@@ -2351,9 +2419,9 @@ function renderUserModelList() {
     del.type = 'button';
     del.className = 'btn quiet';
     del.textContent = '删除';
-    del.addEventListener('click', () => {
+    del.addEventListener('click', async () => {
       deleteUserSpec(spec.id);
-      rebuildModels();
+      await rebuildModels();
       buildSidebar();
       renderUserModelList();
       if (app.model?.id === spec.id) switchModel('free-fall');
@@ -2393,8 +2461,8 @@ function fillUserModelForm(spec) {
   showUserModelError('');
 }
 
-function reloadAfterUserModels(id, toast) {
-  rebuildModels();
+async function reloadAfterUserModels(id, toast) {
+  await rebuildModels();
   populateTagFilter();
   populateFormalismFilter();
   buildSidebar();
@@ -2413,7 +2481,7 @@ function bindUserModelUi() {
     renderUserModelList();
     userModelDialog?.showModal();
   });
-  document.getElementById('user-model-submit')?.addEventListener('click', () => {
+  document.getElementById('user-model-submit')?.addEventListener('click', async () => {
     if (!userModelForm) return;
     if (!userModelForm.reportValidity()) return;
     const fd = new FormData(userModelForm);
@@ -2439,7 +2507,7 @@ function bindUserModelUi() {
     showUserModelError('');
     showToast(t('dialog.validOk') || 'Validation passed');
     persistUserSpec(checked.spec);
-    reloadAfterUserModels(
+    await reloadAfterUserModels(
       checked.spec.id,
       keepId ? `已更新自建模型 · ${checked.spec.name}` : `已创建自建模型 · ${checked.spec.name}`,
     );
@@ -2467,7 +2535,7 @@ function bindUserModelUi() {
     }
     mergeImportedSpecs(parsed.specs);
     const warn = parsed.rejected?.length ? `，拒绝 ${parsed.rejected.length} 条` : '';
-    reloadAfterUserModels(parsed.specs[0].id, `已导入 ${parsed.specs.length} 条${warn}`);
+    await reloadAfterUserModels(parsed.specs[0].id, `已导入 ${parsed.specs.length} 条${warn}`);
   });
 }
 

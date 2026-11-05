@@ -631,6 +631,7 @@ canvas.has-pointer {
 /* OLED header: keep phosphor contrast (overrides .btn.quiet later in file) */
 
 .model-item {
+  scroll-margin-top: 12px;
   appearance: none;
   border: none;
   background: transparent;

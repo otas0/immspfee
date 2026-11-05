@@ -69,8 +69,20 @@ const banner = (await holdPage.locator('#boot-status [data-i18n]').innerText()).
 if (banner !== '正在重新载入') fail(`banner ${banner}`);
 await holdPage.locator('#boot-status button').click();
 if (!(await holdPage.locator('#boot-status').isHidden())) fail('reload banner did not dismiss');
+const dismissed = await holdPage.evaluate(() => sessionStorage.getItem('immspfee-boot-dismiss'));
+if (dismissed !== '1') fail(`dismiss flag ${dismissed}`);
 await holdPage.evaluate(() => window.__releaseBoot());
 await holdPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+await holdPage.reload({ waitUntil: 'commit', timeout: 60000 }).catch((err) => {
+  if (!String(err).includes('ERR_ABORTED')) throw err;
+});
+await holdPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+const kept = await holdPage.evaluate(() => ({
+  flag: sessionStorage.getItem('immspfee-boot-dismiss'),
+  status: document.getElementById('boot-status')?.hidden,
+  hint: document.getElementById('boot-refresh-hint')?.hidden,
+}));
+if (kept.flag !== '1' || !kept.status || !kept.hint) fail(`dismiss did not survive reload ${JSON.stringify(kept)}`);
 await held.close();
 
 const fresh = await browser.newContext({ serviceWorkers: 'block' });

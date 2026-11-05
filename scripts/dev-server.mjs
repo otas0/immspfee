@@ -70,7 +70,7 @@ const server = http.createServer(async (req, res) => {
       domainIndex: stamp.domainIndex,
       domains: stamp.domains,
     });
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' });
     res.end(body);
     return;
   }

@@ -3,7 +3,8 @@
  * `models` is the live array the shell already holds.
  */
 import { buildFromSpecs, ensureRefresh, handcraftedList } from './assemble.js';
-import { buildAllUserModels } from '../lab/userModels.js';
+import { ensureFactory } from './factoryLoader.js';
+import { buildAllUserModels, loadUserSpecs } from '../lab/userModels.js';
 import { domainChunkUrl, domainIndexUrl, loadAssetStamp } from '../boot/catalogStamp.js';
 
 export const models = [];
@@ -44,7 +45,9 @@ export function loadIndex() {
   return indexPromise;
 }
 
-function appendUsers() {
+async function appendUsers() {
+  if (!loadUserSpecs().length) return;
+  await ensureFactory();
   const seen = new Set(models.map((m) => m.id));
   for (const um of buildAllUserModels()) {
     if (seen.has(um.id)) continue;
@@ -67,7 +70,8 @@ function appendOrphans() {
   }
 }
 
-function mergeSpecs(domain, specs) {
+async function mergeSpecs(domain, specs) {
+  await ensureFactory();
   specCache.set(domain, specs);
   const seen = new Set(models.map((m) => m.id));
   for (const model of buildFromSpecs(specs, { leftovers: false, users: false })) {
@@ -76,7 +80,7 @@ function mergeSpecs(domain, specs) {
     models.push(model);
   }
   appendOrphans();
-  appendUsers();
+  await appendUsers();
 }
 
 export function loadDomain(domain) {
@@ -95,9 +99,9 @@ export function loadDomain(domain) {
       if (!res.ok) throw new Error(`${domain} ${res.status}`);
       return res.json();
     })
-    .then((specs) => {
+    .then(async (specs) => {
       loaded.add(domain);
-      mergeSpecs(domain, specs);
+      await mergeSpecs(domain, specs);
       inflight.delete(domain);
       return models;
     })
@@ -110,7 +114,7 @@ export function loadDomain(domain) {
 }
 
 /** In-bundle hand model, without fetching its subject file. */
-export function primeHandModel(id) {
+export async function primeHandModel(id) {
   const impl = handcraftedList().find((model) => model.id === id);
   if (!impl) return false;
   if (!models.some((model) => model.id === id)) {
@@ -122,7 +126,7 @@ export function primeHandModel(id) {
       sub: impl.sub || '',
     }));
   }
-  appendUsers();
+  await appendUsers();
   return true;
 }
 
@@ -165,7 +169,8 @@ export function getAllTags() {
   return [...set].sort();
 }
 
-export function rebuildModels() {
+export async function rebuildModels() {
+  if (specCache.size || loadUserSpecs().length) await ensureFactory();
   const seen = new Set();
   const next = [];
   for (const specs of specCache.values()) {
@@ -178,6 +183,6 @@ export function rebuildModels() {
   models.length = 0;
   models.push(...next);
   appendOrphans();
-  appendUsers();
+  await appendUsers();
   return models;
 }

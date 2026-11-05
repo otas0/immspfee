@@ -2,7 +2,7 @@
  * 自建模型（localStorage）
  * 硬规则：权威来源 + 控制方程 + 假设 + 伦理核对；拒绝空壳「教学动画」。
  */
-import { createFactoryModel } from '../models/factory.js';
+import { factoryBuilder } from '../models/factoryLoader.js';
 import { topicMissNote } from './topicOverrides.js';
 import { FAMILY_META } from './formalism.js';
 import { t } from '../i18n/index.js';
@@ -169,7 +169,7 @@ export function mergeImportedSpecs(specs) {
 
 /** 将自建 spec 建成可运行模型（factory） */
 export function buildUserModel(spec) {
-  const model = createFactoryModel({
+  const model = factoryBuilder()({
     ...spec,
     description: [
       spec.description,

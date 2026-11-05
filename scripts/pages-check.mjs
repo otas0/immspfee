@@ -4,6 +4,7 @@
  * compare the formula strip, full assumption, and caveat to the local strip.
  */
 import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -86,7 +87,55 @@ async function waitForDeploy() {
   throw new Error(`timed out waiting for Pages deploy of ${hash}.${tip}`);
 }
 
+function headerValue(headers, name) {
+  const want = name.toLowerCase();
+  for (const line of headers) {
+    const idx = line.indexOf(':');
+    if (idx < 0) continue;
+    if (line.slice(0, idx).trim().toLowerCase() === want) return line.slice(idx + 1).trim();
+  }
+  return '';
+}
+
+function expectedStampCache(rootDir) {
+  const text = fs.readFileSync(path.join(rootDir, '_headers'), 'utf8');
+  const lines = text.split(/\r?\n/);
+  let capture = false;
+  const block = [];
+  for (const line of lines) {
+    if (!line.startsWith(' ') && !line.startsWith('\t')) {
+      if (capture && block.length) break;
+      capture = line.trim() === '/asset-stamp.json';
+      continue;
+    }
+    if (capture) block.push(line.trim());
+  }
+  return headerValue(block, 'cache-control');
+}
+
+async function liveStampCache(baseUrl) {
+  const expected = expectedStampCache(root);
+  const target = new URL('asset-stamp.json', baseUrl);
+  const res = await fetch(target, { cache: 'no-store' });
+  const cc = res.headers.get('cache-control') || '';
+  const server = `${res.headers.get('server') || ''} ${res.headers.get('x-served-by') || ''}`;
+  const githubHost = /github\.io$/i.test(target.hostname) || /github/i.test(server);
+  console.log('pages asset-stamp', target.href, 'cache-control', cc || '(none)', 'server', server.trim() || '(none)');
+  if (expected && cc.toLowerCase().includes(expected.toLowerCase())) return [];
+  if (process.env.PAGES_HONORS_HEADERS === '1' || !githubHost) {
+    return [`asset-stamp.json Cache-Control ${cc || '(none)'} does not include ${expected || 'no-cache'}`];
+  }
+  console.log('pages asset-stamp: GitHub Pages does not apply _headers; skipped hard fail');
+  return [];
+}
+
 await waitForDeploy();
+
+const headerFailures = await liveStampCache(base);
+if (headerFailures.length) {
+  console.error(headerFailures.join('\n'));
+  process.exit(1);
+}
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -170,6 +219,22 @@ try {
     stageMode: micro.stageMode,
     metrics: micro.metrics.join(','),
   });
+  try {
+    const { mkdirSync, appendFileSync, writeFileSync, readFileSync, existsSync } = await import('node:fs');
+    mkdirSync('artifacts', { recursive: true });
+    const line = `microscope-shell.css fingerprint ${micro.css}\n`;
+    appendFileSync('artifacts/ci-summary.txt', line);
+    // Also mirror stamp for local alignment checks
+    let stampLine = '';
+    try {
+      const stamp = JSON.parse(readFileSync('asset-stamp.json', 'utf8'));
+      stampLine = `local microCss stamp ${stamp.microCss || stamp.css || '?'}\n`;
+      appendFileSync('artifacts/ci-summary.txt', stampLine);
+    } catch { /* ignore */ }
+    console.log('pages ci-summary', line.trim(), stampLine.trim());
+  } catch (err) {
+    console.warn('ci-summary write failed', err.message || err);
+  }
 } finally {
   await browser.close();
 }

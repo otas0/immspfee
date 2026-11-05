@@ -51,6 +51,48 @@ export const FAMILY_META = {
   aero: { formalism: 'ode', viz: 'aero', hint: 'Aero / attitude ODEs' },
 };
 
+/**
+ * Handwritten models are catalogued as family "hand", which has no FAMILY_META
+ * row. The formalism filter still has to keep them.
+ */
+export const HAND_FORMALISM = {
+  'free-fall': 'ode',
+  projectile: 'ode',
+  'inclined-plane': 'ode',
+  spring: 'ode',
+  pendulum: 'ode',
+  collision: 'ode',
+  'collision-2d': 'ode',
+  'double-pendulum': 'ode',
+  wave: 'pde',
+  heat: 'pde',
+  lorentz: 'ode',
+  'rc-circuit': 'circuit',
+  rlc: 'circuit',
+  orbit: 'ode',
+  sorting: 'discrete',
+  'bfs-grid': 'network',
+  dijkstra: 'network',
+  life: 'map',
+  'logic-gates': 'digital',
+  pipeline: 'digital',
+  'cache-lru': 'digital',
+  fifo: 'discrete',
+  'beam-sfd-bmd': 'ode',
+  'pid-tune': 'ode',
+  'hodgkin-huxley': 'ode',
+  'r016-显微镜': 'optics',
+};
+
+export function formalismFor(entry) {
+  if (!entry) return '';
+  const direct = entry.formalism || entry.capabilities?.formalism || '';
+  if (direct) return direct;
+  const mapped = entry.family ? FAMILY_META[entry.family]?.formalism : '';
+  if (mapped) return mapped;
+  return HAND_FORMALISM[entry.id] || '';
+}
+
 export function familyCapabilities(family, spec = {}) {
   const meta = FAMILY_META[family] || FAMILY_META.gauge;
   const base = {

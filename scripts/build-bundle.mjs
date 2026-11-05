@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Bundle the lab shell into js/bundle/ so Pages does not fetch dozens of modules.
- * glyphRows stays a dynamic chunk: Chinese UI can skip it until needed.
+ * glyphRows, factory.js, and topicModel.js stay dynamic chunks until a subject opens.
  */
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
@@ -65,4 +65,21 @@ fs.writeFileSync(
   path.join(outdir, 'meta.json'),
   `${JSON.stringify({ at: new Date().toISOString(), outputs }, null, 2)}\n`,
 );
+const labFile = path.join(outdir, 'lab.js');
+const labSrc = fs.readFileSync(labFile, 'utf8');
+let initialBytes = fs.statSync(labFile).size;
+for (const match of labSrc.matchAll(/from\s+"\.\/([^"]+\.js)"/g)) {
+  if (match[1].includes('chunk-factory')) continue;
+  const file = path.join(outdir, match[1]);
+  if (fs.existsSync(file)) initialBytes += fs.statSync(file).size;
+}
+if (labSrc.includes('function buildTopicModel') || labSrc.includes('function createFactoryModel')) {
+  console.error('lab.js still inlines factory/topicModel; open a subject before loading them');
+  process.exit(1);
+}
+const mainMax = Math.floor(1.1 * 1024 * 1024);
+if (initialBytes > mainMax) {
+  console.error(`initial bundle is ${initialBytes} bytes, over ${mainMax}`);
+  process.exit(1);
+}
 console.log('bundle ok', outputs.map((o) => `${o.file}:${Math.round(o.bytes / 1024)}kb`).join(' '));

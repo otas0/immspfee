@@ -292,11 +292,18 @@
         s.src = js ? './js/entry.js?v=' + encodeURIComponent(js) : './js/entry.js';
         document.body.appendChild(s);
       }
+      function dismissedNow() {
+        try { return sessionStorage.getItem('immspfee-boot-dismiss') === '1'; } catch (e) { return false; }
+      }
       function go(js) {
+        if (dismissedNow()) { loadModule(js); return; }
         if (status) status.hidden = false;
         var url = new URL(location.href);
         url.searchParams.set('v', js);
-        var replace = function () { location.replace(url.href); };
+        var replace = function () {
+          if (dismissedNow()) { loadModule(js); return; }
+          location.replace(url.href);
+        };
         if (window.__bootHold && typeof window.__bootHold.then === 'function') window.__bootHold.then(replace);
         else replace();
       }
@@ -305,6 +312,7 @@
       var canStore = storageOk();
       if (!canStore && hint && !dismissed) hint.hidden = false;
       function decide(js) {
+        if (dismissedNow()) { loadModule(js); return; }
         var current = '';
         try { current = new URL(location.href).searchParams.get('v') || ''; } catch (e) {}
         var armed = false;

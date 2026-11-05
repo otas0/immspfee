@@ -37,11 +37,19 @@ if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 
     }
   }
 }
-const { assertDomainCoverage, assertStampIndependence, fingerprint, readCatalog } = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
+const { assertDomainCoverage, assertIndexBudget, assertStampIndependence, fingerprint, readCatalog } = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
+const { HAND_FORMALISM } = await import(pathToFileURL(path.join(repo, 'js/lab/formalism.js')).href);
 const catalog = readCatalog(repo);
 assertDomainCoverage(catalog);
+const indexBytes = assertIndexBudget(catalog);
 assertStampIndependence(fingerprint(repo));
-console.log('domain chunks cover', catalog.length);
+const bareHands = catalog.filter((spec) => !spec.family || spec.family === 'hand');
+const missingForm = bareHands.filter((spec) => !HAND_FORMALISM[spec.id]);
+if (missingForm.length) {
+  console.error(`hand models missing formalism: ${missingForm.map((spec) => spec.id).join(', ')}`);
+  process.exit(1);
+}
+console.log('domain chunks cover', catalog.length, 'index', indexBytes, 'bytes', 'hands', bareHands.length);
 const suiteUrl = pathToFileURL(path.join(root, '../js/tests/suite.js')).href;
 const { runSuite } = await import(suiteUrl);
 const results = runSuite();

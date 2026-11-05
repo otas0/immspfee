@@ -13,16 +13,31 @@ const NEUTRAL = paletteDoc.neutral;
 const MODEL = paletteDoc.models;
 const HC = paletteDoc.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
 
-if (typeof document !== 'undefined' && Object.keys(MODEL).length === 0) {
-  const href = new URL('data/palettes.json', document.baseURI).href;
-  fetch(href).then((res) => (res.ok ? res.json() : null)).then((full) => {
-    if (!full?.models) return;
-    if (full.neutral) Object.assign(NEUTRAL, full.neutral);
-    Object.assign(MODEL, full.models);
-    if (full.hc) Object.assign(HC, full.hc);
-    document.dispatchEvent(new Event('imm-palettes'));
-  }).catch(() => {});
+let palettesSettled = typeof document === 'undefined' || Object.keys(MODEL).length > 0;
+
+function applyPaletteDoc(full) {
+  if (!full?.models) return false;
+  if (full.neutral) Object.assign(NEUTRAL, full.neutral);
+  Object.assign(MODEL, full.models);
+  if (full.hc) Object.assign(HC, full.hc);
+  return true;
 }
+
+export function palettesReadyNow() {
+  return palettesSettled;
+}
+
+/** Resolves before the first model frame so free-fall is not drawn in neutral colors. */
+export const palettesReady = (typeof document !== 'undefined' && Object.keys(MODEL).length === 0)
+  ? fetch(new URL('data/palettes.json', document.baseURI).href)
+    .then((res) => (res.ok ? res.json() : null))
+    .then((full) => {
+      applyPaletteDoc(full);
+      palettesSettled = true;
+      if (full?.models) document.dispatchEvent(new Event('imm-palettes'));
+    })
+    .catch(() => { palettesSettled = true; })
+  : Promise.resolve();
 
 function hashHue(id) {
   let h = 0;

@@ -28,7 +28,8 @@ import beamSfdBmd from './beamSfdBmd.js';
 import pidTune from './pidTune.js';
 import hodgkinHuxley from './hodgkinHuxley.js';
 import compoundMicroscope from './compoundMicroscope.js';
-import { createFactoryModel } from './factory.js';
+import { factoryBuilder } from './factoryLoader.js';
+import { HAND_FORMALISM } from '../lab/formalism.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { localizeModel } from '../utils/zhLabels.js';
 import { buildAllUserModels } from '../lab/userModels.js';
@@ -44,6 +45,10 @@ const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
 
 export function ensureRefresh(model) {
   localizeModel(model);
+  if (!model.formalism && !model.capabilities?.formalism && HAND_FORMALISM[model.id]) {
+    model.formalism = HAND_FORMALISM[model.id];
+    model.capabilities = { ...(model.capabilities || {}), formalism: model.formalism };
+  }
   if (typeof model.getEnergyAt !== 'function' && typeof model.getEnergy === 'function') {
     model.getEnergyAt = function getEnergyAt(state, row) {
       if (!row || typeof row !== 'object') return this.getEnergy(state);
@@ -125,7 +130,7 @@ export function buildFromSpecs(specs, options = {}) {
         sub: spec.sub || '',
       }, spec)));
     } else {
-      list.push(ensureRefresh(applyCatalogPolicy(createFactoryModel(spec), spec)));
+      list.push(ensureRefresh(applyCatalogPolicy(factoryBuilder()(spec), spec)));
     }
   }
   if (leftovers) {

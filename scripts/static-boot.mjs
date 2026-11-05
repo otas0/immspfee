@@ -120,6 +120,14 @@ export function assertStampIndependence(stamp) {
   }
 }
 
+/** First-screen index. Formula strings are short; this stops the file growing back into the bundle. */
+export function assertIndexBudget(catalog) {
+  const bytes = Buffer.byteLength(JSON.stringify(domainIndex(catalog)));
+  const limit = 256 * 1024;
+  if (bytes > limit) throw new Error(`domain index ${bytes} bytes exceeds ${limit}`);
+  return bytes;
+}
+
 export function assertDomainCoverage(catalog) {
   const index = domainIndex(catalog);
   if (index.length !== catalog.length) {
