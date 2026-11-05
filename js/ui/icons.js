@@ -24,7 +24,11 @@ export const ICO = {
   menu: `<svg ${attrs} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`,
 };
 
+export function iconOnly(icon) {
+  return ICO[icon] || '';
+}
+
 export function btnHtml(icon, label) {
-  const svg = ICO[icon] || '';
+  const svg = iconOnly(icon);
   return `${svg}<span class="lbl">${label}</span>`;
 }
