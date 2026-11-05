@@ -38,6 +38,7 @@ jobs:
             ./ _site/
           # Ensure Jekyll never processes the artifact (Actions path is already static).
           touch _site/.nojekyll
+          node scripts/prepare-site.mjs _site
 
       - uses: actions/configure-pages@v5
 

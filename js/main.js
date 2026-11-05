@@ -1,4 +1,6 @@
-import { models, getModelById, getAllTags, loadModelMetadata, rebuildModels } from './models/index.js';
+import {
+  models, domainIndex, getModelById, getAllTags, rebuildModels, loadIndex, loadDomain, loadAllDomains, ensureId,
+} from './models/browser.js';
 import { resizeCanvas } from './utils/canvas.js';
 import { createFixedStepper } from './utils/integrator.js';
 import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js';
@@ -912,9 +914,10 @@ function buildSidebar() {
   if (app.filter.tag) parts.push(`tag:${app.filter.tag}`);
   if (app.filter.formalism) parts.push(`form:${app.filter.formalism}`);
   if (app.filter.q.trim()) parts.push(`q:${app.filter.q.trim()}`);
+  const catalogTotal = domainIndex.length || models.length;
   countEl.textContent = parts.length
-    ? `筛选 ${list.length} / ${models.length} · ${parts.join(' · ')}`
-    : `全部 ${list.length} 模型`;
+    ? `筛选 ${list.length} / ${catalogTotal} · ${parts.join(' · ')}`
+    : `全部 ${catalogTotal} 模型`;
   // 三次点击循环：清 tag/form → 清 q → 提示已空；aria-live 播报
   countEl.title = parts.length
     ? '点击：清 tag/form → 再点清 q → 再点提示已空'
@@ -968,7 +971,10 @@ function buildSidebar() {
   if (recents) modelListEl.appendChild(recents);
   modelListEl.appendChild(foldHint);
 
-  if (!list.length) {
+  const source = searching
+    ? list.map((m) => ({ id: m.id, domain: modelDomain(m), sub: modelSub(m) }))
+    : (domainIndex.length ? domainIndex : list.map((m) => ({ id: m.id, domain: modelDomain(m), sub: modelSub(m) })));
+  if (!source.length) {
     const empty = document.createElement('div');
     empty.style.cssText = 'padding:0.75rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--muted)';
     empty.textContent = t('ui.noMatch');
@@ -976,12 +982,12 @@ function buildSidebar() {
     return;
   }
   const groups = new Map();
-  for (const m of list) {
-    const d = modelDomain(m);
+  for (const row of source) {
+    const d = row.domain || '其他';
     if (!groups.has(d)) groups.set(d, new Map());
-    const sub = modelSub(m);
+    const sub = row.sub || '未分类';
     if (!groups.get(d).has(sub)) groups.get(d).set(sub, []);
-    groups.get(d).get(sub).push(m);
+    groups.get(d).get(sub).push(row);
   }
   const order = [...DOMAIN_ORDER, '其他'];
   for (const domain of order) {
@@ -993,36 +999,57 @@ function buildSidebar() {
     details.dataset.domain = domain;
     const dKey = foldKey(domain);
     details.open = searching || (folds[dKey] != null ? !!folds[dKey] : domain === '物理');
-    details.addEventListener('toggle', () => {
-      const next = loadFolds();
-      next[dKey] = details.open;
-      saveFolds(next);
-    });
     const sum = document.createElement('summary');
     sum.innerHTML = `<span class="domain-name" data-domain="${domain}">${domainLabel(domain)}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');
     body.className = 'domain-body';
-    for (const [sub, items] of subMap) {
-      const subEl = document.createElement('details');
-      subEl.className = 'sub-group';
-      const sKey = foldKey(domain, sub);
-      const defaultOpen = searching || HOT_SUBS.has(sub) || items.length <= 3;
-      subEl.open = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
-      subEl.addEventListener('toggle', () => {
-        const next = loadFolds();
-        next[sKey] = subEl.open;
-        saveFolds(next);
-      });
-      const subSum = document.createElement('summary');
-      const q = app.filter.q.trim();
-      const hit = q && (sub === q || sub.toLowerCase() === q.toLowerCase());
-      subSum.innerHTML = `<span class="sub-name${hit ? ' is-match' : ''}" data-sub="${sub}">${sub}</span><span class="sub-count">${items.length}</span>`;
-      const subBody = document.createElement('div');
-      subBody.className = 'sub-body';
-      for (const m of items) subBody.appendChild(makeModelButton(m));
-      subEl.append(subSum, subBody);
-      body.appendChild(subEl);
-    }
+    const fillBody = () => {
+      body.replaceChildren();
+      for (const [sub, items] of subMap) {
+        const ready = items.map((row) => models.find((m) => m.id === row.id)).filter(Boolean);
+        if (!ready.length) continue;
+        const subEl = document.createElement('details');
+        subEl.className = 'sub-group';
+        const sKey = foldKey(domain, sub);
+        const defaultOpen = searching || HOT_SUBS.has(sub) || ready.length <= 3;
+        subEl.open = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
+        subEl.addEventListener('toggle', () => {
+          const next = loadFolds();
+          next[sKey] = subEl.open;
+          saveFolds(next);
+        });
+        const subSum = document.createElement('summary');
+        const q = app.filter.q.trim();
+        const hit = q && (sub === q || sub.toLowerCase() === q.toLowerCase());
+        subSum.innerHTML = `<span class="sub-name${hit ? ' is-match' : ''}" data-sub="${sub}">${sub}</span><span class="sub-count">${items.length}</span>`;
+        const subBody = document.createElement('div');
+        subBody.className = 'sub-body';
+        for (const m of ready) subBody.appendChild(makeModelButton(m));
+        subEl.append(subSum, subBody);
+        body.appendChild(subEl);
+      }
+    };
+    const ensureBody = () => {
+      if (!details.open) return;
+      const have = [...subMap.values()].some((items) => items.some((row) => models.some((m) => m.id === row.id)));
+      if (have || searching) {
+        fillBody();
+        return;
+      }
+      if (details.dataset.loading === '1') return;
+      details.dataset.loading = '1';
+      void loadDomain(domain).then(() => {
+        details.dataset.loading = '';
+        fillBody();
+      }).catch(() => { details.dataset.loading = ''; });
+    };
+    details.addEventListener('toggle', () => {
+      const next = loadFolds();
+      next[dKey] = details.open;
+      saveFolds(next);
+      ensureBody();
+    });
+    if (details.open) ensureBody();
     details.append(sum, body);
     modelListEl.appendChild(details);
   }
@@ -1163,6 +1190,14 @@ function measureSysSticky() {
 }
 
 function switchModel(id) {
+  if (id && !models.some((m) => m.id === id)) {
+    if (switchModel.pending === id) return Promise.resolve();
+    switchModel.pending = id;
+    return ensureId(id).then((ok) => {
+      switchModel.pending = '';
+      return switchModel(ok ? id : DEFAULT_MODEL_ID);
+    });
+  }
   const model = (id && models.some((m) => m.id === id) ? getModelById(id) : null)
     || getModelById(DEFAULT_MODEL_ID)
     || models[0];
@@ -1660,17 +1695,21 @@ speedSlider.addEventListener('input', () => {
   paramBench.refresh();
 });
 
+async function refreshSidebar() {
+  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism) await loadAllDomains();
+  buildSidebar();
+}
 filterQ.addEventListener('input', () => {
   app.filter.q = filterQ.value;
-  buildSidebar();
+  void refreshSidebar();
 });
 filterTag.addEventListener('change', () => {
   app.filter.tag = filterTag.value;
-  buildSidebar();
+  void refreshSidebar();
 });
 filterFormalism?.addEventListener('change', () => {
   app.filter.formalism = filterFormalism.value;
-  buildSidebar();
+  void refreshSidebar();
 });
 
 btnHc?.addEventListener('click', (e) => {
@@ -2006,7 +2045,9 @@ async function boot() {
     syncDrawerChrome();
   });
 
-  await loadModelMetadata('./data/models.json');
+  await loadIndex();
+  const wanted = [readModelIdFromUrl(), readModelIdFromStorage(), DEFAULT_MODEL_ID].find(Boolean);
+  if (!(await ensureId(wanted))) await ensureId(DEFAULT_MODEL_ID);
   populateTagFilter();
   populateFormalismFilter();
   populateUserModelFamilies();

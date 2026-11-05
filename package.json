@@ -11,6 +11,8 @@
     "test:contract-browser": "node scripts/contract-browser.mjs",
     "test:narrow": "node scripts/narrow-regression.mjs",
     "test:shell": "node scripts/shell-chrome.mjs",
+    "test:boot": "node scripts/boot-reload.mjs",
+    "test:boot-timing": "node scripts/boot-timing.mjs",
     "test:pages": "node scripts/pages-check.mjs",
     "report:schema": "node scripts/schema-coverage.mjs",
     "stamp:authority": "node scripts/stamp-authority.mjs",

@@ -53,6 +53,19 @@ jobs:
       - name: Shell chrome, DPR cap, and projector overlay
         run: npm run test:shell
 
+      - name: Cache reload and boot timing
+        run: npm run test:boot && npm run test:boot-timing
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+
+      - name: Upload boot timing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-timing
+          path: artifacts/boot-timing.json
+          if-no-files-found: ignore
+
       - name: Upload narrow-screen screenshots
         if: always()
         uses: actions/upload-artifact@v4

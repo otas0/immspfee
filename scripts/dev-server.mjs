@@ -6,9 +6,14 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  domainIndex, entryStamp, fingerprint, readCatalog, rewriteIndex, specsForDomain,
+} from './static-boot.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8765);
+const catalog = readCatalog(root);
+const domains = new Set(catalog.map((spec) => spec.domain || '其他'));
 const shots = path.join(root, 'shots');
 fs.mkdirSync(shots, { recursive: true });
 
@@ -56,12 +61,43 @@ const server = http.createServer(async (req, res) => {
 
   let rel = decodeURIComponent(url.pathname);
   if (rel === '/') rel = '/index.html';
+  if (rel === '/asset-stamp.json') {
+    const stamp = fingerprint(root);
+    const body = JSON.stringify({ js: entryStamp(stamp), css: stamp.css, main: stamp.js });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(body);
+    return;
+  }
+  if (rel === '/data/domain-index.json') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify(domainIndex(catalog)));
+    return;
+  }
+  if (rel.startsWith('/data/domains/') && rel.endsWith('.json')) {
+    const domain = rel.slice('/data/domains/'.length, -'.json'.length);
+    if (!domains.has(domain)) {
+      res.writeHead(404); res.end('not found'); return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify(specsForDomain(catalog, domain)));
+    return;
+  }
   const file = path.normalize(path.join(root, rel));
   const underRoot = file === root || file.startsWith(root + path.sep);
   if (!underRoot || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404); res.end('not found'); return;
   }
   const ext = path.extname(file);
+  if (rel === '/index.html') {
+    const stamp = fingerprint(root);
+    const html = rewriteIndex(fs.readFileSync(file, 'utf8'), stamp);
+    res.writeHead(200, {
+      'Content-Type': MIME['.html'],
+      'Cache-Control': 'no-cache',
+    });
+    res.end(html);
+    return;
+  }
   res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
 });

@@ -22,7 +22,9 @@ if (status) status.hidden = true;
 
 const stamp = new URL(import.meta.url).searchParams.get('v');
 await import(stamp ? `./main.js?v=${encodeURIComponent(stamp)}` : './main.js');
+document.documentElement.dataset.boot = 'ready';
 
 if ('serviceWorker' in navigator && navigator.webdriver !== true) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  const worker = new URL('../sw.js', import.meta.url);
+  navigator.serviceWorker.register(worker.href, { scope: '/' }).catch(() => {});
 }
