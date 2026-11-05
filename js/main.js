@@ -32,8 +32,7 @@ import {
   bootI18n,
   ensureSidebarLocales,
 } from './i18n/index.js';
-import { assumptionBody, ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
-import { designCaveatText } from './lab/designCaveat.js';
+import { ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
 import {
   listShells,
   resolveShellId,
@@ -428,16 +427,11 @@ async function updateShellStrip() {
   };
   const loc = getLocale();
   if (loc !== 'zh') await ensureCatalogGloss(loc);
+  // Formula stays; assumption / caveat chrome stay off the stage (catalog metadata only).
+  document.getElementById('shell-assumptions')?.remove();
+  document.getElementById('shell-caveat')?.remove();
   const formulaEl = ensureLine('shell-formula', 'shell-formula');
-  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
-  const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
   if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
-  if (asmLine) asmLine.textContent = assumptionBody(loc, app.model?.assumptions || '');
-  if (caveatEl) {
-    const caveat = designCaveatText(app.model);
-    caveatEl.hidden = !caveat;
-    caveatEl.textContent = caveat || '';
-  }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
   if (!pauseBadge) {
