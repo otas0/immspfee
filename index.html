@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IMMSPFEE · Lab</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
@@ -210,6 +212,39 @@
   </div>
 
   <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
-  <script type="module" src="./js/main.js?v=5918f93"></script>
+  <script>
+    // Once per tab: reload onto a fresh URL so a cached entry cannot leave the lab stuck.
+    (function hardRefreshOnce() {
+      var KEY = 'immspfee-hard-refresh';
+      var url;
+      try { url = new URL(location.href); } catch (e) { url = null; }
+      var stamp = url ? url.searchParams.get('v') : '';
+      var automated = false;
+      try { automated = navigator.webdriver === true; } catch (e) { automated = false; }
+      try {
+        if (!automated && sessionStorage.getItem(KEY) !== '1') {
+          sessionStorage.setItem(KEY, '1');
+          if (!url) return;
+          url.searchParams.set('v', Date.now().toString(36));
+          location.replace(url.href);
+          return;
+        }
+      } catch (e) { /* storage blocked: load the module anyway */ }
+      var src = './js/main.js';
+      if (stamp) {
+        src += '?v=' + encodeURIComponent(stamp);
+        var links = document.querySelectorAll('link[rel="stylesheet"]');
+        for (var i = 0; i < links.length; i++) {
+          if ((links[i].getAttribute('href') || '') === './css/styles.css') {
+            links[i].href = './css/styles.css?v=' + encodeURIComponent(stamp);
+          }
+        }
+      }
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = src;
+      document.body.appendChild(s);
+    }());
+  </script>
 </body>
 </html>
