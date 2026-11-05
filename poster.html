@@ -449,21 +449,38 @@
     }
 
     @media print {
-      html, body { background: #fff; }
-      .screen-hint { display: none !important; }
-      .sheet {
-        margin: 0;
-        border: none;
+      /* Screen desk (#cfcfcf) must never ink — Safari otherwise paints it as a gray frame. */
+      html, body {
+        background: #ffffff !important;
+        color: #111;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      .sheet::after { opacity: 0.5; }
+      .screen-hint { display: none !important; }
+      .sheet {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+      .sheet::after { display: none !important; }
       @page { size: A4 portrait; margin: 0; }
     }
   </style>
 </head>
 <body>
-  <p class="screen-hint">A4 · 可直接双击本文件打开 · Print → A4 · Scale 100% · Margins None · 讲解用</p>
+  <p class="screen-hint">A4 · Print → A4 · Scale 100% · Margins None · 屏上灰桌面仅预览用，打印应为纯白满版</p>
 
   <article class="sheet">
     <header class="topbar">
