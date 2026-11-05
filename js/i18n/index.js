@@ -36,7 +36,10 @@ function detect() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && STRINGS[saved]) return saved;
   } catch { /* ignore */ }
-  const nav = (typeof navigator !== 'undefined' && (navigator.language || '')).toLowerCase();
+  const language = (typeof navigator !== 'undefined' && typeof navigator.language === 'string')
+    ? navigator.language
+    : '';
+  const nav = language.toLowerCase();
   if (nav.startsWith('zh')) return 'zh';
   if (nav.startsWith('ja')) return 'ja';
   if (nav.startsWith('ko')) return 'ko';
