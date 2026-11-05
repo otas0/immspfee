@@ -37,8 +37,8 @@
       <p>The Lab supports <strong>zh / en / ja / ko / es / fr / de</strong> via the sidebar <em>language</em> select, and multiple chassis shells via <em>shell</em>.</p>
       <ul class="muted">
         <li><strong>Language URL:</strong> <code>?lang=en</code> (etc.) wins over <code>localStorage</code> key <code>physics-lab-locale-v1</code>, then syncs both ways.</li>
-        <li><strong>Shell URL:</strong> <code>?shell=lab-classic</code> | <code>lab-focus</code> | <code>lab-projector</code> | <code>lab-microscope3d</code> (persists to <code>immspfee-shell</code>). Projector hides the catalog sidebar by default (menu toggles an overlay); Microscope 3D is the single WebGL stage.</li>
-        <li><strong>Combine with model deep link:</strong> <code>index.html?lang=en&amp;shell=lab-projector#m=r016-显微镜</code> opens the compound microscope in projector chrome with English UI. Use <code>?shell=lab-microscope3d</code> for the WebGL structure view (same optical params).</li>
+        <li><strong>Shell URL:</strong> <code>?shell=lab-classic</code> | <code>lab-focus</code> | <code>lab-projector</code> | <code>lab-microscope3d</code> (persists to <code>immspfee-shell</code>). Projector hides the catalog sidebar by default (menu toggles an overlay).</li>
+        <li><strong>Microscope shell:</strong> clicking <code>r016-显微镜</code> (or <code>?shell=lab-microscope3d</code>) leaves the catalog chrome for a dedicated WebGL optical stage — same Hecht finite-tube params, no pause/csv/classroom pack. <em>Back to catalog</em> returns to Lab Classic with the 2D structure sketch.</li>
         <li><strong><code>html.lang</code>:</strong> updated on switch for assistive tech (e.g. <code>zh-CN</code>, <code>en</code>, <code>ja</code>).</li>
         <li><strong>Focus:</strong> after a language change, focus returns to <code>#locale-select</code>.</li>
         <li><strong>Model titles:</strong> lazy packs <code>data/locales/models-en.json</code> / <code>models-ja.json</code> (<code>npm run gen:model-locales</code>). Other locales fall back to catalog source strings.</li>
