@@ -150,6 +150,7 @@ export default {
   getReadouts(state) {
     const ipc = state.cycle ? state.retired / state.cycle : 0;
     return [
+      { label: 't', value: formatNum(state.t || 0, 3) },
       { label: 'cycle', value: String(state.cycle) },
       { label: 'retired', value: String(state.retired) },
       { label: 'hazards', value: String(state.dataHazards) },

@@ -1,7 +1,7 @@
 import { formatNum } from '../utils/draw.js';
 import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
-import { mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
+import { forceGraphStep, mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
 
 function parseAdj(text, n) {
   const edges = [];
@@ -27,11 +27,13 @@ export default {
   params: {
     nodes: 10, seed: 11, start: 0, goal: 7, stepDt: 0.12,
     edgeProb: 0.42, wMin: 1, wMax: 12, algo: 0,
+    layoutSteps: 40,
     adjText: '',
     edgeA: 0, edgeB: 1, edgeW: 3, commitEdge: 0,
   },
   paramSchema: {
     nodes: { group: 'numerics', unit: '—', label: '节点数', min: 4, max: 24 },
+    layoutSteps: { group: 'numerics', unit: '—', label: '力导向步数', min: 0, max: 120 },
     seed: { group: 'initial', unit: '—', label: '随机种子', min: 1, max: 9999 },
     start: { group: 'initial', unit: '—', label: '起点', min: 0, max: 23 },
     goal: { group: 'initial', unit: '—', label: '终点', min: 0, max: 23 },
@@ -98,9 +100,20 @@ export default {
     if (!state.edges.length) {
       for (let i = 0; i < n - 1; i += 1) state.edges.push({ a: i, b: i + 1, w: 1 });
     }
+    const W = 400;
+    const H = 300;
+    const steps = Math.max(0, Math.floor(P(state.params, 'layoutSteps', 40)));
+    const px = state.nodes.map((node) => ({ x: node.x * W, y: node.y * H }));
+    for (let k = 0; k < steps; k += 1) forceGraphStep(px, state.edges, { W, H, pad: 24 });
+    state.nodes = px.map((p, i) => ({
+      i,
+      x: Math.max(0.05, Math.min(0.95, p.x / W)),
+      y: Math.max(0.05, Math.min(0.95, p.y / H)),
+    }));
     this.resetSearch(state);
     state._commit = Math.round(P(state.params, 'commitEdge', 0));
     state._adj = String(state.params.adjText || '');
+    state._layoutSteps = steps;
     state._edgeHist = state.edges.map((e) => ({ ...e }));
   },
 

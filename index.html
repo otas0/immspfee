@@ -9,14 +9,10 @@
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" /></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/styles.css" />
-  <link rel="stylesheet" href="./css/microscope-shell.css" />
 </head>
 <body>
-  <p id="boot-status" hidden style="position:fixed;z-index:80;left:0;right:0;top:0;margin:0;padding:0.45rem 0.8rem;background:#1c1408;color:#ffe7b0;font:600 0.9rem/1.4 sans-serif">正在重新载入</p>
-  <p id="boot-refresh-hint" hidden style="position:fixed;z-index:80;left:0;right:0;top:0;margin:0;padding:0.45rem 0.8rem;background:#1c1408;color:#ffe7b0;font:600 0.9rem/1.4 sans-serif">无法自动刷新，请手动重新载入</p>
   <!-- sidebar / bench 与 stage 同级，避免 .app overflow 裁切 fixed 抽屉 -->
   <div class="chassis" id="chassis">
     <aside class="sidebar" id="sidebar">
@@ -153,20 +149,6 @@
         </div>
       </header>
 
-      <section class="microscope-chrome" id="microscope-chrome" hidden aria-label="Microscope">
-        <button type="button" class="micro-exit" id="btn-micro-exit" data-i18n="ui.microExit">Back to catalog</button>
-        <div class="micro-hero">
-          <p class="micro-brand">IMMSPFEE</p>
-          <h1 class="micro-title" id="micro-title">Compound microscope</h1>
-          <p class="micro-lede" id="micro-lede" data-i18n="ui.microLede">Finite-tube structure · Hecht optics · Abbe limit from the live NA</p>
-        </div>
-        <div class="micro-actions">
-          <button type="button" id="btn-micro-reset" class="btn quiet" data-i18n="ui.microReset">Reset optics</button>
-          <button type="button" id="btn-micro-shot" class="btn quiet">png</button>
-          <button type="button" id="btn-micro-params" class="btn quiet" data-i18n="ui.params">params</button>
-        </div>
-      </section>
-
       <div class="display-bezel">
         <div class="model-shell" id="model-shell">
           <span class="shell-chip" id="shell-mode">knobs</span>
@@ -215,8 +197,8 @@
       <div class="bench-drag" id="bench-drag" aria-hidden="true"><span></span></div>
       <div class="bench-head">
         <div>
-          <div class="bench-kicker" id="bench-kicker" data-i18n="ui.benchKicker">param module</div>
-          <h2 id="bench-title" data-i18n="ui.bench">工作台</h2>
+          <div class="bench-kicker" data-i18n="ui.benchKicker">param module</div>
+          <h2 data-i18n="ui.bench">工作台</h2>
         </div>
         <button type="button" id="btn-close-bench" class="btn ghost-always bench-close" data-i18n="ui.close">close</button>
       </div>
@@ -232,65 +214,37 @@
 
   <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
   <script>
-    // Reload once only when this document was served from cache and its v is stale.
+    // Once per tab: reload onto a fresh URL so a cached entry cannot leave the lab stuck.
     (function hardRefreshOnce() {
       var KEY = 'immspfee-hard-refresh';
-      var status = document.getElementById('boot-status');
-      var hint = document.getElementById('boot-refresh-hint');
-      function meta(name) {
-        var el = document.querySelector('meta[name="' + name + '"]');
-        return el ? el.content : '';
-      }
-      function fromCache() {
-        try {
-          var nav = performance.getEntriesByType('navigation')[0];
-          return !!(nav && nav.transferSize === 0);
-        } catch (e) { return false; }
-      }
-      function storageOk() {
-        try {
-          sessionStorage.getItem(KEY);
-          return true;
-        } catch (e) { return false; }
-      }
-      function loadModule(js) {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = js ? './js/entry.js?v=' + encodeURIComponent(js) : './js/entry.js';
-        document.body.appendChild(s);
-      }
-      function go(js) {
-        if (status) status.hidden = false;
-        var url = new URL(location.href);
-        url.searchParams.set('v', js);
-        var replace = function () { location.replace(url.href); };
-        if (window.__bootHold && typeof window.__bootHold.then === 'function') window.__bootHold.then(replace);
-        else replace();
-      }
+      var url;
+      try { url = new URL(location.href); } catch (e) { url = null; }
+      var stamp = url ? url.searchParams.get('v') : '';
       var automated = false;
-      try { automated = navigator.webdriver === true; } catch (e) {}
-      var canStore = storageOk();
-      if (!canStore && hint) hint.hidden = false;
-      function decide(js) {
-        var current = '';
-        try { current = new URL(location.href).searchParams.get('v') || ''; } catch (e) {}
-        var armed = false;
-        try { armed = sessionStorage.getItem(KEY) === '1'; } catch (e) {}
-        if (!automated && canStore && fromCache() && js && current !== js && !armed) {
-          try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
-          go(js);
+      try { automated = navigator.webdriver === true; } catch (e) { automated = false; }
+      try {
+        if (!automated && sessionStorage.getItem(KEY) !== '1') {
+          sessionStorage.setItem(KEY, '1');
+          if (!url) return;
+          url.searchParams.set('v', Date.now().toString(36));
+          location.replace(url.href);
           return;
         }
-        loadModule(js);
+      } catch (e) { /* storage blocked: load the module anyway */ }
+      var src = './js/main.js';
+      if (stamp) {
+        src += '?v=' + encodeURIComponent(stamp);
+        var links = document.querySelectorAll('link[rel="stylesheet"]');
+        for (var i = 0; i < links.length; i++) {
+          if ((links[i].getAttribute('href') || '') === './css/styles.css') {
+            links[i].href = './css/styles.css?v=' + encodeURIComponent(stamp);
+          }
+        }
       }
-      var inline = meta('imm-js');
-      if (inline) { decide(inline); return; }
-      fetch('./asset-stamp.json', { cache: 'no-store' }).then(function (res) {
-        if (!res.ok) throw new Error('stamp');
-        return res.json();
-      }).then(function (stamp) {
-        decide(stamp && (stamp.js || stamp.main) || '');
-      }).catch(function () { decide(''); });
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = src;
+      document.body.appendChild(s);
     }());
   </script>
 </body>

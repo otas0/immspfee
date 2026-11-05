@@ -228,7 +228,8 @@ const interaction = await page.evaluate(async () => {
     check('sorting-autoDemo', autoOk, `demo=${stS?.params?.demo}`);
 
     // layoutSteps（numerics）改参应 reinit + toast「布局已重算」
-    cap.switchModel('routing');
+    // Dijkstra is the live graph-layout model that exposes layoutSteps.
+    cap.switchModel('dijkstra');
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const hasLayout = Object.prototype.hasOwnProperty.call(cap.getParams?.() || {}, 'layoutSteps')
       || Object.prototype.hasOwnProperty.call(cap.getState?.()?.params || {}, 'layoutSteps');
@@ -241,7 +242,7 @@ const interaction = await page.evaluate(async () => {
       const layoutPass = Number(p.layoutSteps) === 12 && /布局已重算/.test(toastTxt);
       check('layoutSteps-reinit', layoutPass, `layoutSteps=${p.layoutSteps} toast=${toastTxt}`);
     } else {
-      check('layoutSteps-reinit', false, 'routing missing layoutSteps');
+      check('layoutSteps-reinit', false, 'dijkstra missing layoutSteps');
     }
 
     // redoEdge：undo 后再 redo

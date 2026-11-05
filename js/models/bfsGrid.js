@@ -226,6 +226,7 @@ export default {
       paintMode = state._lastPaintMode;
     }
     return [
+      { label: 't', value: formatNum(state.t || 0, 3) },
       { label: 'algo', value: state.algo === 1 ? 'A*' : 'BFS' },
       { label: '画墙', value: paintMode },
       { label: 'expanded', value: String(state.expanded) },

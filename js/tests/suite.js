@@ -312,6 +312,33 @@ export function runSuite() {
           && after.find((x) => x.label === 'M')?.value === '-400.000×',
         `before ${before.find((x) => x.label === 'M')?.value} after ${after.find((x) => x.label === 'M')?.value} f ${after.find((x) => x.label === 'f_obj')?.value}`,
       );
+
+      const clickObj = (index) => {
+        const state = { params: { ...compoundMicroscope.params } };
+        compoundMicroscope.init(state);
+        compoundMicroscope.draw(ctx, state, { width: 800, height: 600 });
+        const box = state._layout?.hits?.find((h) => h.kind === 'obj' && h.index === index);
+        const okClick = box && compoundMicroscope.onPointer(state, {
+          type: 'down', x: box.x + box.w / 2, y: box.y + box.h / 2,
+        });
+        return { ok: !!okClick, readouts: compoundMicroscope.getReadouts(state, { digits: 3 }) };
+      };
+      const at4 = clickObj(0);
+      assert(
+        '物镜转盘 4× 锁定 f_obj 与 M',
+        at4.ok
+          && at4.readouts.find((x) => x.label === 'f_obj')?.value === '40.000 mm'
+          && at4.readouts.find((x) => x.label === 'M')?.value === '-40.000×',
+        `f ${at4.readouts.find((x) => x.label === 'f_obj')?.value} M ${at4.readouts.find((x) => x.label === 'M')?.value}`,
+      );
+      const at100 = clickObj(3);
+      assert(
+        '物镜转盘 100× 锁定 f_obj 与 M',
+        at100.ok
+          && at100.readouts.find((x) => x.label === 'f_obj')?.value === '1.600 mm'
+          && at100.readouts.find((x) => x.label === 'M')?.value === '-1000.000×',
+        `f ${at100.readouts.find((x) => x.label === 'f_obj')?.value} M ${at100.readouts.find((x) => x.label === 'M')?.value}`,
+      );
     }
   }
 
@@ -543,7 +570,11 @@ export function runSuite() {
       fidelity: 'engineering',
       ethicsOk: true,
     });
-    assert('自建模型指出缺少的假设', !missingAsm.ok && String(missingAsm.error).includes('缺少假设'), missingAsm.error);
+    assert(
+      '自建模型指出缺少的假设',
+      !missingAsm.ok && /缺少假设|Missing assumption/i.test(String(missingAsm.error || '')),
+      missingAsm.error,
+    );
     assert('自建模型 id 前缀 user-', !!good.spec?.id?.startsWith('user-'), good.spec?.id);
   }
 

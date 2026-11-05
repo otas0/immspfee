@@ -5,6 +5,7 @@
 import { createFactoryModel } from '../models/factory.js';
 import { topicMissNote } from './topicOverrides.js';
 import { FAMILY_META } from './formalism.js';
+import { t } from '../i18n/index.js';
 import templates from '../../data/authority-templates.json' with { type: 'json' };
 
 const STORAGE_KEY = 'immspfee-user-models-v1';
@@ -53,31 +54,31 @@ export function validateUserModelDraft(draft, opts = {}) {
     const miss = topicMissNote(formula);
     return { ok: false, error: miss ? `${msg}；${miss}` : msg };
   };
-  if (!name || name.length < 2) return fail('名称至少 2 字');
-  if (!domain) return fail('须选领域');
-  if (!sub) return fail('须填子类');
+  if (!name || name.length < 2) return fail(t('dialog.errNameShort'));
+  if (!domain) return fail(t('dialog.errDomain'));
+  if (!sub) return fail(t('dialog.errSub'));
   if (!USER_MODEL_FAMILIES.includes(family)) {
-    return fail(`引擎族无效：${family}`);
+    return fail(t('dialog.errFamily', { family }));
   }
-  if (formula.length < 3) return fail('控制方程过短，须写明支配关系');
+  if (formula.length < 3) return fail(t('dialog.errFormulaShort'));
   if (authority.length < 8) {
-    return fail('权威来源过短：须书名/标准/DOI + 章节');
+    return fail(t('dialog.errAuthorityShort'));
   }
   if (assumptions.length < 12) {
-    return fail('须写清适用假设与局限（工业级不可省略）');
+    return fail(t('dialog.errAssumptionsShort'));
   }
   if (!/(忽略|适用|范围|不是|线性|小角|集总|limit|neglect|assume|valid)/i.test(assumptions)) {
-    return fail('缺少假设：适用范围或忽略项（请写明例如「忽略摩擦」或「不是设计工具」）');
+    return fail(t('dialog.errAssumptionsScope'));
   }
   if (description.length < 12) {
-    return fail('描述须说明状态量/输入输出与文献对应');
+    return fail(t('dialog.errDescription'));
   }
   if (!ethicsOk) {
-    return fail('须勾选：已对照权威文档核对概念与伦理边界');
+    return fail(t('dialog.errEthics'));
   }
   const toy = /好玩|动画|随便|demo only|just for fun/i;
   if (toy.test(`${name} ${description}`)) {
-    return fail('拒绝玩具向文案；本实验室模型须工程/学术可用');
+    return fail(t('dialog.errToy'));
   }
 
   const keepId = typeof opts.keepId === 'string' && opts.keepId.startsWith('user-')

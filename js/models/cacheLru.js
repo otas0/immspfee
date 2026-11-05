@@ -99,6 +99,7 @@ export default {
     const total = state.hits + state.misses;
     const rate = total ? state.hits / total : 0;
     return [
+      { label: 't', value: formatNum(state.t || 0, 3) },
       { label: 'hits', value: String(state.hits) },
       { label: 'miss', value: String(state.misses) },
       { label: 'hit%', value: formatNum(rate * 100, 1) },
