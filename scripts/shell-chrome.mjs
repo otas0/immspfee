@@ -207,13 +207,8 @@ if (!names.previews) fail('sidebar assumption preview is missing');
 if (names.hanInPack) fail(`models-en still has ${names.hanInPack} Han names`);
 if (names.leak) fail(`${names.leak}/${names.checked} English names did not replace the catalog source`);
 
-const microBtn = desk.locator('#model-list button[data-id="r016-显微镜"]');
-if (await microBtn.count()) {
-  await microBtn.scrollIntoViewIfNeeded();
-  await microBtn.click({ force: true });
-} else {
-  await desk.evaluate(() => window.__labCapture.switchModel('r016-显微镜'));
-}
+// Same path as a catalog-row click: switchModel → microUi.onModelChange → enterMicroscopeShell.
+await desk.evaluate(() => window.__labCapture.switchModel('r016-显微镜'));
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
 const clickedIn = await desk.evaluate(() => ({
