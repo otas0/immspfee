@@ -36,7 +36,7 @@ async function openPage(viewport, dsf, shell) {
     localStorage.setItem('physics-lab-locale-v1', 'en');
     localStorage.removeItem('physics-lab-auto-open-bench');
   });
-  await page.goto(`${base}?shell=${shell}&v=${encodeURIComponent(buildStamp)}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}?shell=${shell}&v=${encodeURIComponent(buildStamp)}&_=${Date.now()}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
   await page.evaluate(() => new Promise((resolve) => {
     window.dispatchEvent(new Event('resize'));
@@ -48,8 +48,17 @@ async function openPage(viewport, dsf, shell) {
 async function setShell(page, id) {
   await page.evaluate((shellId) => {
     const sel = document.getElementById('shell-select');
-    sel.value = shellId;
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    // Microscope is not listed in the catalog shell picker — inject for tests / URL path.
+    if (sel && ![...sel.options].some((o) => o.value === shellId)) {
+      const opt = document.createElement('option');
+      opt.value = shellId;
+      opt.textContent = shellId;
+      sel.appendChild(opt);
+    }
+    if (sel) {
+      sel.value = shellId;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }, id);
   await page.waitForFunction((shellId) => document.documentElement.dataset.shell === shellId, id);
 }
@@ -115,6 +124,7 @@ const opened = await desk.evaluate(() => {
 });
 if (!opened.overlay || opened.pe !== 'auto' || opened.vis !== 'visible') fail(`projector overlay open ${JSON.stringify(opened)}`);
 if (opened.label !== 'Close model list') fail(`menu label when open: ${opened.label}`);
+await desk.waitForSelector('#model-list button[data-id="free-fall"]', { timeout: 60000 });
 await desk.locator('#model-list button[data-id="free-fall"]').click();
 await desk.waitForFunction(() => location.hash.includes('free-fall'));
 const afterPick = await desk.evaluate(() => ({
@@ -159,12 +169,29 @@ const exclusive = await desk.evaluate(() => {
   const side = document.getElementById('sidebar');
   const toolbar = document.querySelector('.toolbar');
   const shell = document.getElementById('model-shell');
+  const bench = document.getElementById('bench');
+  const hud = document.querySelector('.hud');
+  const stage = document.getElementById('micro-stage');
+  const metricsKeys = [...(stage?.querySelectorAll('.micro-metric') || [])].map((el) => el.dataset.key);
+  const railLabels = [...(stage?.querySelectorAll('.micro-field-label') || [])].map((el) => el.textContent.trim());
+  const cssHref = [...document.querySelectorAll('link[rel="stylesheet"]')]
+    .map((l) => l.getAttribute('href') || '')
+    .find((h) => h.includes('microscope-shell.css')) || '';
+  const picker = [...(document.getElementById('shell-select')?.options || [])].map((o) => o.value);
   return {
     chromeHidden: !!chrome?.hidden,
     brand: chrome?.querySelector('.micro-brand')?.textContent?.trim() || '',
     sideDisplay: side ? getComputedStyle(side).display : '',
     toolbarDisplay: toolbar ? getComputedStyle(toolbar).display : '',
     formula: !!(shell && getComputedStyle(shell).display !== 'none'),
+    benchDisplay: bench ? getComputedStyle(bench).display : '',
+    hudDisplay: hud ? getComputedStyle(hud).display : '',
+    stageHidden: !!stage?.hidden,
+    metrics: metricsKeys,
+    railLabels,
+    cssHref,
+    picker,
+    inputMode: document.documentElement.dataset.inputMode || '',
   };
 });
 if (exclusive.chromeHidden) fail('microscope chrome stayed hidden on the dedicated shell');
@@ -172,6 +199,26 @@ if (exclusive.brand !== 'IMMSPFEE') fail(`microscope brand ${exclusive.brand}`);
 if (exclusive.sideDisplay !== 'none') fail(`catalog sidebar still visible (${exclusive.sideDisplay})`);
 if (exclusive.toolbarDisplay !== 'none') fail(`lab toolbar still visible (${exclusive.toolbarDisplay})`);
 if (exclusive.formula) fail('ODE model-shell strip still showing on the microscope shell');
+if (exclusive.benchDisplay !== 'none') fail(`catalog bench still visible (${exclusive.benchDisplay})`);
+if (exclusive.hudDisplay !== 'none') fail(`catalog HUD still visible (${exclusive.hudDisplay})`);
+if (exclusive.stageHidden) fail('isolated micro-stage stayed hidden');
+if (exclusive.metrics.join(',') !== 'M,f_obj,NA,d_Abbe') {
+  fail(`micro readouts ${exclusive.metrics.join(',')}`);
+}
+if (exclusive.railLabels.some((l) => /speed|time|dt|trail/i.test(l))) {
+  fail(`optical rail leaked catalog keys ${exclusive.railLabels.join('|')}`);
+}
+const wantRail = ['Objective', 'Eyepiece', 'Tube length L', 'NA', 'Immersion'];
+if (wantRail.some((l) => !exclusive.railLabels.includes(l))) {
+  fail(`optical rail missing keys ${exclusive.railLabels.join('|')}`);
+}
+if (!exclusive.cssHref.includes('microscope-shell.css')) {
+  fail(`microscope CSS fingerprint missing (${exclusive.cssHref})`);
+}
+if (exclusive.picker.length !== 1 || exclusive.picker[0] !== 'lab-classic') {
+  fail(`microscope shell picker should be back-only ${JSON.stringify(exclusive.picker)}`);
+}
+if (exclusive.inputMode !== 'microscope') fail(`inputMode ${exclusive.inputMode}`);
 
 await desk.click('#btn-micro-exit');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
@@ -181,10 +228,28 @@ if (!back.webglHidden || back.webglDisplay !== 'none') {
   fail(`webgl still visible after classic return hidden=${back.webglHidden} display=${back.webglDisplay}`);
 }
 if (back.canvasHidden) fail('2D canvas stayed hidden after leaving microscope 3D');
+const focused = await desk.evaluate(() => {
+  const domain = document.querySelector('.domain-group[data-domain="物理"]');
+  const sub = [...(domain?.querySelectorAll('.sub-group') || [])]
+    .find((el) => (el.querySelector('.sub-name')?.dataset.sub || el.querySelector('.sub-name')?.textContent) === '光学');
+  const row = document.querySelector('[data-id="r016-显微镜"]');
+  return {
+    domainOpen: domain instanceof HTMLDetailsElement ? domain.open : false,
+    subOpen: sub instanceof HTMLDetailsElement ? sub.open : false,
+    active: row?.classList.contains('active') || false,
+  };
+});
+if (!focused.domainOpen || !focused.subOpen || !focused.active) {
+  fail(`exit did not expand 物理/光学 + highlight r016 ${JSON.stringify(focused)}`);
+}
 
 await desk.waitForFunction(() => {
   const el = document.querySelector('[data-id="r016-显微镜"] .name');
   return el && el.textContent.trim() === 'Compound microscope';
+}, null, { timeout: 20000 });
+await desk.waitForFunction(() => {
+  const el = document.querySelector('[data-id="free-fall"] .name');
+  return el && el.textContent.trim() === 'Free fall';
 }, null, { timeout: 20000 });
 const names = await desk.evaluate(async () => {
   const pack = await fetch('./data/locales/models-en.json').then((r) => r.json());
@@ -393,6 +458,7 @@ const narrowOpen = await narrow.evaluate(() => {
 });
 if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') fail(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
 if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
+await narrow.waitForSelector('#model-list button[data-id="free-fall"]', { timeout: 60000 });
 await narrow.locator('#model-list button[data-id="free-fall"]').click();
 await narrow.waitForFunction(() => location.hash.includes('free-fall'));
 const narrowPick = await narrow.evaluate(() => ({

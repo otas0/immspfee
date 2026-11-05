@@ -30,8 +30,9 @@ import {
   applyDomI18n,
   onLocaleChange,
   bootI18n,
+  ensureSidebarLocales,
 } from './i18n/index.js';
-import { formulaLine } from './i18n/previewText.js';
+import { assumptionBody, ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
 import { designCaveatText } from './lab/designCaveat.js';
 import {
   listShells,
@@ -118,7 +119,7 @@ const AUTO_OPEN_BENCH_KEY = 'physics-lab-auto-open-bench';
 const DEFAULT_MODEL_ID = 'free-fall';
 /** P1 stub: shareable deep link `#m=<id>&p=<compressed-params>` (encoding TBD; keep IA 三栏). */
 const HOT_SUBS = new Set([
-  '经典力学', '算法与数据结构', '计算机体系结构', '波与振动', '电磁学', '数字逻辑',
+  '经典力学', '算法与数据结构', '计算机体系结构', '波与振动', '电磁学', '光学', '数字逻辑',
   '梁与框架', '动力循环', '经典控制', '气动', '交通流', '静力与强度',
 ]);
 
@@ -377,7 +378,7 @@ function setSafeRestoreVisible(on) {
   btnSafeRestore.hidden = !on;
 }
 
-function updateShellStrip() {
+async function updateShellStrip() {
   const cap = deriveCapabilities(app.model);
   if (shellDeprecatedEl) {
     const dep = !!app.model?.deprecated;
@@ -405,10 +406,12 @@ function updateShellStrip() {
     return el;
   };
   const loc = getLocale();
-  document.getElementById('shell-assumptions')?.remove();
+  if (loc !== 'zh') await ensureCatalogGloss(loc);
   const formulaEl = ensureLine('shell-formula', 'shell-formula');
+  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
   const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
   if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
+  if (asmLine) asmLine.textContent = assumptionBody(loc, app.model?.assumptions || '');
   if (caveatEl) {
     const caveat = designCaveatText(app.model);
     caveatEl.hidden = !caveat;
@@ -907,6 +910,17 @@ function setAllFolds(open) {
 }
 
 function buildSidebar() {
+  void (async () => {
+    const loc = getLocale();
+    if (loc !== 'zh') {
+      await ensureCatalogGloss(loc);
+      await ensureSidebarLocales();
+    }
+    paintSidebar();
+  })();
+}
+
+function paintSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
   const folds = loadFolds();
@@ -1001,7 +1015,7 @@ function buildSidebar() {
     details.className = 'domain-group';
     details.dataset.domain = domain;
     const dKey = foldKey(domain);
-    details.open = searching || (folds[dKey] != null ? !!folds[dKey] : domain === '物理');
+    details.open = searching || (folds[dKey] != null ? !!folds[dKey] : false);
     const sum = document.createElement('summary');
     sum.innerHTML = `<span class="domain-name" data-domain="${domain}">${domainLabel(domain)}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');
@@ -1301,7 +1315,14 @@ function updateHud(opts = {}) {
 
 function ensureWebglStage() {
   if (!canvasWebgl) return null;
-  if (!webglStage) webglStage = createMicroscopeWebgl(canvasWebgl);
+  if (!webglStage) {
+    webglStage = createMicroscopeWebgl(canvasWebgl, {
+      onPick: () => {
+        microUi?.refresh();
+        updateHud({ flash: true });
+      },
+    });
+  }
   return webglStage;
 }
 
@@ -1334,6 +1355,7 @@ function paintFrame(opts = {}) {
       if (canvas) canvas.hidden = false;
       if (canvasWebgl) canvasWebgl.hidden = true;
     }
+    if (!opts.skipMicroRefresh) microUi?.refresh();
     return view;
   }
   const viewBase = resizeCanvas(canvas, canvasWrap, opts);
@@ -2036,11 +2058,21 @@ function applyActiveShell(id) {
   }
 }
 
-function mountShellSelect(el) {
+function fillShellSelectOptions(el, { microOnly = false } = {}) {
   if (!el) return;
-  const current = resolveShellId();
   el.innerHTML = '';
+  if (microOnly || microUi?.isMicroscopeShell?.()) {
+    const opt = document.createElement('option');
+    opt.value = 'lab-classic';
+    opt.textContent = t('ui.microExit');
+    opt.selected = true;
+    el.appendChild(opt);
+    el.setAttribute('aria-label', t('ui.microExit'));
+    return;
+  }
+  const current = activeShellId || resolveShellId();
   for (const s of listShells()) {
+    if (s.id === 'lab-microscope3d') continue; // enter only via r016 / ?shell=
     const opt = document.createElement('option');
     opt.value = s.id;
     opt.textContent = s.label;
@@ -2048,16 +2080,26 @@ function mountShellSelect(el) {
     if (s.id === current) opt.selected = true;
     el.appendChild(opt);
   }
+  el.setAttribute('aria-label', 'shell');
+}
+
+function mountShellSelect(el) {
+  if (!el) return;
+  const current = resolveShellId();
+  fillShellSelectOptions(el, { microOnly: current === 'lab-microscope3d' });
+  if (!el.dataset.bound) {
+    el.dataset.bound = '1';
+    el.addEventListener('change', () => {
+      const id = el.value;
+      persistShellId(id);
+      applyActiveShell(id);
+      const url = new URL(location.href);
+      url.searchParams.set('shell', id);
+      history.replaceState(null, '', url);
+      requestAnimationFrame(measureSysSticky);
+    });
+  }
   applyActiveShell(current);
-  el.addEventListener('change', () => {
-    const id = el.value;
-    persistShellId(id);
-    applyActiveShell(id);
-    const url = new URL(location.href);
-    url.searchParams.set('shell', id);
-    history.replaceState(null, '', url);
-    requestAnimationFrame(measureSysSticky);
-  });
 }
 
 async function boot() {
@@ -2069,19 +2111,86 @@ async function boot() {
   } else {
     document.getElementById('chassis')?.classList.remove('bench-collapsed');
   }
+  async function focusCatalogModel(id, loc = { domain: '物理', sub: '光学' }) {
+    const folds = loadFolds();
+    folds[foldKey(loc.domain)] = true;
+    folds[foldKey(loc.domain, loc.sub)] = true;
+    saveFolds(folds);
+    try { await loadDomain(loc.domain); } catch { /* ignore */ }
+    const lang = getLocale();
+    if (lang !== 'zh') {
+      await ensureCatalogGloss(lang);
+      await ensureSidebarLocales();
+    }
+    paintSidebar();
+    syncSidebarActive();
+    const domainEl = modelListEl?.querySelector(`.domain-group[data-domain="${loc.domain}"]`);
+    if (domainEl instanceof HTMLDetailsElement) {
+      domainEl.open = true;
+      for (const subEl of domainEl.querySelectorAll('details.sub-group')) {
+        const name = subEl.querySelector('.sub-name')?.dataset.sub
+          || subEl.querySelector('.sub-name')?.textContent
+          || '';
+        if (name === loc.sub) subEl.open = true;
+      }
+    }
+    // Domain chunk may paint async; open folds again after a microtask.
+    await Promise.resolve();
+    const domainEl2 = modelListEl?.querySelector(`.domain-group[data-domain="${loc.domain}"]`);
+    if (domainEl2 instanceof HTMLDetailsElement) {
+      domainEl2.open = true;
+      for (const subEl of domainEl2.querySelectorAll('details.sub-group')) {
+        const name = subEl.querySelector('.sub-name')?.dataset.sub
+          || subEl.querySelector('.sub-name')?.textContent
+          || '';
+        if (name === loc.sub) subEl.open = true;
+      }
+    }
+    const btn = modelListEl?.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (btn) {
+      btn.classList.add('active');
+      btn.setAttribute('aria-current', 'page');
+      try { btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* ignore */ }
+    }
+    if (isMobileDrawer()) setSidebarOpen(true);
+  }
+
   microUi = createMicroscopeChrome({
     t,
     getActiveShellId: () => activeShellId,
     setActiveShellId: (id) => { activeShellId = id; },
     getModelId: () => app.model?.id,
+    getState: () => app.state,
     switchModel,
-    paintFrame: () => { if (app.model && canvasWrap) paintFrame(); },
+    paintFrame: () => { if (app.model && canvasWrap) paintFrame({ skipMicroRefresh: false }); },
     setSidebarOpen,
     setBenchOpen,
     syncPauseUi,
     syncDrawerChrome,
     resetSim,
     setPaused: (paused) => { app.paused = paused; },
+    focusCatalogModel,
+    onOpticsChange: () => {
+      updateHud({ flash: true });
+      paramBench.refresh?.();
+    },
+    remountShellSelect: ({ microOnly } = {}) => {
+      fillShellSelectOptions(document.getElementById('shell-select'), { microOnly });
+    },
+    captureWebglPng: () => {
+      paintFrame({ skipMicroRefresh: true });
+      const gl = document.getElementById('canvas-webgl');
+      if (!gl || gl.hidden) return;
+      try {
+        const a = document.createElement('a');
+        a.download = `microscope-${Date.now()}.png`;
+        a.href = gl.toDataURL('image/png');
+        a.click();
+      } catch (err) {
+        console.warn('webgl png', err);
+        showToast('WebGL capture failed');
+      }
+    },
   });
   microUi.bind();
   mountShellSelect(document.getElementById('shell-select'));
@@ -2109,6 +2218,15 @@ async function boot() {
   await loadIndex();
   const wanted = [readModelIdFromUrl(), readModelIdFromStorage(), DEFAULT_MODEL_ID].find(Boolean);
   if (!(await ensureId(wanted))) await ensureId(DEFAULT_MODEL_ID);
+  try {
+    const loadIndexMs = performance.measure('boot-loadIndex', 'boot-loadIndex-start', 'boot-loadIndex-end').duration;
+    const ensureIdMs = performance.measure('boot-ensureId', 'boot-ensureId-start', 'boot-ensureId-end').duration;
+    let loadDomainMs = null;
+    try {
+      loadDomainMs = performance.measure('boot-loadDomain', 'boot-loadDomain-start', 'boot-loadDomain-end').duration;
+    } catch { /* id miss */ }
+    window.__bootMarks = { ...(window.__bootMarks || {}), loadIndexMs, ensureIdMs, loadDomainMs };
+  } catch { window.__bootMarks = window.__bootMarks || {}; }
   populateTagFilter();
   populateFormalismFilter();
   populateUserModelFamilies();

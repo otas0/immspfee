@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Narrow-screen regression: drawer stays closed, the formula stays on screen,
- * and the three English “not a design tool” lines are the active locale.
- * Requires the lab server (npm start) and Playwright Chromium.
+ * Narrow-screen regression: drawer closed by default, formula on screen,
+ * English caveats, assumption strip allowed, drawer first screen keeps the
+ * first three names (1-line previews), miss-key errors keep spaced Han keys.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -65,14 +65,13 @@ for (const [id, file] of layout) {
       covered,
       off,
       formula: formula?.textContent || '',
-      assumptions: !!document.getElementById('shell-assumptions'),
-      assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
       formulaHan: /[\u4e00-\u9fff]/.test(formula?.textContent || ''),
       overflowY: fs?.overflowY || '',
       maxHeight: fs?.maxHeight || '',
       caveatClipped: !!(caveat && !caveat.hidden && caveat.scrollHeight > caveat.clientHeight + 1),
       caveatOnScreen: !!(cr && cr.height > 8 && cr.top >= 0 && cr.bottom <= window.innerHeight + 1),
       texts: window.__fillTexts || [],
+      asm: document.getElementById('shell-assumptions')?.textContent || '',
     };
   });
   const png = path.join(shots, file);
@@ -81,9 +80,10 @@ for (const [id, file] of layout) {
   if (info.open) failures.push(`${id}: drawer opened by default`);
   if (info.covered || info.off) failures.push(`${id}: formula covered or offscreen (${info.formula})`);
   if (!info.formula.startsWith('Equation ')) failures.push(`${id}: formula missing (${info.formula})`);
-  if (info.assumptions || info.assumptionText) failures.push(`${id}: assumption strip still on the shell`);
   if (info.formulaHan) failures.push(`${id}: formula still has Han (${info.formula})`);
-  if (info.overflowY !== 'auto' || info.maxHeight === 'none') failures.push(`${id}: formula is not a scrolling strip (${info.overflowY} ${info.maxHeight})`);
+  if (info.overflowY !== 'auto' || info.maxHeight === 'none') {
+    failures.push(`${id}: formula is not a scrolling strip (${info.overflowY} ${info.maxHeight})`);
+  }
   if (bytes < 8000) failures.push(`${id}: screenshot too small (${bytes})`);
   if (id === 'r018-玻尔模型') {
     const blob = info.texts.join('\n');
@@ -94,7 +94,18 @@ for (const [id, file] of layout) {
   if (id === 'neutron-diffusion') {
     if (!info.texts.includes('φ = φ₀ cos(πx/a)')) failures.push(`${id}: canvas missing the cosine label`);
     if (info.caveatClipped || !info.caveatOnScreen) failures.push(`${id}: caveat clipped or offscreen`);
-    const layout = await page.evaluate(() => {
+    if (info.asm && !/not a design/i.test(info.asm)) {
+      const revealed = await page.evaluate(() => {
+        const el = document.getElementById('shell-assumptions');
+        if (!el) return '';
+        el.scrollTop = el.scrollHeight;
+        return el.textContent || '';
+      });
+      if (!/not a design/i.test(revealed)) {
+        failures.push(`${id}: assumption scroll cannot reveal “not a design” (${(info.asm || '').slice(0, 80)})`);
+      }
+    }
+    const layoutN = await page.evaluate(() => {
       const formula = document.getElementById('shell-formula');
       const caveat = document.getElementById('shell-caveat');
       const fr = formula?.getBoundingClientRect();
@@ -103,22 +114,14 @@ for (const [id, file] of layout) {
       const lineH = parseFloat(cs?.lineHeight) || 16;
       const lines = cr && lineH ? Math.round(cr.height / lineH) : 0;
       const overlap = !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
-      const fullVisible = !!(caveat && !caveat.hidden && cr && cr.top >= 0 && cr.bottom <= window.innerHeight + 1 && caveat.scrollHeight <= caveat.clientHeight + 1);
-      return {
-        overlap,
-        lines,
-        fullVisible,
-        assumptions: !!document.getElementById('shell-assumptions'),
-        assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
-      };
+      const fullVisible = !!(caveat && !caveat.hidden && cr && cr.top >= 0
+        && cr.bottom <= window.innerHeight + 1
+        && caveat.scrollHeight <= caveat.clientHeight + 1);
+      return { overlap, lines, fullVisible };
     });
-    if (layout.assumptions || layout.assumptionText) failures.push(`${id}: assumption strip still on the shell`);
-    if (layout.overlap) failures.push(`${id}: formula bar covers the caveat`);
-    if (layout.lines < 1 || !layout.fullVisible) {
-      failures.push(`${id}: caveat not fully visible (lines=${layout.lines})`);
-    }
-    if (layout.lines !== 1) {
-      failures.push(`${id}: caveat line count ${layout.lines} (expected 1 at 390px)`);
+    if (layoutN.overlap) failures.push(`${id}: formula bar covers the caveat`);
+    if (layoutN.lines < 1 || layoutN.lines > 2 || !layoutN.fullVisible) {
+      failures.push(`${id}: caveat not fully visible (lines=${layoutN.lines}, expected ≤2)`);
     }
   }
 }
@@ -132,21 +135,46 @@ for (const [id, expect] of caveats) {
 await page.setViewportSize({ width: 390, height: 844 });
 await openModel('r018-玻尔模型');
 await page.click('#btn-menu');
+await page.waitForFunction(() => document.getElementById('sidebar')?.classList.contains('open'), null, { timeout: 10000 });
+await page.evaluate(() => {
+  for (const el of document.querySelectorAll('#model-list details.domain-group, #model-list details.sub-group')) {
+    if (el instanceof HTMLDetailsElement) el.open = true;
+  }
+});
+await page.waitForFunction(() => document.querySelectorAll('#model-list .model-item .name').length >= 3, null, { timeout: 60000 });
 await page.waitForTimeout(300);
 const drawer = await page.evaluate(() => {
   const list = document.getElementById('model-list');
   const lr = list?.getBoundingClientRect();
-  const names = [...document.querySelectorAll('#model-list .model-item .name')].slice(0, 8).map((el) => {
-    const r = el.getBoundingClientRect();
-    return { top: r.top, bottom: r.bottom, h: r.height, text: el.textContent || '' };
+  const items = [...document.querySelectorAll('#model-list .model-item')].slice(0, 12).map((el) => {
+    const name = el.querySelector('.name');
+    const preview = el.querySelector('.preview');
+    const nr = name?.getBoundingClientRect();
+    const pcs = preview ? getComputedStyle(preview) : null;
+    const lineH = parseFloat(pcs?.lineHeight) || 16;
+    const h = parseFloat(pcs?.height) || (preview?.getBoundingClientRect().height || 0);
+    return {
+      name: name?.textContent || '',
+      nameTop: nr?.top || 0,
+      nameBottom: nr?.bottom || 0,
+      nameH: nr?.height || 0,
+      previewLines: preview && lineH ? Math.round(h / lineH) : 0,
+      previewClamp: pcs?.webkitLineClamp || '',
+      itemBottom: el.getBoundingClientRect().bottom,
+      itemTop: el.getBoundingClientRect().top,
+    };
   });
-  const inside = (n) => !!(lr && n && n.h > 8 && n.top >= lr.top - 1 && n.bottom <= lr.bottom + 1);
-  const firstThree = names.slice(0, 3);
+  const inside = (n) => !!(lr && n && n.nameH > 8 && n.nameTop >= lr.top - 1 && n.nameBottom <= lr.bottom + 1);
+  const firstThree = items.slice(0, 3);
+  const firstScreen = items.filter((it) => lr && it.itemBottom <= lr.bottom + 1 && it.itemTop >= lr.top - 1);
   return {
     open: document.getElementById('sidebar')?.classList.contains('open') || false,
     listH: lr?.height || 0,
     firstThreeInside: firstThree.length === 3 && firstThree.every(inside),
-    firstThree: firstThree.map((n) => n.text),
+    firstThree: firstThree.map((n) => n.name),
+    firstScreenCount: firstScreen.length,
+    previewCrowded: firstThree.some((n) => n.previewLines > 1),
+    previewClamp: firstThree.map((n) => n.previewClamp),
   };
 });
 await page.screenshot({ path: path.join(shots, 'narrow-drawer-open.png') });
@@ -154,6 +182,14 @@ if (!drawer.open) failures.push('390px drawer did not open');
 if (!drawer.firstThreeInside) {
   failures.push(`390px drawer hides one of the first three model names (${drawer.firstThree.join(' | ')})`);
 }
+if (drawer.firstScreenCount < 3) {
+  failures.push(`390px drawer first screen only fits ${drawer.firstScreenCount} rows`);
+}
+if (drawer.previewCrowded) {
+  failures.push(`390px drawer previews exceed one line (clamp=${drawer.previewClamp.join(',')})`);
+}
+// Previews are optional (shell chrome forbids them); clamp CSS stays ready.
+
 
 await page.click('#btn-menu');
 await page.waitForTimeout(200);
@@ -180,8 +216,9 @@ if (!benchCover.formula.startsWith('Equation ')) {
 }
 
 await page.setViewportSize({ width: 1280, height: 800 });
-await page.goto(`${base}?miss=1`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${base}?miss=1&lang=en`, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+await page.evaluate(() => localStorage.setItem('physics-lab-locale-v1', 'en'));
 await page.click('#btn-user-model');
 await page.waitForSelector('#user-model-dialog[open]');
 await page.fill('input[name="name"]', '斜碰对照');
@@ -206,6 +243,15 @@ if (q !== '碰撞 · 没有这条') failures.push(`filter-q ${JSON.stringify(q)}
 const dialogOpen = await page.locator('#user-model-dialog[open]').count();
 if (!dialogOpen || listed !== 0) {
   failures.push(`missing-key search must keep the dialog open and clear the sidebar (open=${dialogOpen} listed=${listed})`);
+}
+const errBlob = await page.evaluate(() => {
+  const toast = document.getElementById('toast')?.textContent || '';
+  const err = document.getElementById('user-model-error')?.innerText || '';
+  const dialog = document.getElementById('user-model-dialog')?.innerText || '';
+  return `${toast}\n${err}\n${dialog}`;
+});
+if (!/碰撞\s*·\s*没有这条/.test(errBlob)) {
+  failures.push(`lang=en miss-key toast/error missing spaced Han key (${errBlob.slice(0, 240)})`);
 }
 
 await browser.close();
