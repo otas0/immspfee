@@ -118,17 +118,18 @@ export function createMicroscopeWebgl(canvas) {
     const data = [];
     const mag = optics.obj.mag;
     const tubeH = 1.6 + MagScale(mag) * 0.15;
-    box(0, 0.05, 0, 1.4, 0.08, 0.8, 0.55, 0.55, 0.58, data); // base
-    box(0.45, 0.7, 0, 0.12, 1.3, 0.12, 0.5, 0.52, 0.55, data); // arm
-    box(0, 0.95, 0, 0.22, tubeH, 0.22, 0.35, 0.45, 0.55, data); // tube
-    box(0, 0.95 + tubeH / 2 + 0.12, 0, 0.28, 0.18, 0.28, 0.55, 0.7, 0.9, data); // eyepiece
+    box(0, 0.05, 0, 1.4, 0.08, 0.8, 0.22, 0.24, 0.28, data);
+    box(0.45, 0.7, 0, 0.12, 1.3, 0.12, 0.32, 0.36, 0.4, data);
+    box(0, 0.95, 0, 0.22, tubeH, 0.22, 0.18, 0.42, 0.58, data);
+    box(0, 0.95 + tubeH / 2 + 0.12, 0, 0.28, 0.18, 0.28, 0.45, 0.72, 0.95, data);
     const turY = 0.95 - tubeH / 2 - 0.15;
-    box(0, turY, 0, 0.55, 0.12, 0.55, 0.4, 0.7, 0.45, data); // turret
-    box(0, turY - 0.22, 0, 0.12, 0.28, 0.12, 0.3, 0.85, 0.45, data); // objective
+    box(0, turY, 0, 0.55, 0.12, 0.55, 0.28, 0.62, 0.4, data);
+    const objLen = 0.22 + MagScale(mag) * 0.04;
+    box(0, turY - objLen / 2 - 0.02, 0, 0.1 + MagScale(mag) * 0.01, objLen, 0.1, 0.25, 0.78, 0.42, data);
     if (optics.immersion) {
-      box(0, turY - 0.4, 0, 0.2, 0.06, 0.2, 0.4, 0.7, 0.95, data); // oil film
+      box(0, turY - objLen - 0.08, 0, 0.22, 0.05, 0.22, 0.35, 0.65, 0.95, data);
     }
-    box(0, turY - 0.48, 0, 0.9, 0.05, 0.6, 0.45, 0.45, 0.48, data); // stage
+    box(0, turY - objLen - 0.16, 0, 0.95, 0.05, 0.62, 0.3, 0.32, 0.36, data);
     return new Float32Array(data);
   }
 
@@ -138,13 +139,35 @@ export function createMicroscopeWebgl(canvas) {
 
   let lastKey = '';
   let vertCount = 0;
+  let yaw = 0.55;
+  let pitch = 0.42;
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  let autoSpin = 0.12;
+
+  const onDown = (ev) => {
+    dragging = true;
+    autoSpin = 0;
+    lastX = ev.clientX;
+    lastY = ev.clientY;
+  };
+  const onMove = (ev) => {
+    if (!dragging) return;
+    const dx = ev.clientX - lastX;
+    const dy = ev.clientY - lastY;
+    lastX = ev.clientX;
+    lastY = ev.clientY;
+    yaw += dx * 0.005;
+    pitch = Math.max(0.12, Math.min(1.15, pitch + dy * 0.004));
+  };
+  const onUp = () => { dragging = false; };
+  canvas.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
 
   return {
     kind: 'webgl3d',
-    /**
-     * @param {object} state
-     * @param {{ width: number, height: number }} view
-     */
     draw(state, view) {
       const optics = opticsFromParams(state.params || {});
       const key = `${optics.obj.id}:${optics.eye.id}:${optics.immersion}:${view.width}x${view.height}`;
@@ -159,7 +182,7 @@ export function createMicroscopeWebgl(canvas) {
       }
       gl.viewport(0, 0, bw, bh);
       gl.enable(gl.DEPTH_TEST);
-      gl.clearColor(0.02, 0.02, 0.03, 1);
+      gl.clearColor(0.012, 0.016, 0.022, 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
       if (key !== lastKey) {
@@ -170,9 +193,15 @@ export function createMicroscopeWebgl(canvas) {
         lastKey = key;
       }
 
+      if (!dragging && autoSpin) yaw += autoSpin * 0.016;
+
+      const radius = 3.05;
+      const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
+      const ey = Math.sin(pitch) * radius + 0.35;
+      const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
       const aspect = view.width / Math.max(view.height, 1);
-      const proj = perspective(42, aspect, 0.1, 20);
-      const viewM = lookAt(1.8, 1.6, 2.4, 0, 0.7, 0, 0, 1, 0);
+      const proj = perspective(38, aspect, 0.1, 20);
+      const viewM = lookAt(ex, ey, ez, 0, 0.72, 0, 0, 1, 0);
       const mvp = multiply(proj, viewM);
 
       gl.useProgram(prog);
@@ -185,6 +214,9 @@ export function createMicroscopeWebgl(canvas) {
       gl.drawArrays(gl.TRIANGLES, 0, vertCount);
     },
     dispose() {
+      canvas.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
       gl.deleteBuffer(buf);
       gl.deleteProgram(prog);
     },

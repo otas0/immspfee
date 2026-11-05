@@ -13,10 +13,15 @@ export const SHELL_STORAGE_KEY = 'immspfee-shell';
  *   rootClass: string,
  *   stageMode: 'canvas2d' | 'webgl3d',
  *   hideSidebar?: boolean,
+ *   exclusiveChrome?: boolean,
  *   dprCap?: number,
  *   modelId?: string,
  * }} ShellDef
  */
+
+/** Catalog id locked to the dedicated microscope shell. */
+export const MICROSCOPE_MODEL_ID = 'r016-显微镜';
+export const MICROSCOPE_SHELL_ID = 'lab-microscope3d';
 
 /** @type {ShellDef[]} */
 export const SHELLS = [
@@ -46,13 +51,15 @@ export const SHELLS = [
     dprCap: 3,
   },
   {
-    id: 'lab-microscope3d',
-    label: 'Microscope 3D',
-    description: 'Single WebGL stage for compound microscope (same optical params)',
+    id: MICROSCOPE_SHELL_ID,
+    label: 'Microscope',
+    description: 'Dedicated compound-microscope stage — WebGL structure, optical rail only',
     rootClass: 'shell-lab-microscope3d',
     stageMode: 'webgl3d',
+    hideSidebar: true,
+    exclusiveChrome: true,
     dprCap: 3,
-    modelId: 'r016-显微镜',
+    modelId: MICROSCOPE_MODEL_ID,
   },
 ];
 

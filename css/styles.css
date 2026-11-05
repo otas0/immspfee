@@ -1891,10 +1891,7 @@ body.drawer-open .drawer-backdrop {
 .canvas-wrap {
   position: relative;
 }
-html.shell-lab-microscope3d .canvas-wrap,
-.chassis.shell-lab-microscope3d .canvas-wrap {
-  min-height: 58vh;
-}
+/* Microscope exclusive layout lives in css/microscope-shell.css */
 
 /* 1080p / 4K projection readout scale */
 @media (min-width: 1800px) {

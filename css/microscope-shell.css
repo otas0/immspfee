@@ -1,0 +1,236 @@
+/**
+ * Dedicated compound-microscope shell.
+ * One composition: brand + title + lede + exit, then a full-bleed WebGL stage.
+ * Lab-catalog chrome (1517-model sidebar, pause/csv/classroom pack, ODE strips) stays off.
+ */
+
+html.shell-lab-microscope3d,
+html.shell-lab-microscope3d body {
+  --micro-ink: #e8eef6;
+  --micro-muted: #8b97a8;
+  --micro-line: rgba(232, 238, 246, 0.12);
+  --micro-stage: #07090c;
+  --micro-rail: #0e1218;
+  --micro-accent: #7eb6ff;
+  background: var(--micro-stage);
+}
+
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d {
+  grid-template-columns: minmax(0, 1fr) min(22rem, 36vw);
+  background: var(--micro-stage);
+}
+
+html.shell-lab-microscope3d .sidebar,
+html.shell-lab-microscope3d .drawer-backdrop {
+  display: none !important;
+}
+
+html.shell-lab-microscope3d .stage {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 100vh;
+  background: var(--micro-stage);
+}
+
+html.shell-lab-microscope3d .toolbar {
+  display: none !important;
+}
+
+html.shell-lab-microscope3d .microscope-chrome {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem 1.25rem;
+  padding: 1.1rem 1.25rem 0.85rem;
+  border-bottom: 1px solid var(--micro-line);
+  background: linear-gradient(180deg, #0c1016 0%, var(--micro-stage) 100%);
+}
+
+html.shell-lab-microscope3d .micro-exit {
+  appearance: none;
+  border: 1px solid var(--micro-line);
+  background: transparent;
+  color: var(--micro-ink);
+  font: 500 0.78rem/1.2 Sora, system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+}
+
+html.shell-lab-microscope3d .micro-exit:hover {
+  border-color: var(--micro-accent);
+  color: var(--micro-accent);
+}
+
+html.shell-lab-microscope3d .micro-hero {
+  min-width: 0;
+}
+
+html.shell-lab-microscope3d .micro-brand {
+  margin: 0;
+  font-family: Sora, system-ui, sans-serif;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--micro-ink);
+  line-height: 1.05;
+}
+
+html.shell-lab-microscope3d .micro-title {
+  margin: 0.2rem 0 0;
+  font-family: Sora, system-ui, sans-serif;
+  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  font-weight: 500;
+  color: var(--micro-accent);
+  letter-spacing: -0.02em;
+}
+
+html.shell-lab-microscope3d .micro-lede {
+  margin: 0.35rem 0 0;
+  max-width: 36rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--micro-muted);
+}
+
+html.shell-lab-microscope3d .micro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+html.shell-lab-microscope3d .micro-actions .btn {
+  color: var(--micro-ink);
+  border-color: var(--micro-line);
+  background: transparent;
+}
+
+html.shell-lab-microscope3d .display-bezel {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--micro-stage);
+  min-height: 0;
+}
+
+html.shell-lab-microscope3d #model-shell {
+  display: none !important;
+}
+
+html.shell-lab-microscope3d .canvas-wrap {
+  position: relative;
+  min-height: min(68vh, 720px);
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: #030507;
+  overflow: hidden;
+}
+
+html.shell-lab-microscope3d .canvas-webgl {
+  cursor: grab;
+}
+
+html.shell-lab-microscope3d .canvas-webgl:active {
+  cursor: grabbing;
+}
+
+html.shell-lab-microscope3d .hud {
+  border-top: 1px solid var(--micro-line);
+  background: var(--micro-rail);
+  padding: 0.65rem 1rem 0.85rem;
+}
+
+html.shell-lab-microscope3d .baseline-tools,
+html.shell-lab-microscope3d .sr-readouts-panel,
+html.shell-lab-microscope3d #btn-csv,
+html.shell-lab-microscope3d #btn-csv-more {
+  display: none !important;
+}
+
+html.shell-lab-microscope3d .hud .readouts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+html.shell-lab-microscope3d .readout-card {
+  background: transparent;
+  border: 1px solid var(--micro-line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.55rem 0.65rem;
+}
+
+html.shell-lab-microscope3d .readout-card .label {
+  color: var(--micro-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html.shell-lab-microscope3d .readout-card .value {
+  color: var(--micro-ink);
+  font-size: 1.05rem;
+}
+
+html.shell-lab-microscope3d .bench {
+  background: var(--micro-rail);
+  border-left: 1px solid var(--micro-line);
+  box-shadow: none;
+}
+
+html.shell-lab-microscope3d .bench-kicker {
+  color: var(--micro-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+}
+
+html.shell-lab-microscope3d .bench h2 {
+  font-family: Sora, system-ui, sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  color: var(--micro-ink);
+}
+
+html.shell-lab-microscope3d .meta-formula {
+  color: var(--micro-ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.shell-lab-microscope3d .microscope-chrome {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  html.shell-lab-microscope3d .micro-actions {
+    justify-content: flex-start;
+  }
+
+  html.shell-lab-microscope3d .hud .readouts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html.shell-lab-microscope3d .canvas-wrap {
+    min-height: 48vh;
+  }
+}
+
+.microscope-chrome {
+  display: none;
+}
