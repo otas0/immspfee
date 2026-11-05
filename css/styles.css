@@ -1854,10 +1854,17 @@ html.shell-lab-projector .icon-btn.ghost,
   grid-template-columns: 0 minmax(0, 1fr) 0fr;
 }
 
-/* Projector: menu toggles temporary overlay catalog without leaving the shell */
-.chassis.shell-hide-sidebar.shell-sidebar-overlay {
-  grid-template-columns: 0 minmax(0, 1fr) var(--bench-w);
+/* Compact: bench is a fixed drawer — do not reserve an empty third grid column */
+@media (max-width: 1100px) {
+  .chassis.shell-hide-sidebar,
+  .chassis.shell-hide-sidebar.bench-collapsed,
+  .chassis.shell-hide-sidebar.shell-sidebar-overlay {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
 }
+
+/* Projector: menu toggles temporary overlay catalog without leaving the shell.
+   Do not reset grid columns here — compact already drops the empty bench track. */
 .chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar {
   visibility: visible;
   pointer-events: auto;
@@ -1872,6 +1879,11 @@ html.shell-lab-projector .icon-btn.ghost,
   background: var(--panel);
   border-right: 1px solid var(--line);
   box-shadow: var(--elev);
+  /* Beat the ≤900px drawer translate so overlay is on-screen when .open */
+  transform: none;
+}
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar:not(.open) {
+  transform: translateX(-110%);
 }
 .chassis.shell-hide-sidebar.shell-sidebar-overlay ~ #drawer-backdrop,
 body.drawer-open .drawer-backdrop {

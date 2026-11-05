@@ -215,6 +215,41 @@ if (dialog.text !== expectErr) fail(`custom-model error ${JSON.stringify(dialog.
 if (dialog.text.includes('Validation passed') || dialog.toast.includes('Validation passed')) fail('failed submit showed dialog.validOk');
 await desk.close();
 
+const compactProj = await openPage({ width: 1000, height: 800 }, 2, 'lab-projector');
+const compactGeom = await compactProj.evaluate(() => {
+  const chassis = document.getElementById('chassis');
+  const stage = chassis?.querySelector(':scope > .stage');
+  const bench = document.getElementById('bench');
+  const sr = stage?.getBoundingClientRect();
+  const cr = chassis?.getBoundingClientRect();
+  const br = bench?.getBoundingClientRect();
+  const cols = getComputedStyle(chassis).gridTemplateColumns.split(/\s+/).filter(Boolean);
+  const stageRightGap = cr && sr ? cr.right - sr.right : 999;
+  return {
+    stageW: Math.round(sr?.width || 0),
+    stageH: Math.round(sr?.height || 0),
+    chassisW: Math.round(cr?.width || 0),
+    colCount: cols.length,
+    cols: cols.join(' '),
+    stageRightGap: Math.round(stageRightGap),
+    overlay: chassis?.classList.contains('shell-sidebar-overlay') || false,
+    benchOpen: bench?.classList.contains('open') || false,
+    benchInView: !!(br && br.width > 40 && br.left < (cr?.right || 0) - 8 && br.right > (cr?.left || 0) + 8),
+  };
+});
+if (compactGeom.overlay) fail(`1000 projector left overlay on ${JSON.stringify(compactGeom)}`);
+if (compactGeom.colCount !== 2) fail(`1000 projector reserved a bench column (${compactGeom.cols})`);
+if (compactGeom.stageW < 700 || compactGeom.stageH < 400) {
+  fail(`1000 projector stage too small ${compactGeom.stageW}×${compactGeom.stageH}`);
+}
+if (compactGeom.stageRightGap > 48) {
+  fail(`1000 projector empty bench strip gap=${compactGeom.stageRightGap}`);
+}
+if (!compactGeom.benchOpen && compactGeom.benchInView) {
+  fail(`1000 projector closed bench still in the stage band ${JSON.stringify(compactGeom)}`);
+}
+await compactProj.close();
+
 const narrow = await openPage({ width: 390, height: 844 }, 2, 'lab-projector');
 const narrowMenu = await narrow.evaluate(() => {
   const btn = document.getElementById('btn-menu');

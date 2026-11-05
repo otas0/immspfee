@@ -1142,8 +1142,9 @@ function isProjectorShell() {
 
 function setSidebarOpen(open) {
   const chassis = document.getElementById('chassis');
-  // Projector: menu toggles temporary overlay sidebar without leaving the shell.
-  if (isProjectorShell() && !isMobileDrawer()) {
+  // Projector (any width): menu toggles a fixed overlay. Avoid the half-state where
+  // shell-hide-sidebar keeps visibility:hidden while .sidebar.open is set.
+  if (isProjectorShell()) {
     chassis?.classList.toggle('shell-sidebar-overlay', open);
     sidebar.classList.toggle('open', open);
     sidebar.style.transform = '';
@@ -1157,6 +1158,7 @@ function setSidebarOpen(open) {
     syncDrawerChrome();
     return;
   }
+  chassis?.classList.remove('shell-sidebar-overlay');
   sidebar.classList.toggle('open', open);
   sidebar.style.transform = '';
   syncDrawerChrome();
@@ -1821,6 +1823,8 @@ bindDrawerDrag(benchDrag, bench, 'y');
 bindDrawerDrag(sidebarDrag, sidebar, 'x');
 
 window.addEventListener('resize', () => {
+  const chassis = document.getElementById('chassis');
+  chassis?.classList.remove('shell-sidebar-overlay');
   if (!isCompact()) {
     bench.classList.add('open');
     bench.style.transform = '';
@@ -1828,12 +1832,16 @@ window.addEventListener('resize', () => {
   } else if (localStorage.getItem(AUTO_OPEN_BENCH_KEY) !== '1') {
     setBenchOpen(false);
   }
-  if (!isMobileDrawer()) {
+  if (isProjectorShell() || !isMobileDrawer()) {
     sidebar.classList.remove('open');
     sidebar.style.transform = '';
   }
   syncDrawerChrome();
   measureSysSticky();
+  if (app.model && canvasWrap) {
+    paintFrame();
+    requestAnimationFrame(() => paintFrame());
+  }
 });
 
 /** 供视觉回归 / 验收脚本：纯画布 dataURL + 合成导出（固定 2× DPR） */
@@ -1986,18 +1994,26 @@ function syncChromeI18n() {
 
 function applyActiveShell(id) {
   activeShellId = id;
+  const chassis = document.getElementById('chassis');
+  chassis?.classList.remove('shell-sidebar-overlay');
+  sidebar.classList.remove('open');
+  sidebar.style.transform = '';
   const shell = applyShell(id, {
     onHideSidebar: (hide) => {
-      const chassis = document.getElementById('chassis');
-      chassis?.classList.toggle('shell-hide-sidebar', hide);
-      chassis?.classList.remove('shell-sidebar-overlay');
+      const el = document.getElementById('chassis');
+      el?.classList.toggle('shell-hide-sidebar', hide);
+      el?.classList.remove('shell-sidebar-overlay');
       if (hide) setSidebarOpen(false);
     },
   });
   if (shell.modelId && app.model?.id !== shell.modelId) {
     switchModel(shell.modelId);
   }
-  if (app.model && canvasWrap) paintFrame();
+  syncDrawerChrome();
+  if (app.model && canvasWrap) {
+    paintFrame();
+    requestAnimationFrame(() => paintFrame());
+  }
 }
 
 function mountShellSelect(el) {
