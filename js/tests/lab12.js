@@ -138,19 +138,35 @@ export function runLab12() {
   assert('玻尔假设译成 hydrogen-like; historical model', bohrEn === 'hydrogen-like; historical model', bohrEn);
 
   const eCharge = 1.602176634e-19;
-  const hallIds = ['r014-霍尔效应', 'r025-量子霍尔'];
-  for (const id of hallIds) {
+  const phraseEn = {
+    有限差分: 'finite difference',
+    集总: 'lumped',
+    稳态: 'steady state',
+    阶跃: 'step',
+  };
+  for (const [zh, en] of Object.entries(phraseEn)) {
+    const got = translateCatalogText('en', zh);
+    assert(`${zh} 译成 ${en}`, got === en, got);
+  }
+
+  function assertHallThickness(id) {
     const hall = byId(id);
     const thick = hall?.params?.thick;
-    const expect = hall ? (hall.params.I * hall.params.B) / (hall.params.n * eCharge * thick) : NaN;
+    const n = hall?.params?.n;
+    const expect = hall ? (hall.params.I * hall.params.B) / (n * eCharge * thick) : NaN;
     const hallSt = hall ? boot(hall) : null;
     assert(`${id} 厚度键是 thick、标签仍是厚度 t`, !!hall
       && thick === 1e-4
       && !Object.prototype.hasOwnProperty.call(hall.params, 't')
       && !Object.prototype.hasOwnProperty.call(hall.paramSchema || {}, 't')
       && hall.paramSchema?.thick?.label === '厚度 t', hall?.paramSchema?.thick?.label || 'missing');
+    assert(`${id} 载流子浓度 n 在 params 且不在 schema`, !!hall
+      && Object.prototype.hasOwnProperty.call(hall.params, 'n')
+      && !Object.prototype.hasOwnProperty.call(hall.paramSchema || {}, 'n'), String(n));
     assert(`${id} 默认 V_H = I B / (n e thick)`, !!hallSt && Math.abs(hallSt.VH - expect) < 1e-9 * Math.abs(expect), String(hallSt?.VH));
   }
+  assertHallThickness('r014-霍尔效应');
+  assertHallThickness('r025-量子霍尔');
 
   const irr = byId('r099-灌溉');
   let irrClock = false;
@@ -162,8 +178,12 @@ export function runLab12() {
     && irr.params.duration === 3600
     && !Object.prototype.hasOwnProperty.call(irr.params, 't')
     && !Object.prototype.hasOwnProperty.call(irr.paramSchema || {}, 't')
+    && irr.paramSchema?.A?.label === '面积 A'
     && irrClock
-    && Math.abs(irrRead - irrQ) < 1e-9, `${irr?.params && Object.keys(irr.params).join(',')} Q=${irrRead}`);
+    && Math.abs(irrRead - irrQ) < 1e-9, `${irr?.paramSchema?.A?.label} Q=${irrRead}`);
+  const irrHalf = irr ? boot(irr, { duration: 1800 }) : null;
+  const irrHalfRead = irrHalf ? (irrHalf.Q ?? irrHalf.y) : NaN;
+  assert('灌溉 duration 减半时 Q 加倍', Number.isFinite(irrRead) && Math.abs(irrHalfRead - irrRead * 2) < 1e-9, String(irrHalfRead));
 
   const inductors = ['r013-rl', 'r013-rlc', 'r014-自感'].map((id) => {
     const model = byId(id);

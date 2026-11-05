@@ -48,7 +48,7 @@ for (const name of ['catalog.json', 'models.json']) {
 }
 const extra = fs.existsSync('/tmp/chars.txt') ? fs.readFileSync('/tmp/chars.txt', 'utf8').trim().split('\n') : [];
 const chars = [...new Set([...catalogHan, ...extra.filter(Boolean)])];
-const rows = [];
+const byZh = new Map();
 for (const line of src.split('\n')) {
   if (!line.trim()) continue;
   const parts = line.split('\t');
@@ -56,8 +56,9 @@ for (const line of src.split('\n')) {
     console.error('bad row', JSON.stringify(line));
     process.exit(1);
   }
-  rows.push(parts);
+  byZh.set(parts[0], parts);
 }
+const rows = [...byZh.values()];
 const have = new Set(rows.filter((r) => r[0].length === 1).map((r) => r[0]));
 const missing = chars.filter((c) => !have.has(c));
 if (missing.length) {
@@ -86,7 +87,30 @@ try {
   process.exit(1);
 }
 if (committed !== out) {
-  console.error('glyphRows.js differs from the committed file');
+  let first = '';
+  try {
+    const oldRows = JSON.parse(committed.replace(/^[\s\S]*?export const ROWS = /, '').replace(/;\s*$/, ''));
+    const neu = new Map(rows.map((r) => [r[0], r]));
+    const old = new Map(oldRows.map((r) => [r[0], r]));
+    for (const [zh, row] of neu) {
+      const prev = old.get(zh);
+      if (!prev || prev.join('\t') !== row.join('\t')) {
+        first = zh;
+        break;
+      }
+    }
+    if (!first) {
+      for (const zh of old.keys()) {
+        if (!neu.has(zh)) {
+          first = zh;
+          break;
+        }
+      }
+    }
+  } catch {
+    first = '';
+  }
+  console.error('glyphRows.js differs from the committed file', first ? `first key ${first}` : '');
   process.exit(1);
 }
 console.log('glyph rows', rows.length);

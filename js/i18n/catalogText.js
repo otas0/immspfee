@@ -41,7 +41,16 @@ export function translateCatalogText(locale, text) {
       }
     }
     if (hit) {
-      out += hit[idx];
+      const piece = String(hit[idx] || '');
+      if (
+        locale !== 'ja'
+        && out
+        && /[A-Za-z0-9)]$/.test(out)
+        && /^[A-Za-z0-9(]/.test(piece)
+      ) {
+        out += ' ';
+      }
+      out += piece;
       i += hit[0].length;
     } else {
       const punct = PUNCT[locale]?.[raw[i]];

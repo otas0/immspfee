@@ -64,6 +64,9 @@ export function localizeSchema(schema = {}) {
     if (next.unit == null || String(next.unit).length === 0) {
       next.unit = DEFAULT_UNIT[k] ?? '—';
     }
+    if (k === 'A' && /m²|m2/i.test(String(next.unit))) {
+      next.label = '面积 A';
+    }
     out[k] = next;
   }
   return out;

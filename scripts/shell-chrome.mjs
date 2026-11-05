@@ -148,9 +148,16 @@ const names = await desk.evaluate(async () => {
 });
 if (names.micro !== 'Compound microscope') fail(`microscope sidebar name ${names.micro}`);
 if (/[\u4e00-\u9fff]/.test(names.micro || '')) fail('Chinese catalog name leaked onto the microscope row');
-if (names.previews) fail(`sidebar still has ${names.previews} assumption previews`);
+if (!names.previews) fail('sidebar assumption preview is missing');
 if (names.leak) fail(`${names.leak}/${names.checked} English names did not replace the catalog source`);
 
+await desk.evaluate((id) => {
+  const sel = document.getElementById('shell-select');
+  sel.value = id;
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+}, 'lab-classic');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
+await desk.locator('#btn-user-model').scrollIntoViewIfNeeded();
 await desk.click('#btn-user-model');
 await desk.waitForSelector('#user-model-dialog[open]');
 await desk.fill('input[name="name"]', 'bad draft');

@@ -94,14 +94,32 @@ for (const [id, file] of layout) {
   if (id === 'neutron-diffusion') {
     if (!info.texts.includes('φ = φ₀ cos(πx/a)')) failures.push(`${id}: canvas missing the cosine label`);
     if (info.caveatClipped || !info.caveatOnScreen) failures.push(`${id}: caveat clipped or offscreen`);
-    const overlap = await page.evaluate(() => {
+    const layout = await page.evaluate(() => {
       const formula = document.getElementById('shell-formula');
       const caveat = document.getElementById('shell-caveat');
       const fr = formula?.getBoundingClientRect();
       const cr = caveat?.getBoundingClientRect();
-      return !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
+      const cs = caveat ? getComputedStyle(caveat) : null;
+      const lineH = parseFloat(cs?.lineHeight) || 16;
+      const lines = cr && lineH ? Math.round(cr.height / lineH) : 0;
+      const overlap = !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
+      const fullVisible = !!(caveat && !caveat.hidden && cr && cr.top >= 0 && cr.bottom <= window.innerHeight + 1 && caveat.scrollHeight <= caveat.clientHeight + 1);
+      return {
+        overlap,
+        lines,
+        fullVisible,
+        assumptions: !!document.getElementById('shell-assumptions'),
+        assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
+      };
     });
-    if (overlap) failures.push(`${id}: formula bar covers the caveat`);
+    if (layout.assumptions || layout.assumptionText) failures.push(`${id}: assumption strip still on the shell`);
+    if (layout.overlap) failures.push(`${id}: formula bar covers the caveat`);
+    if (layout.lines < 1 || !layout.fullVisible) {
+      failures.push(`${id}: caveat not fully visible (lines=${layout.lines})`);
+    }
+    if (layout.lines !== 1) {
+      failures.push(`${id}: caveat line count ${layout.lines} (expected 1 at 390px)`);
+    }
   }
 }
 
@@ -120,21 +138,48 @@ const drawer = await page.evaluate(() => {
   const lr = list?.getBoundingClientRect();
   const names = [...document.querySelectorAll('#model-list .model-item .name')].slice(0, 8).map((el) => {
     const r = el.getBoundingClientRect();
-    return { top: r.top, bottom: r.bottom, h: r.height };
+    return { top: r.top, bottom: r.bottom, h: r.height, text: el.textContent || '' };
   });
-  const visible = names.filter((n) => lr && n.h > 8 && n.top >= lr.top - 1 && n.bottom <= lr.bottom + 1);
-  const first = names[0];
+  const inside = (n) => !!(lr && n && n.h > 8 && n.top >= lr.top - 1 && n.bottom <= lr.bottom + 1);
+  const firstThree = names.slice(0, 3);
   return {
     open: document.getElementById('sidebar')?.classList.contains('open') || false,
     listH: lr?.height || 0,
-    visible: visible.length,
-    firstInside: !!(lr && first && first.h > 8 && first.top >= lr.top - 1 && first.bottom <= lr.bottom + 1),
+    firstThreeInside: firstThree.length === 3 && firstThree.every(inside),
+    firstThree: firstThree.map((n) => n.text),
   };
 });
 await page.screenshot({ path: path.join(shots, 'narrow-drawer-open.png') });
 if (!drawer.open) failures.push('390px drawer did not open');
-if (!drawer.firstInside || drawer.visible < 2) {
-  failures.push(`390px drawer hides model names (visible ${drawer.visible}, list ${Math.round(drawer.listH)}px)`);
+if (!drawer.firstThreeInside) {
+  failures.push(`390px drawer hides one of the first three model names (${drawer.firstThree.join(' | ')})`);
+}
+
+await page.click('#btn-menu');
+await page.waitForTimeout(200);
+await page.click('#btn-params');
+await page.waitForTimeout(300);
+const benchCover = await page.evaluate(() => {
+  const bench = document.getElementById('bench');
+  const formula = document.getElementById('shell-formula');
+  const fr = formula?.getBoundingClientRect();
+  const br = bench?.getBoundingClientRect();
+  const open = !!bench?.classList.contains('open');
+  const covered = !!(open && fr && br && br.top < fr.bottom && br.bottom > fr.top
+    && br.left < fr.right && br.right > fr.left);
+  const assumptions = !!document.getElementById('shell-assumptions')
+    || /Assumptions/.test(document.getElementById('model-shell')?.innerText || '');
+  const off = !fr || fr.bottom < 0 || fr.top > window.innerHeight || fr.height < 8;
+  return { open, covered, off, assumptions, formula: formula?.textContent || '' };
+});
+await page.screenshot({ path: path.join(shots, 'narrow-bench-open.png') });
+if (!benchCover.open) failures.push('390px bench did not open');
+if (benchCover.covered || benchCover.off) {
+  failures.push(`390px open bench covers or hides the formula (${benchCover.formula})`);
+}
+if (benchCover.assumptions) failures.push('390px open bench still shows assumption chrome');
+if (!benchCover.formula.startsWith('Equation ')) {
+  failures.push(`390px open bench formula missing (${benchCover.formula})`);
 }
 
 await page.setViewportSize({ width: 1280, height: 800 });
@@ -161,9 +206,10 @@ const q = await page.locator('#filter-q').inputValue();
 const listed = await page.locator('#model-list .model-item').count();
 if (q !== missLabel) failures.push(`filter-q ${JSON.stringify(q)} !== button ${JSON.stringify(missLabel)}`);
 if (q !== '碰撞 · 没有这条') failures.push(`filter-q ${JSON.stringify(q)}`);
-if (listed !== 0) failures.push(`sidebar still lists ${listed} models for the missing key`);
 const dialogOpen = await page.locator('#user-model-dialog[open]').count();
-if (!dialogOpen) failures.push('user-model dialog closed after the missing-key search');
+if (!dialogOpen || listed !== 0) {
+  failures.push(`missing-key search must keep the dialog open and clear the sidebar (open=${dialogOpen} listed=${listed})`);
+}
 
 await browser.close();
 if (failures.length) {

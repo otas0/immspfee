@@ -2591,7 +2591,7 @@ function irrigation(spec) {
     assumptions: '均匀灌水深度、无损失',
     params: { A: 1000, d: 0.03, duration: 3600 },
     schema: {
-      A: S('A', 'dynamics', 'm²', 10, 1e5),
+      A: S('面积 A', 'dynamics', 'm²', 10, 1e5),
       d: S('d', 'dynamics', 'm', 0.001, 0.2),
       duration: S('时长 t', 'dynamics', 's', 60, 86400),
     },
