@@ -1557,6 +1557,21 @@ html.hc .pot-knob::after { background: #fff; }
   pointer-events: none;
 }
 
+/*
+ * Menu / params must beat backdrop (24) and the projector catalog.
+ * position:relative inside .stage loses to a sibling .sidebar with z-index —
+ * fixed lifts the controls into the viewport stacking context so they stay
+ * clickable even when the brand logo overlaps the toolbar band.
+ */
+body.drawer-open #btn-menu,
+body.drawer-open #btn-params,
+.chassis.shell-sidebar-overlay #btn-menu,
+.chassis.shell-sidebar-overlay #btn-params {
+  position: fixed;
+  z-index: 70;
+}
+
+
 @media (max-width: 1100px) {
   .chassis { grid-template-columns: var(--sidebar-w) 1fr; }
   .chassis > .sidebar { border-radius: 16px 0 0 16px; }
@@ -1689,6 +1704,11 @@ html.hc .pot-knob::after { background: #fff; }
     max-height: calc(100dvh - 12rem);
     transform: translateY(110%);
   }
+  /* Bottom drawer: mirror the mid-compact right-pad — keep formula above the sheet */
+  .chassis.bench-drawer-open .model-shell {
+    padding-right: 0;
+    padding-bottom: calc(min(58dvh, 480px) + 12px);
+  }
   .model-shell {
     position: relative;
     z-index: 33;
@@ -1799,6 +1819,14 @@ html.shell-lab-focus .model-shell,
   padding: 0.35rem 0.55rem;
   gap: 0.35rem;
 }
+/* Keep mid-compact right-pad after the shell-specific padding shorthand. */
+@media (max-width: 1100px) and (min-width: 901px) {
+  .chassis.bench-drawer-open.shell-lab-focus .model-shell,
+  .chassis.bench-drawer-open.shell-lab-classic .model-shell,
+  .chassis.bench-drawer-open.shell-lab-projector .model-shell {
+    padding-right: calc(min(92vw, 320px) + 12px);
+  }
+}
 html.shell-lab-focus .shell-hint,
 .chassis.shell-lab-focus .shell-hint {
   display: none;
@@ -1864,7 +1892,12 @@ html.shell-lab-projector .icon-btn.ghost,
   border: none;
 }
 .chassis.shell-hide-sidebar > .stage {
-  /* Stay on the content track even when the catalog is position:fixed overlay */
+  /*
+   * Regression: when the catalog becomes position:fixed (overlay), it leaves the
+   * grid flow. Auto-placement then put .stage into the leading 0px track and the
+   * stage collapsed to width 0 (white stage / “empty” projector). Pin the stage
+   * to the content column so overlay open/close never moves it onto the zero track.
+   */
   grid-column: 2;
 }
 .chassis.shell-hide-sidebar.bench-collapsed {
@@ -1890,10 +1923,12 @@ html.shell-lab-projector .icon-btn.ghost,
   pointer-events: auto;
   position: fixed;
   left: 0;
-  top: 0;
+  /* Clear the stage toolbar band; menu itself uses z-index:70 (fixed) */
+  top: 3.75rem;
   bottom: 0;
   width: min(280px, 86vw);
-  z-index: 40;
+  /* Above stage canvas (50), below fixed #btn-menu (70) */
+  z-index: 60;
   overflow: auto;
   padding: 0.75rem;
   background: var(--panel);
@@ -1901,6 +1936,15 @@ html.shell-lab-projector .icon-btn.ghost,
   box-shadow: var(--elev);
   /* Beat the ≤900px drawer translate so overlay is on-screen when .open */
   transform: none;
+}
+/* Stage below the overlay catalog so the list stays usable; menu is fixed@70 */
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage {
+  position: relative;
+  z-index: 50;
+}
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage > .toolbar {
+  position: relative;
+  z-index: 1;
 }
 .chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar:not(.open) {
   transform: translateX(-110%);
@@ -1945,29 +1989,4 @@ body.drawer-open .drawer-backdrop {
   .chassis.shell-lab-projector .readout-card .value {
     font-size: 1.85rem;
   }
-}
-
-.boot-banner {
-  position: fixed;
-  z-index: 80;
-  left: 0;
-  right: 0;
-  top: 0;
-  margin: 0;
-  padding: 0.45rem 0.8rem;
-  background: #1c1408;
-  color: #ffe7b0;
-  font: 600 0.9rem/1.4 sans-serif;
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  align-items: center;
-}
-.boot-banner[hidden] { display: none; }
-.boot-banner button {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
 }

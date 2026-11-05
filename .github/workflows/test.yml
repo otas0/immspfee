@@ -80,11 +80,16 @@ jobs:
             exit 1
           fi
 
+      - name: Short SHA for artifacts
+        if: always()
+        id: short_sha
+        run: echo "sha=$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
       - name: Upload shell-chrome screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shell-chrome-screenshots
+          name: shell-chrome-screenshots-${{ steps.short_sha.outputs.sha }}
           path: shots/shell-*.png
           if-no-files-found: ignore
 
