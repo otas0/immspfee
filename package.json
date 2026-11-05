@@ -10,6 +10,7 @@
     "test:catalog": "node scripts/validate-catalog.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
     "test:narrow": "node scripts/narrow-regression.mjs",
+    "test:shell": "node scripts/shell-chrome.mjs",
     "report:schema": "node scripts/schema-coverage.mjs",
     "stamp:authority": "node scripts/stamp-authority.mjs",
     "sync:authority": "node scripts/sync-runtime-authority.mjs",

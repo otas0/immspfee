@@ -65,6 +65,8 @@ for (const [id, file] of layout) {
       covered,
       off,
       formula: formula?.textContent || '',
+      assumptions: !!document.getElementById('shell-assumptions'),
+      assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
       formulaHan: /[\u4e00-\u9fff]/.test(formula?.textContent || ''),
       overflowY: fs?.overflowY || '',
       maxHeight: fs?.maxHeight || '',
@@ -79,6 +81,7 @@ for (const [id, file] of layout) {
   if (info.open) failures.push(`${id}: drawer opened by default`);
   if (info.covered || info.off) failures.push(`${id}: formula covered or offscreen (${info.formula})`);
   if (!info.formula.startsWith('Equation ')) failures.push(`${id}: formula missing (${info.formula})`);
+  if (info.assumptions || info.assumptionText) failures.push(`${id}: assumption strip still on the shell`);
   if (info.formulaHan) failures.push(`${id}: formula still has Han (${info.formula})`);
   if (info.overflowY !== 'auto' || info.maxHeight === 'none') failures.push(`${id}: formula is not a scrolling strip (${info.overflowY} ${info.maxHeight})`);
   if (bytes < 8000) failures.push(`${id}: screenshot too small (${bytes})`);
@@ -91,6 +94,14 @@ for (const [id, file] of layout) {
   if (id === 'neutron-diffusion') {
     if (!info.texts.includes('φ = φ₀ cos(πx/a)')) failures.push(`${id}: canvas missing the cosine label`);
     if (info.caveatClipped || !info.caveatOnScreen) failures.push(`${id}: caveat clipped or offscreen`);
+    const overlap = await page.evaluate(() => {
+      const formula = document.getElementById('shell-formula');
+      const caveat = document.getElementById('shell-caveat');
+      const fr = formula?.getBoundingClientRect();
+      const cr = caveat?.getBoundingClientRect();
+      return !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
+    });
+    if (overlap) failures.push(`${id}: formula bar covers the caveat`);
   }
 }
 
@@ -98,6 +109,32 @@ for (const [id, expect] of caveats) {
   await openModel(id);
   const text = await page.evaluate(() => document.getElementById('shell-caveat')?.textContent || '');
   if (text !== expect) failures.push(`${id}: caveat ${JSON.stringify(text)} wanted ${JSON.stringify(expect)}`);
+}
+
+await page.setViewportSize({ width: 390, height: 844 });
+await openModel('r018-玻尔模型');
+await page.click('#btn-menu');
+await page.waitForTimeout(300);
+const drawer = await page.evaluate(() => {
+  const list = document.getElementById('model-list');
+  const lr = list?.getBoundingClientRect();
+  const names = [...document.querySelectorAll('#model-list .model-item .name')].slice(0, 8).map((el) => {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, h: r.height };
+  });
+  const visible = names.filter((n) => lr && n.h > 8 && n.top >= lr.top - 1 && n.bottom <= lr.bottom + 1);
+  const first = names[0];
+  return {
+    open: document.getElementById('sidebar')?.classList.contains('open') || false,
+    listH: lr?.height || 0,
+    visible: visible.length,
+    firstInside: !!(lr && first && first.h > 8 && first.top >= lr.top - 1 && first.bottom <= lr.bottom + 1),
+  };
+});
+await page.screenshot({ path: path.join(shots, 'narrow-drawer-open.png') });
+if (!drawer.open) failures.push('390px drawer did not open');
+if (!drawer.firstInside || drawer.visible < 2) {
+  failures.push(`390px drawer hides model names (visible ${drawer.visible}, list ${Math.round(drawer.listH)}px)`);
 }
 
 await page.setViewportSize({ width: 1280, height: 800 });
@@ -122,6 +159,7 @@ if (missLabel !== '碰撞 · 没有这条') failures.push(`miss button text ${JS
 await missBtn.click();
 const q = await page.locator('#filter-q').inputValue();
 const listed = await page.locator('#model-list .model-item').count();
+if (q !== missLabel) failures.push(`filter-q ${JSON.stringify(q)} !== button ${JSON.stringify(missLabel)}`);
 if (q !== '碰撞 · 没有这条') failures.push(`filter-q ${JSON.stringify(q)}`);
 if (listed !== 0) failures.push(`sidebar still lists ${listed} models for the missing key`);
 const dialogOpen = await page.locator('#user-model-dialog[open]').count();

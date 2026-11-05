@@ -29,7 +29,7 @@ import {
   onLocaleChange,
   bootI18n,
 } from './i18n/index.js';
-import { assumptionBody, assumptionPreview, formulaLine } from './i18n/previewText.js';
+import { formulaLine } from './i18n/previewText.js';
 import { designCaveatText } from './lab/designCaveat.js';
 import {
   listShells,
@@ -400,11 +400,10 @@ function updateShellStrip() {
     return el;
   };
   const loc = getLocale();
+  document.getElementById('shell-assumptions')?.remove();
   const formulaEl = ensureLine('shell-formula', 'shell-formula');
-  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
   const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
   if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
-  if (asmLine) asmLine.textContent = assumptionBody(loc, app.model?.assumptions || '');
   if (caveatEl) {
     const caveat = designCaveatText(app.model);
     caveatEl.hidden = !caveat;
@@ -832,10 +831,6 @@ function makeModelButton(raw) {
     .map((t) => `<span class="tag">${t}</span>`).join('');
   btn.title = m.name;
   btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
-  const preview = document.createElement('span');
-  preview.className = 'preview';
-  preview.textContent = assumptionPreview(getLocale(), raw.assumptions || '');
-  if (preview.textContent) btn.append(preview);
   btn.addEventListener('click', () => {
     switchModel(m.id);
     setSidebarOpen(false);
@@ -1087,7 +1082,7 @@ function syncDrawerChrome() {
   // 侧栏开：汉堡 → close；关：menu
   if (btnMenu) {
     btnMenu.innerHTML = iconOnly(sideOpen ? 'close' : 'menu');
-    btnMenu.setAttribute('aria-label', sideOpen ? '关闭模型列表' : '打开模型列表');
+    btnMenu.setAttribute('aria-label', sideOpen ? t('ui.closeMenu') : t('ui.openMenu'));
   }
   btnParams?.setAttribute('aria-expanded', benchOpen ? 'true' : 'false');
   // 宽屏：params 改为折叠/展开三栏工作台（非整隐）；close 仍仅抽屉模式

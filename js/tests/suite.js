@@ -293,6 +293,25 @@ export function runSuite() {
           && !!na0,
         `M0=${m0} M1=${m1} nOil=${nOil}`,
       );
+      const turret = { params: { ...compoundMicroscope.params } };
+      compoundMicroscope.init(turret);
+      const ctx = new Proxy({}, { get: () => () => {}, set: () => true });
+      compoundMicroscope.draw(ctx, turret, { width: 800, height: 600 });
+      const hit = turret._layout?.hits?.find((h) => h.kind === 'obj' && h.index === 2);
+      const before = compoundMicroscope.getReadouts(turret, { digits: 3 });
+      const clicked = hit && compoundMicroscope.onPointer(turret, {
+        type: 'down', x: hit.x + hit.w / 2, y: hit.y + hit.h / 2,
+      });
+      const after = compoundMicroscope.getReadouts(turret, { digits: 3 });
+      assert(
+        '物镜转盘 10×→40× 锁定 f_obj 与 M',
+        !!clicked
+          && before.find((x) => x.label === 'f_obj')?.value === '16.000 mm'
+          && before.find((x) => x.label === 'M')?.value === '-100.000×'
+          && after.find((x) => x.label === 'f_obj')?.value === '4.000 mm'
+          && after.find((x) => x.label === 'M')?.value === '-400.000×',
+        `before ${before.find((x) => x.label === 'M')?.value} after ${after.find((x) => x.label === 'M')?.value} f ${after.find((x) => x.label === 'f_obj')?.value}`,
+      );
     }
   }
 

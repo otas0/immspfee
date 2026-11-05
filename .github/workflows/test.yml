@@ -50,6 +50,9 @@ jobs:
       - name: Narrow-screen formula and caveat regression
         run: npm run test:narrow
 
+      - name: Shell chrome, DPR cap, and projector overlay
+        run: npm run test:shell
+
       - name: Upload narrow-screen screenshots
         if: always()
         uses: actions/upload-artifact@v4

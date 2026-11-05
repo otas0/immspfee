@@ -1831,6 +1831,12 @@ html.shell-lab-projector .toolbar-kicker,
 .chassis.shell-lab-projector .toolbar-kicker {
   display: none;
 }
+html.shell-lab-projector .icon-btn.ghost,
+.chassis.shell-lab-projector .icon-btn.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .chassis.shell-hide-sidebar {
   grid-template-columns: 0 minmax(0, 1fr) var(--bench-w);
@@ -1878,6 +1884,9 @@ body.drawer-open .drawer-backdrop {
   width: 100%;
   height: 100%;
   display: block;
+}
+.canvas-webgl[hidden] {
+  display: none !important;
 }
 .canvas-wrap {
   position: relative;
