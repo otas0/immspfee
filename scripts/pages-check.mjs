@@ -20,26 +20,70 @@ const want = {
 };
 
 async function waitForDeploy() {
-  if (process.env.PAGES_SKIP_WAIT === '1') return;
-  const deadline = Date.now() + Number(process.env.PAGES_WAIT_MS || 180000);
+  if (process.env.PAGES_SKIP_WAIT === '1') {
+    console.log('pages-check: skip wait (PAGES_SKIP_WAIT=1) for', hash);
+    return;
+  }
+  const waitMs = Number(process.env.PAGES_WAIT_MS || 180000);
+  const pollMs = Number(process.env.PAGES_POLL_MS || 5000);
+  const deadline = Date.now() + waitMs;
+  let lastLog = 0;
+  console.log(`pages-check: waiting for Pages deploy of ${hash} (timeout ${waitMs}ms)`);
   while (Date.now() < deadline) {
+    let runs = [];
     try {
       const out = execSync(
-        'gh run list --branch main --workflow pages.yml --limit 5 --json databaseId,headSha,status,conclusion,displayTitle',
+        'gh run list --branch main --workflow pages.yml --limit 8 --json databaseId,headSha,status,conclusion,displayTitle,createdAt',
         { cwd: root, encoding: 'utf8' },
       );
-      const runs = JSON.parse(out);
+      runs = JSON.parse(out);
       const hit = runs.find((r) => String(r.headSha || '').startsWith(hash));
-      if (hit?.status === 'completed' && hit?.conclusion === 'success') return;
+      if (hit?.status === 'completed' && hit?.conclusion === 'success') {
+        console.log(`pages-check: deploy ready ${hit.databaseId} ${hit.headSha?.slice(0, 7)}`);
+        return;
+      }
       if (hit?.status === 'completed' && hit?.conclusion !== 'success') {
         throw new Error(`Pages deploy failed for ${hash}: ${hit.conclusion}`);
       }
+      const now = Date.now();
+      if (now - lastLog >= 15000) {
+        lastLog = now;
+        const recent = runs.slice(0, 3).map((r) => ({
+          id: r.databaseId,
+          sha: String(r.headSha || '').slice(0, 7),
+          status: r.status,
+          conclusion: r.conclusion,
+          title: r.displayTitle,
+        }));
+        const match = runs.find((r) => String(r.headSha || '').startsWith(hash));
+        console.log('pages-check: still waiting', {
+          want: hash,
+          match: match
+            ? { id: match.databaseId, status: match.status, sha: String(match.headSha || '').slice(0, 7) }
+            : null,
+          recent,
+          remainMs: Math.max(0, deadline - now),
+        });
+      }
     } catch (err) {
       if (String(err.message || err).includes('Pages deploy failed')) throw err;
+      const now = Date.now();
+      if (now - lastLog >= 15000) {
+        lastLog = now;
+        console.warn('pages-check: gh poll error', String(err.message || err).slice(0, 200));
+      }
     }
-    await new Promise((r) => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, pollMs));
   }
-  throw new Error(`timed out waiting for Pages deploy of ${hash}`);
+  let tip = '';
+  try {
+    const out = execSync(
+      'gh run list --branch main --workflow pages.yml --limit 5 --json databaseId,headSha,status,conclusion,displayTitle',
+      { cwd: root, encoding: 'utf8' },
+    );
+    tip = ` recent=${out.trim()}`;
+  } catch { /* ignore */ }
+  throw new Error(`timed out waiting for Pages deploy of ${hash}.${tip}`);
 }
 
 await waitForDeploy();
@@ -81,12 +125,50 @@ try {
   }
   if (info.caveat !== want.caveat) failures.push(`caveat ${JSON.stringify(info.caveat)}`);
   if (info.overlap) failures.push('formula covers caveat');
-  if (info.lines < 1) failures.push(`caveat lines ${info.lines}`);
+  if (info.lines < 1 || info.lines > 2) failures.push(`caveat lines ${info.lines} (want 1..2)`);
   console.log('pages check', hash, {
     formulaOk: info.formula.startsWith(want.formulaPrefix),
     assumptionOk: info.assumption.includes(want.assumptionNeedle),
     caveat: info.caveat,
     lines: info.lines,
+  });
+
+  // Microscope shell smoke: CSS fingerprint + isolated chrome
+  const microUrl = `${base}?shell=lab-microscope3d&lang=en&v=${hash}`;
+  await page.goto(microUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await page.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d', null, { timeout: 30000 });
+  const micro = await page.evaluate(() => {
+    const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.getAttribute('href') || '');
+    const css = links.find((h) => h.includes('microscope-shell.css')) || '';
+    const chrome = document.getElementById('microscope-chrome');
+    const stage = document.getElementById('micro-stage');
+    const bench = document.getElementById('bench');
+    const hud = document.querySelector('.hud');
+    return {
+      shell: document.documentElement.dataset.shell,
+      css,
+      chromeHidden: !!chrome?.hidden,
+      brand: chrome?.querySelector('.micro-brand')?.textContent?.trim() || '',
+      stageHidden: stage ? !!stage.hidden : true,
+      metrics: [...(stage?.querySelectorAll('.micro-metric') || [])].map((el) => el.dataset.key),
+      benchDisplay: bench ? getComputedStyle(bench).display : '',
+      hudDisplay: hud ? getComputedStyle(hud).display : '',
+      stageMode: document.documentElement.dataset.stageMode,
+    };
+  });
+  if (micro.shell !== 'lab-microscope3d') failures.push(`micro shell ${micro.shell}`);
+  if (!micro.css.includes('microscope-shell.css')) failures.push(`micro css fingerprint ${micro.css}`);
+  if (micro.chromeHidden) failures.push('micro chrome hidden on Pages');
+  if (micro.brand !== 'IMMSPFEE') failures.push(`micro brand ${micro.brand}`);
+  if (micro.stageHidden) failures.push('micro-stage hidden on Pages');
+  if (micro.metrics.join(',') !== 'M,f_obj,NA,d_Abbe') failures.push(`micro metrics ${micro.metrics.join(',')}`);
+  if (micro.benchDisplay !== 'none') failures.push(`Pages micro bench ${micro.benchDisplay}`);
+  if (micro.hudDisplay !== 'none') failures.push(`Pages micro HUD ${micro.hudDisplay}`);
+  console.log('pages microscope smoke', hash, {
+    css: micro.css,
+    stageMode: micro.stageMode,
+    metrics: micro.metrics.join(','),
   });
 } finally {
   await browser.close();

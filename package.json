@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node scripts/dev-server.mjs",
+    "build:bundle": "node scripts/build-bundle.mjs",
+    "start": "npm run build:bundle && node scripts/dev-server.mjs",
     "gen:glyphs": "node scripts/build-glyphs.mjs",
-    "test": "npm run gen:glyphs && node scripts/gen-equation-index.mjs && node scripts/run-tests.mjs",
+    "test": "npm run gen:glyphs && npm run build:bundle && node scripts/gen-equation-index.mjs && node scripts/run-tests.mjs",
     "test:pot": "node scripts/test-pot.mjs",
     "test:catalog": "node scripts/validate-catalog.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
@@ -30,9 +31,11 @@
     "shots": "node scripts/capture-shots.mjs",
     "shots:ui": "node scripts/capture-ui.mjs",
     "shots:extra": "node scripts/capture-extra.mjs",
-    "test:all": "npm test && npm run test:pot && npm run test:catalog && npm run test:visual"
+    "test:all": "npm test && npm run test:pot && npm run test:catalog && npm run test:visual",
+    "test:pages-network": "node scripts/pages-network-cold.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "pixelmatch": "^8.0.0",
     "playwright": "^1.48.0",
     "pngjs": "^7.0.0"

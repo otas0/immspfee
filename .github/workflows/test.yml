@@ -66,7 +66,19 @@ jobs:
 
       - name: Shell chrome, DPR cap, and projector overlay
         id: shell_chrome
-        run: npm run test:shell
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          npm run test:shell 2>&1 | tee artifacts/shell-chrome.log
+          if grep -q 'shell chrome ok' artifacts/shell-chrome.log; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "shell chrome ok" >> artifacts/ci-summary.txt
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "shell chrome FAILED" >> artifacts/ci-summary.txt
+            exit 1
+          fi
 
       - name: Upload shell-chrome screenshots
         if: always()
@@ -168,11 +180,16 @@ jobs:
               inkWarn = Number.isFinite(minPct) && minPct < 1;
               if (unreg && unreg !== '—') inkLine += ` · unregistered=${unreg}`;
             } catch {}
+            const shellOk = process.env.SHELL_CHROME_OK === 'true';
+            const shellLine = shellOk
+              ? 'shell chrome ok · microscope exclusive chrome / optical rail / 390 layout'
+              : 'shell chrome FAILED — exclusive microscope enter/leave or chrome regression';
             const lines = [
               '### Lab CI summary',
               '',
               schemaLine,
               inkWarn ? `⚠️ ${inkLine}` : inkLine,
+              shellOk ? shellLine : `⚠️ ${shellLine}`,
             ];
             if (process.env.LOW_INK_CHANGED === 'true') {
               lines.push('', '_low-ink table drifted — artifact `low-ink-table-diff`；本地可 `npm run gen:low-ink` 后提交_');
@@ -197,6 +214,7 @@ jobs:
         env:
           CONTRACT_FAILED: ${{ steps.contract_browser.outcome == 'failure' }}
           LOW_INK_CHANGED: ${{ steps.gen_low_ink.outputs.changed }}
+          SHELL_CHROME_OK: ${{ steps.shell_chrome.outputs.ok }}
 
       - name: Fail job if contract-browser failed
         if: steps.contract_browser.outcome == 'failure'

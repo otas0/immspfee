@@ -6,9 +6,12 @@ import pidTune from '../models/pidTune.js';
 import compoundMicroscope from '../models/compoundMicroscope.js';
 import { probeSketch } from './sketchPixels.js';
 import { assumptionPreview, formulaLine } from '../i18n/previewText.js';
-import { translateCatalogText } from '../i18n/catalogText.js';
+import { hydrateGlyphRows, translateCatalogText } from '../i18n/catalogText.js';
+import { ROWS } from '../i18n/glyphRows.js';
 import { exprUsesClock, assertClockParam, overrideRecord } from '../lab/topicOverrides.js';
 import catalog from '../../data/catalog.json' with { type: 'json' };
+
+hydrateGlyphRows(ROWS);
 
 function boot(model, extra = {}) {
   const state = { params: { ...(model?.params || {}), ...extra } };
@@ -143,18 +146,22 @@ export function runLab12() {
     集总: 'lumped',
     稳态: 'steady state',
     阶跃: 'step',
+    集总参数: 'lumped parameter',
+    稳态阶跃响应: 'steady-state step response',
+    有限差分格式: 'finite-difference scheme',
   };
   for (const [zh, en] of Object.entries(phraseEn)) {
     const got = translateCatalogText('en', zh);
     assert(`${zh} 译成 ${en}`, got === en, got);
   }
 
-  function assertHallThickness(id) {
+  function assertHallThickness(id, { quantum = false } = {}) {
     const hall = byId(id);
     const thick = hall?.params?.thick;
     const n = hall?.params?.n;
     const expect = hall ? (hall.params.I * hall.params.B) / (n * eCharge * thick) : NaN;
     const hallSt = hall ? boot(hall) : null;
+    const poison = hall ? boot(hall, { t: 9e9 }) : null;
     assert(`${id} 厚度键是 thick、标签仍是厚度 t`, !!hall
       && thick === 1e-4
       && !Object.prototype.hasOwnProperty.call(hall.params, 't')
@@ -164,9 +171,15 @@ export function runLab12() {
       && Object.prototype.hasOwnProperty.call(hall.params, 'n')
       && !Object.prototype.hasOwnProperty.call(hall.paramSchema || {}, 'n'), String(n));
     assert(`${id} 默认 V_H = I B / (n e thick)`, !!hallSt && Math.abs(hallSt.VH - expect) < 1e-9 * Math.abs(expect), String(hallSt?.VH));
+    assert(`${id} tick 不读 params.t`, !!hallSt && !!poison && Math.abs(hallSt.VH - poison.VH) < 1e-12, String(poison?.VH));
+    if (quantum) {
+      assert(`${id} 使用独立 quantumHall 入口`, /填充因子|教学入口/.test(hall?.assumptions || ''), hall?.assumptions || '');
+    } else {
+      assert(`${id} 保持经典 hall 假设`, !!hall?.assumptions && !/填充因子/.test(hall.assumptions), hall?.assumptions || '');
+    }
   }
   assertHallThickness('r014-霍尔效应');
-  assertHallThickness('r025-量子霍尔');
+  assertHallThickness('r025-量子霍尔', { quantum: true });
 
   const irr = byId('r099-灌溉');
   let irrClock = false;
@@ -179,8 +192,9 @@ export function runLab12() {
     && !Object.prototype.hasOwnProperty.call(irr.params, 't')
     && !Object.prototype.hasOwnProperty.call(irr.paramSchema || {}, 't')
     && irr.paramSchema?.A?.label === '面积 A'
+    && irr.paramSchema?.d?.label === '水深 d'
     && irrClock
-    && Math.abs(irrRead - irrQ) < 1e-9, `${irr?.paramSchema?.A?.label} Q=${irrRead}`);
+    && Math.abs(irrRead - irrQ) < 1e-9, `${irr?.paramSchema?.A?.label}/${irr?.paramSchema?.d?.label} Q=${irrRead}`);
   const irrHalf = irr ? boot(irr, { duration: 1800 }) : null;
   const irrHalfRead = irrHalf ? (irrHalf.Q ?? irrHalf.y) : NaN;
   assert('灌溉 duration 减半时 Q 加倍', Number.isFinite(irrRead) && Math.abs(irrHalfRead - irrRead * 2) < 1e-9, String(irrHalfRead));

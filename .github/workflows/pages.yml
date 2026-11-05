@@ -9,6 +9,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  checks: write
 
 concurrency:
   group: pages
@@ -23,8 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
       - name: Prepare static site
         run: |
+          npm run build:bundle
           mkdir -p _site
           rsync -a \
             --exclude='.git' \
@@ -48,3 +57,65 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  pages-check:
+    name: pages-check
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Neutron strip on deployed Pages
+        id: pages_strip
+        env:
+          PAGES_SKIP_WAIT: '1'
+          PAGES_SHA: ${{ github.sha }}
+          PAGES_URL: https://otas0.github.io/immspfee/
+        run: |
+          SHORT=$(echo "$PAGES_SHA" | cut -c1-7)
+          export PAGES_SHA="$SHORT"
+          npm run test:pages
+
+      - name: Publish pages-check run
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ok = '${{ steps.pages_strip.outcome }}' === 'success';
+            const short = context.sha.slice(0, 7);
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'pages-check',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: ok ? 'success' : 'failure',
+              output: {
+                title: ok ? `Pages neutron strip ok (${short})` : `Pages neutron strip failed (${short})`,
+                summary: ok
+                  ? `Deployed ?v=${short}&lang=en matches the local narrow strip.`
+                  : `See the pages-check job log for formula / assumption / caveat mismatches.`,
+              },
+            });

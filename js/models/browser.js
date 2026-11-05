@@ -4,6 +4,7 @@
  */
 import { buildFromSpecs, ensureRefresh, handcraftedList } from './assemble.js';
 import { buildAllUserModels } from '../lab/userModels.js';
+import { domainChunkUrl, domainIndexUrl, loadAssetStamp } from '../boot/catalogStamp.js';
 
 export const models = [];
 export const domainIndex = [];
@@ -18,16 +19,25 @@ function endpoint(path) {
   return new URL(path, document.baseURI).href;
 }
 
+function mark(name) {
+  try { performance.mark(name); } catch { /* ignore */ }
+}
+
 export function loadIndex() {
   if (domainIndex.length) return Promise.resolve(domainIndex);
   if (!indexPromise) {
-    indexPromise = fetch(endpoint('./data/domain-index.json'), { cache: 'no-cache' })
-      .then((res) => {
+    mark('boot-loadIndex-start');
+    indexPromise = Promise.resolve(window.__preloadedIndex || null)
+      .then(async (preloaded) => {
+        if (Array.isArray(preloaded) && preloaded.length) return preloaded;
+        const stamp = await loadAssetStamp();
+        const res = await fetch(endpoint(domainIndexUrl(stamp)));
         if (!res.ok) throw new Error(String(res.status));
         return res.json();
       })
       .then((rows) => {
         domainIndex.push(...rows);
+        mark('boot-loadIndex-end');
         return domainIndex;
       });
   }
@@ -73,9 +83,15 @@ export function loadDomain(domain) {
   if (!domain) return Promise.resolve(models);
   if (loaded.has(domain)) return Promise.resolve(models);
   if (inflight.has(domain)) return inflight.get(domain);
-  const path = `./data/domains/${encodeURIComponent(domain)}.json`;
-  const task = fetch(endpoint(path), { cache: 'no-cache' })
-    .then((res) => {
+  const task = Promise.resolve()
+    .then(async () => {
+      const warm = window.__preloadedDomain;
+      if (warm && warm.domain === domain && warm.promise) {
+        const specs = await warm.promise;
+        if (Array.isArray(specs)) return specs;
+      }
+      const stamp = await loadAssetStamp();
+      const res = await fetch(endpoint(domainChunkUrl(domain, stamp)));
       if (!res.ok) throw new Error(`${domain} ${res.status}`);
       return res.json();
     })
@@ -94,10 +110,17 @@ export function loadDomain(domain) {
 }
 
 export async function ensureId(id) {
+  mark('boot-ensureId-start');
   const index = await loadIndex();
   const row = index.find((entry) => entry.id === id);
-  if (!row) return false;
+  if (!row) {
+    mark('boot-ensureId-end');
+    return false;
+  }
+  mark('boot-loadDomain-start');
   await loadDomain(row.domain || '其他');
+  mark('boot-loadDomain-end');
+  mark('boot-ensureId-end');
   return models.some((m) => m.id === id);
 }
 

@@ -1,5 +1,5 @@
 import { STRINGS } from './strings.js';
-import { translateCatalogText } from './catalogText.js';
+import { ensureGlyphRows, translateCatalogText } from './catalogText.js';
 
 function lookup(locale, key, vars) {
   const table = STRINGS[locale] || STRINGS.en;
@@ -19,6 +19,12 @@ export function truncateText(locale, text, limit = 80) {
 export function fidelityLabel(locale, fidelity) {
   const key = fidelity === 'engineering' ? 'ui.fidelityEngineering' : 'ui.fidelityPrinciple';
   return lookup(locale, key);
+}
+
+/** Ensure the lexicon is present before translating non-Chinese catalog text. */
+export async function ensureCatalogGloss(locale) {
+  if (!locale || locale === 'zh') return;
+  await ensureGlyphRows();
 }
 
 function assumptionText(locale, assumption) {

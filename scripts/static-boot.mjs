@@ -23,21 +23,33 @@ export function specsForDomain(catalog, domain) {
   return catalog.filter((spec) => (spec.domain || '其他') === domain);
 }
 
+function sha12(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
+}
+
 export function fingerprint(root) {
-  const hash = (rel) => {
+  const hashFile = (rel) => {
     const file = path.join(root, rel);
     if (!fs.existsSync(file)) return 'missing';
-    return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 12);
+    return sha12(fs.readFileSync(file));
   };
+  const catalog = readCatalog(root);
+  const indexBody = JSON.stringify(domainIndex(catalog));
+  const domains = {};
+  for (const domain of [...new Set(catalog.map((spec) => spec.domain || '其他'))]) {
+    domains[domain] = sha12(JSON.stringify(specsForDomain(catalog, domain)));
+  }
   return {
-    js: hash('js/main.js'),
-    css: hash('css/styles.css'),
-    microCss: hash('css/microscope-shell.css'),
-    entry: hash('js/entry.js'),
+    js: hashFile('js/bundle/lab.js'),
+    css: hashFile('css/styles.css'),
+    microCss: hashFile('css/microscope-shell.css'),
+    entry: hashFile('js/entry.js'),
+    domainIndex: sha12(indexBody),
+    domains,
   };
 }
 
-/** Bust the entry module when either the loader or main.js changes. */
+/** Bust the entry module when either the loader or lab bundle changes. */
 export function entryStamp(stamp) {
   return crypto.createHash('sha256').update(`${stamp.entry}:${stamp.js}`).digest('hex').slice(0, 12);
 }

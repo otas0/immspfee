@@ -1,13 +1,16 @@
 /**
- * Dedicated microscope shell chrome — keeps catalog / ODE UI off the WebGL stage.
+ * Dedicated microscope shell chrome — fully isolated from catalog / ODE panels.
  */
 import {
   applyShell,
   persistShellId,
   getShell,
+  listShells,
   MICROSCOPE_MODEL_ID,
   MICROSCOPE_SHELL_ID,
 } from './registry.js';
+import { createMicroscopeStage } from './microscopeStage.js';
+import { setInputMode, INPUT_MICROSCOPE, INPUT_LAB } from './inputMode.js';
 
 /**
  * @param {{
@@ -15,6 +18,7 @@ import {
  *   getActiveShellId: () => string,
  *   setActiveShellId: (id: string) => void,
  *   getModelId: () => string | undefined,
+ *   getState: () => object | null,
  *   switchModel: (id: string, opts?: { skipShellSync?: boolean }) => void,
  *   paintFrame: () => void,
  *   setSidebarOpen: (open: boolean) => void,
@@ -23,6 +27,10 @@ import {
  *   syncDrawerChrome: () => void,
  *   resetSim: () => void,
  *   setPaused: (paused: boolean) => void,
+ *   focusCatalogModel?: (id: string, loc: { domain: string, sub: string }) => void | Promise<void>,
+ *   onOpticsChange?: () => void,
+ *   remountShellSelect?: (opts?: { microOnly?: boolean }) => void,
+ *   captureWebglPng?: () => void,
  * }} api
  */
 export function createMicroscopeChrome(api) {
@@ -30,8 +38,15 @@ export function createMicroscopeChrome(api) {
   const microChrome = () => document.getElementById('microscope-chrome');
   const microTitle = () => document.getElementById('micro-title');
   const microLede = () => document.getElementById('micro-lede');
-  const benchKicker = () => document.getElementById('bench-kicker');
-  const benchTitle = () => document.getElementById('bench-title');
+
+  const stage = createMicroscopeStage({
+    getState: () => (typeof api.getState === 'function' ? api.getState() : null),
+    onChange: () => {
+      api.onOpticsChange?.();
+      api.paintFrame();
+    },
+    t: api.t,
+  });
 
   function writeShellUrl(id) {
     try {
@@ -41,20 +56,47 @@ export function createMicroscopeChrome(api) {
     } catch { /* ignore */ }
   }
 
+  /** Shell picker inside microscope: only “back to catalog”, never the full 1517 list. */
+  function syncShellPicker(on) {
+    const el = document.getElementById('shell-select');
+    if (!el) return;
+    if (on) {
+      el.innerHTML = '';
+      const opt = document.createElement('option');
+      opt.value = 'lab-classic';
+      opt.textContent = api.t('ui.microExit');
+      opt.selected = true;
+      el.appendChild(opt);
+      el.setAttribute('aria-label', api.t('ui.microExit'));
+      return;
+    }
+    api.remountShellSelect?.({ microOnly: false });
+  }
+
   function sync(on) {
+    setInputMode(on ? INPUT_MICROSCOPE : INPUT_LAB);
     const chrome = microChrome();
     if (chrome) chrome.hidden = !on;
-    const kicker = benchKicker();
-    if (kicker) kicker.textContent = on ? api.t('ui.microBenchKicker') : api.t('ui.benchKicker');
-    const title = benchTitle();
-    if (title) title.textContent = on ? api.t('ui.microBench') : api.t('ui.bench');
+    document.documentElement.classList.toggle('shell-micro-active', on);
     const lede = microLede();
     if (lede) lede.textContent = api.t('ui.microLede');
+    const exit = document.getElementById('btn-micro-exit');
+    if (exit) exit.textContent = api.t('ui.microExit');
+    const params = document.getElementById('btn-micro-params');
+    if (params) params.textContent = api.t('ui.microBench');
+    syncShellPicker(on);
     if (on) {
       api.setPaused(true);
       api.syncPauseUi();
       api.setSidebarOpen(false);
-      api.setBenchOpen(true);
+      api.setBenchOpen(false);
+      stage.ensureDom();
+      stage.setVisible(true);
+      stage.setRailOpen(true);
+      stage.paint();
+    } else {
+      stage.setRailOpen(false);
+      stage.setVisible(false);
     }
     api.syncDrawerChrome();
   }
@@ -73,8 +115,6 @@ export function createMicroscopeChrome(api) {
           api.setSidebarOpen(false);
         },
       });
-      const sel = document.getElementById('shell-select');
-      if (sel) sel.value = MICROSCOPE_SHELL_ID;
       writeShellUrl(MICROSCOPE_SHELL_ID);
       if (!skipModel && api.getModelId() !== MICROSCOPE_MODEL_ID) {
         api.switchModel(MICROSCOPE_MODEL_ID, { skipShellSync: true });
@@ -86,7 +126,7 @@ export function createMicroscopeChrome(api) {
     }
   }
 
-  function leave({ nextShell = 'lab-classic' } = {}) {
+  async function leave({ nextShell = 'lab-classic' } = {}) {
     if (lock) return;
     lock = true;
     try {
@@ -101,14 +141,14 @@ export function createMicroscopeChrome(api) {
           if (hide) api.setSidebarOpen(false);
         },
       });
-      const sel = document.getElementById('shell-select');
-      if (sel) sel.value = target;
       writeShellUrl(target);
       sync(false);
+      api.setBenchOpen(true);
       api.paintFrame();
     } finally {
       lock = false;
     }
+    return api.focusCatalogModel?.(MICROSCOPE_MODEL_ID, { domain: '物理', sub: '光学' });
   }
 
   function onModelChange(modelId) {
@@ -139,20 +179,46 @@ export function createMicroscopeChrome(api) {
     if (el) el.textContent = name;
   }
 
+  function refresh() {
+    if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.paint();
+  }
+
+  function onKeydown(e) {
+    if (api.getActiveShellId() !== MICROSCOPE_SHELL_ID) return false;
+    // Block catalog undo / Esc drawer routing while microscope owns input.
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      return true;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      const rail = document.getElementById('micro-rail');
+      if (rail?.classList.contains('is-open')) {
+        stage.setRailOpen(false);
+        return true;
+      }
+      leave({ nextShell: 'lab-classic' });
+      return true;
+    }
+    return false;
+  }
+
   function bind() {
     document.getElementById('btn-micro-exit')?.addEventListener('click', () => {
-      leave({ nextShell: 'lab-classic' });
+      void leave({ nextShell: 'lab-classic' });
     });
     document.getElementById('btn-micro-reset')?.addEventListener('click', () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
       api.resetSim();
+      stage.paint();
     });
     document.getElementById('btn-micro-shot')?.addEventListener('click', () => {
-      document.getElementById('btn-shot')?.click();
+      if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
+      api.captureWebglPng?.();
     });
     document.getElementById('btn-micro-params')?.addEventListener('click', () => {
-      const bench = document.getElementById('bench');
-      api.setBenchOpen(!bench?.classList.contains('open'));
+      if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
+      stage.toggleRail();
     });
   }
 
@@ -166,7 +232,10 @@ export function createMicroscopeChrome(api) {
     applyShellId,
     setTitle,
     bind,
+    refresh,
+    onKeydown,
     isMicroscopeShell: () => api.getActiveShellId() === MICROSCOPE_SHELL_ID,
     getShell,
+    listShells,
   };
 }

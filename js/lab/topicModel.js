@@ -2067,6 +2067,29 @@ function hall(spec) {
   });
 }
 
+/** Separate from classical hall() so a future filling-factor law cannot rewrite V_H. */
+function quantumHall(spec) {
+  return shell(spec, {
+    equation: 'V_H = I B / (n e t)',
+    authority: 'Ashcroft & Mermin 或 Halliday，霍尔电压（量子霍尔教学入口，仍用经典厚度式）',
+    assumptions: '单一载流子、薄片厚度 t；公开教科书入口，不是填充因子量子霍尔设计工具',
+    params: { I: 0.01, B: 0.5, n: 1e22, thick: 1e-4 },
+    schema: {
+      I: S('I', 'dynamics', 'A', 0, 1),
+      B: S('B', 'dynamics', 'T', 0, 2),
+      thick: S('厚度 t', 'dynamics', 'm', 1e-5, 0.002),
+    },
+    tick(state) {
+      const e = 1.602176634e-19;
+      const n = Math.max(1e18, P(state.params, 'n', 1e22));
+      const thick = Math.max(1e-6, P(state.params, 'thick', 1e-4));
+      state.VH = P(state.params, 'I', 0.01) * P(state.params, 'B', 0.5) / (n * e * thick);
+    },
+    plot: (s) => s.VH,
+    rows: (s) => [['V_H', s.VH, 'V']],
+  });
+}
+
 function faraday(spec) {
   return shell(spec, {
     equation: 'ε = − dΦ/dt，此处 Φ = B A sin(ω t) 的幅值变化率峰值 B A ω',
@@ -2592,7 +2615,7 @@ function irrigation(spec) {
     params: { A: 1000, d: 0.03, duration: 3600 },
     schema: {
       A: S('面积 A', 'dynamics', 'm²', 10, 1e5),
-      d: S('d', 'dynamics', 'm', 0.001, 0.2),
+      d: S('水深 d', 'dynamics', 'm', 0.001, 0.2),
       duration: S('时长 t', 'dynamics', 's', 60, 86400),
     },
     tick(state) {
@@ -4480,7 +4503,7 @@ const PREFIX = {
     plot: (st) => st.H,
     rows: (st) => [['H', st.H, 'Sv'], ['辐射', st.rad, '']],
   }) : decay(s)),
-  凝聚态: (s, t) => (has(t, /半导体|PN|MOS/) ? pnBarrier(s) : has(t, /霍尔/) ? hall(s) : has(t, /超导/) ? shell(s, {
+  凝聚态: (s, t) => (has(t, /半导体|PN|MOS/) ? pnBarrier(s) : has(t, /量子霍尔|霍尔/) ? (has(t, /量子/) ? quantumHall(s) : hall(s)) : has(t, /超导/) ? shell(s, {
     equation: '伦敦穿透深度关系的教学式 λ_L = √(m / (μ₀ n_s e²))',
     authority: 'Tinkham, Introduction to Superconductivity, London 深度',
     assumptions: '给定超流密度，不是材料设计',
@@ -4810,6 +4833,7 @@ function keywordModel(spec) {
     [/库仑|kq\/r/, () => coulomb(spec)],
     [/电容|C=ε/, () => capacitor(spec)],
     [/法拉第|dΦ/, () => faraday(spec)],
+    [/量子霍尔/, () => quantumHall(spec)],
     [/霍尔/, () => hall(spec)],
     [/洛伦兹力|v×B/, () => lorentzRadius(spec)],
     [/康普顿/, () => compton(spec)],

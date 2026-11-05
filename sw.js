@@ -1,14 +1,19 @@
 /**
- * Network-first HTML, long-lived cache for fingerprinted js/css.
- * Unhashed catalog slices stay network-first so a subject update is not stuck.
+ * Network-first HTML; cache-first for fingerprinted js/css/domain JSON.
  */
-const CACHE = 'immspfee-hashed-v1';
+const CACHE = 'immspfee-hashed-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
 });
 
-self.addEventListener('activate', () => {});
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
 
 function isNavigation(request, url) {
   return request.mode === 'navigate'
@@ -16,15 +21,18 @@ function isNavigation(request, url) {
     || url.pathname.endsWith('/index.html');
 }
 
-function isHashedAsset(url) {
+function isFingerprintedAsset(url) {
   if (!url.searchParams.get('v')) return false;
-  return url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+  const p = url.pathname;
+  return p.endsWith('.js')
+    || p.endsWith('.css')
+    || p.endsWith('/domain-index.json')
+    || /\/data\/domains\/.+\.json$/.test(p);
 }
 
 async function networkFirst(request) {
   try {
-    const fresh = await fetch(request);
-    return fresh;
+    return await fetch(request);
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
@@ -52,7 +60,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(request));
     return;
   }
-  if (isHashedAsset(url)) {
+  if (isFingerprintedAsset(url)) {
     event.respondWith(cacheFirst(request));
   }
 });

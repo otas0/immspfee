@@ -17,6 +17,26 @@ if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 
   console.error('equation-index.html is missing the locked PID numbers');
   process.exit(1);
 }
+{
+  const topicSrc = fs.readFileSync(path.join(repo, 'js/lab/topicModel.js'), 'utf8');
+  const sliceFn = (name) => {
+    const start = topicSrc.indexOf(`function ${name}(`);
+    if (start < 0) return '';
+    const next = topicSrc.indexOf('\nfunction ', start + 1);
+    return next < 0 ? topicSrc.slice(start) : topicSrc.slice(start, next);
+  };
+  for (const name of ['hall', 'quantumHall']) {
+    const body = sliceFn(name);
+    if (!body) {
+      console.error(`topicModel.js is missing ${name}()`);
+      process.exit(1);
+    }
+    if (/\bparams\.t\b/.test(body) || /P\(\s*state\.params\s*,\s*['"]t['"]/.test(body)) {
+      console.error(`${name}() tick still reads params.t`);
+      process.exit(1);
+    }
+  }
+}
 const { assertDomainCoverage, readCatalog } = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
 const catalog = readCatalog(repo);
 assertDomainCoverage(catalog);

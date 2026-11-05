@@ -63,22 +63,36 @@ const server = http.createServer(async (req, res) => {
   if (rel === '/') rel = '/index.html';
   if (rel === '/asset-stamp.json') {
     const stamp = fingerprint(root);
-    const body = JSON.stringify({ js: entryStamp(stamp), css: stamp.css, main: stamp.js });
+    const body = JSON.stringify({
+      js: entryStamp(stamp),
+      css: stamp.css,
+      main: stamp.js,
+      domainIndex: stamp.domainIndex,
+      domains: stamp.domains,
+    });
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(body);
     return;
   }
   if (rel === '/data/domain-index.json') {
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    const immutable = url.searchParams.has('v');
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+    });
     res.end(JSON.stringify(domainIndex(catalog)));
     return;
   }
   if (rel.startsWith('/data/domains/') && rel.endsWith('.json')) {
-    const domain = rel.slice('/data/domains/'.length, -'.json'.length);
+    const domain = decodeURIComponent(rel.slice('/data/domains/'.length, -'.json'.length));
     if (!domains.has(domain)) {
       res.writeHead(404); res.end('not found'); return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    const immutable = url.searchParams.has('v');
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+    });
     res.end(JSON.stringify(specsForDomain(catalog, domain)));
     return;
   }
@@ -98,7 +112,11 @@ const server = http.createServer(async (req, res) => {
     res.end(html);
     return;
   }
-  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+  const immutable = url.searchParams.has('v') && (ext === '.js' || ext === '.mjs' || ext === '.css' || ext === '.json');
+  res.writeHead(200, {
+    'Content-Type': MIME[ext] || 'application/octet-stream',
+    ...(immutable ? { 'Cache-Control': 'public, max-age=31536000, immutable' } : {}),
+  });
   fs.createReadStream(file).pipe(res);
 });
 

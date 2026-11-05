@@ -22,6 +22,10 @@ for (const row of ROWS) {
 function toOptions(rec, key) {
   const parsed = parseParamLine(rec.params);
   assertClockParam(key, parsed.params);
+  if (key === '农业船舶汽车·灌溉') {
+    if (parsed.schema.A) parsed.schema.A = { ...parsed.schema.A, label: '面积 A' };
+    if (parsed.schema.d) parsed.schema.d = { ...parsed.schema.d, label: '水深 d' };
+  }
   return {
     equation: rec.equation,
     authority: rec.authority,

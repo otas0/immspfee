@@ -93,3 +93,6 @@
 集总	lumped	しゅうそうである	집중	concentrado	lumped	konzentriert
 稳态	steady state	ていじょうである	정상 상태	estado estacionario	régime permanent	Beharrung
 阶跃	step	ステップである	계단	escalón	échelon	Sprung
+集总参数	lumped parameter	しゅうそうパラメータである	집중 매개변수	parámetro concentrado	paramètre localisé	konzentrierter Parameter
+稳态阶跃响应	steady-state step response	ていじょうステップ応答である	정상상태 계단응답	respuesta al escalón en régimen	réponse indicielle en régime	Beharrungs-Sprungantwort
+有限差分格式	finite-difference scheme	ゆうげんさぶんスキームである	유한차분 형식	esquema de diferencias finitas	schéma aux différences finies	Finite-Differenzen-Schema

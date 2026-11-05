@@ -200,7 +200,7 @@ export function mountLocaleSelect(selectEl) {
   });
 }
 
-/** Call once at boot: URL wins, then hydrate packs. */
+/** Call once at boot: URL wins. Model name packs load when the sidebar paints. */
 export function bootI18n() {
   const fromUrl = readUrlLang();
   if (fromUrl && fromUrl !== locale) locale = fromUrl;
@@ -209,6 +209,11 @@ export function bootI18n() {
   try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
   writeUrlLang(locale);
   applyDomI18n();
+  return Promise.resolve();
+}
+
+/** Load en/ja catalog names just before the sidebar needs them. */
+export function ensureSidebarLocales() {
   return ensureModelPack(locale);
 }
 

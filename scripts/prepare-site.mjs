@@ -15,7 +15,13 @@ const out = path.resolve(process.argv[2] || path.join(root, '_site'));
 const catalog = readCatalog(root);
 assertDomainCoverage(catalog);
 const stamp = fingerprint(root);
-const stamped = { js: entryStamp(stamp), css: stamp.css, main: stamp.js };
+const stamped = {
+  js: entryStamp(stamp),
+  css: stamp.css,
+  main: stamp.js,
+  domainIndex: stamp.domainIndex,
+  domains: stamp.domains,
+};
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'asset-stamp.json'), `${JSON.stringify(stamped)}\n`);
 const indexPath = path.join(out, 'index.html');
@@ -28,4 +34,12 @@ const domains = [...new Set(catalog.map((spec) => spec.domain || '其他'))];
 for (const domain of domains) {
   fs.writeFileSync(path.join(dir, `${domain}.json`), JSON.stringify(specsForDomain(catalog, domain)));
 }
-console.log('prepared site', stamped.js, stamped.css, 'domains', domains.length);
+const bundleSrc = path.join(root, 'js/bundle');
+const bundleOut = path.join(out, 'js/bundle');
+if (fs.existsSync(bundleSrc)) {
+  fs.mkdirSync(bundleOut, { recursive: true });
+  for (const name of fs.readdirSync(bundleSrc)) {
+    fs.copyFileSync(path.join(bundleSrc, name), path.join(bundleOut, name));
+  }
+}
+console.log('prepared site', stamped.js, stamped.css, 'domains', domains.length, 'index', stamped.domainIndex);

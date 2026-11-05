@@ -1,5 +1,6 @@
 /**
- * First module. Paint the shell and canvas before the catalog graph loads.
+ * First module. Paint the shell, preload the wanted subject, then load the lab bundle.
+ * PERF: Pages must load ./bundle/lab.js — never ./main.js.
  */
 const canvas = document.getElementById('canvas');
 const wrap = document.querySelector('.canvas-wrap');
@@ -20,11 +21,84 @@ document.documentElement.dataset.boot = 'shell';
 const status = document.getElementById('boot-status');
 if (status) status.hidden = true;
 
+function mark(name) {
+  try { performance.mark(name); } catch { /* ignore */ }
+}
+
+function wantedModelId() {
+  try {
+    const q = new URLSearchParams(location.search);
+    const shot = q.get('shot') || q.get('narrow') || q.get('m');
+    if (shot) return shot;
+    const hash = String(location.hash || '');
+    const hit = hash.match(/(?:^|#|&)m=([^&]+)/);
+    if (hit) return decodeURIComponent(hit[1]);
+  } catch { /* ignore */ }
+  return null;
+}
+
+function preloadLink(href) {
+  if (!href) return;
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'fetch';
+  link.crossOrigin = 'anonymous';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+async function preloadCatalog() {
+  let stamp = {};
+  try {
+    stamp = await fetch('./asset-stamp.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {}));
+  } catch { /* ignore */ }
+  const indexHref = stamp.domainIndex
+    ? `./data/domain-index.json?v=${encodeURIComponent(stamp.domainIndex)}`
+    : './data/domain-index.json';
+  preloadLink(indexHref);
+  const indexPromise = fetch(indexHref).then((r) => {
+    if (!r.ok) throw new Error(String(r.status));
+    return r.json();
+  }).catch(() => null);
+  window.__preloadedIndex = indexPromise;
+  const id = wantedModelId();
+  if (!id) return indexPromise;
+  const rows = await indexPromise;
+  const row = Array.isArray(rows) ? rows.find((entry) => entry.id === id) : null;
+  if (!row?.domain) return indexPromise;
+  const domainHref = stamp.domains?.[row.domain]
+    ? `./data/domains/${encodeURIComponent(row.domain)}.json?v=${encodeURIComponent(stamp.domains[row.domain])}`
+    : `./data/domains/${encodeURIComponent(row.domain)}.json`;
+  preloadLink(domainHref);
+  window.__preloadedDomain = {
+    domain: row.domain,
+    promise: fetch(domainHref).then((r) => {
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    }).catch(() => null),
+  };
+  return indexPromise;
+}
+
 const stamp = new URL(import.meta.url).searchParams.get('v');
-await import(stamp ? `./main.js?v=${encodeURIComponent(stamp)}` : './main.js');
+const labUrl = stamp
+  ? `./bundle/lab.js?v=${encodeURIComponent(stamp)}`
+  : './bundle/lab.js';
+
+mark('boot-main-start');
+await Promise.all([
+  preloadCatalog(),
+  import(labUrl),
+]);
+mark('boot-main-end');
+try {
+  const mainMs = performance.measure('boot-main', 'boot-main-start', 'boot-main-end').duration;
+  window.__bootMarks = { ...(window.__bootMarks || {}), mainMs };
+} catch { /* ignore */ }
 document.documentElement.dataset.boot = 'ready';
 
 if ('serviceWorker' in navigator && navigator.webdriver !== true) {
+  // Default scope is the SW directory (…/immspfee/), not origin root — required on project Pages.
   const worker = new URL('../sw.js', import.meta.url);
-  navigator.serviceWorker.register(worker.href, { scope: '/' }).catch(() => {});
+  navigator.serviceWorker.register(worker.href).catch(() => {});
 }

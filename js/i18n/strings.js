@@ -19,7 +19,7 @@ export const STRINGS = {
     'ui.all': '全部',
     'ui.lang': '语言',
     'ui.shell': '壳',
-    'ui.microExit': '返回目录',
+    'ui.microExit': '返回课表',
     'ui.microLede': '有限筒长结构 · Hecht 光学 · Abbe 极限由当前 NA 给出',
     'ui.microReset': '重置光学',
     'ui.microBench': '光学参数',
