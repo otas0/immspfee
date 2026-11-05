@@ -11,3 +11,7 @@
 2. **No assumption / fidelity chrome.** Do not put ENGINEERING/principle badges, assumption paragraphs, caveat banners, or “not for long-term forecast” disclaimers on the canvas, model-shell strip, sidebar list, apply-banner, or HUD. Keep `authority` / `assumptions` / `fidelity` in catalog metadata for audits and custom-model validation only.
 3. **Multiple shells.** The chassis is not frozen. Register new layouts in `js/shells/registry.js` (`?shell=` + `localStorage`). Engines stay shared; only chrome/layout differs.
 4. **3D scope.** Ship **one** WebGL/Three-style 3D experience (compound microscope). Do not proliferate parallel 3D shells; 2D Canvas remains the default stage for the catalog.
+
+## Parallel agents / file locks
+
+Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
