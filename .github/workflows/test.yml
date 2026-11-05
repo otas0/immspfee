@@ -54,6 +54,7 @@ jobs:
         run: npm run test:shell
 
       - name: Cache reload and boot timing
+        if: always()
         run: npm run test:boot && npm run test:boot-timing
         env:
           PAGES_URL: https://otas0.github.io/immspfee/

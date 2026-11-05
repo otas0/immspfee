@@ -1843,9 +1843,11 @@ window.addEventListener('resize', () => {
   }
   syncDrawerChrome();
   measureSysSticky();
-  if (app.model && canvasWrap) {
-    paintFrame();
-    requestAnimationFrame(() => paintFrame());
+  if (canvas && canvasWrap) {
+    if (app.model) {
+      paintFrame();
+      requestAnimationFrame(() => paintFrame());
+    } else resizeCanvas(canvas, canvasWrap);
   }
 });
 
@@ -2017,9 +2019,11 @@ function applyActiveShell(id) {
     switchModel(shell.modelId, { skipShellSync: true });
   }
   syncDrawerChrome();
-  if (app.model && canvasWrap) {
-    paintFrame();
-    requestAnimationFrame(() => paintFrame());
+  if (canvas && canvasWrap) {
+    if (app.model) {
+      paintFrame();
+      requestAnimationFrame(() => paintFrame());
+    } else resizeCanvas(canvas, canvasWrap);
   }
 }
 
