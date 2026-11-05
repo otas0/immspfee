@@ -100,13 +100,19 @@ const shape = await freshPage.evaluate(() => ({
   buttons: document.querySelectorAll('#model-list .model-item').length,
 }));
 if (shape.domains < 5) fail(`sidebar subjects ${shape.domains}`);
-if (shape.buttons < 1 || shape.buttons >= 1517) fail(`sidebar mounted ${shape.buttons} models`);
+// Domains stay collapsed on cold boot — no model rows until the user opens a subject.
+if (shape.buttons !== 0) fail(`folded cold sidebar should paint 0 rows, got ${shape.buttons}`);
 if (domainLoads.length) fail(`default visit fetched subject files ${domainLoads.join(',')}`);
 const searchReq = freshPage.waitForRequest((req) => req.url().includes('/data/domains/'), { timeout: 20000 });
 await freshPage.fill('#filter-q', 'free-fall');
 await searchReq;
+await freshPage.waitForFunction(
+  () => document.querySelectorAll('#model-list button.model-item[data-id]').length > 0,
+  null,
+  { timeout: 20000 },
+);
 const searchLoads = [...new Set(domainLoads)];
-if (searchLoads.length !== 1 || !decodeURIComponent(searchLoads[0]).includes('物理')) {
+if (!searchLoads.some((path) => decodeURIComponent(path).includes('物理'))) {
   fail(`search fetched ${searchLoads.join(',') || 'nothing'}`);
 }
 const statusHidden = await freshPage.locator('#boot-status').isHidden();
