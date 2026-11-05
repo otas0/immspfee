@@ -37,7 +37,8 @@
       <p>The Lab supports <strong>zh / en / ja / ko / es / fr / de</strong> via the sidebar <em>language</em> select, and multiple chassis shells via <em>shell</em>.</p>
       <ul class="muted">
         <li><strong>Language URL:</strong> <code>?lang=en</code> (etc.) wins over <code>localStorage</code> key <code>physics-lab-locale-v1</code>, then syncs both ways.</li>
-        <li><strong>Shell URL:</strong> <code>?shell=lab-classic</code> | <code>lab-focus</code> | <code>lab-projector</code> | <code>lab-microscope3d</code> (persists to <code>immspfee-shell</code>). Projector hides the catalog sidebar by default (menu toggles an overlay).</li>
+        <li><strong>Shell URL:</strong> <code>?shell=lab-classic</code> | <code>lab-focus</code> | <code>lab-projector</code> | <code>lab-microscope3d</code> (persists to <code>immspfee-shell</code>).</li>
+        <li><strong>Lab Projector:</strong> catalog sidebar is hidden by default. The toolbar <em>menu</em> opens a temporary catalog overlay (click the dimmed backdrop or menu again to close). Parameters still use the right-hand column on wide screens, or the right/bottom fixed drawer at ≤1100px — never a reserved empty grid column beside the stage.</li>
         <li><strong>Microscope shell:</strong> clicking <code>r016-显微镜</code> (or <code>?shell=lab-microscope3d</code>) leaves the catalog chrome for a dedicated WebGL optical stage — same Hecht finite-tube params, no pause/csv/classroom pack. <em>Back to catalog</em> returns to Lab Classic with the 2D structure sketch.</li>
         <li><strong><code>html.lang</code>:</strong> updated on switch for assistive tech (e.g. <code>zh-CN</code>, <code>en</code>, <code>ja</code>).</li>
         <li><strong>Focus:</strong> after a language change, focus returns to <code>#locale-select</code>.</li>
@@ -605,8 +606,8 @@ expr_a = a_extra + 0.01 * t</pre>
         <thead><tr><th>视口</th><th>工作台</th><th>params / close</th></tr></thead>
         <tbody>
           <tr><td>&gt; 1100px</td><td>三栏常驻；可用 params 折叠第三栏（<code>bench-collapsed</code>）</td><td>params 显示为 fold/bench；close 隐藏</td></tr>
-          <tr><td>≤ 1100px</td><td>右侧/底部抽屉</td><td>params 开合；close / 遮罩 / 拖拽可关</td></tr>
-          <tr><td>≤ 900px</td><td>同上 + 侧栏抽屉</td><td>menu 开侧栏；遮罩互斥关闭</td></tr>
+          <tr><td>≤ 1100px</td><td>右侧/底部 fixed 抽屉；不再保留空第三列。Projector / Focus / Classic 共用两列 grid</td><td>params 开合；close / 遮罩 / 拖拽可关；compact 下清除 <code>bench-collapsed</code></td></tr>
+          <tr><td>≤ 900px</td><td>同上 + 侧栏抽屉</td><td>menu 开侧栏；Projector 走 overlay + 遮罩点击关闭</td></tr>
         </tbody>
       </table>
     </div>

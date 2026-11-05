@@ -1134,9 +1134,14 @@ function syncDrawerChrome() {
     btnCloseBench.setAttribute('aria-hidden', compact ? 'false' : 'true');
   }
   const overlayOpen = document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay');
+  // Projector overlay uses the same dimmed backdrop as the mobile drawer.
   const showBackdrop = sideOpen || overlayOpen || (compact && bench.classList.contains('open'));
   drawerBackdrop.hidden = !showBackdrop;
-  document.body.classList.toggle('drawer-open', !!(showBackdrop && (isMobileDrawer() || overlayOpen)));
+  document.body.classList.toggle('drawer-open', !!showBackdrop);
+  document.getElementById('chassis')?.classList.toggle(
+    'bench-drawer-open',
+    !!(compact && bench.classList.contains('open')),
+  );
 }
 
 function isProjectorShell() {
@@ -1169,8 +1174,8 @@ function setSidebarOpen(open) {
 
 function setBenchOpen(open) {
   const chassis = document.getElementById('chassis');
-  // 宽屏：params 折叠/展开第三栏（bench-collapsed），close 仍无操作空间。
-  // 窄屏抽屉：open=false 真正收起。
+  // Wide: params folds the third column (bench-collapsed). Compact: only the
+  // fixed drawer (.bench.open) — never keep both states at once.
   if (!isCompact()) {
     bench.classList.add('open');
     bench.style.transform = '';
@@ -1183,6 +1188,7 @@ function setBenchOpen(open) {
     return;
   }
   chassis?.classList.remove('bench-collapsed');
+  try { localStorage.setItem('physics-lab-bench-collapsed', '0'); } catch { /* ignore */ }
   bench.classList.toggle('open', open);
   if (!open) {
     bench.style.transform = '';
@@ -1429,6 +1435,8 @@ drawerBackdrop.addEventListener('click', () => {
 });
 
 document.addEventListener('keydown', (e) => {
+  // Microscope shell owns Escape / undo — do not mix with catalog drawer keys.
+  if (microUi?.onKeydown?.(e)) return;
   const inField = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT');
   // Ctrl/Cmd+Shift+Z → redoEdge；Ctrl/Cmd+Z → undoEdge
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !inField) {
@@ -1831,11 +1839,17 @@ window.addEventListener('resize', () => {
   const chassis = document.getElementById('chassis');
   chassis?.classList.remove('shell-sidebar-overlay');
   if (!isCompact()) {
+    const collapsed = localStorage.getItem('physics-lab-bench-collapsed') === '1';
     bench.classList.add('open');
     bench.style.transform = '';
     bench.style.height = '';
-  } else if (localStorage.getItem(AUTO_OPEN_BENCH_KEY) !== '1') {
-    setBenchOpen(false);
+    chassis?.classList.toggle('bench-collapsed', collapsed);
+  } else {
+    // Compact owns the fixed drawer only — drop wide-layout fold state.
+    chassis?.classList.remove('bench-collapsed');
+    if (localStorage.getItem(AUTO_OPEN_BENCH_KEY) !== '1') {
+      setBenchOpen(false);
+    }
   }
   if (isProjectorShell() || !isMobileDrawer()) {
     sidebar.classList.remove('open');
@@ -2055,8 +2069,10 @@ async function boot() {
   if (localStorage.getItem('physics-lab-hc') === '1') {
     document.documentElement.classList.add('hc');
   }
-  if (localStorage.getItem('physics-lab-bench-collapsed') === '1') {
+  if (!isCompact() && localStorage.getItem('physics-lab-bench-collapsed') === '1') {
     document.getElementById('chassis')?.classList.add('bench-collapsed');
+  } else {
+    document.getElementById('chassis')?.classList.remove('bench-collapsed');
   }
   microUi = createMicroscopeChrome({
     t,

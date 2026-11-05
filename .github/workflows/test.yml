@@ -34,7 +34,21 @@ jobs:
         run: npx playwright install-deps chromium
 
       - name: Unit tests
-        run: npm test
+        id: unit_tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          npm test 2>&1 | tee artifacts/npm-test.log
+
+      - name: Annotate glyphRows drift
+        if: failure() && steps.unit_tests.outcome == 'failure'
+        shell: bash
+        run: |
+          key=$(grep -oE 'first key [^[:space:]]+' artifacts/npm-test.log 2>/dev/null | head -1 | sed 's/^first key //' || true)
+          if [ -n "$key" ]; then
+            echo "::error title=glyphRows.js drift::first key $key — regenerate with npm run gen:glyphs and commit js/i18n/glyphRows.js"
+          fi
 
       - name: Schema coverage report
         run: npm run report:schema
@@ -51,7 +65,16 @@ jobs:
         run: npm run test:narrow
 
       - name: Shell chrome, DPR cap, and projector overlay
+        id: shell_chrome
         run: npm run test:shell
+
+      - name: Upload shell-chrome screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-chrome-screenshots
+          path: shots/shell-*.png
+          if-no-files-found: ignore
 
       - name: Cache reload and boot timing
         if: always()
