@@ -65,8 +65,6 @@ for (const [id, file] of layout) {
       covered,
       off,
       formula: formula?.textContent || '',
-      assumptions: !!document.getElementById('shell-assumptions'),
-      assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
       formulaHan: /[\u4e00-\u9fff]/.test(formula?.textContent || ''),
       overflowY: fs?.overflowY || '',
       maxHeight: fs?.maxHeight || '',
@@ -81,7 +79,6 @@ for (const [id, file] of layout) {
   if (info.open) failures.push(`${id}: drawer opened by default`);
   if (info.covered || info.off) failures.push(`${id}: formula covered or offscreen (${info.formula})`);
   if (!info.formula.startsWith('Equation ')) failures.push(`${id}: formula missing (${info.formula})`);
-  if (info.assumptions || info.assumptionText) failures.push(`${id}: assumption strip still on the shell`);
   if (info.formulaHan) failures.push(`${id}: formula still has Han (${info.formula})`);
   if (info.overflowY !== 'auto' || info.maxHeight === 'none') failures.push(`${id}: formula is not a scrolling strip (${info.overflowY} ${info.maxHeight})`);
   if (bytes < 8000) failures.push(`${id}: screenshot too small (${bytes})`);
@@ -94,14 +91,22 @@ for (const [id, file] of layout) {
   if (id === 'neutron-diffusion') {
     if (!info.texts.includes('φ = φ₀ cos(πx/a)')) failures.push(`${id}: canvas missing the cosine label`);
     if (info.caveatClipped || !info.caveatOnScreen) failures.push(`${id}: caveat clipped or offscreen`);
-    const overlap = await page.evaluate(() => {
+    const scrolled = await page.evaluate(() => {
+      const asm = document.getElementById('shell-assumptions');
       const formula = document.getElementById('shell-formula');
       const caveat = document.getElementById('shell-caveat');
+      if (asm) asm.scrollTop = asm.scrollHeight;
       const fr = formula?.getBoundingClientRect();
       const cr = caveat?.getBoundingClientRect();
-      return !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
+      const overlap = !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
+      const endInBox = !!(asm && asm.scrollTop + asm.clientHeight >= asm.scrollHeight - 2);
+      return { endInBox, overlap, text: asm?.textContent || '' };
     });
-    if (overlap) failures.push(`${id}: formula bar covers the caveat`);
+    await page.screenshot({ path: path.join(shots, 'narrow-neutron-assumption.png') });
+    if (!scrolled.text.includes('not a design') || !scrolled.endInBox) {
+      failures.push(`${id}: assumption scroll cannot reveal “not a design”`);
+    }
+    if (scrolled.overlap) failures.push(`${id}: formula bar covers the caveat`);
   }
 }
 

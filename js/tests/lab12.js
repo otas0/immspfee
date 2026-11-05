@@ -137,12 +137,41 @@ export function runLab12() {
   const bohrEn = translateCatalogText('en', '类氢、历史模型');
   assert('玻尔假设译成 hydrogen-like; historical model', bohrEn === 'hydrogen-like; historical model', bohrEn);
 
-  const hall = models.find((m) => /霍尔/.test(`${m.id} ${m.name}`) && m.params && Object.prototype.hasOwnProperty.call(m.params, 'thick'));
-  assert('霍尔厚度参数名不是时钟 t', !!hall && !Object.prototype.hasOwnProperty.call(hall.params, 't') && !Object.prototype.hasOwnProperty.call(hall.paramSchema || {}, 't'), hall?.id || 'missing');
+  const eCharge = 1.602176634e-19;
+  const hallIds = ['r014-霍尔效应', 'r025-量子霍尔'];
+  for (const id of hallIds) {
+    const hall = byId(id);
+    const thick = hall?.params?.thick;
+    const expect = hall ? (hall.params.I * hall.params.B) / (hall.params.n * eCharge * thick) : NaN;
+    const hallSt = hall ? boot(hall) : null;
+    assert(`${id} 厚度键是 thick、标签仍是厚度 t`, !!hall
+      && thick === 1e-4
+      && !Object.prototype.hasOwnProperty.call(hall.params, 't')
+      && !Object.prototype.hasOwnProperty.call(hall.paramSchema || {}, 't')
+      && hall.paramSchema?.thick?.label === '厚度 t', hall?.paramSchema?.thick?.label || 'missing');
+    assert(`${id} 默认 V_H = I B / (n e thick)`, !!hallSt && Math.abs(hallSt.VH - expect) < 1e-9 * Math.abs(expect), String(hallSt?.VH));
+  }
 
-  const rlCourse = byId('r013-rl');
-  const rlSt = rlCourse ? boot(rlCourse) : null;
-  assert('课程 RL 在观察时刻电流非零', !!rlSt && rlSt.i > 1, String(rlSt?.i));
+  const irr = byId('r099-灌溉');
+  let irrClock = false;
+  try { assertClockParam('农业船舶汽车·灌溉', { t: 3600 }); } catch { irrClock = true; }
+  const irrQ = irr ? (irr.params.A * irr.params.d) / irr.params.duration : NaN;
+  const irrSt = irr ? boot(irr) : null;
+  const irrRead = irrSt ? (irrSt.Q ?? irrSt.y) : NaN;
+  assert('灌溉时长参数是 duration，时钟 t 在加载期被拒绝', !!irr
+    && irr.params.duration === 3600
+    && !Object.prototype.hasOwnProperty.call(irr.params, 't')
+    && !Object.prototype.hasOwnProperty.call(irr.paramSchema || {}, 't')
+    && irrClock
+    && Math.abs(irrRead - irrQ) < 1e-9, `${irr?.params && Object.keys(irr.params).join(',')} Q=${irrRead}`);
+
+  const inductors = ['r013-rl', 'r013-rlc', 'r014-自感'].map((id) => {
+    const model = byId(id);
+    return { id, model, state: model ? boot(model) : null };
+  });
+  const currents = inductors.map((row) => row.state?.i);
+  const sameCurrent = currents.every((i) => Number.isFinite(i) && Math.abs(i - currents[0]) < 1e-9);
+  assert('课程 RL、RLC、自感在同一 t₀ 读到同一电流', inductors.every((row) => row.model?.params?.t0 === 0.04) && sameCurrent && currents[0] > 1, currents.map(String).join(','));
   const handRl = byId('rl-circuit');
   const handRlSt = handRl ? boot(handRl) : null;
   assert('手写 RL 从零电流出发', !!handRlSt && Math.abs(handRlSt.y) < 1e-9, String(handRlSt?.y));

@@ -32,6 +32,7 @@ export const ZH_LABELS = {
   produceRate: '生产速率', consumeRate: '消费速率', cx: '中心 x',
   bits: '位数', scan: '扫描', useNet: '网表开关', edgeW: '边权',
   restVel: '静止阈值', ground: '地面高度', showVectors: '显示矢量',
+  duration: '时长 t',
 };
 
 const ZH_RE = /[\u4e00-\u9fff]/;

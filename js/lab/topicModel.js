@@ -2589,14 +2589,15 @@ function irrigation(spec) {
     equation: 'Q = A d / t',
     authority: '灌溉水量平衡（体积 = 面积 × 水深）',
     assumptions: '均匀灌水深度、无损失',
-    params: { A: 1000, d: 0.03, t: 3600 },
+    params: { A: 1000, d: 0.03, duration: 3600 },
     schema: {
       A: S('A', 'dynamics', 'm²', 10, 1e5),
       d: S('d', 'dynamics', 'm', 0.001, 0.2),
-      t: S('t', 'dynamics', 's', 60, 86400),
+      duration: S('时长 t', 'dynamics', 's', 60, 86400),
     },
     tick(state) {
-      state.Q = P(state.params, 'A', 1000) * P(state.params, 'd', 0.03) / Math.max(1, P(state.params, 't', 3600));
+      const duration = Math.max(1, P(state.params, 'duration', 3600));
+      state.Q = P(state.params, 'A', 1000) * P(state.params, 'd', 0.03) / duration;
     },
     plot: (s) => s.Q,
     rows: (s) => [['Q', s.Q, 'm³/s']],

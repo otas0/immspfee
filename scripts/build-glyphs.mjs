@@ -3,6 +3,7 @@
  * Build js/i18n/glyphRows.js from data/locales/glyph.tsv.
  * Columns: zh, en, ja, ko, es, fr, de.
  */
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,7 +35,19 @@ for (const name of charFiles) {
   }
 }
 const src = files.map((n) => fs.readFileSync(path.join(dir, n), 'utf8')).join('\n') + '\n' + charLines.join('\n');
-const chars = fs.readFileSync('/tmp/chars.txt', 'utf8').trim().split('\n');
+const catalogHan = new Set();
+for (const name of ['catalog.json', 'models.json']) {
+  const data = JSON.parse(fs.readFileSync(path.join(root, 'data', name), 'utf8'));
+  const entries = Array.isArray(data) ? data : (data.models || data.entries || Object.values(data));
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') continue;
+    for (const field of ['assumptions', 'formula']) {
+      for (const ch of String(entry[field] || '').match(/[\u4e00-\u9fff]/g) || []) catalogHan.add(ch);
+    }
+  }
+}
+const extra = fs.existsSync('/tmp/chars.txt') ? fs.readFileSync('/tmp/chars.txt', 'utf8').trim().split('\n') : [];
+const chars = [...new Set([...catalogHan, ...extra.filter(Boolean)])];
 const rows = [];
 for (const line of src.split('\n')) {
   if (!line.trim()) continue;
@@ -47,7 +60,10 @@ for (const line of src.split('\n')) {
 }
 const have = new Set(rows.filter((r) => r[0].length === 1).map((r) => r[0]));
 const missing = chars.filter((c) => !have.has(c));
-if (missing.length) console.error('missing chars', missing.length);
+if (missing.length) {
+  console.error('missing chars', missing.length, missing.join(''));
+  process.exit(1);
+}
 for (const row of rows) {
   const [zh, en, ja, ko, es, fr, de] = row;
   if (/[\u4e00-\u9fff]/.test([en, ko, es, fr, de].join(' '))) {
@@ -60,5 +76,17 @@ for (const row of rows) {
   }
 }
 const out = `/** Generated six-language catalog phrases. */\nexport const ROWS = ${JSON.stringify(rows)};\n`;
-fs.writeFileSync(path.join(root, 'js/i18n/glyphRows.js'), out);
+const dest = path.join(root, 'js/i18n/glyphRows.js');
+fs.writeFileSync(dest, out);
+let committed = '';
+try {
+  committed = execSync('git show HEAD:js/i18n/glyphRows.js', { cwd: root, encoding: 'utf8' });
+} catch {
+  console.error('glyphRows.js is not committed');
+  process.exit(1);
+}
+if (committed !== out) {
+  console.error('glyphRows.js differs from the committed file');
+  process.exit(1);
+}
 console.log('glyph rows', rows.length);
