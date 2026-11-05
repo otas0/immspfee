@@ -21,6 +21,7 @@ import {
 } from './lab/userModels.js';
 import {
   t,
+  getLocale,
   domainLabel,
   localizeModel,
   mountLocaleSelect,
@@ -28,6 +29,8 @@ import {
   onLocaleChange,
   bootI18n,
 } from './i18n/index.js';
+import { assumptionPreview, formulaLine } from './i18n/previewText.js';
+import { designCaveatText } from './lab/designCaveat.js';
 import {
   listShells,
   resolveShellId,
@@ -385,9 +388,27 @@ function updateShellStrip() {
     const isDisclaimer = /原理级|非\s*(FEA|工业|临床|设计|CFD|SPICE|N\s*体)|不作长期|假设/.test(hint);
     shellHintEl.textContent = isDisclaimer ? '' : hint;
   }
-  // Never paint formula / assumption / caveat banners on the stage shell.
-  for (const id of ['shell-formula', 'shell-assumptions', 'shell-caveat']) {
-    document.getElementById(id)?.remove();
+  const shell = document.getElementById('model-shell');
+  const ensureLine = (id, className) => {
+    let el = document.getElementById(id);
+    if (!el && shell) {
+      el = document.createElement('p');
+      el.id = id;
+      el.className = className;
+      shell.appendChild(el);
+    }
+    return el;
+  };
+  const loc = getLocale();
+  const formulaEl = ensureLine('shell-formula', 'shell-formula');
+  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
+  const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
+  if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
+  if (asmLine) asmLine.textContent = assumptionPreview(loc, app.model?.assumptions || '');
+  if (caveatEl) {
+    const caveat = designCaveatText(app.model);
+    caveatEl.hidden = !caveat;
+    caveatEl.textContent = caveat || '';
   }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
@@ -2015,8 +2036,33 @@ function populateUserModelFamilies() {
 
 function showUserModelError(msg) {
   if (!userModelError) return;
-  userModelError.hidden = !msg;
-  userModelError.textContent = msg || '';
+  userModelError.replaceChildren();
+  if (!msg) {
+    userModelError.hidden = true;
+    return;
+  }
+  userModelError.hidden = false;
+  const text = String(msg);
+  const hit = text.match(/未命中主题键「([^」]+)」/);
+  userModelError.append(document.createTextNode(text));
+  if (!hit) return;
+  const key = hit[1];
+  const spaced = key.includes(' · ') ? key : key.replace('·', ' · ');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn quiet topic-miss-search';
+  btn.textContent = spaced;
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(spaced); } catch { /* clipboard may be blocked */ }
+    if (filterQ) {
+      filterQ.value = spaced;
+      filterQ.focus();
+    }
+    app.filter.q = spaced;
+    buildSidebar();
+  });
+  userModelError.append(document.createTextNode(' '));
+  userModelError.append(btn);
 }
 
 function renderUserModelList() {

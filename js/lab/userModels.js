@@ -3,6 +3,7 @@
  * 硬规则：权威来源 + 控制方程 + 假设 + 伦理核对；拒绝空壳「教学动画」。
  */
 import { createFactoryModel } from '../models/factory.js';
+import { topicMissNote } from './topicOverrides.js';
 import { FAMILY_META } from './formalism.js';
 import templates from '../../data/authority-templates.json' with { type: 'json' };
 
@@ -48,32 +49,35 @@ export function validateUserModelDraft(draft, opts = {}) {
   const fidelity = draft.fidelity === 'principle' ? 'principle' : 'engineering';
   const ethicsOk = !!draft.ethicsOk;
 
-  if (!name || name.length < 2) return { ok: false, error: '名称至少 2 字' };
-  if (!domain) return { ok: false, error: '须选领域' };
-  if (!sub) return { ok: false, error: '须填子类' };
+  const fail = (msg) => {
+    const miss = topicMissNote(formula);
+    return { ok: false, error: miss ? `${msg}；${miss}` : msg };
+  };
+  if (!name || name.length < 2) return fail('名称至少 2 字');
+  if (!domain) return fail('须选领域');
+  if (!sub) return fail('须填子类');
   if (!USER_MODEL_FAMILIES.includes(family)) {
-    return { ok: false, error: `引擎族无效：${family}` };
+    return fail(`引擎族无效：${family}`);
   }
-  if (formula.length < 3) return { ok: false, error: '控制方程过短，须写明支配关系' };
+  if (formula.length < 3) return fail('控制方程过短，须写明支配关系');
   if (authority.length < 8) {
-    return { ok: false, error: '权威来源过短：须书名/标准/DOI + 章节' };
+    return fail('权威来源过短：须书名/标准/DOI + 章节');
   }
   if (assumptions.length < 12) {
-    return { ok: false, error: '须写清适用假设与局限（工业级不可省略）' };
+    return fail('须写清适用假设与局限（工业级不可省略）');
   }
   if (!/(忽略|适用|范围|不是|线性|小角|集总|limit|neglect|assume|valid)/i.test(assumptions)) {
-    return { ok: false, error: '缺少假设：适用范围或忽略项（请写明例如「忽略摩擦」或「不是设计工具」）' };
+    return fail('缺少假设：适用范围或忽略项（请写明例如「忽略摩擦」或「不是设计工具」）');
   }
   if (description.length < 12) {
-    return { ok: false, error: '描述须说明状态量/输入输出与文献对应' };
+    return fail('描述须说明状态量/输入输出与文献对应');
   }
   if (!ethicsOk) {
-    return { ok: false, error: '须勾选：已对照权威文档核对概念与伦理边界' };
+    return fail('须勾选：已对照权威文档核对概念与伦理边界');
   }
-  // 拒绝明显「玩具文案」
   const toy = /好玩|动画|随便|demo only|just for fun/i;
   if (toy.test(`${name} ${description}`)) {
-    return { ok: false, error: '拒绝玩具向文案；本实验室模型须工程/学术可用' };
+    return fail('拒绝玩具向文案；本实验室模型须工程/学术可用');
   }
 
   const keepId = typeof opts.keepId === 'string' && opts.keepId.startsWith('user-')

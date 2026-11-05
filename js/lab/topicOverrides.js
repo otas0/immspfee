@@ -1,6 +1,17 @@
 import { evalExpr, parseParamLine } from './expr.js';
 import { ROWS } from './topicRows.js';
 
+/** Simulation time is the identifier `t`. A parameter may not reuse that name. */
+export function exprUsesClock(expr) {
+  return /(?:^|[^A-Za-z0-9_])t(?:[^A-Za-z0-9_]|$)/.test(String(expr || ''));
+}
+
+export function assertClockParam(key, params) {
+  if (params && Object.prototype.hasOwnProperty.call(params, 't')) {
+    throw new Error(`clock whitelist: parameter "t" is reserved for simulation time (${key})`);
+  }
+}
+
 const table = new Map();
 for (const row of ROWS) {
   const [key, equation, authority, assumptions, params, expr, label, unit, fidelity] = row;
@@ -8,8 +19,9 @@ for (const row of ROWS) {
   table.set(key, { equation, authority, assumptions, params, expr, label, unit, fidelity: fidelity || 'principle' });
 }
 
-function toOptions(rec) {
+function toOptions(rec, key) {
   const parsed = parseParamLine(rec.params);
+  assertClockParam(key, parsed.params);
   return {
     equation: rec.equation,
     authority: rec.authority,
@@ -18,7 +30,9 @@ function toOptions(rec) {
     params: parsed.params,
     schema: parsed.schema,
     tick(state) {
-      state.y = evalExpr(rec.expr, { ...state.params, t: state.t || 0 });
+      const env = { ...state.params };
+      if (exprUsesClock(rec.expr)) env.t = state.t || 0;
+      state.y = evalExpr(rec.expr, env);
     },
     plot: (s) => s.y,
     rows: (s) => {
@@ -43,10 +57,11 @@ export function overrideOptions(spec) {
     const topic = formula.split('·').slice(1).join('·').trim();
     const key = `${prefix}·${topic}`;
     const hit = table.get(key);
-    if (hit) return toOptions(hit);
+    if (hit) return toOptions(hit, key);
   }
-  const byId = table.get(`id:${spec.id}`);
-  return byId ? toOptions(byId) : null;
+  const idKey = `id:${spec.id}`;
+  const byId = table.get(idKey);
+  return byId ? toOptions(byId, idKey) : null;
 }
 
 export function overrideKeyCount() {

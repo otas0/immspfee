@@ -1,0 +1,90 @@
+一群、均匀平板、外推边界略去；公开教科书临界条件，非设计	One-group, uniform slab, extrapolated boundary omitted; a public textbook criticality condition, not a design	一群の一様な平板で、外挿境界は省く。公開教科書の臨界条件であり、設計ではない	한 군, 균일 평판, 외삽 경계는 생략. 공개 교과서의 임계 조건이며 설계가 아니다	Un grupo, lamina uniforme, borde extrapolado omitido; condicion critica de manual publico, no un diseno	Un groupe, dalle uniforme, bord extrapole omis; condition critique de manuel public, pas une conception	Eine Gruppe, gleichmaessige Platte, extrapolierter Rand weggelassen; oeffentliche Lehrbuch-Kritikalitaet, kein Entwurf
+爆炸前静止，忽略外力；不是炸药配方	At rest before the explosion; external impulse neglected; not an explosive formulation	爆発前は静止し、外力を無視する。爆薬の配合ではない	폭발 전 정지, 외력은 무시. 폭약 배합이 아니다	En reposo antes de la explosion; impulso externo despreciado; no una formulacion explosiva	Au repos avant l explosion; impulsion externe negligee; pas une formulation explosive	Vor der Explosion in Ruhe; aeusserer Impuls vernachlaessigt; keine Sprengstoffrezeptur
+类氢、玻尔模型不是现代量子化学	Hydrogen-like; the Bohr model is not modern quantum chemistry	水素様であり、ボーア模型は現代の量子化学ではない	수소 유사이며, 보어 모형은 현대 양자 화학이 아니다	Tipo hidrogeno; el modelo de Bohr no es la quimica cuantica moderna	De type hydrogene; le modele de Bohr n est pas la chimie quantique moderne	Wasserstoffaehnlich; das Bohr-Modell ist nicht die moderne Quantenchemie
+恒温	The temperature is constant	温度は一定である	온도는 일정하다	La temperatura es constante	La temperature est constante	Die Temperatur ist konstant
+等温	isothermal	等温である	등온이다	isotermico	isotherme	isotherm
+真空	vacuum	真空である	진공이다	vacio	vide	Vakuum
+弹性	elastic	弾性である	탄성이다	elastico	elastique	elastisch
+力	force	力である	힘	fuerza	force	Kraft
+一维平板基模	one-dimensional slab fundamental mode	一次元平板の基本モード	1차원 평판 기본 모드	modo fundamental de lamina unidimensional	mode fondamental de dalle unidimensionnelle	Grundmode einer eindimensionalen Platte
+临界条件	criticality condition	臨界条件である	임계 조건	condicion critica	condition critique	Kritikalitaetsbedingung
+可选观察时刻	optional observation time	任意の観測時刻	선택적 관측 시각	instante de observacion opcional	instant d observation facultatif	optionaler Beobachtungszeitpunkt
+时间常数	time constant	時定数	시정수	constante de tiempo	constante de temps	Zeitkonstante
+光子/电子	photon or electron	フォトンまたは電子	광자 또는 전자	foton o electron	photon ou electron	Photon oder Elektron
+不是	is not	ではない	아니다	no es	n est pas	ist nicht
+忽略	neglecting	無視して	무시하고	despreciando	en negligeant	vernachlaessigt
+均匀	uniform	一様な	균일한	uniforme	uniforme	gleichmaessig
+外推	extrapolated	外挿した	외삽한	extrapolado	extrapole	extrapoliert
+边界	boundary	境界である	경계	borde	bord	Rand
+略去	omitted	省いた	생략한	omitido	omis	weggelassen
+公开	public	公開の	공개의	publico	public	oeffentlich
+教科书	textbook	教科書の	교과서	manual	manuel	Lehrbuch
+非设计	not a design	設計ではない	설계가 아니다	no es un diseno	pas une conception	kein Entwurf
+设计	design	設計である	설계	diseno	conception	Entwurf
+爆炸	explosion	爆発である	폭발	explosion	explosion	Explosion
+静止	at rest	静止している	정지	en reposo	au repos	in Ruhe
+外力	external force	外力である	외력	fuerza externa	force externe	aeusere Kraft
+配方	formulation	配合である	배합	formulacion	formulation	Rezeptur
+炸药	explosive	爆薬である	폭약	explosivo	explosif	Sprengstoff
+类氢	hydrogen-like	水素様の	수소 유사	tipo hidrogeno	de type hydrogene	wasserstoffaehnlich
+玻尔	Bohr	ボーアの	보어	Bohr	Bohr	Bohr
+模型	model	模型である	모형	modelo	modele	Modell
+现代	modern	現代の	현대	moderno	moderne	modern
+量子	quantum	量子の	양자	cuantico	quantique	Quanten
+化学	chemistry	化学の	화학	quimica	chimie	Chemie
+轨道	orbit	軌道である	궤도	orbita	orbite	Bahn
+恢复系数	restitution	反発係数	반발계수	restitucion	restitution	Stosszahl
+法向	normal direction	法線方向の	법선 방향	direccion normal	direction normale	Normalenrichtung
+切向	tangential direction	接線方向の	접선 방향	direccion tangencial	direction tangentielle	Tangentenrichtung
+双精度	double precision	倍精度である	배정밀도	doble precision	double precision	doppelte Genauigkeit
+截断	clamp	切り捨てない	절단	recorte	ecretage	Abschneiden
+观察	observation	観測である	관측	observacion	observation	Beobachtung
+时刻	instant	時刻である	시각	instante	instant	Zeitpunkt
+可选	optional	任意の	선택적	opcional	facultatif	optional
+时间	time	時間である	시간	tiempo	temps	Zeit
+常数	constant	定数である	상수	constante	constante	Konstante
+一维	one-dimensional	一次元の	1차원	unidimensional	unidimensionnel	eindimensional
+二维	two-dimensional	二次元の	2차원	bidimensional	bidimensionnel	zweidimensional
+三维	three-dimensional	三次元の	3차원	tridimensional	tridimensionnel	dreidimensional
+平板	slab	平板である	평판	lamina	dalle	Platte
+基模	fundamental mode	基本モード	기본 모드	modo fundamental	mode fondamental	Grundmode
+临界	critical	臨界の	임계	critico	critique	kritisch
+条件	condition	条件である	조건	condicion	condition	Bedingung
+光子	photon	フォトン	광자	foton	photon	Photon
+电子	electron	電子である	전자	electron	electron	Elektron
+质子	proton	陽子である	양성자	proton	proton	Proton
+中子	neutron	中性子である	중성자	neutron	neutron	Neutron
+剂量	dose	線量である	선량	dosis	dose	Dosis
+辐射	radiation	放射である	방사선	radiacion	rayonnement	Strahlung
+粒子	particle	粒子である	입자	particula	particule	Teilchen
+理想	ideal	理想的な	이상적인	ideal	ideal	ideal
+线性	linear	線形の	선형	lineal	lineaire	linear
+默认	default	既定の	기본	predeterminado	par defaut	Standard
+真空	vacuum	真空である	진공	vacio	vide	Vakuum
+能量	energy	エネルギー	에너지	energia	energie	Energie
+质量	mass	質量である	질량	masa	masse	Masse
+速度	velocity	速度である	속도	velocidad	vitesse	Geschwindigkeit
+温度	temperature	温度である	온도	temperatura	temperature	Temperatur
+压力	pressure	圧力である	압력	presion	pression	Druck
+电流	current	電流である	전류	corriente	courant	Strom
+电压	voltage	電圧である	전압	tension	tension	Spannung
+摩擦	friction	摩擦である	마찰	friccion	frottement	Reibung
+重力	gravity	重力である	중력	gravedad	gravite	Schwerkraft
+空气	air	空気である	공기	aire	air	Luft
+阻力	drag	抵抗である	저항	resistencia	trainee	Widerstand
+扩散	diffusion	拡散である	확산	difusion	diffusion	Diffusion
+介质	medium	媒質である	매질	medio	milieu	Medium
+平衡	equilibrium	平衡である	평형	equilibrio	equilibre	Gleichgewicht
+守恒	conservation	保存である	보존	conservacion	conservation	Erhaltung
+碰撞	collision	衝突である	충돌	colision	collision	Stoss
+效率	efficiency	効率である	효율	eficiencia	rendement	Wirkungsgrad
+工程	engineering	工学である	공학	ingenieria	ingenierie	Ingenieurwesen
+教学	teaching	教材の	교육	docente	pedagogique	Lehr
+示意	schematic	模式的な	개략	esquematico	schematique	schematisch
+仿真	simulation	シミュレーション	시뮬레이션	simulacion	simulation	Simulation
+定义	definition	定義である	정의	definicion	definition	Definition
+近似	approximation	近似である	근사	aproximacion	approximation	Naeherung
+给定	given	与えられた	주어진	dado	donne	vorgegeben
+临床	clinical	臨床の	임상	clinico	clinique	klinisch
+时钟	clock	時計である	시계	reloj	horloge	Uhr
+随	following	したがって	따라	segun	selon	nach

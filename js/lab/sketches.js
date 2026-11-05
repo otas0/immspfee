@@ -57,6 +57,19 @@ function drawCollision(ctx, W, H, state, spec) {
       ctx.fillStyle = muted();
       ctx.fillText(vel.toFixed(2), cx - 18, y + 36);
     });
+    const ut = P(state.params, 'ut', 2);
+    const yT = Math.min(H - 28, y + 70);
+    ctx.fillStyle = muted();
+    ctx.fillText('切向 ut（不参与 e）', 16, yT - 16);
+    ctx.save?.();
+    ctx.setLineDash?.([5, 4]);
+    ctx.strokeStyle = muted();
+    ctx.fillStyle = muted();
+    const lenT = (ut / Math.max(maxV, Math.abs(ut), 1)) * (W * 0.18);
+    arrow(ctx, W * 0.32, yT, W * 0.32 + lenT, yT);
+    ctx.setLineDash?.([]);
+    ctx.restore?.();
+    ctx.fillText(Number(ut).toFixed(2), W * 0.32 - 18, yT + 18);
     return true;
   }
   const u1 = P(state.params, 'u1', P(state.params, 'v2', 4));
@@ -199,6 +212,127 @@ function drawBar(ctx, W, H, state, equation) {
   return true;
 }
 
+function drawBohr(ctx, W, H, state) {
+  const nSel = Math.max(1, Math.round(P(state.params, 'n', 2)));
+  const top = 52;
+  const bot = H - 36;
+  const yOf = (e) => top + ((0 - e) / 13.6) * (bot - top);
+  ctx.fillStyle = muted();
+  ctx.font = '12px IBM Plex Mono, monospace';
+  ctx.fillText(`n=${nSel}  E=${(-13.6 / (nSel * nSel)).toFixed(2)} eV`, 16, 40);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  ctx.moveTo(28, yOf(0));
+  ctx.lineTo(W * 0.46, yOf(0));
+  ctx.stroke();
+  for (let n = 1; n <= 6; n += 1) {
+    const e = -13.6 / (n * n);
+    const y = yOf(e);
+    ctx.strokeStyle = n === nSel ? '#fc8' : ink();
+    ctx.lineWidth = n === nSel ? 2.4 : 1.2;
+    ctx.beginPath();
+    ctx.moveTo(28, y);
+    ctx.lineTo(W * 0.46, y);
+    ctx.stroke();
+    ctx.fillStyle = n === nSel ? '#fc8' : muted();
+    ctx.fillText(`${n}`, 14, y - 3);
+  }
+  const cx = W * 0.74;
+  const cy = H * 0.56;
+  ctx.fillStyle = '#fc8';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+  for (let n = 1; n <= 4; n += 1) {
+    const r = 14 + n * n * 3.2;
+    ctx.strokeStyle = n === nSel ? '#9ad' : 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = n === nSel ? 2 : 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = muted();
+  ctx.fillText('轨道 r∝n²', cx - 28, H - 16);
+  return true;
+}
+
+function drawNeutron(ctx, W, H) {
+  const l = 36;
+  const r = W - 20;
+  const mid = H * 0.58;
+  const amp = Math.min(78, Math.max(36, (H - 110) / 2));
+  ctx.fillStyle = muted();
+  ctx.font = '12px IBM Plex Mono, monospace';
+  ctx.fillText('φ = φ₀ cos(πx/a)', 16, 64);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  ctx.moveTo(l, mid);
+  ctx.lineTo(r, mid);
+  ctx.stroke();
+  ctx.strokeStyle = '#9d9';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  const n = 96;
+  for (let i = 0; i <= n; i += 1) {
+    const x = -0.5 + i / n;
+    const phi = Math.cos(Math.PI * x);
+    const px = l + (i / n) * (r - l);
+    const py = mid - phi * amp;
+    if (i) ctx.lineTo(px, py);
+    else ctx.moveTo(px, py);
+  }
+  ctx.stroke();
+  return true;
+}
+
+function drawRiver(ctx, W, H, state) {
+  const xi = P(state.params, 'xi', 0);
+  const Ed = Math.max(1e-3, P(state.params, 'E', 5));
+  const t = Math.max(0.05, state.t || 0.05);
+  const sigma = Math.sqrt(2 * Ed * t);
+  const l = 36;
+  const r = W - 20;
+  const base = H * 0.72;
+  const amp = Math.min(90, Math.max(40, H * 0.42));
+  ctx.fillStyle = muted();
+  ctx.font = '12px IBM Plex Mono, monospace';
+  const apart = Math.abs(xi) > 1e-6;
+  ctx.fillText(apart ? `探针距峰 ξ=${Number(xi).toFixed(2)} m` : '探针在峰 ξ=0', 16, 44);
+  ctx.strokeStyle = '#9cf';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  const n = 80;
+  const span = Math.max(4 * sigma, Math.abs(xi) + 2 * sigma, 1);
+  for (let i = 0; i <= n; i += 1) {
+    const x = -span + (2 * span * i) / n;
+    const g = Math.exp(-(x * x) / (4 * Ed * t));
+    const px = l + (i / n) * (r - l);
+    const py = base - g * amp;
+    if (i) ctx.lineTo(px, py);
+    else ctx.moveTo(px, py);
+  }
+  ctx.stroke();
+  const xToPx = (x) => l + ((x + span) / (2 * span)) * (r - l);
+  const peakX = xToPx(0);
+  const probeX = xToPx(xi);
+  ctx.strokeStyle = '#fc8';
+  ctx.beginPath();
+  ctx.moveTo(peakX, base);
+  ctx.lineTo(peakX, base - amp);
+  ctx.stroke();
+  ctx.fillText('峰', peakX - 6, base + 16);
+  if (apart) {
+    ctx.strokeStyle = '#f88';
+    ctx.beginPath();
+    ctx.moveTo(probeX, base);
+    ctx.lineTo(probeX, base - amp * Math.exp(-(xi * xi) / (4 * Ed * t)));
+    ctx.stroke();
+    ctx.fillStyle = '#f88';
+    ctx.fillText('探针', probeX - 12, base + 16);
+  }
+  return true;
+}
+
 function histFlat(state) {
   const hist = state.hist || [];
   if (hist.length < 2) return true;
@@ -216,7 +350,10 @@ function histFlat(state) {
  */
 export function sketchKind(spec) {
   const blob = `${spec?.id || ''} ${spec?.name || ''} ${spec?.formula || ''}`;
-  if (/碰撞|撞墙|反冲|collision/i.test(blob)) return 'collision';
+  if (/玻尔模型|玻尔能级|E_n\s*=\s*[−-]13\.6|E_n=[−-]13\.6/.test(blob) && !/玻尔兹曼/.test(blob)) return 'bohr';
+  if (/中子扩散|neutron-diffusion|π\s*x\s*\/\s*a|πx\/a/.test(blob)) return 'neutron';
+  if (/污染物扩散|探针在峰位|距峰 ξ/.test(blob)) return 'river';
+  if (/碰撞|斜碰|法向|撞墙|反冲|collision/i.test(blob)) return 'collision';
   if (/透镜|lens/i.test(blob)) return 'lens';
   if (/驻波|行波|横波|纵波|standing-wave|waveTravel|sin\(kx/i.test(blob)) return 'wave';
   return '';
@@ -226,6 +363,9 @@ export function drawTopicSketch(ctx, spec, state, view) {
   const W = view?.width || 640;
   const H = view?.height || 360;
   const kind = sketchKind(spec);
+  if (kind === 'bohr') return drawBohr(ctx, W, H, state);
+  if (kind === 'neutron') return drawNeutron(ctx, W, H);
+  if (kind === 'river') return drawRiver(ctx, W, H, state);
   if (kind === 'collision') return drawCollision(ctx, W, H, state, spec);
   if (kind === 'lens') return drawLens(ctx, W, H, state);
   if (kind === 'wave') return drawWave(ctx, W, H, state, /驻波|standing/.test(`${spec?.id || ''} ${spec?.name || ''} ${spec?.formula || ''}`));

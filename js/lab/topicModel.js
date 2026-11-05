@@ -129,6 +129,14 @@ function shell(spec, o) {
   };
 }
 
+function radiationKind(w) {
+  const x = Number(w);
+  if (Math.abs(x - 1) < 1e-6) return '光子/电子';
+  if (Math.abs(x - 2) < 1e-6) return '质子';
+  if (Math.abs(x - 20) < 1e-6) return 'α 粒子';
+  return '中子（w_R 随能量）';
+}
+
 function has(topic, re) {
   return re.test(topic || '');
 }
@@ -332,13 +340,14 @@ function newton(spec, topic) {
     return shell(spec, {
       equation: 'm v′ = m g − b v',
       authority: 'Thornton & Marion, Classical Dynamics, §2.4 线性阻力',
-      assumptions: '线性阻力、竖直向下为正、常 b',
-      params: { m: 1, g: 9.81, b: 0.4, v0: 0 },
+      assumptions: '线性阻力、竖直向下为正、常 b。t0 是可选观察时刻，默认一个时间常数 m/b',
+      params: { m: 1, g: 9.81, b: 0.4, v0: 0, t0: 2.5 },
       schema: {
         m: S('m', 'dynamics', 'kg', 0.1, 20),
         b: S('b', 'dynamics', 'kg/s', 0, 10),
         g: S('g', 'dynamics', 'm/s²', 1, 20),
         v0: S('v₀', 'initial', 'm/s', 0, 30),
+        t0: S('观察时刻 t₀', 'initial', 's', 0, 60),
       },
       tick(state) {
         const m = Math.max(1e-3, P(state.params, 'm', 1));
@@ -2851,12 +2860,13 @@ function selfL(spec) {
   return shell(spec, {
     equation: 'i(t) = (V/R) (1 − e^{−(R/L) t})',
     authority: 'Nilsson, 一阶 RL',
-    assumptions: '直流阶跃、零初始',
-    params: { V: 10, R: 5, L: 0.2 },
+    assumptions: '直流阶跃、零初始。t₀ 是可选观察时刻，默认一个时间常数 L/R',
+    params: { V: 10, R: 5, L: 0.2, t0: 0.04 },
     schema: {
       V: S('V', 'dynamics', 'V', 0, 48),
       R: S('R', 'dynamics', 'Ω', 0.2, 50),
       L: S('L', 'dynamics', 'H', 0.01, 2),
+      t0: S('观察时刻 t₀', 'initial', 's', 0, 60),
     },
     tick(state) {
       const R = Math.max(1e-3, P(state.params, 'R', 5));
@@ -4203,11 +4213,12 @@ function bateman(spec) {
   return shell(spec, {
     equation: '两代 Bateman：N2 = N10 λ1/(λ2−λ1) (e^{−λ1 t}−e^{−λ2 t})',
     authority: 'Krane, 两代放射性衰变链',
-    assumptions: 'N2(0)=0、λ1≠λ2',
-    params: { l1: 0.3, l2: 0.1, N10: 100 },
+    assumptions: 'N2(0)=0、λ1≠λ2。t₀ 是可选观察时刻，默认 2 s，避免只看见子体为零',
+    params: { l1: 0.3, l2: 0.1, N10: 100, t0: 2 },
     schema: {
       l1: S('λ1', 'dynamics', '1/s', 0.05, 2),
       l2: S('λ2', 'dynamics', '1/s', 0.05, 2),
+      t0: S('观察时刻 t₀', 'initial', 's', 0, 60),
     },
     tick(state) {
       const l1 = P(state.params, 'l1', 0.3);
@@ -4453,15 +4464,19 @@ const PREFIX = {
   宇宙: (s, t) => (has(t, /红移|哈勃|膨胀/) ? hubble(s) : has(t, /黑体|核合成|温度/) ? blackbodyPeak(s) : hubble(s)),
   粒子: (s, t) => debroglie(s),
   核物理: (s, t) => (has(t, /屏蔽|衰减/) ? shieldLaw(s) : has(t, /磁共振|拉莫/) ? larmor(s) : has(t, /临界|裂变|链式|反应堆/) ? criticality(s) : has(t, /剂量/) ? shell(s, {
-    equation: 'H = w_R D',
-    authority: 'ICRP 公开的当量剂量定义（教学）',
-    assumptions: '只做定义式乘法，非剂量评估',
+    equation: 'H = w_R D，默认光子/电子 w_R = 1，H = 1 mSv',
+    authority: 'ICRP 103 公开的辐射权重因子与当量剂量定义（教学）',
+    assumptions: '定义式。默认光子和电子 w_R=1；质子 w_R=2；α 粒子 w_R=20。中子的 w_R 随能量变化，这里不是剂量评估',
     fidelity: 'principle',
     params: { D: 0.001, w: 1 },
     schema: { D: S('D', 'dynamics', 'Gy', 0, 5), w: S('w_R', 'dynamics', '—', 1, 20) },
-    tick(st) { st.H = P(st.params, 'D', 0.001) * P(st.params, 'w', 1); },
+    tick(st) {
+      const w = P(st.params, 'w', 1);
+      st.H = P(st.params, 'D', 0.001) * w;
+      st.rad = radiationKind(w);
+    },
     plot: (st) => st.H,
-    rows: (st) => [['H', st.H, 'Sv']],
+    rows: (st) => [['H', st.H, 'Sv'], ['辐射', st.rad, '']],
   }) : decay(s)),
   凝聚态: (s, t) => (has(t, /半导体|PN|MOS/) ? pnBarrier(s) : has(t, /霍尔/) ? hall(s) : has(t, /超导/) ? shell(s, {
     equation: '伦敦穿透深度关系的教学式 λ_L = √(m / (μ₀ n_s e²))',

@@ -8,6 +8,7 @@
     "test:pot": "node scripts/test-pot.mjs",
     "test:catalog": "node scripts/validate-catalog.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
+    "test:narrow": "node scripts/narrow-regression.mjs",
     "report:schema": "node scripts/schema-coverage.mjs",
     "stamp:authority": "node scripts/stamp-authority.mjs",
     "sync:authority": "node scripts/sync-runtime-authority.mjs",

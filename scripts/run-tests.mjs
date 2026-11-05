@@ -9,8 +9,12 @@ const repo = path.join(root, '..');
 const gen = spawnSync(process.execPath, [path.join(root, 'gen-equation-index.mjs')], { cwd: repo, stdio: 'inherit' });
 if (gen.status) process.exit(gen.status ?? 1);
 const indexHtml = fs.readFileSync(path.join(repo, 'equation-index.html'), 'utf8');
-if (!indexHtml.includes('d = 0.61') || !indexHtml.includes('handwritten assembly')) {
+if (!indexHtml.includes('d = 0.61') || !indexHtml.includes('handwritten assembly') || !indexHtml.includes('f_obj = 16 mm')) {
   console.error('equation-index.html is missing the microscope pair');
+  process.exit(1);
+}
+if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 0.408')) {
+  console.error('equation-index.html is missing the locked PID numbers');
   process.exit(1);
 }
 const suiteUrl = pathToFileURL(path.join(root, '../js/tests/suite.js')).href;

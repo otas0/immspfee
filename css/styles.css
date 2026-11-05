@@ -602,10 +602,22 @@ canvas.has-pointer {
   line-height: 1.4;
   color: var(--phosphor-dim);
   overflow-wrap: anywhere;
-  max-height: 6.5rem;
+}
+.shell-formula {
+  max-height: 2.8rem;
   overflow: auto;
 }
-.shell-caveat { color: #ffe7b0; }
+.shell-assumptions {
+  max-height: 4.2rem;
+  overflow: auto;
+}
+.shell-caveat {
+  color: #ffe7b0;
+  max-height: none;
+  overflow: visible;
+}
+.model-shell [hidden] { display: none !important; }
+.topic-miss-search { margin-left: 0.35rem; }
 .shell-actions {
   display: flex;
   flex-wrap: wrap;

@@ -26,7 +26,12 @@ const FUN = {
   ln: (a) => Math.log(Math.max(1e-12, a)),
   log2: (a) => Math.log2(Math.max(1e-12, a)),
   log10: (a) => Math.log10(Math.max(1e-12, a)),
-  exp: (a) => Math.exp(Math.max(-40, Math.min(40, a))),
+  exp: (a) => {
+    if (!Number.isFinite(a)) return NaN;
+    if (a > 709.78) return Number.MAX_VALUE;
+    if (a < -745) return 0;
+    return Math.exp(a);
+  },
   tanh: (a) => Math.tanh(a),
   sin: (a) => Math.sin(a),
   cos: (a) => Math.cos(a),

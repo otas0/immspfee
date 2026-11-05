@@ -47,6 +47,9 @@ jobs:
       - name: Pot regression
         run: npm run test:pot
 
+      - name: Narrow-screen formula and caveat regression
+        run: npm run test:narrow
+
       - name: Contract browser draw sample
         id: contract_browser
         run: npm run test:contract-browser
