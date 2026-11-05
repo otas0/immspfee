@@ -19,6 +19,27 @@ function finiteState(state) {
   return bad;
 }
 
+/** Params that often drive animation only — excluded from fake-readout sensitivity. */
+const IGNORE_SENSITIVITY = /^(speed|dt|tol|show|seed|demo|steps|nStep|fps|view|zoom|scale)$/i;
+
+function numericReadoutMap(readouts) {
+  const map = new Map();
+  for (const r of readouts || []) {
+    const n = parseFloat(String(r.value).replace(/[^\d.eE+-]/g, ''));
+    if (Number.isFinite(n)) map.set(r.label, n);
+  }
+  return map;
+}
+
+function mapsDiffer(a, b, rel = 1e-6, abs = 1e-9) {
+  for (const [k, va] of a) {
+    if (!b.has(k)) continue;
+    const vb = b.get(k);
+    if (Math.abs(va - vb) > abs + rel * Math.max(Math.abs(va), Math.abs(vb))) return true;
+  }
+  return false;
+}
+
 function checkOne(model) {
   if (typeof model.init !== 'function' || typeof model.step !== 'function'
     || typeof model.draw !== 'function' || typeof model.getReadouts !== 'function') {
@@ -35,9 +56,15 @@ function checkOne(model) {
   const r0 = model.getReadouts(state, { digits: 3 }) || [];
   if (!r0.length) return `${model.id}: empty readouts`;
 
+  const sensitiveKeys = [];
   for (const [key, meta] of Object.entries(model.paramSchema || {})) {
     if (meta?.group !== 'dynamics') continue;
     if (typeof state.params[key] === 'number') {
+      if (!IGNORE_SENSITIVITY.test(key)
+        && Number.isFinite(meta.min) && Number.isFinite(meta.max)
+        && meta.max > meta.min) {
+        sensitiveKeys.push([key, meta]);
+      }
       const mid = Number.isFinite(meta.min) && Number.isFinite(meta.max)
         ? (meta.min + meta.max) / 2
         : state.params[key] * 1.05 + 0.01;
@@ -49,6 +76,37 @@ function checkOne(model) {
       if (!r.length) return `${model.id}: readouts empty after ${key}`;
     } else if (typeof state.params[key] === 'string' && meta?.allowText) {
       model.refresh(state);
+    }
+  }
+
+  // Reject constant / decorative readouts on continuous physics/engineering models.
+  // Discrete / algo / agent families are audited separately via `npm run report:fake-data`.
+  const formalism = String(model.formalism || model.capabilities?.formalism || '');
+  const viz = String(model.capabilities?.viz || '');
+  const skipSensitivity = !!model.topicBound
+    || /^(map|network|discrete|digital|learning|opt|agents|stochastic)$/.test(formalism)
+    || /algo|netlist|traffic/.test(viz)
+    || /^(bfs|dijkstra|sorting|life|cache|pipeline|fifo|pda|fsm|turing|tcp|raft|nasch|lane|weaving|signalized)/i.test(model.id || '');
+  if (!skipSensitivity && sensitiveKeys.length >= 1) {
+    let anyMoved = false;
+    for (const [key, meta] of sensitiveKeys) {
+      const probe = { params: JSON.parse(JSON.stringify(model.params || {})) };
+      model.init(probe);
+      probe.params[key] = meta.min;
+      model.refresh(probe);
+      for (let i = 0; i < 4; i += 1) model.step(probe, 1 / 60);
+      const lo = numericReadoutMap(model.getReadouts(probe, { digits: 6 }));
+      probe.params[key] = meta.max;
+      model.refresh(probe);
+      for (let i = 0; i < 4; i += 1) model.step(probe, 1 / 60);
+      const hi = numericReadoutMap(model.getReadouts(probe, { digits: 6 }));
+      if (lo.size && hi.size && mapsDiffer(lo, hi)) {
+        anyMoved = true;
+        break;
+      }
+    }
+    if (!anyMoved) {
+      return `${model.id}: constant readouts (no dynamics param moves numeric values)`;
     }
   }
 

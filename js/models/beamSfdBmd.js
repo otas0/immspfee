@@ -98,10 +98,8 @@ export default {
     formalism: 'ode',
     viz: 'beam',
     fidelity: 'principle',
-    hint: '原理级 SFD/BMD；非 FEA 工业求解',
   },
   fidelity: 'principle',
-  fidelityNote: '原理级，非 FEA',
   params: {
     span: 6, support: 0,
     P1: 10, a1: 0.35,

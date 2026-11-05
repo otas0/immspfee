@@ -27,7 +27,9 @@ import logicGates from '../models/logicGates.js';
 import beamSfdBmd from '../models/beamSfdBmd.js';
 import pidTune from '../models/pidTune.js';
 import hodgkinHuxley from '../models/hodgkinHuxley.js';
+import compoundMicroscope from '../models/compoundMicroscope.js';
 import { runModelContract } from './model-contract.js';
+import { validateUserModelDraft } from '../lab/userModels.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -264,6 +266,27 @@ export function runSuite() {
       const { r } = smoke(hodgkinHuxley, 200, 0.001);
       assert('hodgkin-huxley readout', r.length >= 4);
     }
+    {
+      const state = { params: { ...compoundMicroscope.params } };
+      compoundMicroscope.init(state);
+      compoundMicroscope.step(state, 0);
+      const r = compoundMicroscope.getReadouts(state, { digits: 3 });
+      const na0 = r.find((x) => x.label === 'NA')?.value;
+      const m0 = Math.abs(parseFloat(r.find((x) => x.label === '|M|')?.value));
+      state.params.objSlot = 2;
+      compoundMicroscope.refresh(state);
+      const r2 = compoundMicroscope.getReadouts(state, { digits: 3 });
+      const m1 = Math.abs(parseFloat(r2.find((x) => x.label === '|M|')?.value));
+      assert(
+        'compound-microscope optics',
+        r.some((x) => x.label === 'NA')
+          && r.some((x) => x.label === 'WD')
+          && r.some((x) => x.label === '|M|')
+          && m1 > m0
+          && !!na0,
+        `M0=${m0} M1=${m1}`,
+      );
+    }
   }
 
   // 目录规模 + live/reset 语义
@@ -286,6 +309,108 @@ export function runSuite() {
       assert('family entries prefer -v01 only', nonV01.length === 0, `extra=${nonV01.slice(0, 5).join(',')}`);
     }
     const ids = new Set(models.map((m) => m.id));
+    const missingAuth = models.filter((m) => !m.authority || !m.assumptions);
+    assert('全库 authority+assumptions', missingAuth.length === 0, `missing=${missingAuth.length}`);
+    const ff = models.find((m) => m.id === 'free-fall');
+    assert('free-fall fidelity engineering', ff?.fidelity === 'engineering', ff?.fidelity);
+    const polGate = models.find((m) => m.id === 'polarization');
+    assert('偏振不再是占位 deprecated', polGate && polGate.deprecated !== true && polGate.topicBound, String(polGate?.deprecated));
+    assert('偏振公式写的是 Malus', String(polGate?.formula || '').includes('cos'));
+
+    const kept = validateUserModelDraft({
+      name: '有阻尼谐振子（工程）',
+      domain: '物理',
+      sub: '经典力学',
+      family: 'ode1d',
+      formula: 'mẍ = −kx − cẋ',
+      authority: 'Thornton & Marion, Classical Dynamics, §3.4',
+      assumptions: '线性弹簧与粘滞阻尼；忽略干摩擦与大变形',
+      description: '状态 (x,v)；参数 m,k,c 可调；与标准阻尼谐振子方程一致',
+      fidelity: 'engineering',
+      ethicsOk: true,
+    }, { keepId: 'user-ode1d-edit' });
+    assert('自建模型编辑保留 id', kept.ok && kept.spec?.id === 'user-ode1d-edit', kept.spec?.id);
+
+    const vert = models.find((m) => m.id === 'r001-竖直上抛');
+    {
+      const state = { params: { ...vert.params, v0: 20, a: -9.81, x0: 0, speed: 1 } };
+      vert.init(state);
+      vert.step(state, 1);
+      assert('竖直上抛 v=v0-gt', Math.abs(state.v - (20 - 9.81)) < 1e-6, `v=${state.v}`);
+    }
+    const ohm = models.find((m) => m.id === 'ohms-law');
+    {
+      const state = { params: { ...ohm.params, I: 2, R: 5, speed: 1 } };
+      ohm.init(state);
+      const V = ohm.getReadouts(state).find((r) => r.label === 'V');
+      assert('欧姆定律 V=IR', V && Math.abs(parseFloat(V.value) - 10) < 1e-6, V && V.value);
+    }
+    const pol = models.find((m) => m.id === 'polarization');
+    {
+      const state = { params: { ...pol.params, I0: 2, theta: 60, speed: 1 } };
+      pol.init(state);
+      const I = pol.getReadouts(state).find((r) => r.label === 'I');
+      assert('Malus I=I0 cos²θ', I && Math.abs(parseFloat(I.value) - 0.5) < 1e-6, I && I.value);
+    }
+    const col = models.find((m) => m.id === 'r003-一维弹性碰撞');
+    {
+      const state = { params: { ...col.params, m1: 2, m2: 2, u1: 3, u2: 0, e: 1, speed: 1 } };
+      col.init(state);
+      assert('弹性等质量交换速度', Math.abs(state.v1) < 1e-6 && Math.abs(state.v2 - 3) < 1e-6, `v1=${state.v1} v2=${state.v2}`);
+    }
+    const bohrTopic = models.find((m) => m.id === 'r018-玻尔模型');
+    {
+      const state = { params: { ...bohrTopic.params, n: 2, speed: 1 } };
+      bohrTopic.init(state);
+      const E = bohrTopic.getReadouts(state).find((r) => r.label === 'E');
+      assert('玻尔能级 E=-13.6/n²', E && Math.abs(parseFloat(E.value) + 3.4) < 1e-6, E && E.value);
+    }
+    const boom = models.find((m) => m.id === 'r003-爆炸反冲');
+    {
+      const state = { params: { ...boom.params, m1: 2, m2: 1, v2: 4, speed: 1 } };
+      boom.init(state);
+      const v1 = boom.getReadouts(state).find((r) => r.label === 'v1');
+      assert('爆炸反冲 m1 v1=-m2 v2', v1 && Math.abs(parseFloat(v1.value) + 2) < 1e-6, v1 && v1.value);
+    }
+    const stand = models.find((m) => m.id === 'standing-wave');
+    {
+      const state = { params: { ...stand.params, A: 0.01, k: Math.PI, w: 0, speed: 1, t0: 0 } };
+      stand.init(state);
+      assert('驻波 y=2A sin(kx)（t=0, kx=π/2）', Math.abs(state.y - 0.02) < 1e-6, `y=${state.y}`);
+    }
+    const slit = models.find((m) => m.id === 'double-slit');
+    {
+      const state = { params: { ...slit.params, lambda: 5.5e-7, L: 1, d: 2e-4, speed: 1 } };
+      slit.init(state);
+      assert('双缝 Δy=λL/d', Math.abs(state.y - 0.00275) < 1e-9, `Δy=${state.y}`);
+    }
+    const toss = models.find((m) => m.id === 'r001-斜抛');
+    {
+      const state = { params: { ...toss.params, v0: 16, theta: 45, g: 9.81, y0: 0, speed: 1 } };
+      toss.init(state);
+      toss.step(state, 1);
+      const expectY = 16 * Math.sin(Math.PI / 4) - 0.5 * 9.81;
+      assert('斜抛 y=v0 sinθ t−½gt²', Math.abs(state.y - expectY) < 1e-6, `y=${state.y}`);
+    }
+    const rl = models.find((m) => m.id === 'rl-circuit');
+    {
+      const state = { params: { ...rl.params, I: 1, R: 10, L: 0.1, speed: 1, t0: 0 } };
+      rl.init(state);
+      rl.step(state, 0.05);
+      assert('RL 电流 i=I(1−e^{−Rt/L})', Math.abs(state.y - (1 - Math.exp(-5))) < 1e-9, `i=${state.y}`);
+    }
+    const accel = models.find((m) => m.formula && String(m.formula).includes('默认 a = +2'));
+    const decel = models.find((m) => m.formula && String(m.formula).includes('默认 a = −2'));
+    assert('匀加速公式标明默认 a', !!accel);
+    assert('匀减速公式标明默认 a', !!decel);
+    assert('弹性碰撞公式标明默认 e', String(col.formula).includes('e = 1'));
+    const thin = models.filter((m) => m.topicBound && Object.keys(m.paramSchema || {}).length < 4);
+    assert('paramSchema 不少于 4', thin.length === 0, `thin=${thin.length}`);
+
+    const topicN = models.filter((m) => m.topicBound).length;
+    const stray = models.filter((m) => !m.topicBound && m.family !== 'hand' && m.id !== 'r016-显微镜');
+    assert('非手写模型都走主题方程', stray.length === 0 && topicN === models.length - 26, `topic=${topicN} n=${models.length} stray=${stray.map((m) => m.id).join(',')}`);
+
     assert('catalog has free-fall', ids.has('free-fall'));
     assert('catalog has sorting', ids.has('sorting'));
     assert('catalog has raft', ids.has('raft'));
@@ -294,6 +419,7 @@ export function runSuite() {
     assert('catalog has pid-tune', ids.has('pid-tune'));
     assert('catalog has lorenz', ids.has('lorenz'));
     assert('catalog has nasch-ca', ids.has('nasch-ca'));
+    assert('catalog has compound microscope', ids.has('r016-显微镜'));
     assert('catalog has fam-projectile-v01', ids.has('fam-projectile-v01'));
     assert('no fam-projectile-v02 clone', !ids.has('fam-projectile-v02'));
 
@@ -340,6 +466,50 @@ export function runSuite() {
       }
     }
     assert('factory sample smoke', ok, detail);
+  }
+
+  {
+    const bad = validateUserModelDraft({
+      name: 'x',
+      domain: '物理',
+      sub: '力学',
+      family: 'ode1d',
+      formula: 'a',
+      authority: 'short',
+      assumptions: 'too short',
+      description: 'too short',
+      fidelity: 'engineering',
+      ethicsOk: false,
+    });
+    assert('自建模型拒绝缺权威/伦理', !bad.ok, bad.error);
+
+    const good = validateUserModelDraft({
+      name: '有阻尼谐振子（工程）',
+      domain: '物理',
+      sub: '经典力学',
+      family: 'ode1d',
+      formula: 'mẍ = −kx − cẋ',
+      authority: 'Thornton & Marion, Classical Dynamics, §3.4',
+      assumptions: '线性弹簧与粘滞阻尼；忽略干摩擦与大变形',
+      description: '状态 (x,v)；参数 m,k,c 可调；与标准阻尼谐振子方程一致',
+      fidelity: 'engineering',
+      ethicsOk: true,
+    });
+    assert('自建模型接受完整工业级草稿', good.ok, good.error);
+    const missingAsm = validateUserModelDraft({
+      name: '缺假设的振子',
+      domain: '物理',
+      sub: '经典力学',
+      family: 'ode1d',
+      formula: 'mẍ = −kx',
+      authority: 'Thornton & Marion, Classical Dynamics, §3.4',
+      assumptions: '这里写满十二个字但是没有范围',
+      description: '状态 (x,v)；参数 m 与 k 可调，对照简谐振子',
+      fidelity: 'engineering',
+      ethicsOk: true,
+    });
+    assert('自建模型指出缺少的假设', !missingAsm.ok && String(missingAsm.error).includes('缺少假设'), missingAsm.error);
+    assert('自建模型 id 前缀 user-', !!good.spec?.id?.startsWith('user-'), good.spec?.id);
   }
 
   {

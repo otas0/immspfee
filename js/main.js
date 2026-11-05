@@ -7,6 +7,7 @@ import { finiteOr, sanitizeGlobals } from './utils/params.js';
 import { btnHtml, iconOnly, ICO } from './ui/icons.js';
 import { setModelPalette, getModelColors } from './utils/theme.js';
 import { deriveCapabilities } from './ui/modelShell.js';
+import { designCaveatText } from './lab/designCaveat.js';
 import { buildZipStore, readZipStore } from './utils/zipStore.js';
 import { FAMILY_META } from './lab/formalism.js';
 import {
@@ -28,6 +29,12 @@ import {
   onLocaleChange,
   bootI18n,
 } from './i18n/index.js';
+import {
+  listShells,
+  resolveShellId,
+  persistShellId,
+  applyShell,
+} from './shells/registry.js';
 
 const canvas = document.getElementById('canvas');
 const canvasWrap = document.querySelector('.canvas-wrap');
@@ -159,7 +166,6 @@ function saveBaselines() {
 }
 
 const shellModeEl = document.getElementById('shell-mode');
-const shellFidelityEl = document.getElementById('shell-fidelity');
 const shellDeprecatedEl = document.getElementById('shell-deprecated');
 const shellHintEl = document.getElementById('shell-hint');
 const btnSafeRestore = document.getElementById('btn-safe-restore');
@@ -361,20 +367,6 @@ function setSafeRestoreVisible(on) {
 
 function updateShellStrip() {
   const cap = deriveCapabilities(app.model);
-  const note = app.model?.fidelityNote
-    || (cap.fidelity === 'principle' && (cap.viz === 'beam' || cap.viz === 'control')
-      ? '原理级，非 FEA/工业调参'
-      : '');
-  const fidelity = app.model?.fidelity || cap.fidelity || 'principle';
-  if (shellFidelityEl) {
-    const eng = fidelity === 'engineering';
-    shellFidelityEl.textContent = eng ? 'engineering' : 'principle';
-    shellFidelityEl.classList.toggle('is-engineering', eng);
-    shellFidelityEl.classList.toggle('is-principle', !eng);
-    shellFidelityEl.title = eng
-      ? '工程可用示意：假设内可对照文献'
-      : '原理级：须读假设，非工业求解器';
-  }
   if (shellDeprecatedEl) {
     const dep = !!app.model?.deprecated;
     shellDeprecatedEl.hidden = !dep;
@@ -385,12 +377,30 @@ function updateShellStrip() {
     shellModeEl.textContent = [cap.formalism, cap.interaction].filter(Boolean).join(' · ') || 'knobs';
   }
   if (shellHintEl) {
-    const bits = [];
-    if (app.model?.deprecatedReason) bits.push(app.model.deprecatedReason);
-    else if (note) bits.push(note);
-    else if (cap.hint) bits.push(cap.hint);
-    if (fidelity === 'principle' && !note && !app.model?.deprecatedReason) bits.push('原理级');
-    shellHintEl.textContent = bits.filter(Boolean).join(' · ');
+    const hint = String(cap.hint || '');
+    const isDisclaimer = /原理级|非\s*(FEA|工业|临床|设计|CFD|SPICE|N\s*体)|不作长期|假设/.test(hint);
+    shellHintEl.textContent = isDisclaimer ? '' : hint;
+  }
+  const shell = document.getElementById('model-shell');
+  const ensureLine = (id, className) => {
+    let el = document.getElementById(id);
+    if (!el && shell) {
+      el = document.createElement('p');
+      el.id = id;
+      el.className = className;
+      shell.appendChild(el);
+    }
+    return el;
+  };
+  const formulaEl = ensureLine('shell-formula', 'shell-formula');
+  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
+  const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
+  if (formulaEl) formulaEl.textContent = app.model?.formula ? `公式 ${app.model.formula}` : '';
+  if (asmLine) asmLine.textContent = app.model?.assumptions ? `假设 ${app.model.assumptions}` : '';
+  if (caveatEl) {
+    const caveat = designCaveatText(app.model);
+    caveatEl.hidden = !caveat;
+    caveatEl.textContent = caveat || '';
   }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
@@ -812,7 +822,11 @@ function makeModelButton(raw) {
   if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
     .map((t) => `<span class="tag">${t}</span>`).join('');
-  btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
+  const fid = (raw.fidelity || raw.capabilities?.fidelity) === 'engineering' ? 'engineering' : 'principle';
+  const asm = String(raw.assumptions || '').replace(/\s+/g, ' ').trim();
+  const asmShort = asm.length > 80 ? `${asm.slice(0, 80)}…` : asm;
+  btn.title = asm || m.name;
+  btn.innerHTML = `<span class="name">${m.name}</span><span class="preview"><span class="fid is-${fid}">${fid}</span><span class="asm">${asmShort}</span></span><span class="tags">${tags}</span>`;
   btn.addEventListener('click', () => {
     switchModel(m.id);
     setSidebarOpen(false);
@@ -1175,18 +1189,6 @@ function switchModel(id) {
 }
 
 function updateHud(opts = {}) {
-  const authEl = document.getElementById('hud-authority-text');
-  const asmEl = document.getElementById('hud-assumptions-text');
-  if (authEl) {
-    authEl.textContent = app.model?.authority
-      ? `权威：${app.model.authority}`
-      : '权威：未登记';
-  }
-  if (asmEl) {
-    asmEl.textContent = app.model?.assumptions
-      ? `假设：${app.model.assumptions}`
-      : '假设：未登记';
-  }
   const digits = app.globals.readoutDigits;
   const readouts = app.model.getReadouts(app.state, { digits }) || [];
   app.lastReadouts = readouts;
@@ -1877,6 +1879,41 @@ function syncChromeI18n() {
   if (opt0) opt0.textContent = t('ui.baselineCurrent');
 }
 
+function applyActiveShell(id) {
+  applyShell(id, {
+    onHideSidebar: (hide) => {
+      const chassis = document.getElementById('chassis');
+      chassis?.classList.toggle('shell-hide-sidebar', hide);
+      if (hide) setSidebarOpen(false);
+    },
+  });
+  if (app.model && canvas && canvasWrap) paintFrame();
+}
+
+function mountShellSelect(el) {
+  if (!el) return;
+  const current = resolveShellId();
+  el.innerHTML = '';
+  for (const s of listShells()) {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.label;
+    opt.title = s.description;
+    if (s.id === current) opt.selected = true;
+    el.appendChild(opt);
+  }
+  applyActiveShell(current);
+  el.addEventListener('change', () => {
+    const id = el.value;
+    persistShellId(id);
+    applyActiveShell(id);
+    const url = new URL(location.href);
+    url.searchParams.set('shell', id);
+    history.replaceState(null, '', url);
+    requestAnimationFrame(measureSysSticky);
+  });
+}
+
 async function boot() {
   if (localStorage.getItem('physics-lab-hc') === '1') {
     document.documentElement.classList.add('hc');
@@ -1884,6 +1921,7 @@ async function boot() {
   if (localStorage.getItem('physics-lab-bench-collapsed') === '1') {
     document.getElementById('chassis')?.classList.add('bench-collapsed');
   }
+  mountShellSelect(document.getElementById('shell-select'));
   mountLocaleSelect(document.getElementById('locale-select'));
   await bootI18n();
   syncChromeI18n();
@@ -1949,7 +1987,8 @@ function renderUserModelList() {
     const name = document.createElement('span');
     name.className = 'name';
     name.textContent = spec.name;
-    name.title = spec.authority || spec.id;
+    // Keep validation of assumptions on save; do not surface long assumption text in the list.
+    name.title = spec.name;
     const edit = document.createElement('button');
     edit.type = 'button';
     edit.className = 'btn quiet';

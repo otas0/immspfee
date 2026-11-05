@@ -82,21 +82,9 @@ export function createParamBench(root, hooks = {}) {
     const bar = document.createElement('div');
     bar.className = 'apply-banner';
     bar.setAttribute('role', 'status');
-    const note = currentModel?.fidelityNote
-      || ((cap.viz === 'beam' || cap.viz === 'control'
-        || currentModel?.id === 'beam-sfd-bmd' || currentModel?.id === 'pid-tune')
-        ? '原理级，非 FEA/工业调参'
-        : '');
     const applyLine = `${t('ui.applyBanner')} · ${cap.paramCount} ${t('ui.paramsUnit')}`;
-    if (note) {
-      bar.classList.add('is-principle');
-      bar.innerHTML = `<div class="principle-badge">${note}</div>`
-        + `<strong>${t('ui.bench')} · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
-        + `<span>${applyLine}</span>`;
-    } else {
-      bar.innerHTML = `<strong>${t('ui.bench')} · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
-        + `<span>${applyLine}</span>`;
-    }
+    bar.innerHTML = `<strong>${t('ui.bench')} · ${cap.interaction}${cap.formalism ? ` · ${cap.formalism}` : ''}</strong>`
+      + `<span>${applyLine}</span>`;
     return bar;
   }
 

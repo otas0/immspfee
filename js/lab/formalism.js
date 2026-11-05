@@ -1,59 +1,54 @@
 /**
- * 分类与统一接口（对齐 scikit-complexity 思路，Web/Canvas 重实现）：
- * - catalog 按 domain/sub/family 浏览
- * - 同一套 Model API：init / step / draw / getReadouts / refresh
- * - 可视化层只用 Canvas，不依赖 Python/Rerun
- * - 工程族：原理性方程，非工业求解器
- * - CS 族：借鉴 Algorithm Visualizer 步进/高亮思路
- * - 物理族：借鉴 PhET / oPhysics 拖拽与读数对照
+ * Catalog family → formalism / interaction prototype (Canvas visualization).
+ * hints are short interaction cues only — never fidelity / disclaimer copy.
  */
 
-/** family → 形式 / 交互原型 */
+/** family → form / interaction prototype */
 export const FAMILY_META = {
-  ode1d: { formalism: 'ode', viz: 'phet-particle', hint: '拖参看运动；dyn 即时生效（类 PhET）' },
-  ode2d: { formalism: 'ode', viz: 'phet-particle', hint: '二维轨迹；改初值会重置' },
-  circular: { formalism: 'ode', viz: 'phet-orbit', hint: '圆周/开普勒示意；非 N 体工业精度' },
-  particles: { formalism: 'agents', viz: 'phet-field', hint: '粒子示意；参数改场强/电荷' },
-  nbody: { formalism: 'ode', viz: 'phet-orbit', hint: '少体引力示意；软化防奇点' },
-  euler: { formalism: 'ode', viz: 'gauge', hint: '姿态/欧拉角原理演示' },
-  buoyancy: { formalism: 'ode', viz: 'phet-fluid', hint: '浮力平衡示意' },
-  flow: { formalism: 'field', viz: 'stream', hint: '流线/流量原理图，非 CFD' },
-  wave1d: { formalism: 'pde', viz: 'wave', hint: '一维波动有限差分示意' },
-  doppler: { formalism: 'wave', viz: 'wave', hint: '多普勒频移示意' },
-  interference: { formalism: 'wave', viz: 'wave', hint: '双源干涉条纹示意' },
-  field2d: { formalism: 'field', viz: 'field', hint: '二维场矢量/等值示意' },
-  piston: { formalism: 'thermo', viz: 'gauge', hint: '活塞过程示意' },
-  cycle: { formalism: 'thermo', viz: 'cycle', hint: '热力循环 P–V 原理图' },
-  fieldlines: { formalism: 'field', viz: 'field', hint: '电场线示意' },
-  circuit: { formalism: 'circuit', viz: 'circuit', hint: '集总电路示意（RC/RL）；非 SPICE' },
-  induction: { formalism: 'em', viz: 'phet-field', hint: '感应电动势示意' },
-  rays: { formalism: 'optics', viz: 'phet-optics', hint: '几何光学：拖物距；虚像虚线（类 oPhysics）' },
-  gauge: { formalism: 'gauge', viz: 'gauge', hint: '读数量表 + 简化动态' },
-  variant: { formalism: 'gauge', viz: 'gauge', hint: '族×维度变体：旋钮映射 dims，示意动态' },
-  bohr: { formalism: 'quantum', viz: 'gauge', hint: '能级跃迁示意' },
-  decay: { formalism: 'stochastic', viz: 'gauge', hint: '衰变曲线示意' },
-  discrete: { formalism: 'map', viz: 'algo-step', hint: '离散迭代；步进高亮（类 Algorithm Visualizer）' },
-  graph: { formalism: 'network', viz: 'algo-graph', hint: '图算法：点选/连边；逐步松弛' },
-  tree: { formalism: 'network', viz: 'algo-tree', hint: '树/分层结构步进' },
-  fsm: { formalism: 'discrete', viz: 'algo-step', hint: '状态机高亮当前态' },
-  turing: { formalism: 'discrete', viz: 'algo-step', hint: '纸带读写示意' },
-  crypto: { formalism: 'discrete', viz: 'algo-step', hint: '加密步骤可视化' },
-  ml: { formalism: 'learning', viz: 'algo-step', hint: '损失/权重示意训练步' },
-  opt: { formalism: 'opt', viz: 'algo-step', hint: '优化轨迹示意' },
-  logic: { formalism: 'digital', viz: 'netlist', hint: '逻辑门/网表拖线（类数字实验台）' },
-  arch: { formalism: 'digital', viz: 'algo-step', hint: '流水线/缓存命中示意' },
-  embed: { formalism: 'digital', viz: 'gauge', hint: '嵌入式时序示意' },
-  comm: { formalism: 'signal', viz: 'wave', hint: '调制/误码示意' },
-  net: { formalism: 'network', viz: 'algo-graph', hint: '网络协议步进' },
-  os: { formalism: 'discrete', viz: 'algo-step', hint: '调度/队列示意' },
-  compile: { formalism: 'discrete', viz: 'algo-tree', hint: '编译管线阶段高亮' },
-  dist: { formalism: 'network', viz: 'algo-graph', hint: '分布式共识示意' },
-  struct: { formalism: 'ode', viz: 'beam', hint: '梁/桁架内力示意；非 FEA' },
-  control: { formalism: 'ode', viz: 'control', hint: 'PID/根轨迹原理图，非工业调参软件' },
-  chaos: { formalism: 'ode', viz: 'phase', hint: '相空间示意' },
-  traffic: { formalism: 'agents', viz: 'traffic', hint: '元胞交通流示意' },
-  reactor: { formalism: 'ode', viz: 'gauge', hint: '反应堆点堆示意' },
-  aero: { formalism: 'ode', viz: 'aero', hint: '气动/姿态简化方程' },
+  ode1d: { formalism: 'ode', viz: 'phet-particle', hint: 'Tune dynamics live' },
+  ode2d: { formalism: 'ode', viz: 'phet-particle', hint: '2D trail; reinit on IC change' },
+  circular: { formalism: 'ode', viz: 'phet-orbit', hint: 'Circular / Kepler motion' },
+  particles: { formalism: 'agents', viz: 'phet-field', hint: 'Tune field / charge' },
+  nbody: { formalism: 'ode', viz: 'phet-orbit', hint: 'Few-body gravity' },
+  euler: { formalism: 'ode', viz: 'gauge', hint: 'Attitude / Euler angles' },
+  buoyancy: { formalism: 'ode', viz: 'phet-fluid', hint: 'Buoyancy balance' },
+  flow: { formalism: 'field', viz: 'stream', hint: 'Streamlines' },
+  wave1d: { formalism: 'pde', viz: 'wave', hint: '1D wave FD' },
+  doppler: { formalism: 'wave', viz: 'wave', hint: 'Doppler shift' },
+  interference: { formalism: 'wave', viz: 'wave', hint: 'Two-source interference' },
+  field2d: { formalism: 'field', viz: 'field', hint: '2D field vectors' },
+  piston: { formalism: 'thermo', viz: 'gauge', hint: 'Piston process' },
+  cycle: { formalism: 'thermo', viz: 'cycle', hint: 'P–V cycle' },
+  fieldlines: { formalism: 'field', viz: 'field', hint: 'Field lines' },
+  circuit: { formalism: 'circuit', viz: 'circuit', hint: 'Lumped RC/RL' },
+  induction: { formalism: 'em', viz: 'phet-field', hint: 'Induced EMF' },
+  rays: { formalism: 'optics', viz: 'phet-optics', hint: 'Drag object distance' },
+  gauge: { formalism: 'gauge', viz: 'gauge', hint: 'Gauge + light dynamics' },
+  variant: { formalism: 'gauge', viz: 'gauge', hint: 'Family × dim knobs' },
+  bohr: { formalism: 'quantum', viz: 'gauge', hint: 'Level transitions' },
+  decay: { formalism: 'stochastic', viz: 'gauge', hint: 'Decay curve' },
+  discrete: { formalism: 'map', viz: 'algo-step', hint: 'Step discrete map' },
+  graph: { formalism: 'network', viz: 'algo-graph', hint: 'Pick nodes / edges' },
+  tree: { formalism: 'network', viz: 'algo-tree', hint: 'Tree step-through' },
+  fsm: { formalism: 'discrete', viz: 'algo-step', hint: 'Highlight FSM state' },
+  turing: { formalism: 'discrete', viz: 'algo-step', hint: 'Tape R/W' },
+  crypto: { formalism: 'discrete', viz: 'algo-step', hint: 'Crypto steps' },
+  ml: { formalism: 'learning', viz: 'algo-step', hint: 'Train step' },
+  opt: { formalism: 'opt', viz: 'algo-step', hint: 'Optimizer path' },
+  logic: { formalism: 'digital', viz: 'netlist', hint: 'Wire logic netlist' },
+  arch: { formalism: 'digital', viz: 'algo-step', hint: 'Pipeline / cache' },
+  embed: { formalism: 'digital', viz: 'gauge', hint: 'Embedded timing' },
+  comm: { formalism: 'signal', viz: 'wave', hint: 'Modulation / BER' },
+  net: { formalism: 'network', viz: 'algo-graph', hint: 'Protocol steps' },
+  os: { formalism: 'discrete', viz: 'algo-step', hint: 'Scheduler / queue' },
+  compile: { formalism: 'discrete', viz: 'algo-tree', hint: 'Compile stages' },
+  dist: { formalism: 'network', viz: 'algo-graph', hint: 'Consensus steps' },
+  struct: { formalism: 'ode', viz: 'beam', hint: 'Beam / truss forces' },
+  control: { formalism: 'ode', viz: 'control', hint: 'PID / root locus' },
+  chaos: { formalism: 'ode', viz: 'phase', hint: 'Phase space' },
+  traffic: { formalism: 'agents', viz: 'traffic', hint: 'Cellular traffic' },
+  reactor: { formalism: 'ode', viz: 'gauge', hint: 'Point-kinetics' },
+  aero: { formalism: 'ode', viz: 'aero', hint: 'Aero / attitude ODEs' },
 };
 
 export function familyCapabilities(family, spec = {}) {
@@ -65,14 +60,14 @@ export function familyCapabilities(family, spec = {}) {
       ? (meta.viz === 'phet-optics' || meta.viz === 'algo-graph' || meta.viz === 'netlist' ? 'canvas' : 'knobs')
       : 'knobs',
     hint: meta.hint,
-    fidelity: 'principle', // 工程/物理均默认原理级
+    fidelity: 'principle',
   };
   if (spec.id === 'lens') {
     return {
       ...base,
       pointer: true,
       interaction: 'canvas',
-      hint: '拖动物体调 u/h；虚像虚线 + 像距刻度（类 oPhysics 透镜）',
+      hint: 'Drag object to set u/h',
     };
   }
   if (family === 'graph' || family === 'logic') {

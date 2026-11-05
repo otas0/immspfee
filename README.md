@@ -23,23 +23,25 @@ Default fidelity is often `principle` unless stamped otherwise. Factory families
 
 **Every model must be usable** — rich params; check ethics/theory against authoritative sources before claiming engineering fidelity.
 
+- **No fake data:** state / readouts / plots / exports must follow real equations or algorithms; defaults are meaningful and **all parameters are customizable** via `paramSchema`. Decorative or canned numbers are forbidden.
 - `params` + `paramSchema` (group / label / unit / min·max; prefer ≥4 keys)
 - `init` / `step` / `draw` / `getReadouts` / `refresh`
 - Live vs reinit follows `schema.group` (dynamics/display/custom = live; initial/numerics = reinit)
 - Contract tests green; failures → `artifacts/contract-failures.json`
 - Optional: `onPointer`, `runAction`, energy helpers, `capabilities.actions`
-- Correctness: catalog `authority` / `assumptions` / `fidelity` — see [docs/model-correctness.md](./docs/model-correctness.md)
+- Correctness metadata (`authority` / `assumptions` / `fidelity`) stays in catalog for audits — **not** painted on the stage UI
 - Custom models: sidebar “+ custom model”; edit/delete/export/import JSON (`localStorage`)
 - Ethics-sensitive families: [docs/ethics-audit.md](./docs/ethics-audit.md)
-- Coverage: `npm run report:authority`
+- Coverage: `npm run report:authority` · fake-data sweep: `npm run report:fake-data`
+- **3D:** one microscope experience only; catalog stage remains 2D Canvas
 
 ## Shell layers
 
 | Layer | Role |
 |-------|------|
 | Catalog | `data/catalog.json`; domain / subcategory sidebar |
-| Shell | `deriveCapabilities`: formalism / hint / pointer / actions |
-| Stage | Shared canvas |
+| Shell(s) | Pluggable chassis via `js/shells/registry.js` (`?shell=lab-classic` / `lab-focus`); `deriveCapabilities` for formalism / hint / pointer / actions |
+| Stage | Shared canvas (2D); reserved single WebGL path for microscope |
 | Bench | Schema controls; ≥20 params → focus dynamics by default |
 | HUD | Snapshot compare, class-pack JSON/ZIP, safe defaults |
 

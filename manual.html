@@ -32,14 +32,17 @@
     <h1>自定义常量如何进入方程</h1>
     <p class="muted"><a href="./index.html">← back</a> · <a href="#" id="hc">contrast</a> · <a href="./docs/schema-coverage.md">schema coverage</a> · <a href="./docs/add-factory-family.md">add factory family</a></p>
 
-    <h2>Language</h2>
+    <h2>Language &amp; Shell</h2>
     <div class="card">
-      <p>The Lab shell supports <strong>zh / en / ja / ko / es / fr / de</strong> via the sidebar <em>language</em> select.</p>
+      <p>The Lab supports <strong>zh / en / ja / ko / es / fr / de</strong> via the sidebar <em>language</em> select, and multiple chassis shells via <em>shell</em>.</p>
       <ul class="muted">
-        <li><strong>URL:</strong> <code>?lang=en</code> (etc.) wins over <code>localStorage</code> key <code>physics-lab-locale-v1</code>, then syncs both ways.</li>
+        <li><strong>Language URL:</strong> <code>?lang=en</code> (etc.) wins over <code>localStorage</code> key <code>physics-lab-locale-v1</code>, then syncs both ways.</li>
+        <li><strong>Shell URL:</strong> <code>?shell=lab-classic</code> | <code>lab-focus</code> | <code>lab-projector</code> (persists to <code>immspfee-shell</code>). Projector hides the catalog sidebar by default and enlarges readouts.</li>
+        <li><strong>Combine with model deep link:</strong> <code>index.html?lang=en&amp;shell=lab-projector#m=r016-显微镜</code> opens the compound microscope in projector chrome with English UI.</li>
         <li><strong><code>html.lang</code>:</strong> updated on switch for assistive tech (e.g. <code>zh-CN</code>, <code>en</code>, <code>ja</code>).</li>
         <li><strong>Focus:</strong> after a language change, focus returns to <code>#locale-select</code>.</li>
         <li><strong>Model titles:</strong> lazy packs <code>data/locales/models-en.json</code> / <code>models-ja.json</code> (<code>npm run gen:model-locales</code>). Other locales fall back to catalog source strings.</li>
+        <li><strong>Shell label:</strong> sidebar field <code>ui.shell</code> is localized in all seven packs; product names (Lab Classic / Focus / Projector) stay English.</li>
         <li><strong>Repo policy:</strong> README / docs / new UI chrome are English-first; see <code>AGENTS.md</code>.</li>
       </ul>
     </div>
@@ -50,7 +53,7 @@
         <li>对齐 <strong>scikit-complexity</strong>：catalog 分类 + 同一套 Model API；可视化层用 Web/Canvas，不依赖 Python/Rerun。</li>
         <li>物理交互借鉴 <strong>PhET / oPhysics / SimuPhysics</strong>（拖物、读数对照、虚像虚线）。</li>
         <li>CS 步进/高亮借鉴 <strong>Algorithm Visualizer / eigenvue</strong> 思路（图算法点选连边、网表拖线）。</li>
-        <li><strong>工业级硬规则</strong>：每个模型须有权威来源与适用假设、高自定义参数；概念不符则修或下架。保真度 <code>engineering</code>（假设内可对照文献）与 <code>principle</code>（原理示意，非工业求解器）在壳层芯片上区分。详见 <a href="./docs/model-correctness.md">model-correctness</a> · <a href="./docs/ethics-audit.md">伦理审计</a> · <a href="./docs/hand-priority.md">手写优先队列</a>。</li>
+        <li><strong>工业级硬规则</strong>：每个模型须有权威来源与适用假设、高自定义参数、无假数据；概念不符则修或下架。Catalog metadata may carry fidelity; stage UI does not paint ENGINEERING/assumption banners. See <a href="./docs/model-correctness.md">model-correctness</a> · <a href="./docs/ethics-audit.md">ethics</a> · <a href="./AGENTS.md">AGENTS.md</a>.</li>
       </ul>
     </div>
 

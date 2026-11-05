@@ -49,6 +49,10 @@
           <span data-i18n="ui.lang">语言</span>
           <select id="locale-select" aria-label="language"></select>
         </label>
+        <label class="field field-shell">
+          <span data-i18n="ui.shell">壳</span>
+          <select id="shell-select" aria-label="shell"></select>
+        </label>
         <!-- fold-bar 挂在 filters 内，避免与 model-list 之间露底缝 -->
         <div class="fold-bar" id="fold-bar" role="group" aria-label="fold"></div>
         <button type="button" id="btn-user-model" class="btn user-model-btn" data-i18n="ui.userModel" title="自建工业级模型（须权威方程与假设）">＋ 自建模型</button>
@@ -111,6 +115,7 @@
       <footer class="sidebar-foot">
         <a href="./manual.html" data-i18n="ui.manual">手册</a>
         <a href="./docs/ethics-audit.md" data-i18n="ui.ethics">伦理</a>
+        <a href="./equation-index.html">equations</a>
         <a href="#" id="btn-hc" data-i18n="ui.contrast">高对比</a>
       </footer>
     </aside>
@@ -144,10 +149,12 @@
 
       <div class="display-bezel">
         <div class="model-shell" id="model-shell">
-          <span class="shell-chip" id="shell-fidelity" title="保真度">principle</span>
           <span class="shell-chip" id="shell-mode">knobs</span>
           <span class="shell-chip shell-deprecated" id="shell-deprecated" hidden>deprecated</span>
           <span class="shell-hint" id="shell-hint" aria-live="polite" data-i18n="ui.hintDefault">右侧调参</span>
+          <p class="shell-formula" id="shell-formula"></p>
+          <p class="shell-assumptions" id="shell-assumptions"></p>
+          <p class="shell-caveat" id="shell-caveat" hidden></p>
           <button type="button" id="btn-safe-restore" class="btn quiet shell-safe" hidden data-i18n="ui.safeRestore" title="宽量程 NaN 后一键恢复模型默认参数（与「重跑」不同：会改回 schema 默认值）">恢复安全默认</button>
         </div>
         <div class="canvas-wrap">
@@ -175,11 +182,6 @@
             <button type="button" id="btn-pin-baseline" class="btn quiet" title="pin"><span class="lbl" data-i18n="ui.pinBaseline">钉住基线</span></button>
           </div>
         </div>
-        <details class="hud-authority" id="hud-authority">
-          <summary data-i18n="ui.authority">权威与假设</summary>
-          <p id="hud-authority-text"></p>
-          <p id="hud-assumptions-text"></p>
-        </details>
         <div class="readouts" id="readouts"></div>
         <details class="sr-readouts-panel">
           <summary data-i18n="ui.srTable">文本读数表</summary>

@@ -27,9 +27,11 @@ import logicGates from './logicGates.js';
 import beamSfdBmd from './beamSfdBmd.js';
 import pidTune from './pidTune.js';
 import hodgkinHuxley from './hodgkinHuxley.js';
+import compoundMicroscope from './compoundMicroscope.js';
 import { createFactoryModel } from './factory.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { localizeModel } from '../utils/zhLabels.js';
+import { buildAllUserModels } from '../lab/userModels.js';
 import catalog from '../../data/catalog.json' with { type: 'json' };
 
 const handcrafted = [
@@ -58,6 +60,7 @@ const handcrafted = [
   beamSfdBmd,
   pidTune,
   hodgkinHuxley,
+  compoundMicroscope,
 ];
 
 const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -92,6 +95,33 @@ function ensureRefresh(model) {
 
 for (const m of handcrafted) ensureRefresh(m);
 
+function applyCatalogPolicy(model, spec) {
+  if (!spec) return model;
+  if (model.topicBound) {
+    model.family = spec.family || model.family;
+    model.deprecated = false;
+    model.deprecatedReason = '';
+    if (model.capabilities && model.fidelity) {
+      model.capabilities = { ...model.capabilities, fidelity: model.fidelity };
+    }
+    return model;
+  }
+  if (spec.family) model.family = spec.family;
+  if (spec.authority) model.authority = spec.authority;
+  if (spec.assumptions) model.assumptions = spec.assumptions;
+  if (spec.fidelity) {
+    model.fidelity = spec.fidelity;
+    if (model.capabilities) model.capabilities = { ...model.capabilities, fidelity: spec.fidelity };
+  }
+  if (spec.deprecated) {
+    model.deprecated = true;
+    model.deprecatedReason = spec.deprecatedReason || '';
+  }
+  const dispatchKey = String(spec.formula || '').includes('·');
+  if (!dispatchKey || !model.formula) model.formula = spec.formula || model.formula || '';
+  return model;
+}
+
 function buildAll() {
   const list = [];
   const seen = new Set();
@@ -99,25 +129,27 @@ function buildAll() {
     if (seen.has(spec.id)) continue;
     seen.add(spec.id);
     if (spec.family === 'hand' && byId[spec.id]) {
-      list.push(ensureRefresh({
+      list.push(ensureRefresh(applyCatalogPolicy({
         ...byId[spec.id],
         name: spec.name || byId[spec.id].name,
         tags: [spec.domain, spec.sub].filter(Boolean),
         formula: spec.formula || byId[spec.id].formula || '',
         description: spec.description || byId[spec.id].description || '',
         sub: spec.sub || '',
-      }));
+      }, spec)));
     } else if (byId[spec.id]) {
-      list.push(ensureRefresh({
+      list.push(ensureRefresh(applyCatalogPolicy({
         ...byId[spec.id],
         name: spec.name || byId[spec.id].name,
         tags: [spec.domain, spec.sub].filter(Boolean),
-        formula: spec.formula || '',
+        formula: (String(spec.formula || '').includes('·') && byId[spec.id].formula)
+          ? byId[spec.id].formula
+          : (spec.formula || byId[spec.id].formula || ''),
         description: spec.description || '',
         sub: spec.sub || '',
-      }));
+      }, spec)));
     } else {
-      list.push(ensureRefresh(createFactoryModel(spec)));
+      list.push(ensureRefresh(applyCatalogPolicy(createFactoryModel(spec), spec)));
     }
   }
   for (const impl of handcrafted) {
@@ -130,6 +162,12 @@ function buildAll() {
         sub: '',
       }));
     }
+  }
+  // 自建模型（localStorage）挂在目录末，id 以 user- 开头
+  for (const um of buildAllUserModels()) {
+    if (seen.has(um.id)) continue;
+    seen.add(um.id);
+    list.push(ensureRefresh(um));
   }
   return list;
 }
@@ -161,18 +199,34 @@ export async function loadModelMetadata(url = './data/models.json') {
     models = buildAll().map((m) => {
       const meta = metaById[m.id];
       if (!meta) return m;
-      return {
+      const topicBound = !!m.topicBound;
+      const next = {
         ...m,
         name: meta.name ?? m.name,
         tags: meta.tags ?? m.tags ?? [],
-        formula: meta.formula ?? m.formula ?? '',
+        formula: topicBound ? (m.formula || meta.formula || '') : (meta.formula ?? m.formula ?? ''),
         description: meta.description ?? m.description ?? '',
         sub: meta.sub ?? m.sub ?? '',
+        authority: topicBound ? (m.authority || meta.authority || '') : (meta.authority ?? m.authority ?? ''),
+        assumptions: topicBound ? (m.assumptions || meta.assumptions || '') : (meta.assumptions ?? m.assumptions ?? ''),
+        fidelity: topicBound ? (m.fidelity || meta.fidelity) : (meta.fidelity ?? m.fidelity),
+        deprecated: topicBound ? false : (meta.deprecated ?? m.deprecated),
+        deprecatedReason: topicBound ? '' : (meta.deprecatedReason ?? m.deprecatedReason ?? ''),
       };
+      if (next.capabilities && next.fidelity) {
+        next.capabilities = { ...next.capabilities, fidelity: next.fidelity };
+      }
+      return next;
     });
   } catch (err) {
     console.warn('模型元数据加载失败，使用 catalog', err);
     models = buildAll();
   }
+  return models;
+}
+
+/** 自建模型写入 localStorage 后重建注册表 */
+export function rebuildModels() {
+  models = buildAll();
   return models;
 }

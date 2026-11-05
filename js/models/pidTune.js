@@ -13,10 +13,8 @@ export default {
     formalism: 'ode',
     viz: 'control',
     fidelity: 'principle',
-    hint: '原理级二阶对象 + PID；非工业调参软件',
   },
   fidelity: 'principle',
-  fidelityNote: '原理级，非工业调参',
   params: {
     K: 1, zeta: 0.35, wn: 2.2,
     Kp: 1.4, Ki: 0.55, Kd: 0.12,

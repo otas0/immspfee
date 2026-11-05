@@ -1,0 +1,357 @@
+{
+  "deprecatedFamilies": {},
+  "families": {
+    "ode1d": {
+      "fidelity": "engineering",
+      "authority": "Thornton & Marion, Classical Dynamics of Particles and Systems, Ch. 2–3（一维牛顿定律）",
+      "assumptions": "一维、常质量、集总力；线性阻力或常力；非多体/柔性体；参数超范围时不保证工程精度"
+    },
+    "ode2d": {
+      "fidelity": "engineering",
+      "authority": "Taylor, Classical Mechanics, Ch. 2（平面牛顿定律）",
+      "assumptions": "平面、常质量、集总；忽略三维耦合与柔性；非 CAD 运动学"
+    },
+    "circular": {
+      "fidelity": "principle",
+      "authority": "Goldstein, Classical Mechanics, Ch. 3（有心势/开普勒问题的教科书形式）",
+      "assumptions": "点质量、平方反比或匀速圆周示意；非 N 体星历、非摄动工业轨道确定"
+    },
+    "particles": {
+      "fidelity": "principle",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 2（点电荷场的教科书极限）",
+      "assumptions": "点粒子、库仑/洛伦兹示意；无自能重整、非粒子输运求解器"
+    },
+    "nbody": {
+      "fidelity": "principle",
+      "authority": "Murray & Dermott, Solar System Dynamics, Ch. 2（少体引力）",
+      "assumptions": "少体、牛顿引力、软化防奇点；非精密星历"
+    },
+    "euler": {
+      "fidelity": "principle",
+      "authority": "Goldstein, Classical Mechanics, Ch. 4（欧拉角）",
+      "assumptions": "刚体姿态示意；万向节锁与顺序须按文献，非飞控解算"
+    },
+    "buoyancy": {
+      "fidelity": "principle",
+      "authority": "Kundu, Fluid Mechanics, Ch. 1（阿基米德浮力）",
+      "assumptions": "静流体、完全浸没或简单吃水；非 CFD 自由液面"
+    },
+    "flow": {
+      "fidelity": "principle",
+      "authority": "White, Fluid Mechanics（连续性与伯努利的教科书适用条件）",
+      "assumptions": "不可压、定常、沿流线的原理图；非 CFD/管网水力计算软件"
+    },
+    "wave1d": {
+      "fidelity": "engineering",
+      "authority": "Kinsler, Fundamentals of Acoustics, Ch. 1；或 Pain, The Physics of Vibrations and Waves（一维波动方程）",
+      "assumptions": "一维、常波速、有限差分；边界按模型声明；非三维全波仿真"
+    },
+    "doppler": {
+      "fidelity": "principle",
+      "authority": "Halliday, Resnick, Walker, Fundamentals of Physics, 声波多普勒章节",
+      "assumptions": "匀速源/观察者、远小于光速；非宽带信号处理"
+    },
+    "interference": {
+      "fidelity": "principle",
+      "authority": "Hecht, Optics, 双缝/双源干涉章节",
+      "assumptions": "标量波、相干点源示意；非矢量衍射工业设计"
+    },
+    "field2d": {
+      "fidelity": "principle",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 2–3（静场）",
+      "assumptions": "二维静场或势的示意网格；非有限元电磁求解器"
+    },
+    "piston": {
+      "fidelity": "principle",
+      "authority": "Çengel & Boles, Thermodynamics, 闭口系统活塞过程",
+      "assumptions": "准静态、理想气体或给定过程指数；非 CFD 缸内过程"
+    },
+    "cycle": {
+      "fidelity": "principle",
+      "authority": "Çengel & Boles, Thermodynamics, 动力/制冷循环章节",
+      "assumptions": "理想循环、集总工质；忽略不可逆细节时不得标工程机组效率"
+    },
+    "fieldlines": {
+      "fidelity": "principle",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 2（电场线约定）",
+      "assumptions": "静电、可视化约定；线密度不是定量工程场解"
+    },
+    "circuit": {
+      "fidelity": "engineering",
+      "authority": "Nilsson & Riedel, Electric Circuits, 一阶/二阶电路章节",
+      "assumptions": "集总参数、理想 R/L/C、基尔霍夫定律；非 SPICE 分布寄生与开关瞬态全模型"
+    },
+    "induction": {
+      "fidelity": "principle",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 7（法拉第定律）",
+      "assumptions": "准静态、简单回路；非电机有限元"
+    },
+    "rays": {
+      "fidelity": "principle",
+      "authority": "Hecht, Optics, 近轴几何光学 / 薄透镜方程",
+      "assumptions": "近轴、薄透镜或单球面；虚像用虚线；非 Zemax 级像差设计"
+    },
+    "gauge": {
+      "fidelity": "engineering",
+      "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
+      "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位"
+    },
+    "variant": {
+      "fidelity": "principle",
+      "authority": "族×维度变体：方程继承所属 family 的教科书形式，见 data/families.json",
+      "assumptions": "dims 只改系数/初值，不改变方程结构；超范围即失效"
+    },
+    "bohr": {
+      "fidelity": "principle",
+      "authority": "Bransden & Joachain, Physics of Atoms and Molecules, 玻尔模型章节（历史模型）",
+      "assumptions": "玻尔轨道是历史近似，不是现代量子化学；禁止外推到分子合成"
+    },
+    "decay": {
+      "fidelity": "principle",
+      "authority": "Krane, Introductory Nuclear Physics, 指数衰变定律章节",
+      "assumptions": "常数衰变率、无链式工程燃耗；非反应堆燃料管理"
+    },
+    "discrete": {
+      "fidelity": "engineering",
+      "authority": "Cormen et al., Introduction to Algorithms (CLRS), 相关算法章节",
+      "assumptions": "离散步骤与不变量按该算法定义；可视化高亮不是复杂度证明本身"
+    },
+    "graph": {
+      "fidelity": "engineering",
+      "authority": "CLRS, 图算法（BFS/Dijkstra/松弛）",
+      "assumptions": "有限图、非负权（Dijkstra）；点选连边须保持算法不变量"
+    },
+    "tree": {
+      "fidelity": "engineering",
+      "authority": "CLRS, 树与分治章节",
+      "assumptions": "有限树；步进高亮对应标准遍历/操作"
+    },
+    "fsm": {
+      "fidelity": "principle",
+      "authority": "Hopcroft, Motwani, Ullman, Introduction to Automata Theory, 有限自动机",
+      "assumptions": "有限状态、确定或按模型声明的不确定转移；非工业 PLC 程序"
+    },
+    "turing": {
+      "fidelity": "principle",
+      "authority": "Sipser, Introduction to the Theory of Computation, 图灵机章节",
+      "assumptions": "纸带示意、有限步演示；非通用解释器"
+    },
+    "crypto": {
+      "fidelity": "principle",
+      "authority": "Katz & Lindell, Introduction to Modern Cryptography, 对应原语章节（仅公开教学步骤）",
+      "assumptions": "教学步骤可视化；不提供攻击实现、密钥恢复或绕过"
+    },
+    "ml": {
+      "fidelity": "principle",
+      "authority": "Goodfellow, Bengio, Courville, Deep Learning, 优化/损失章节（示意）",
+      "assumptions": "低维损失面或单步更新示意；非训练框架、无生产数据"
+    },
+    "opt": {
+      "fidelity": "principle",
+      "authority": "Nocedal & Wright, Numerical Optimization, 一阶方法章节",
+      "assumptions": "低维目标示意；非工业求解器收敛保证"
+    },
+    "logic": {
+      "fidelity": "engineering",
+      "authority": "Mano, Digital Design, 组合逻辑门与真值表",
+      "assumptions": "理想门、零延迟或按模型声明的单位延迟；非 VLSI 时序签核"
+    },
+    "arch": {
+      "fidelity": "principle",
+      "authority": "Hennessy & Patterson, Computer Organization and Design, 流水线/缓存章节",
+      "assumptions": "经典五级或 LRU 教学模型；非具体 CPU 微架构"
+    },
+    "embed": {
+      "fidelity": "principle",
+      "authority": "Lee & Seshia, Introduction to Embedded Systems, 时序与采样示意",
+      "assumptions": "逻辑时序示意；非目标板 BSP"
+    },
+    "comm": {
+      "fidelity": "principle",
+      "authority": "Proakis & Salehi, Fundamentals of Communication Systems, 调制章节",
+      "assumptions": "基带/理想信道示意；非链路预算软件"
+    },
+    "net": {
+      "fidelity": "principle",
+      "authority": "Kurose & Ross, Computer Networking, 对应协议章节",
+      "assumptions": "协议步进示意；非数据包捕获或攻击"
+    },
+    "os": {
+      "fidelity": "principle",
+      "authority": "Silberschatz, Operating System Concepts, 调度/同步章节",
+      "assumptions": "理想队列与时间片；非内核源码行为"
+    },
+    "compile": {
+      "fidelity": "principle",
+      "authority": "Aho et al., Compilers (Dragon Book), 管线阶段概述",
+      "assumptions": "阶段高亮示意；非完整编译器"
+    },
+    "dist": {
+      "fidelity": "principle",
+      "authority": "Tanenbaum & van Steen, Distributed Systems, 共识章节（教学状态机）",
+      "assumptions": "简化消息模型；非生产共识实现"
+    },
+    "struct": {
+      "fidelity": "engineering",
+      "authority": "Hibbeler, Structural Analysis / Mechanics of Materials, 梁内力与弯曲章节",
+      "assumptions": "欧拉-伯努利、静定、小变形；非有限元、非塑性"
+    },
+    "control": {
+      "fidelity": "engineering",
+      "authority": "Ogata, Modern Control Engineering；Åström & Murray, Feedback Systems（PID/根轨迹）",
+      "assumptions": "线性时不变或标准 PID；非工业 DCS 整定软件、无执行器饱和全模型除非 schema 声明"
+    },
+    "chaos": {
+      "fidelity": "principle",
+      "authority": "Strogatz, Nonlinear Dynamics and Chaos, 对应标准方程（Lorenz 等）",
+      "assumptions": "常微分方程数值示意；参数即文献标准形，不外推为工程预报"
+    },
+    "traffic": {
+      "fidelity": "principle",
+      "authority": "Nagel & Schreckenberg, J. Phys. I France 2, 2221 (1992)（NaSch 元胞自动机）",
+      "assumptions": "单车道元胞规则；非交通规划宏观模型"
+    },
+    "reactor": {
+      "fidelity": "principle",
+      "authority": "Lamarsh & Baratta, Introduction to Nuclear Engineering, 点堆动力学章节（公开教科书）",
+      "assumptions": "点堆、单组缓发示意；非堆芯设计、非燃料循环、无增强路径"
+    },
+    "aero": {
+      "fidelity": "principle",
+      "authority": "Anderson, Fundamentals of Aerodynamics；Etkin, Dynamics of Flight（线性化模态）",
+      "assumptions": "小扰动或薄翼示意；非 CFD、非飞控适航模型"
+    },
+    "hand": {
+      "fidelity": "principle",
+      "authority": "手写精调：以该条目 authority 覆盖为准",
+      "assumptions": "见条目 assumptions；未覆盖前不得标工程精度"
+    }
+  },
+  "ids": {
+    "free-fall": {
+      "fidelity": "engineering",
+      "authority": "Halliday, Resnick, Walker, Fundamentals of Physics, 直线运动；线性阻力见 Thornton & Marion §2.4",
+      "assumptions": "竖直一维、常 g、线性阻力 F=−kv；不计浮力与二次阻力"
+    },
+    "projectile": {
+      "fidelity": "engineering",
+      "authority": "Halliday, Resnick, Walker, Fundamentals of Physics, 抛体运动",
+      "assumptions": "匀 g、无空气阻力（公式层）；平面运动；落地停止按模型选项"
+    },
+    "inclined-plane": {
+      "fidelity": "engineering",
+      "authority": "Hibbeler, Engineering Mechanics: Dynamics, 斜面与库仑摩擦",
+      "assumptions": "刚性斜面、库仑摩擦、质点；a=g(sinθ−μcosθ) 在下滑方向"
+    },
+    "spring": {
+      "fidelity": "engineering",
+      "authority": "Thornton & Marion, Classical Dynamics, §3.4–3.5（阻尼谐振子）",
+      "assumptions": "胡克定律、粘滞阻尼、一维；忽略干摩擦与大变形"
+    },
+    "pendulum": {
+      "fidelity": "engineering",
+      "authority": "Thornton & Marion, Classical Dynamics, §4.2（单摆，含大角 sinθ）",
+      "assumptions": "刚性轻杆、平面、集总质点；阻尼为粘滞项；非小角线性化除非参数进入小角区"
+    },
+    "collision": {
+      "fidelity": "engineering",
+      "authority": "Hibbeler, Engineering Mechanics: Dynamics, 对心碰撞与恢复系数",
+      "assumptions": "一维对心、碰撞瞬间外力冲量可忽略；e∈[0,1]"
+    },
+    "collision-2d": {
+      "fidelity": "engineering",
+      "authority": "Hibbeler, Engineering Mechanics: Dynamics, 斜碰与冲量",
+      "assumptions": "刚体圆、接触法向冲量 + 恢复系数；摩擦按模型声明"
+    },
+    "double-pendulum": {
+      "fidelity": "engineering",
+      "authority": "Goldstein, Classical Mechanics, 拉格朗日方程应用于双摆",
+      "assumptions": "平面、轻杆、集总质量；混沌对初值敏感，不作长期工程预报"
+    },
+    "wave": {
+      "fidelity": "engineering",
+      "authority": "Pain, The Physics of Vibrations and Waves, 一维波动方程",
+      "assumptions": "均匀弦或介质、常波速、两端边界按实现；有限差分"
+    },
+    "heat": {
+      "fidelity": "engineering",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, 一维瞬态导热",
+      "assumptions": "常物性、一维、无内热源（除非参数声明）；显式差分受稳定性限制"
+    },
+    "lorentz": {
+      "fidelity": "engineering",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 5（洛伦兹力）",
+      "assumptions": "点电荷、给定均匀场；忽略辐射阻尼"
+    },
+    "orbit": {
+      "fidelity": "engineering",
+      "authority": "Murray & Dermott, Solar System Dynamics, Ch. 2；或 Goldstein 有心势",
+      "assumptions": "二体、牛顿引力、点质量；非星历、非第三体"
+    },
+    "rc-circuit": {
+      "fidelity": "engineering",
+      "authority": "Nilsson & Riedel, Electric Circuits, 一阶 RC",
+      "assumptions": "集总、理想源、常 R/C；τ=RC"
+    },
+    "rlc": {
+      "fidelity": "engineering",
+      "authority": "Nilsson & Riedel, Electric Circuits, 串联 RLC",
+      "assumptions": "集总串联、常系数；L I''+R I'+I/C=0"
+    },
+    "beam-sfd-bmd": {
+      "fidelity": "engineering",
+      "authority": "Hibbeler, Structural Analysis, 梁的剪力与弯矩（ΣV=0, ΣM=0）",
+      "assumptions": "静定、欧拉-伯努利、小变形；非有限元"
+    },
+    "pid-tune": {
+      "fidelity": "engineering",
+      "authority": "Åström & Murray, Feedback Systems, Ch. 10；Ogata, Modern Control Engineering, PID",
+      "assumptions": "线性被控对象 + 理想 PID u=Kp e+Ki∫e+Kd ė；无工业执行器认证"
+    },
+    "hodgkin-huxley": {
+      "fidelity": "engineering",
+      "authority": "Hodgkin & Huxley, J. Physiol. 117:500–544 (1952), DOI:10.1113/jphysiol.1952.sp004764",
+      "assumptions": "空间钳位、枪乌贼巨轴突电导模型；仅公开生理方程，无增强或临床给药路径"
+    },
+    "sorting": {
+      "fidelity": "engineering",
+      "authority": "CLRS, 排序（插入/冒泡/快排）",
+      "assumptions": "比较排序的标准循环不变量；演示步不等于复杂度证明"
+    },
+    "bfs-grid": {
+      "fidelity": "engineering",
+      "authority": "CLRS, BFS/DFS",
+      "assumptions": "无权网格、四邻域或按实现；墙格不可通"
+    },
+    "dijkstra": {
+      "fidelity": "engineering",
+      "authority": "CLRS, Dijkstra（非负权）",
+      "assumptions": "边权非负；负权则算法不适用"
+    },
+    "logic-gates": {
+      "fidelity": "engineering",
+      "authority": "Mano, Digital Design, 基本门与真值表",
+      "assumptions": "理想布尔门；连线为网表示意"
+    },
+    "life": {
+      "fidelity": "principle",
+      "authority": "Gardner / Berlekamp, Conway, Guy, Winning Ways（Life, B3/S23）",
+      "assumptions": "无限或环形网格按实现；元胞规则不是生物模型"
+    },
+    "pipeline": {
+      "fidelity": "principle",
+      "authority": "Hennessy & Patterson, Computer Organization and Design, 经典五级流水线",
+      "assumptions": "理想节拍、冒险按模型声明；非具体 ISA"
+    },
+    "cache-lru": {
+      "fidelity": "engineering",
+      "authority": "Hennessy & Patterson, Computer Organization and Design, 缓存与 LRU",
+      "assumptions": "全相联或按模型声明的组相联；理想命中时间"
+    },
+    "fifo": {
+      "fidelity": "engineering",
+      "authority": "Silberschatz, Operating System Concepts, 有界缓冲",
+      "assumptions": "互斥与空/满条件按经典问题；非真实内核"
+    }
+  }
+}

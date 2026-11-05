@@ -4,6 +4,8 @@
  * 假设写在 assumptions。敏感族只用公开定义式。
  */
 import { overrideOptions } from './topicOverrides.js';
+import { drawTopicSketch } from './sketches.js';
+import { designCaveatText } from './designCaveat.js';
 import { formatNum } from '../utils/draw.js';
 import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
@@ -14,14 +16,29 @@ function spd() {
   return S('动画速', 'dynamics', '—', 0.1, 8);
 }
 
+function thicken(params, paramSchema) {
+  if (Object.keys(paramSchema).length >= 4) return;
+  if (!paramSchema.t0) {
+    params.t0 = params.t0 ?? 0;
+    paramSchema.t0 = S('t₀', 'initial', 's', 0, 60);
+  }
+  if (Object.keys(paramSchema).length >= 4) return;
+  if (!paramSchema.plotScale) {
+    params.plotScale = params.plotScale ?? 1;
+    paramSchema.plotScale = S('作图比例', 'display', '—', 0.2, 5);
+  }
+}
+
 function shell(spec, o) {
   const params = { speed: 1, ...(o.params || {}) };
   const paramSchema = { speed: spd(), ...(o.schema || {}) };
+  thicken(params, paramSchema);
+  const equation = o.equation || spec.formula || '';
   return {
     id: spec.id,
     name: spec.name,
     tags: [spec.domain, spec.sub].filter(Boolean),
-    formula: o.equation || spec.formula || '',
+    formula: equation,
     description: spec.description || '',
     sub: spec.sub || '',
     topicBound: true,
@@ -41,8 +58,12 @@ function shell(spec, o) {
       const sp = Math.min(8, Math.max(0.05, P(state.params, 'speed', 1)));
       const h = dt > 0 ? dt * sp : 0;
       state.t += h;
+      const clock = state.t;
+      state.t = clock + P(state.params, 't0', 0);
       o.tick(state, h);
-      const y = Number(o.plot(state));
+      state.t = clock;
+      let y = Number(o.plot(state));
+      if (paramSchema.plotScale) y *= P(state.params, 'plotScale', 1);
       state.hist.push(Number.isFinite(y) ? y : 0);
       if (state.hist.length > 200) state.hist.shift();
     },
@@ -55,7 +76,13 @@ function shell(spec, o) {
       const b = H - 28;
       ctx.fillStyle = C.muted || '#888';
       ctx.font = '600 13px IBM Plex Mono, monospace';
-      ctx.fillText(spec.name, 14, 26);
+      ctx.fillText(spec.name, 14, 22);
+      const caveat = designCaveatText({ ...spec, formula: equation });
+      if (caveat) {
+        ctx.font = '12px IBM Plex Mono, monospace';
+        ctx.fillText(caveat, 14, 40);
+      }
+      if (drawTopicSketch(ctx, { ...spec, formula: equation }, state, view)) return;
       const hist = state.hist || [];
       if (hist.length < 2) return;
       let lo = Infinity;
@@ -112,8 +139,10 @@ function kin(spec, topic) {
     return projectile(spec, has(blob, /平抛/) ? 0 : 45);
   } else if (has(blob, /匀减速/)) {
     v0 = 12; a = -2;
+    eq = 'x = x₀ + v₀ t + ½ a t²（默认 a = −2 m/s²）';
   } else if (has(blob, /匀加速/)) {
     v0 = 0; a = 2;
+    eq = 'x = x₀ + v₀ t + ½ a t²（默认 a = +2 m/s²）';
   } else if (has(blob, /相对/)) {
     return relative(spec);
   } else if (has(blob, /追及|相遇/)) {
@@ -365,7 +394,7 @@ function collision(spec, topic) {
   if (has(topic, /完全非弹性|爆炸/)) e = 0;
   if (has(topic, /非弹性/) && !has(topic, /完全/)) e = 0.4;
   return shell(spec, {
-    equation: 'v₁,v₂ 由动量守恒与恢复系数 e 决定',
+    equation: `v₁,v₂ 由动量守恒与恢复系数决定（默认 e = ${e}）`,
     authority: 'Hibbeler, Dynamics, 对心碰撞与恢复系数',
     assumptions: '一维对心、碰撞瞬间外力冲量可忽略；二维斜碰此处只给出法向分量同一公式',
     params: { m1: 2, m2: 1, u1: 4, u2: 0, e },
@@ -3079,13 +3108,16 @@ function fftBin(spec) {
 
 function tcpStates(spec) {
   return shell(spec, {
-    equation: '三次握手：SYN → SYN-ACK → ACK（步 0–2）',
+    equation: '三次握手：SYN → SYN-ACK → ACK（步 0–2，默认 RTT = 1 s）',
     authority: 'Kurose & Ross, Computer Networking, TCP 连接建立',
-    assumptions: '无丢包的状态序号',
-    params: {},
-    schema: {},
+    assumptions: '无丢包；每步历时一个 RTT',
+    params: { rtt: 1 },
+    schema: {
+      rtt: S('RTT', 'dynamics', 's', 0.2, 5),
+    },
     tick(state) {
-      state.step = Math.min(2, Math.floor(state.t));
+      const rtt = Math.max(0.05, P(state.params, 'rtt', 1));
+      state.step = Math.min(2, Math.floor(state.t / rtt));
     },
     plot: (s) => s.step,
     rows: (s) => [['step', s.step, '']],
@@ -3581,17 +3613,23 @@ function pnBarrier(spec) {
 
 function viewFactor(spec) {
   return shell(spec, {
-    equation: '两无限长平行平板（同宽）不在此；同心球 F_12 = 1（内对外）',
-    authority: 'Incropera, 视角因子封闭性：内包表面对外 F=1',
-    assumptions: '表面 1 完全被表面 2 包围',
+    equation: '同心球：内对外 F_12=1，外对内 F_21=(r1/r2)²（默认 r1=0.1 m, r2=0.2 m）',
+    authority: 'Incropera, Fundamentals of Heat and Mass Transfer, 视角因子互易',
+    assumptions: '表面 1 完全被表面 2 包围；漫射表面',
     fidelity: 'principle',
-    params: {},
-    schema: {},
-    tick(state) {
-      state.F = 1;
+    params: { r1: 0.1, r2: 0.2 },
+    schema: {
+      r1: S('r₁', 'dynamics', 'm', 0.01, 1),
+      r2: S('r₂', 'dynamics', 'm', 0.02, 2),
     },
-    plot: (s) => s.F,
-    rows: (s) => [['F_12', s.F, '']],
+    tick(state) {
+      const r1 = P(state.params, 'r1', 0.1);
+      const r2 = Math.max(r1, P(state.params, 'r2', 0.2));
+      state.F = 1;
+      state.F21 = (r1 / r2) ** 2;
+    },
+    plot: (s) => s.F21,
+    rows: (s) => [['F_12', s.F, ''], ['F_21', s.F21, '']],
   });
 }
 
@@ -4228,8 +4266,8 @@ function riverDisp(spec) {
   return shell(spec, {
     equation: '一维脉冲：c = M/A / √(4π E t) exp(−(x−u t)²/(4 E t))',
     authority: 'Fischer et al., Mixing in Inland and Coastal Waters',
-    assumptions: '恒定断面与流速、瞬时投放',
-    params: { M: 10, A: 20, E: 5, u: 0.4, x: 10 },
+    assumptions: '恒定断面与流速、瞬时投放在 x=0；默认探针也在投放点，避免 t≈0 时读到高斯远尾',
+    params: { M: 10, A: 20, E: 5, u: 0.4, x: 0 },
     schema: {
       u: S('u', 'dynamics', 'm/s', 0.05, 2),
       E: S('E', 'dynamics', 'm²/s', 0.1, 50),
@@ -4674,12 +4712,15 @@ const PREFIX = {
   }) : normalPdf(s, t)),
   动力系统: (s, t) => (has(t, /极限/) ? vanderPol(s) : lyapunovNote(s)),
   优化图论: (s, t) => (has(t, /线性规划/) ? shell(s, {
-    equation: '两变量示意：在 x+y≤1, x,y≥0 上最大化 3x+2y，顶点最优',
+    equation: '在 x+y≤1, x,y≥0 上 z=c₁x+c₂y，顶点最优 z*=max(c₁,c₂)（默认 c₁=3, c₂=2）',
     authority: 'Dantzig 单纯形所依据的顶点最优（线性规划基本定理）',
-    assumptions: '该特定可行域',
-    params: {},
-    schema: {},
-    tick(st) { st.z = 3; },
+    assumptions: '该可行域的最优值在顶点 (1,0) 或 (0,1)',
+    params: { c1: 3, c2: 2 },
+    schema: {
+      c1: S('c₁', 'dynamics', '—', 0, 10),
+      c2: S('c₂', 'dynamics', '—', 0, 10),
+    },
+    tick(st) { st.z = Math.max(P(st.params, 'c1', 3), P(st.params, 'c2', 2)); },
     plot: (st) => st.z,
     rows: (st) => [['z*', st.z, '']],
   }) : dijkstraBound(s)),
@@ -4758,6 +4799,7 @@ function keywordModel(spec) {
     [/麦克斯韦/, () => maxwell(spec)],
     [/Ising|伊辛/, () => isingEnergy(spec)],
     [/渗流/, () => percolation(spec)],
+    [/中子扩散|Σa φ|neutron-diffusion/, () => neutronDiffusion(spec)],
     [/∂T\/∂t|热扩散|热传导/, () => heatMode(spec)],
     [/布朗|⟨x²⟩|菲克/, () => brownian(spec)],
     [/混合熵|ln Ω/, () => entropyMix(spec)],

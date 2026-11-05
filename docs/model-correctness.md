@@ -1,17 +1,19 @@
 # 模型正确性门禁（工业级）
 
-> 硬规则：每个模型必须达到**工业可用示意/工程原理**标准——高自定义参数；创建前对照**权威学术文档**核对伦理与理论概念。不是「只为上课好看」。
+> Hard rule: every model must be an **industrial-grade teaching / engineering sketch** — rich customizable parameters; verify ethics and theory against **authoritative sources** before merge. Not “pretty classroom animation.”
+>
+> **No fake data:** every readout, plot point, and export must come from the model’s governing equation or algorithm with user-editable params. No decorative canned traces, placeholder constants, or invented “demo” numbers. Catalog `assumptions` / `fidelity` stay in metadata for audits — **do not** render ENGINEERING / assumption banners on the stage UI.
 
-## 创建前检查清单
+## Pre-merge checklist
 
-| # | 检查 | 不通过则 |
+| # | Check | If fail |
 |---|------|----------|
-| 1 | 写出支配方程 / 算法不变量，与教材或标准章节对应 | 禁止入库 |
-| 2 | 列出适用假设与失效边界 | 禁止标 `engineering` |
-| 3 | `paramSchema` ≥ 4 项，含 unit / min·max / group | 补全后再合并 |
-| 4 | 状态量、读数标签与方程符号一致 | 改名或改方程 |
-| 5 | 生物/化学/核等：仅公开教学方程，无合成/武器路径 | 删除能力 |
-| 6 | 与已有同名概念模型做对照（防重复错误类比） | 合并或标注差异 |
+| 1 | Write governing equation / algorithm invariant; map to textbook or standard | Block merge |
+| 2 | List assumptions & failure bounds in catalog metadata (not UI chrome) | Do not mark `engineering` |
+| 3 | `paramSchema` ≥ 4 keys with unit / min·max / group; all knobs customizable | Complete before merge |
+| 4 | State vars & readout labels match equation symbols; values are real (not fake) | Rename or fix equation |
+| 5 | Bio/chem/nuclear: public teaching equations only; no synthesis/weapon paths | Remove capability |
+| 6 | Diff against existing same-concept models (avoid wrong analogies) | Merge or document difference |
 
 ## 权威来源示例（非穷尽）
 
@@ -40,10 +42,10 @@
 
 手写 25 个模型仍走各自的 `js/models/*` 实现。
 
-## 与「原理级」的关系
+## Principle vs engineering (metadata only)
 
-历史文案曾写「非 FEA/SPICE」。现策略：
+- Prefer `engineering` when assumptions are documented in catalog metadata
+- Use `principle` only for intentional simplifications — still no fake data
+- **Never** paint fidelity / assumption / “not a design tool” banners on the stage UI
+- **Never** use `principle` as an excuse for wrong physics or wrong algorithms
 
-- 默认可标 `engineering`（工程可用示意），但**必须**写清假设  
-- 仅当故意简化时用 `principle`，HUD/描述须标明非工业求解器  
-- **禁止**用 principle 当借口交付错误物理/错误算法  
