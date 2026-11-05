@@ -32,8 +32,7 @@ import {
   bootI18n,
   ensureSidebarLocales,
 } from './i18n/index.js';
-import { assumptionBody, ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
-import { designCaveatText } from './lab/designCaveat.js';
+import { ensureCatalogGloss, formulaLine } from './i18n/previewText.js';
 import {
   listShells,
   resolveShellId,
@@ -407,16 +406,11 @@ async function updateShellStrip() {
   };
   const loc = getLocale();
   if (loc !== 'zh') await ensureCatalogGloss(loc);
+  // Formula stays; assumption / caveat chrome stay off the stage (catalog metadata only).
+  document.getElementById('shell-assumptions')?.remove();
+  document.getElementById('shell-caveat')?.remove();
   const formulaEl = ensureLine('shell-formula', 'shell-formula');
-  const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
-  const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
   if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
-  if (asmLine) asmLine.textContent = assumptionBody(loc, app.model?.assumptions || '');
-  if (caveatEl) {
-    const caveat = designCaveatText(app.model);
-    caveatEl.hidden = !caveat;
-    caveatEl.textContent = caveat || '';
-  }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
   if (!pauseBadge) {
@@ -1935,6 +1929,7 @@ window.__labCapture = {
     return url;
   },
   switchModel: (id) => switchModel(id),
+  loadDomain: (domain) => loadDomain(domain),
   pause: () => { if (!app.paused) { app.paused = true; syncPauseUi(); } },
   play: () => { if (app.paused) { app.paused = false; syncPauseUi(); } },
   getReadouts: () => app.lastReadouts,
@@ -2257,23 +2252,19 @@ async function boot() {
   if (pinned) {
     if (!(await ensureId(pinned))) primeHandModel(DEFAULT_MODEL_ID);
   } else {
+    // Hand model only — keep subjects folded so cold boot does not fetch domain JSON.
     primeHandModel(DEFAULT_MODEL_ID);
-  }
-  const activeId = pinned && models.some((model) => model.id === pinned) ? pinned : DEFAULT_MODEL_ID;
-  const activeRow = domainIndex.find((row) => row.id === activeId);
-  if (activeRow) {
-    const folds = loadFolds();
-    folds[foldKey(activeRow.domain || '其他')] = true;
-    if (activeRow.sub) folds[foldKey(activeRow.domain || '其他', activeRow.sub)] = true;
-    saveFolds(folds);
   }
   try {
     const loadIndexMs = performance.measure('boot-loadIndex', 'boot-loadIndex-start', 'boot-loadIndex-end').duration;
-    const ensureIdMs = performance.measure('boot-ensureId', 'boot-ensureId-start', 'boot-ensureId-end').duration;
+    let ensureIdMs = null;
     let loadDomainMs = null;
     try {
+      ensureIdMs = performance.measure('boot-ensureId', 'boot-ensureId-start', 'boot-ensureId-end').duration;
+    } catch { /* primeHandModel path skips ensureId marks */ }
+    try {
       loadDomainMs = performance.measure('boot-loadDomain', 'boot-loadDomain-start', 'boot-loadDomain-end').duration;
-    } catch { /* id miss */ }
+    } catch { /* no domain fetch on hand-only boot */ }
     window.__bootMarks = { ...(window.__bootMarks || {}), loadIndexMs, ensureIdMs, loadDomainMs };
   } catch { window.__bootMarks = window.__bootMarks || {}; }
   populateTagFilter();
@@ -2284,12 +2275,6 @@ async function boot() {
   syncPauseUi();
   buildSidebar();
   switchModel(resolveInitialModelId());
-  if (activeRow && app.model?.id) {
-    await focusCatalogModel(app.model.id, {
-      domain: activeRow.domain || '其他',
-      sub: activeRow.sub || '',
-    });
-  }
   if (!isCompact()) bench.classList.add('open');
   bindCanvasPointer();
   syncDrawerChrome();

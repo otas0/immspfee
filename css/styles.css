@@ -1556,21 +1556,13 @@ html.hc .pot-knob::after { background: #fff; }
   display: none !important;
   pointer-events: none;
 }
-
-/*
- * Menu / params must beat backdrop (24) and the projector catalog.
- * position:relative inside .stage loses to a sibling .sidebar with z-index —
- * fixed lifts the controls into the viewport stacking context so they stay
- * clickable even when the brand logo overlaps the toolbar band.
- */
+/* Menu / params above backdrop (24) and projector overlay catalog (40). */
+body.drawer-open .toolbar,
 body.drawer-open #btn-menu,
-body.drawer-open #btn-params,
-.chassis.shell-sidebar-overlay #btn-menu,
-.chassis.shell-sidebar-overlay #btn-params {
-  position: fixed;
-  z-index: 70;
+body.drawer-open #btn-params {
+  position: relative;
+  z-index: 50;
 }
-
 
 @media (max-width: 1100px) {
   .chassis { grid-template-columns: var(--sidebar-w) 1fr; }
@@ -1808,6 +1800,14 @@ body.drawer-open {
   }
 }
 
+/* Compact bottom drawer: keep model-shell clear of the sheet on every shell. */
+@media (max-width: 900px) {
+  .chassis.bench-drawer-open .model-shell {
+    padding-bottom: calc(min(58dvh, 480px) + 12px) !important;
+    padding-right: 0;
+  }
+}
+
 /* —— multi-shell variants (js/shells/registry.js) —— */
 html.shell-lab-focus,
 .chassis.shell-lab-focus {
@@ -1923,12 +1923,11 @@ html.shell-lab-projector .icon-btn.ghost,
   pointer-events: auto;
   position: fixed;
   left: 0;
-  /* Clear the stage toolbar band; menu itself uses z-index:70 (fixed) */
-  top: 3.75rem;
+  /* Clear the stage toolbar so #btn-menu stays clickable above the catalog */
+  top: 3.25rem;
   bottom: 0;
   width: min(280px, 86vw);
-  /* Above stage canvas (50), below fixed #btn-menu (70) */
-  z-index: 60;
+  z-index: 40;
   overflow: auto;
   padding: 0.75rem;
   background: var(--panel);
@@ -1937,14 +1936,21 @@ html.shell-lab-projector .icon-btn.ghost,
   /* Beat the ≤900px drawer translate so overlay is on-screen when .open */
   transform: none;
 }
-/* Stage below the overlay catalog so the list stays usable; menu is fixed@70 */
+/* Stage (not just the button) must beat the overlay catalog z-index:40, otherwise
+   the sidebar logo wins elementFromPoint over #btn-menu. */
 .chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage {
   position: relative;
-  z-index: 50;
+  z-index: 45;
 }
 .chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage > .toolbar {
   position: relative;
-  z-index: 1;
+  z-index: 50;
+}
+body.drawer-open.shell-lab-projector #btn-menu,
+html.shell-lab-projector body.drawer-open #btn-menu,
+.chassis.shell-hide-sidebar.shell-sidebar-overlay #btn-menu {
+  position: relative;
+  z-index: 70;
 }
 .chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar:not(.open) {
   transform: translateX(-110%);
@@ -1988,5 +1994,54 @@ body.drawer-open .drawer-backdrop {
   html.shell-lab-projector .readout-card .value,
   .chassis.shell-lab-projector .readout-card .value {
     font-size: 1.85rem;
+  }
+}
+
+
+.boot-banner {
+  position: fixed;
+  z-index: 80;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  padding: 0.45rem 0.8rem;
+  background: #1c1408;
+  color: #ffe7b0;
+  font: 600 0.9rem/1.4 sans-serif;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: center;
+}
+.boot-banner[hidden] { display: none; }
+.boot-banner button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- projector overlay hit-test / compact pad (keep at file end) --- */
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage {
+  position: relative;
+  z-index: 45 !important;
+}
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage > .toolbar,
+.chassis.shell-hide-sidebar.shell-sidebar-overlay #btn-menu,
+body.drawer-open #btn-menu,
+body.drawer-open .toolbar {
+  position: relative;
+  z-index: 70 !important;
+}
+@media (max-width: 900px) {
+  .chassis.bench-drawer-open .model-shell {
+    padding-bottom: calc(min(58dvh, 480px) + 12px) !important;
+  }
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .chassis.bench-drawer-open .model-shell {
+    padding-right: calc(min(92vw, 320px) + 12px) !important;
   }
 }
