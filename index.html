@@ -17,8 +17,8 @@
   <link rel="stylesheet" href="./css/microscope-shell.css" />
 </head>
 <body>
-  <p id="boot-status" hidden style="position:fixed;z-index:80;left:0;right:0;top:0;margin:0;padding:0.45rem 0.8rem;background:#1c1408;color:#ffe7b0;font:600 0.9rem/1.4 sans-serif">正在重新载入</p>
-  <p id="boot-refresh-hint" hidden style="position:fixed;z-index:80;left:0;right:0;top:0;margin:0;padding:0.45rem 0.8rem;background:#1c1408;color:#ffe7b0;font:600 0.9rem/1.4 sans-serif">无法自动刷新，请手动重新载入</p>
+  <p id="boot-status" class="boot-banner" hidden><span data-i18n="ui.bootReload">Reloading…</span><button type="button" data-i18n-aria="ui.bootDismiss" aria-label="Dismiss">×</button></p>
+  <p id="boot-refresh-hint" class="boot-banner" hidden><span data-i18n="ui.bootManual">Automatic refresh is unavailable. Reload the page manually.</span><button type="button" data-i18n-aria="ui.bootDismiss" aria-label="Dismiss">×</button></p>
   <!-- sidebar / bench 与 stage 同级，避免 .app overflow 裁切 fixed 抽屉 -->
   <div class="chassis" id="chassis">
     <aside class="sidebar" id="sidebar">
@@ -239,6 +239,41 @@
       var KEY = 'immspfee-hard-refresh';
       var status = document.getElementById('boot-status');
       var hint = document.getElementById('boot-refresh-hint');
+      function bootLang() {
+        try {
+          var q = new URL(location.href).searchParams.get('lang');
+          if (q) return q;
+        } catch (e) {}
+        try {
+          var saved = localStorage.getItem('physics-lab-locale-v1');
+          if (saved) return saved;
+        } catch (e) {}
+        var nav = (navigator.language || 'en').toLowerCase();
+        if (nav.indexOf('zh') === 0) return 'zh';
+        return nav.slice(0, 2);
+      }
+      function bootText(key, fallback) {
+        var pack = window.__BOOT_I18N || {};
+        var table = pack[bootLang()] || pack.en || {};
+        return table[key] || fallback;
+      }
+      function paintBoot() {
+        var reload = status && status.querySelector('[data-i18n]');
+        var manual = hint && hint.querySelector('[data-i18n]');
+        if (reload) reload.textContent = bootText('ui.bootReload', reload.textContent);
+        if (manual) manual.textContent = bootText('ui.bootManual', manual.textContent);
+        var buttons = document.querySelectorAll('#boot-status button, #boot-refresh-hint button');
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].setAttribute('aria-label', bootText('ui.bootDismiss', 'Dismiss'));
+          buttons[i].addEventListener('click', function () {
+            if (this.parentElement) this.parentElement.hidden = true;
+            try { sessionStorage.setItem('immspfee-boot-dismiss', '1'); } catch (e) {}
+          });
+        }
+      }
+      paintBoot();
+      var dismissed = false;
+      try { dismissed = sessionStorage.getItem('immspfee-boot-dismiss') === '1'; } catch (e) {}
       function meta(name) {
         var el = document.querySelector('meta[name="' + name + '"]');
         return el ? el.content : '';
@@ -269,7 +304,7 @@
       var automated = false;
       try { automated = navigator.webdriver === true; } catch (e) {}
       var canStore = storageOk();
-      if (!canStore && hint) hint.hidden = false;
+      if (!canStore && hint && !dismissed) hint.hidden = false;
       function decide(js) {
         var current = '';
         try { current = new URL(location.href).searchParams.get('v') || ''; } catch (e) {}

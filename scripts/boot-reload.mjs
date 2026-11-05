@@ -61,12 +61,14 @@ await held.addInitScript(() => {
   window.__bootHold = new Promise((resolve) => { window.__releaseBoot = resolve; });
 });
 const holdPage = await held.newPage();
-await holdPage.goto(base, { waitUntil: 'commit', timeout: 60000 }).catch((err) => {
+await holdPage.goto(`${base}?lang=zh`, { waitUntil: 'commit', timeout: 60000 }).catch((err) => {
   if (!String(err).includes('ERR_ABORTED')) throw err;
 });
 await holdPage.waitForSelector('#boot-status:not([hidden])', { timeout: 10000 });
-const banner = (await holdPage.locator('#boot-status').innerText()).trim();
+const banner = (await holdPage.locator('#boot-status [data-i18n]').innerText()).trim();
 if (banner !== '正在重新载入') fail(`banner ${banner}`);
+await holdPage.locator('#boot-status button').click();
+if (!(await holdPage.locator('#boot-status').isHidden())) fail('reload banner did not dismiss');
 await holdPage.evaluate(() => window.__releaseBoot());
 await holdPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
 await held.close();
@@ -84,6 +86,10 @@ freshPage.on('framenavigated', (frame) => {
   lastFresh = key;
   freshNavs += 1;
 });
+const domainLoads = [];
+freshPage.on('request', (req) => {
+  if (req.url().includes('/data/domains/')) domainLoads.push(new URL(req.url()).pathname);
+});
 await freshPage.goto(base, { waitUntil: 'commit', timeout: 60000 });
 await freshPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
 await freshPage.waitForTimeout(400);
@@ -95,6 +101,14 @@ const shape = await freshPage.evaluate(() => ({
 }));
 if (shape.domains < 5) fail(`sidebar subjects ${shape.domains}`);
 if (shape.buttons < 1 || shape.buttons >= 1517) fail(`sidebar mounted ${shape.buttons} models`);
+if (domainLoads.length) fail(`default visit fetched subject files ${domainLoads.join(',')}`);
+const searchReq = freshPage.waitForRequest((req) => req.url().includes('/data/domains/'), { timeout: 20000 });
+await freshPage.fill('#filter-q', 'free-fall');
+await searchReq;
+const searchLoads = [...new Set(domainLoads)];
+if (searchLoads.length !== 1 || !decodeURIComponent(searchLoads[0]).includes('物理')) {
+  fail(`search fetched ${searchLoads.join(',') || 'nothing'}`);
+}
 const statusHidden = await freshPage.locator('#boot-status').isHidden();
 if (!statusHidden) fail('fresh visit showed the reload banner');
 await fresh.close();
@@ -116,7 +130,7 @@ blockedPage.on('framenavigated', (frame) => {
   lastBlocked = key;
   blockedNavs += 1;
 });
-await blockedPage.goto(base, { waitUntil: 'commit', timeout: 60000 }).catch((err) => {
+await blockedPage.goto(`${base}?lang=zh`, { waitUntil: 'commit', timeout: 60000 }).catch((err) => {
   if (!String(err).includes('ERR_ABORTED')) throw err;
 });
 await blockedPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });

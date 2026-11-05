@@ -1,5 +1,5 @@
 import {
-  models, domainIndex, getModelById, getAllTags, rebuildModels, loadIndex, loadDomain, loadAllDomains, ensureId,
+  models, domainIndex, getModelById, getAllTags, rebuildModels, loadIndex, loadDomain, ensureId, primeHandModel,
 } from './models/browser.js';
 import { resizeCanvas } from './utils/canvas.js';
 import { createFixedStepper } from './utils/integrator.js';
@@ -1015,7 +1015,7 @@ function paintSidebar() {
     details.className = 'domain-group';
     details.dataset.domain = domain;
     const dKey = foldKey(domain);
-    details.open = searching || (folds[dKey] != null ? !!folds[dKey] : false);
+    const wantOpen = searching || (folds[dKey] != null ? !!folds[dKey] : false);
     const sum = document.createElement('summary');
     sum.innerHTML = `<span class="domain-name" data-domain="${domain}">${domainLabel(domain)}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');
@@ -1029,12 +1029,7 @@ function paintSidebar() {
         subEl.className = 'sub-group';
         const sKey = foldKey(domain, sub);
         const defaultOpen = searching || HOT_SUBS.has(sub) || ready.length <= 3;
-        subEl.open = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
-        subEl.addEventListener('toggle', () => {
-          const next = loadFolds();
-          next[sKey] = subEl.open;
-          saveFolds(next);
-        });
+        const subWantOpen = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
         const subSum = document.createElement('summary');
         const q = app.filter.q.trim();
         const hit = q && (sub === q || sub.toLowerCase() === q.toLowerCase());
@@ -1043,7 +1038,13 @@ function paintSidebar() {
         subBody.className = 'sub-body';
         for (const m of ready) subBody.appendChild(makeModelButton(m));
         subEl.append(subSum, subBody);
+        subEl.addEventListener('toggle', () => {
+          const next = loadFolds();
+          next[sKey] = subEl.open;
+          saveFolds(next);
+        });
         body.appendChild(subEl);
+        subEl.open = subWantOpen;
       }
     };
     const ensureBody = () => {
@@ -1066,9 +1067,11 @@ function paintSidebar() {
       saveFolds(next);
       ensureBody();
     });
-    if (details.open) ensureBody();
+    // Set open only after <summary> exists — otherwise browsers keep details closed.
     details.append(sum, body);
     modelListEl.appendChild(details);
+    details.open = wantOpen;
+    if (details.open) ensureBody();
   }
 }
 
@@ -1732,8 +1735,34 @@ speedSlider.addEventListener('input', () => {
   paramBench.refresh();
 });
 
+function rowMatchesFilter(row) {
+  const tag = app.filter.tag;
+  const formalism = app.filter.formalism;
+  if (tag && row.domain !== tag && row.sub !== tag) return false;
+  if (formalism) {
+    const form = FAMILY_META[row.family]?.formalism || '';
+    if (form !== formalism) return false;
+  }
+  const tokens = expandSearchQuery(app.filter.q);
+  if (!tokens.length) return true;
+  const hay = `${row.name || ''} ${row.id || ''} ${row.sub || ''} ${row.domain || ''} ${row.family || ''} ${row.formula || ''}`.toLowerCase();
+  return tokens.some((token) => hay.includes(token));
+}
+
+function domainsForFilter() {
+  const names = new Set();
+  for (const row of domainIndex) {
+    if (rowMatchesFilter(row)) names.add(row.domain || '其他');
+  }
+  return [...names];
+}
+
 async function refreshSidebar() {
-  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism) await loadAllDomains();
+  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism) {
+    await loadIndex();
+    const domains = domainsForFilter();
+    await Promise.all(domains.map((domain) => loadDomain(domain)));
+  }
   buildSidebar();
 }
 filterQ.addEventListener('input', () => {
@@ -1851,6 +1880,10 @@ function bindDrawerDrag(handle, panel, axis) {
 
 bindDrawerDrag(benchDrag, bench, 'y');
 bindDrawerDrag(sidebarDrag, sidebar, 'x');
+
+document.addEventListener('imm-palettes', () => {
+  if (app.model && canvasWrap) paintFrame();
+});
 
 window.addEventListener('resize', () => {
   const chassis = document.getElementById('chassis');
@@ -2116,7 +2149,9 @@ async function boot() {
     folds[foldKey(loc.domain)] = true;
     folds[foldKey(loc.domain, loc.sub)] = true;
     saveFolds(folds);
-    try { await loadDomain(loc.domain); } catch { /* ignore */ }
+    if (!models.some((model) => model.id === id)) {
+      try { await loadDomain(loc.domain); } catch { /* ignore */ }
+    }
     const lang = getLocale();
     if (lang !== 'zh') {
       await ensureCatalogGloss(lang);
@@ -2150,9 +2185,11 @@ async function boot() {
     if (btn) {
       btn.classList.add('active');
       btn.setAttribute('aria-current', 'page');
-      try { btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* ignore */ }
+      try { btn.scrollIntoView({ block: 'nearest' }); } catch { /* ignore */ }
     }
-    if (isMobileDrawer()) setSidebarOpen(true);
+    // Classic/Focus drawers: reveal the active row. Projector keeps the catalog
+    // closed until the menu is pressed — auto-open would leave the overlay up on boot.
+    if (isMobileDrawer() && !isProjectorShell()) setSidebarOpen(true);
   }
 
   microUi = createMicroscopeChrome({
@@ -2216,8 +2253,20 @@ async function boot() {
   });
 
   await loadIndex();
-  const wanted = [readModelIdFromUrl(), readModelIdFromStorage(), DEFAULT_MODEL_ID].find(Boolean);
-  if (!(await ensureId(wanted))) await ensureId(DEFAULT_MODEL_ID);
+  const pinned = readModelIdFromUrl() || readModelIdFromStorage();
+  if (pinned) {
+    if (!(await ensureId(pinned))) primeHandModel(DEFAULT_MODEL_ID);
+  } else {
+    primeHandModel(DEFAULT_MODEL_ID);
+  }
+  const activeId = pinned && models.some((model) => model.id === pinned) ? pinned : DEFAULT_MODEL_ID;
+  const activeRow = domainIndex.find((row) => row.id === activeId);
+  if (activeRow) {
+    const folds = loadFolds();
+    folds[foldKey(activeRow.domain || '其他')] = true;
+    if (activeRow.sub) folds[foldKey(activeRow.domain || '其他', activeRow.sub)] = true;
+    saveFolds(folds);
+  }
   try {
     const loadIndexMs = performance.measure('boot-loadIndex', 'boot-loadIndex-start', 'boot-loadIndex-end').duration;
     const ensureIdMs = performance.measure('boot-ensureId', 'boot-ensureId-start', 'boot-ensureId-end').duration;
@@ -2235,6 +2284,12 @@ async function boot() {
   syncPauseUi();
   buildSidebar();
   switchModel(resolveInitialModelId());
+  if (activeRow && app.model?.id) {
+    await focusCatalogModel(app.model.id, {
+      domain: activeRow.domain || '其他',
+      sub: activeRow.sub || '',
+    });
+  }
   if (!isCompact()) bench.classList.add('open');
   bindCanvasPointer();
   syncDrawerChrome();

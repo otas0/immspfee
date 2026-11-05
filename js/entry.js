@@ -18,6 +18,11 @@ if (canvas) {
   }
 }
 document.documentElement.dataset.boot = 'shell';
+mark('boot-shell');
+try {
+  const shell = performance.getEntriesByName('boot-shell').at(-1);
+  window.__bootMarks = { ...(window.__bootMarks || {}), entryMs: shell ? shell.startTime : null };
+} catch { /* ignore */ }
 const status = document.getElementById('boot-status');
 if (status) status.hidden = true;
 
@@ -100,5 +105,13 @@ document.documentElement.dataset.boot = 'ready';
 if ('serviceWorker' in navigator && navigator.webdriver !== true) {
   // Default scope is the SW directory (…/immspfee/), not origin root — required on project Pages.
   const worker = new URL('../sw.js', import.meta.url);
-  navigator.serviceWorker.register(worker.href).catch(() => {});
+  navigator.serviceWorker.register(worker.href).then(() => navigator.serviceWorker.ready).then((reg) => {
+    const urls = [...document.querySelectorAll('script[src], link[rel="stylesheet"][href]')]
+      .map((el) => el.src || el.href);
+    urls.push(new URL(labUrl, import.meta.url).href);
+    const hashed = urls.filter((href) => {
+      try { return !!new URL(href, location.href).searchParams.get('v'); } catch { return false; }
+    });
+    reg.active?.postMessage({ type: 'prime', urls: hashed });
+  }).catch(() => {});
 }

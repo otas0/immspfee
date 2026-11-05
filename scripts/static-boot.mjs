@@ -5,6 +5,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { STRINGS } from '../js/i18n/strings.js';
 
 export function readCatalog(root) {
   return JSON.parse(fs.readFileSync(path.join(root, 'data/catalog.json'), 'utf8'));
@@ -16,6 +17,8 @@ export function domainIndex(catalog) {
     domain: spec.domain || '其他',
     sub: spec.sub || '',
     name: spec.name || spec.id,
+    family: spec.family || '',
+    formula: spec.formula || '',
   }));
 }
 
@@ -74,7 +77,47 @@ export function rewriteIndex(html, stamp) {
     /href="\.\/css\/microscope-shell\.css(?:\?v=[^"]*)?"/,
     `href="./css/microscope-shell.css?v=${stamp.microCss || stamp.css}"`,
   );
+  const bootScript = bootI18nScript();
+  if (next.includes('window.__BOOT_I18N=')) {
+    next = next.replace(/<script>window\.__BOOT_I18N=.*?<\/script>/, bootScript);
+  } else {
+    next = next.replace('</head>', `  ${bootScript}\n</head>`);
+  }
   return next;
+}
+
+const BOOT_KEYS = ['ui.bootReload', 'ui.bootManual', 'ui.bootDismiss'];
+
+export function bootI18nScript() {
+  const pack = {};
+  for (const [lang, table] of Object.entries(STRINGS)) {
+    pack[lang] = {};
+    for (const key of BOOT_KEYS) pack[lang][key] = table[key] || '';
+  }
+  return `<script>window.__BOOT_I18N=${JSON.stringify(pack)};</script>`;
+}
+
+/** CSS and the lab bundle use different stamps, so one file changing does not refetch the other. */
+export function assertStampIndependence(stamp) {
+  const base = entryStamp(stamp);
+  if (entryStamp({ ...stamp, css: `${stamp.css}ff` }) !== base) {
+    throw new Error('css fingerprint changed the js entry stamp');
+  }
+  if (entryStamp({ ...stamp, microCss: `${stamp.microCss || ''}ff` }) !== base) {
+    throw new Error('microscope css fingerprint changed the js entry stamp');
+  }
+  if (entryStamp({ ...stamp, js: `${stamp.js}ff` }) === base) {
+    throw new Error('lab bundle fingerprint did not change the js entry stamp');
+  }
+  const html = rewriteIndex(
+    '<html><head><meta charset="UTF-8" /></head><body><link rel="stylesheet" href="./css/styles.css" /></body></html>',
+    stamp,
+  );
+  if (!html.includes(`styles.css?v=${stamp.css}`)) throw new Error('css href is not the css stamp');
+  if (!html.includes(`name="imm-js" content="${base}"`)) throw new Error('imm-js is not the entry stamp');
+  if (stamp.css !== base && html.includes(`styles.css?v=${base}`)) {
+    throw new Error('css href reused the js stamp');
+  }
 }
 
 export function assertDomainCoverage(catalog) {

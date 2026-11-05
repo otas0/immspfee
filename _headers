@@ -1,0 +1,20 @@
+# GitHub Pages does not apply this file. The dev server and sw.js enforce the same policy.
+# asset-stamp and subject slices revalidate. Fingerprinted js/css stay for a year.
+
+/asset-stamp.json
+  Cache-Control: no-cache
+
+/data/domain-index.json
+  Cache-Control: no-cache
+
+/data/domains/*
+  Cache-Control: no-cache
+
+/js/entry.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/bundle/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable

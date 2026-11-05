@@ -75,10 +75,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (rel === '/data/domain-index.json') {
-    const immutable = url.searchParams.has('v');
     res.writeHead(200, {
       'Content-Type': 'application/json',
-      'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+      'Cache-Control': 'no-cache',
     });
     res.end(JSON.stringify(domainIndex(catalog)));
     return;
@@ -88,10 +87,9 @@ const server = http.createServer(async (req, res) => {
     if (!domains.has(domain)) {
       res.writeHead(404); res.end('not found'); return;
     }
-    const immutable = url.searchParams.has('v');
     res.writeHead(200, {
       'Content-Type': 'application/json',
-      'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+      'Cache-Control': 'no-cache',
     });
     res.end(JSON.stringify(specsForDomain(catalog, domain)));
     return;

@@ -109,6 +109,23 @@ export function loadDomain(domain) {
   return task;
 }
 
+/** In-bundle hand model, without fetching its subject file. */
+export function primeHandModel(id) {
+  const impl = handcraftedList().find((model) => model.id === id);
+  if (!impl) return false;
+  if (!models.some((model) => model.id === id)) {
+    models.push(ensureRefresh({
+      ...impl,
+      tags: impl.tags || [],
+      formula: impl.formula || '',
+      description: impl.description || '',
+      sub: impl.sub || '',
+    }));
+  }
+  appendUsers();
+  return true;
+}
+
 export async function ensureId(id) {
   mark('boot-ensureId-start');
   const index = await loadIndex();

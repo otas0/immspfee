@@ -37,9 +37,10 @@ if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 
     }
   }
 }
-const { assertDomainCoverage, readCatalog } = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
+const { assertDomainCoverage, assertStampIndependence, fingerprint, readCatalog } = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
 const catalog = readCatalog(repo);
 assertDomainCoverage(catalog);
+assertStampIndependence(fingerprint(repo));
 console.log('domain chunks cover', catalog.length);
 const suiteUrl = pathToFileURL(path.join(root, '../js/tests/suite.js')).href;
 const { runSuite } = await import(suiteUrl);

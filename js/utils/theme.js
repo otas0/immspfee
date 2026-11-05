@@ -6,9 +6,23 @@ import paletteDoc from '../../data/palettes.json' with { type: 'json' };
 
 let activeModelId = 'free-fall';
 
-const NEUTRAL = { ...paletteDoc.neutral };
-const MODEL = { ...paletteDoc.models };
+// Keep the same objects the palette module exported. The browser bundle
+// replaces that module with an empty shell and fills it after first paint,
+// so a spread here would freeze the shell and ignore the real file.
+const NEUTRAL = paletteDoc.neutral;
+const MODEL = paletteDoc.models;
 const HC = paletteDoc.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
+
+if (typeof document !== 'undefined' && Object.keys(MODEL).length === 0) {
+  const href = new URL('data/palettes.json', document.baseURI).href;
+  fetch(href).then((res) => (res.ok ? res.json() : null)).then((full) => {
+    if (!full?.models) return;
+    if (full.neutral) Object.assign(NEUTRAL, full.neutral);
+    Object.assign(MODEL, full.models);
+    if (full.hc) Object.assign(HC, full.hc);
+    document.dispatchEvent(new Event('imm-palettes'));
+  }).catch(() => {});
+}
 
 function hashHue(id) {
   let h = 0;
