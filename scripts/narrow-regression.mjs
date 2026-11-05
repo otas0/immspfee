@@ -91,31 +91,31 @@ for (const [id, file] of layout) {
   if (id === 'neutron-diffusion') {
     if (!info.texts.includes('φ = φ₀ cos(πx/a)')) failures.push(`${id}: canvas missing the cosine label`);
     if (info.caveatClipped || !info.caveatOnScreen) failures.push(`${id}: caveat clipped or offscreen`);
-    const scrolled = await page.evaluate(() => {
-      const asm = document.getElementById('shell-assumptions');
+    const layout = await page.evaluate(() => {
       const formula = document.getElementById('shell-formula');
       const caveat = document.getElementById('shell-caveat');
-      if (asm) asm.scrollTop = asm.scrollHeight;
       const fr = formula?.getBoundingClientRect();
       const cr = caveat?.getBoundingClientRect();
       const cs = caveat ? getComputedStyle(caveat) : null;
       const lineH = parseFloat(cs?.lineHeight) || 16;
       const lines = cr && lineH ? Math.round(cr.height / lineH) : 0;
       const overlap = !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
-      const endInBox = !!(asm && asm.scrollTop + asm.clientHeight >= asm.scrollHeight - 2);
       const fullVisible = !!(caveat && !caveat.hidden && cr && cr.top >= 0 && cr.bottom <= window.innerHeight + 1 && caveat.scrollHeight <= caveat.clientHeight + 1);
-      return { endInBox, overlap, text: asm?.textContent || '', lines, fullVisible };
+      return {
+        overlap,
+        lines,
+        fullVisible,
+        assumptions: !!document.getElementById('shell-assumptions'),
+        assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
+      };
     });
-    await page.screenshot({ path: path.join(shots, 'narrow-neutron-assumption.png') });
-    if (!scrolled.text.includes('not a design') || !scrolled.endInBox) {
-      failures.push(`${id}: assumption scroll cannot reveal “not a design”`);
+    if (layout.assumptions || layout.assumptionText) failures.push(`${id}: assumption strip still on the shell`);
+    if (layout.overlap) failures.push(`${id}: formula bar covers the caveat`);
+    if (layout.lines < 1 || !layout.fullVisible) {
+      failures.push(`${id}: caveat not fully visible (lines=${layout.lines})`);
     }
-    if (scrolled.overlap) failures.push(`${id}: formula bar covers the caveat`);
-    if (scrolled.lines < 1 || !scrolled.fullVisible) {
-      failures.push(`${id}: caveat not fully visible (lines=${scrolled.lines})`);
-    }
-    if (scrolled.lines !== 1) {
-      failures.push(`${id}: caveat line count ${scrolled.lines} (expected 1 at 390px)`);
+    if (layout.lines !== 1) {
+      failures.push(`${id}: caveat line count ${layout.lines} (expected 1 at 390px)`);
     }
   }
 }

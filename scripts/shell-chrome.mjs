@@ -1,17 +1,30 @@
 #!/usr/bin/env node
 /**
  * Shell chrome: DPR cap, projector overlay, microscope WebGL, English names,
- * and the custom-model failure path.
+ * shell cycle, and the custom-model failure path.
  * Requires the lab server (LAB_URL, default http://127.0.0.1:8765/).
  */
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const buildStamp = (() => {
+  try {
+    const html = readFileSync(join(root, 'index.html'), 'utf8');
+    const meta = html.match(/name=["']imm-js["']\s+content=["']([^"']+)["']/);
+    if (meta?.[1]) return meta[1];
+    const stamp = JSON.parse(readFileSync(join(root, 'asset-stamp.json'), 'utf8'));
+    return stamp.js || stamp.main || 'shell';
+  } catch {
+    return 'shell';
+  }
+})();
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
 const failures = [];
-
-function fail(msg) {
-  failures.push(msg);
-}
+function fail(msg) { failures.push(msg); }
 
 const browser = await chromium.launch({ headless: true });
 
@@ -21,13 +34,22 @@ async function openPage(viewport, dsf, shell) {
     localStorage.setItem('physics-lab-locale-v1', 'en');
     localStorage.removeItem('physics-lab-auto-open-bench');
   });
-  await page.goto(`${base}?shell=${shell}&v=5918f93`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}?shell=${shell}&v=${encodeURIComponent(buildStamp)}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
   await page.evaluate(() => new Promise((resolve) => {
     window.dispatchEvent(new Event('resize'));
     requestAnimationFrame(() => requestAnimationFrame(resolve));
   }));
   return page;
+}
+
+async function setShell(page, id) {
+  await page.evaluate((shellId) => {
+    const sel = document.getElementById('shell-select');
+    sel.value = shellId;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }, id);
+  await page.waitForFunction((shellId) => document.documentElement.dataset.shell === shellId, id);
 }
 
 async function metrics(page) {
@@ -41,12 +63,16 @@ async function metrics(page) {
       cap: Number(document.documentElement.dataset.dprCap),
       dpr: window.devicePixelRatio,
       ratio: ratio(canvas),
+      canvasW: canvas?.width || 0,
+      canvasCw: canvas?.clientWidth || 0,
       webglRatio: ratio(webgl),
+      webglW: webgl?.width || 0,
+      webglCw: webgl?.clientWidth || 0,
       webglHidden: !!webgl.hidden,
       webglDisplay: getComputedStyle(webgl).display,
       canvasHidden: !!canvas.hidden,
-      webglCw: webgl.clientWidth,
       menu: document.getElementById('btn-menu')?.getAttribute('aria-label') || '',
+      menuExpanded: document.getElementById('btn-menu')?.getAttribute('aria-expanded') || '',
     };
   });
 }
@@ -61,18 +87,17 @@ for (const [w, h, dsf, shell] of dprCases) {
   const page = await openPage({ width: w, height: h }, dsf, shell);
   const m = await metrics(page);
   if (m.cap !== 3) fail(`${shell} ${w} dpr ${dsf}: cap ${m.cap}`);
-  if (Math.abs(m.ratio - 3) > 0.05) fail(`${shell} ${w} deviceDpr ${dsf}: canvas ratio ${m.ratio} (cap must hold at 3)`);
-  if (m.dpr > 3 && m.ratio > 3.05) fail(`${shell} followed device DPR ${m.dpr}`);
+  if (Math.abs(m.ratio - 3) > 0.05) {
+    fail(`${shell} ${w} deviceDpr ${dsf}: canvas ratio ${m.ratio} (width/clientWidth=${m.canvasW}/${m.canvasCw}; cap must hold at 3)`);
+  }
+  if (m.dpr > 3 && m.ratio > 3.05) {
+    fail(`${shell} followed device DPR ${m.dpr}; ratio=${m.ratio} (${m.canvasW}/${m.canvasCw})`);
+  }
   await page.close();
 }
 
 const desk = await openPage({ width: 1440, height: 900 }, 1, 'lab-classic');
-await desk.evaluate((id) => {
-  const sel = document.getElementById('shell-select');
-  sel.value = id;
-  sel.dispatchEvent(new Event('change', { bubbles: true }));
-}, 'lab-projector');
-await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-projector');
+await setShell(desk, 'lab-projector');
 const closedLabel = await desk.locator('#btn-menu').getAttribute('aria-label');
 if (closedLabel !== 'Open model list') fail(`menu label when closed: ${closedLabel}`);
 await desk.click('#btn-menu');
@@ -83,36 +108,40 @@ const opened = await desk.evaluate(() => {
     pe: side.pointerEvents,
     vis: side.visibility,
     label: document.getElementById('btn-menu').getAttribute('aria-label'),
+    expanded: document.getElementById('btn-menu').getAttribute('aria-expanded'),
   };
 });
-if (!opened.overlay || opened.pe !== 'auto' || opened.vis !== 'visible') {
-  fail(`projector overlay open ${JSON.stringify(opened)}`);
-}
+if (!opened.overlay || opened.pe !== 'auto' || opened.vis !== 'visible') fail(`projector overlay open ${JSON.stringify(opened)}`);
 if (opened.label !== 'Close model list') fail(`menu label when open: ${opened.label}`);
 await desk.locator('#model-list button[data-id="free-fall"]').click();
 await desk.waitForFunction(() => location.hash.includes('free-fall'));
 const afterPick = await desk.evaluate(() => ({
   overlay: document.getElementById('chassis').classList.contains('shell-sidebar-overlay'),
   hash: location.hash,
+  expanded: document.getElementById('btn-menu')?.getAttribute('aria-expanded') || '',
+  label: document.getElementById('btn-menu')?.getAttribute('aria-label') || '',
 }));
 if (afterPick.overlay) fail('overlay stayed open after selecting a model');
 if (!afterPick.hash.includes('free-fall')) fail(`hash ${afterPick.hash}`);
+if (afterPick.expanded !== 'false') fail(`aria-expanded after pick ${afterPick.expanded}`);
+if (afterPick.label !== 'Open model list') fail(`menu label after pick ${afterPick.label}`);
 const toggled = await desk.evaluate(() => {
   const menu = document.getElementById('btn-menu');
   const chassis = document.getElementById('chassis');
   menu.click();
-  const opened = chassis.classList.contains('shell-sidebar-overlay');
+  const openedNow = chassis.classList.contains('shell-sidebar-overlay');
+  const closeLabel = menu.getAttribute('aria-label');
   menu.click();
   const closed = !chassis.classList.contains('shell-sidebar-overlay');
-  return { opened, closed };
+  return { openedNow, closed, closeLabel };
 });
-if (!toggled.opened || !toggled.closed) fail(`menu toggle opened=${toggled.opened} closed=${toggled.closed}`);
+if (!toggled.openedNow || !toggled.closed) fail(`menu toggle opened=${toggled.openedNow} closed=${toggled.closed}`);
+if (toggled.closeLabel !== 'Close model list') fail(`projector close label ${toggled.closeLabel}`);
 
-await desk.evaluate((id) => {
-  const sel = document.getElementById('shell-select');
-  sel.value = id;
-  sel.dispatchEvent(new Event('change', { bubbles: true }));
-}, 'lab-microscope3d');
+await setShell(desk, 'lab-classic');
+await setShell(desk, 'lab-focus');
+await setShell(desk, 'lab-projector');
+await setShell(desk, 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
 await desk.waitForFunction(() => location.hash.includes('r016-'));
 const micro = await metrics(desk);
@@ -121,8 +150,15 @@ if (!micro.canvasHidden) fail('2D canvas stayed visible on microscope 3D');
 if (micro.webglHidden || micro.webglDisplay === 'none') fail(`webgl hidden=${micro.webglHidden} display=${micro.webglDisplay}`);
 if (micro.webglCw < 100) fail(`webgl client width ${micro.webglCw}`);
 if (micro.dpr <= 3 && Math.abs(micro.webglRatio - Math.min(micro.dpr, 3)) > 0.05) {
-  fail(`microscope webgl ratio ${micro.webglRatio} dpr ${micro.dpr}`);
+  fail(`microscope webgl ratio ${micro.webglRatio} dpr ${micro.dpr} (width/clientWidth=${micro.webglW}/${micro.webglCw})`);
 }
+await setShell(desk, 'lab-classic');
+await desk.waitForFunction(() => document.documentElement.dataset.stageMode !== 'webgl3d');
+const back = await metrics(desk);
+if (!back.webglHidden || back.webglDisplay !== 'none') {
+  fail(`webgl still visible after classic return hidden=${back.webglHidden} display=${back.webglDisplay}`);
+}
+if (back.canvasHidden) fail('2D canvas stayed hidden after leaving microscope 3D');
 
 await desk.waitForFunction(() => {
   const el = document.querySelector('[data-id="r016-显微镜"] .name');
@@ -130,34 +166,27 @@ await desk.waitForFunction(() => {
 }, null, { timeout: 20000 });
 const names = await desk.evaluate(async () => {
   const pack = await fetch('./data/locales/models-en.json').then((r) => r.json());
-  let leak = 0;
-  let checked = 0;
+  let leak = 0; let checked = 0; let hanInPack = 0;
   for (const btn of document.querySelectorAll('#model-list .model-item')) {
     const en = pack[btn.dataset.id]?.name;
     if (!en) continue;
     checked += 1;
+    if (/[\u4e00-\u9fff]/.test(en)) hanInPack += 1;
     const shown = btn.querySelector('.name')?.textContent.trim();
     if (shown !== en) leak += 1;
   }
   return {
     micro: document.querySelector('[data-id="r016-显微镜"] .name')?.textContent.trim(),
     previews: document.querySelectorAll('#model-list .preview').length,
-    leak,
-    checked,
+    leak, checked, hanInPack,
   };
 });
 if (names.micro !== 'Compound microscope') fail(`microscope sidebar name ${names.micro}`);
 if (/[\u4e00-\u9fff]/.test(names.micro || '')) fail('Chinese catalog name leaked onto the microscope row');
-if (!names.previews) fail('sidebar assumption preview is missing');
+if (names.previews) fail(`sidebar still has ${names.previews} assumption previews`);
+if (names.hanInPack) fail(`models-en still has ${names.hanInPack} Han names`);
 if (names.leak) fail(`${names.leak}/${names.checked} English names did not replace the catalog source`);
 
-await desk.evaluate((id) => {
-  const sel = document.getElementById('shell-select');
-  sel.value = id;
-  sel.dispatchEvent(new Event('change', { bubbles: true }));
-}, 'lab-classic');
-await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
-await desk.locator('#btn-user-model').scrollIntoViewIfNeeded();
 await desk.click('#btn-user-model');
 await desk.waitForSelector('#user-model-dialog[open]');
 await desk.fill('input[name="name"]', 'bad draft');
@@ -169,9 +198,10 @@ await desk.fill('textarea[name="description"]', 'Angular magnification of a fini
 await desk.check('input[name="ethicsOk"]');
 await desk.click('#user-model-submit');
 await desk.click('#user-model-submit');
+const expectErr = 'State assumptions and limits clearly (required for industrial-grade models)';
 const dialog = await desk.evaluate(() => {
   const err = document.getElementById('user-model-error');
-    const toast = document.getElementById('lab-toast')?.textContent || '';
+  const toast = document.getElementById('lab-toast')?.textContent || '';
   return {
     open: document.getElementById('user-model-dialog')?.open === true,
     hidden: !err || err.hidden,
@@ -181,14 +211,44 @@ const dialog = await desk.evaluate(() => {
 });
 if (!dialog.open) fail('custom-model dialog closed after a failed submit');
 if (dialog.hidden || dialog.text.length < 4) fail(`error text missing (${dialog.text})`);
-if (dialog.text.includes('Validation passed') || dialog.toast.includes('Validation passed')) {
-  fail('failed submit showed dialog.validOk');
-}
-
+if (dialog.text !== expectErr) fail(`custom-model error ${JSON.stringify(dialog.text)}`);
+if (dialog.text.includes('Validation passed') || dialog.toast.includes('Validation passed')) fail('failed submit showed dialog.validOk');
 await desk.close();
+
+const narrow = await openPage({ width: 390, height: 844 }, 2, 'lab-projector');
+const narrowMenu = await narrow.evaluate(() => {
+  const btn = document.getElementById('btn-menu');
+  const cs = btn ? getComputedStyle(btn) : null;
+  return { label: btn?.getAttribute('aria-label') || '', display: cs?.display || '', pe: cs?.pointerEvents || '', w: btn?.getBoundingClientRect().width || 0 };
+});
+if (narrowMenu.display === 'none' || narrowMenu.pe === 'none' || narrowMenu.w < 8) fail(`390 projector menu not visible ${JSON.stringify(narrowMenu)}`);
+if (narrowMenu.label !== 'Open model list') fail(`390 menu label ${narrowMenu.label}`);
+await narrow.click('#btn-menu');
+const narrowOpen = await narrow.evaluate(() => {
+  const side = getComputedStyle(document.querySelector('.sidebar'));
+  return {
+    overlay: document.getElementById('chassis').classList.contains('shell-sidebar-overlay'),
+    pe: side.pointerEvents,
+    vis: side.visibility,
+    label: document.getElementById('btn-menu').getAttribute('aria-label'),
+    expanded: document.getElementById('btn-menu').getAttribute('aria-expanded'),
+  };
+});
+if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') fail(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
+if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
+await narrow.locator('#model-list button[data-id="free-fall"]').click();
+await narrow.waitForFunction(() => location.hash.includes('free-fall'));
+const narrowPick = await narrow.evaluate(() => ({
+  overlay: document.getElementById('chassis').classList.contains('shell-sidebar-overlay'),
+  hash: location.hash,
+  expanded: document.getElementById('btn-menu')?.getAttribute('aria-expanded') || '',
+  openClass: document.getElementById('sidebar')?.classList.contains('open') || false,
+}));
+if (narrowPick.overlay || narrowPick.openClass) fail(`390 drawer stayed open ${JSON.stringify(narrowPick)}`);
+if (!narrowPick.hash.includes('free-fall')) fail(`390 hash ${narrowPick.hash}`);
+if (narrowPick.expanded !== 'false') fail(`390 aria-expanded ${narrowPick.expanded}`);
+await narrow.close();
+
 await browser.close();
-if (failures.length) {
-  console.error(failures.join('\n'));
-  process.exit(1);
-}
+if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
 console.log('shell chrome ok');
