@@ -50,6 +50,14 @@ jobs:
       - name: Narrow-screen formula and caveat regression
         run: npm run test:narrow
 
+      - name: Upload narrow-screen screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: narrow-screenshots
+          path: shots/narrow-*.png
+          if-no-files-found: ignore
+
       - name: Contract browser draw sample
         id: contract_browser
         run: npm run test:contract-browser

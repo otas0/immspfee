@@ -21,9 +21,22 @@ export function fidelityLabel(locale, fidelity) {
   return lookup(locale, key);
 }
 
-export function assumptionPreview(locale, assumption) {
+function assumptionText(locale, assumption) {
   const text = String(assumption || '').replace(/\s+/g, ' ').trim();
-  const body = truncateText(locale, locale === 'zh' ? text : translateCatalogText(locale, text));
+  if (!text) return '';
+  return locale === 'zh' ? text : translateCatalogText(locale, text);
+}
+
+/** Full assumption for the scrolling stage strip. */
+export function assumptionBody(locale, assumption) {
+  const body = assumptionText(locale, assumption);
+  if (!body) return '';
+  return `${lookup(locale, 'ui.assumptionPrefix')} ${body}`;
+}
+
+/** Short sidebar line. The stage strip keeps the uncut sentence. */
+export function assumptionPreview(locale, assumption) {
+  const body = truncateText(locale, assumptionText(locale, assumption));
   if (!body) return '';
   return `${lookup(locale, 'ui.assumptionPrefix')} ${body}`;
 }

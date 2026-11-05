@@ -30,6 +30,7 @@ import hodgkinHuxley from '../models/hodgkinHuxley.js';
 import compoundMicroscope from '../models/compoundMicroscope.js';
 import { runModelContract } from './model-contract.js';
 import { validateUserModelDraft } from '../lab/userModels.js';
+import { runLab12 } from './lab12.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
   const diff = Math.abs(a - b);
@@ -526,6 +527,8 @@ export function runSuite() {
     assert('自建模型指出缺少的假设', !missingAsm.ok && String(missingAsm.error).includes('缺少假设'), missingAsm.error);
     assert('自建模型 id 前缀 user-', !!good.spec?.id?.startsWith('user-'), good.spec?.id);
   }
+
+  for (const r of runLab12()) results.push(r);
 
   {
     const contract = runModelContract();

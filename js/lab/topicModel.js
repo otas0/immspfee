@@ -2050,16 +2050,17 @@ function hall(spec) {
     equation: 'V_H = I B / (n e t)',
     authority: 'Ashcroft & Mermin 或 Halliday，霍尔电压',
     assumptions: '单一载流子、薄片厚度 t',
-    params: { I: 0.01, B: 0.5, n: 1e22, t: 1e-4 },
+    params: { I: 0.01, B: 0.5, n: 1e22, thick: 1e-4 },
     schema: {
       I: S('I', 'dynamics', 'A', 0, 1),
       B: S('B', 'dynamics', 'T', 0, 2),
-      t: S('t', 'dynamics', 'm', 1e-5, 0.002),
+      thick: S('厚度 t', 'dynamics', 'm', 1e-5, 0.002),
     },
     tick(state) {
       const e = 1.602176634e-19;
       const n = Math.max(1e18, P(state.params, 'n', 1e22));
-      state.VH = P(state.params, 'I', 0.01) * P(state.params, 'B', 0.5) / (n * e * Math.max(1e-6, P(state.params, 't', 1e-4)));
+      const thick = Math.max(1e-6, P(state.params, 'thick', 1e-4));
+      state.VH = P(state.params, 'I', 0.01) * P(state.params, 'B', 0.5) / (n * e * thick);
     },
     plot: (s) => s.VH,
     rows: (s) => [['V_H', s.VH, 'V']],

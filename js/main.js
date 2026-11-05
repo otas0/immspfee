@@ -29,7 +29,7 @@ import {
   onLocaleChange,
   bootI18n,
 } from './i18n/index.js';
-import { assumptionPreview, formulaLine } from './i18n/previewText.js';
+import { assumptionBody, assumptionPreview, formulaLine } from './i18n/previewText.js';
 import { designCaveatText } from './lab/designCaveat.js';
 import {
   listShells,
@@ -404,7 +404,7 @@ function updateShellStrip() {
   const asmLine = ensureLine('shell-assumptions', 'shell-assumptions');
   const caveatEl = ensureLine('shell-caveat', 'shell-caveat');
   if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
-  if (asmLine) asmLine.textContent = assumptionPreview(loc, app.model?.assumptions || '');
+  if (asmLine) asmLine.textContent = assumptionBody(loc, app.model?.assumptions || '');
   if (caveatEl) {
     const caveat = designCaveatText(app.model);
     caveatEl.hidden = !caveat;
@@ -832,6 +832,10 @@ function makeModelButton(raw) {
     .map((t) => `<span class="tag">${t}</span>`).join('');
   btn.title = m.name;
   btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
+  const preview = document.createElement('span');
+  preview.className = 'preview';
+  preview.textContent = assumptionPreview(getLocale(), raw.assumptions || '');
+  if (preview.textContent) btn.append(preview);
   btn.addEventListener('click', () => {
     switchModel(m.id);
     setSidebarOpen(false);

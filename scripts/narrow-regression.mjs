@@ -124,6 +124,8 @@ const q = await page.locator('#filter-q').inputValue();
 const listed = await page.locator('#model-list .model-item').count();
 if (q !== '碰撞 · 没有这条') failures.push(`filter-q ${JSON.stringify(q)}`);
 if (listed !== 0) failures.push(`sidebar still lists ${listed} models for the missing key`);
+const dialogOpen = await page.locator('#user-model-dialog[open]').count();
+if (!dialogOpen) failures.push('user-model dialog closed after the missing-key search');
 
 await browser.close();
 if (failures.length) {

@@ -1,6 +1,7 @@
 node_modules/
 .DS_Store
 shots/export-framed-readouts.png
+shots/narrow-*.png
 shots/diff/
 artifacts/
 *.log

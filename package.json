@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/dev-server.mjs",
-    "test": "node scripts/gen-equation-index.mjs && node scripts/run-tests.mjs",
+    "gen:glyphs": "node scripts/build-glyphs.mjs",
+    "test": "npm run gen:glyphs && node scripts/gen-equation-index.mjs && node scripts/run-tests.mjs",
     "test:pot": "node scripts/test-pot.mjs",
     "test:catalog": "node scripts/validate-catalog.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
