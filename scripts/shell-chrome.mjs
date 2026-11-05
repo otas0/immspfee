@@ -152,7 +152,27 @@ if (micro.webglCw < 100) fail(`webgl client width ${micro.webglCw}`);
 if (micro.dpr <= 3 && Math.abs(micro.webglRatio - Math.min(micro.dpr, 3)) > 0.05) {
   fail(`microscope webgl ratio ${micro.webglRatio} dpr ${micro.dpr} (width/clientWidth=${micro.webglW}/${micro.webglCw})`);
 }
-await setShell(desk, 'lab-classic');
+const exclusive = await desk.evaluate(() => {
+  const chrome = document.getElementById('microscope-chrome');
+  const side = document.getElementById('sidebar');
+  const toolbar = document.querySelector('.toolbar');
+  const shell = document.getElementById('model-shell');
+  return {
+    chromeHidden: !!chrome?.hidden,
+    brand: chrome?.querySelector('.micro-brand')?.textContent?.trim() || '',
+    sideDisplay: side ? getComputedStyle(side).display : '',
+    toolbarDisplay: toolbar ? getComputedStyle(toolbar).display : '',
+    formula: !!(shell && getComputedStyle(shell).display !== 'none'),
+  };
+});
+if (exclusive.chromeHidden) fail('microscope chrome stayed hidden on the dedicated shell');
+if (exclusive.brand !== 'IMMSPFEE') fail(`microscope brand ${exclusive.brand}`);
+if (exclusive.sideDisplay !== 'none') fail(`catalog sidebar still visible (${exclusive.sideDisplay})`);
+if (exclusive.toolbarDisplay !== 'none') fail(`lab toolbar still visible (${exclusive.toolbarDisplay})`);
+if (exclusive.formula) fail('ODE model-shell strip still showing on the microscope shell');
+
+await desk.click('#btn-micro-exit');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode !== 'webgl3d');
 const back = await metrics(desk);
 if (!back.webglHidden || back.webglDisplay !== 'none') {
@@ -186,6 +206,20 @@ if (/[\u4e00-\u9fff]/.test(names.micro || '')) fail('Chinese catalog name leaked
 if (!names.previews) fail('sidebar assumption preview is missing');
 if (names.hanInPack) fail(`models-en still has ${names.hanInPack} Han names`);
 if (names.leak) fail(`${names.leak}/${names.checked} English names did not replace the catalog source`);
+
+await desk.locator('#model-list button[data-id="r016-显微镜"]').click();
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
+await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
+const clickedIn = await desk.evaluate(() => ({
+  shell: document.documentElement.dataset.shell,
+  chrome: !document.getElementById('microscope-chrome')?.hidden,
+  side: getComputedStyle(document.getElementById('sidebar')).display,
+}));
+if (clickedIn.shell !== 'lab-microscope3d' || !clickedIn.chrome || clickedIn.side !== 'none') {
+  fail(`clicking the microscope row did not enter the dedicated shell ${JSON.stringify(clickedIn)}`);
+}
+await desk.click('#btn-micro-exit');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
 
 await desk.click('#btn-user-model');
 await desk.waitForSelector('#user-model-dialog[open]');

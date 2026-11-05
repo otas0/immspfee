@@ -41,12 +41,15 @@ import {
   getShell,
 } from './shells/registry.js';
 import { createMicroscopeWebgl } from './viz/microscopeWebgl.js';
+import { createMicroscopeChrome } from './shells/microscopeChrome.js';
 
 const canvas = document.getElementById('canvas');
 const canvasWebgl = document.getElementById('canvas-webgl');
 const canvasWrap = document.querySelector('.canvas-wrap');
 let webglStage = null;
 let activeShellId = resolveShellId();
+/** @type {ReturnType<typeof createMicroscopeChrome> | null} */
+let microUi = null;
 const readoutsEl = document.getElementById('readouts');
 const modelListEl = document.getElementById('model-list');
 const toolbarTitle = document.getElementById('toolbar-title');
@@ -1196,7 +1199,7 @@ function measureSysSticky() {
   paramRoot.style.setProperty('--sys-sticky-h', `${Math.max(28, h)}px`);
 }
 
-function switchModel(id) {
+function switchModel(id, opts = {}) {
   if (id && !models.some((m) => m.id === id)) {
     if (switchModel.pending === id) return Promise.resolve();
     switchModel.pending = id;
@@ -1220,6 +1223,7 @@ function switchModel(id) {
   toolbarTitle.textContent = view.name;
   toolbarSub.textContent = [view.sub, ...(view.tags || []).filter((t) => t !== view.sub)].filter(Boolean).join(' / ') || 'model';
   metaFormula.textContent = [view.formula, view.description].filter(Boolean).join('\n');
+  microUi?.setTitle(view.name);
   paramBench.bind(model, app.state.params, app.globals);
   pushRecent(model.id);
   // 刷新最近条（fold-bar 下），不整树重建以免丢折叠态时也可接受轻量 rebuild 条
@@ -1234,7 +1238,7 @@ function switchModel(id) {
   updateShellStrip();
   renderBaselineSelect();
   updateHud();
-  if (isCompact()) {
+  if (isCompact() && !(microUi?.isMicroscopeShell?.())) {
     if (autoOpenBenchOnSelect()) {
       setBenchOpen(true);
       requestAnimationFrame(() => requestAnimationFrame(scrollBenchToDynamics));
@@ -1247,6 +1251,7 @@ function switchModel(id) {
   persistActiveModel(model.id);
   syncModelClockPause();
   requestAnimationFrame(measureSysSticky);
+  if (!opts.skipShellSync) microUi?.onModelChange(model.id);
 }
 
 function updateHud(opts = {}) {
@@ -1993,6 +1998,7 @@ function syncChromeI18n() {
 }
 
 function applyActiveShell(id) {
+  if (microUi?.applyShellId(id)) return;
   activeShellId = id;
   const chassis = document.getElementById('chassis');
   chassis?.classList.remove('shell-sidebar-overlay');
@@ -2006,8 +2012,9 @@ function applyActiveShell(id) {
       if (hide) setSidebarOpen(false);
     },
   });
+  microUi?.sync(false);
   if (shell.modelId && app.model?.id !== shell.modelId) {
-    switchModel(shell.modelId);
+    switchModel(shell.modelId, { skipShellSync: true });
   }
   syncDrawerChrome();
   if (app.model && canvasWrap) {
@@ -2047,16 +2054,34 @@ async function boot() {
   if (localStorage.getItem('physics-lab-bench-collapsed') === '1') {
     document.getElementById('chassis')?.classList.add('bench-collapsed');
   }
+  microUi = createMicroscopeChrome({
+    t,
+    getActiveShellId: () => activeShellId,
+    setActiveShellId: (id) => { activeShellId = id; },
+    getModelId: () => app.model?.id,
+    switchModel,
+    paintFrame: () => { if (app.model && canvasWrap) paintFrame(); },
+    setSidebarOpen,
+    setBenchOpen,
+    syncPauseUi,
+    syncDrawerChrome,
+    resetSim,
+    setPaused: (paused) => { app.paused = paused; },
+  });
+  microUi.bind();
   mountShellSelect(document.getElementById('shell-select'));
   mountLocaleSelect(document.getElementById('locale-select'));
   await bootI18n();
   syncChromeI18n();
+  microUi.sync(microUi.isMicroscopeShell());
   onLocaleChange(() => {
     syncChromeI18n();
+    microUi?.sync(microUi.isMicroscopeShell());
     buildSidebar();
     if (app.model) {
       const view = localizeModel(app.model);
       toolbarTitle.textContent = view.name;
+      microUi?.setTitle(view.name);
       metaFormula.textContent = [view.formula, view.description].filter(Boolean).join('\n');
     }
     paramBench.refresh?.();
