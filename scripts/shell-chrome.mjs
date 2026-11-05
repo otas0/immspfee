@@ -95,11 +95,31 @@ async function ensureCatalogRows(page) {
     const expand = [...document.querySelectorAll('button')].find((b) => /^expand all$/i.test((b.textContent || '').trim()));
     expand?.click();
   });
-  await page.waitForFunction(
-    () => document.querySelectorAll('#model-list button.model-item[data-id]').length > 0,
-    null,
-    { timeout: 60000 },
-  );
+  try {
+    await page.waitForFunction(
+      () => document.querySelectorAll('#model-list button.model-item[data-id]').length > 0,
+      null,
+      { timeout: 60000 },
+    );
+  } catch (err) {
+    const diag = await page.evaluate(() => {
+      const folds = [...document.querySelectorAll('#model-list details')].map((d) => ({
+        name: (d.querySelector('summary')?.textContent || '').trim().slice(0, 48),
+        open: !!d.open,
+        items: d.querySelectorAll('button.model-item[data-id]').length,
+      }));
+      return {
+        items: document.querySelectorAll('#model-list button.model-item[data-id]').length,
+        folds,
+        overlay: document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay') || false,
+        sideOpen: document.getElementById('sidebar')?.classList.contains('open') || false,
+        hash: location.hash,
+        foldStorage: localStorage.getItem('physics-lab-folds-v1') || localStorage.getItem('physics-lab-folds') || '',
+      };
+    });
+    fail(`ensureCatalogRows timeout (lazy domains closed?) ${JSON.stringify(diag)}`);
+    throw err;
+  }
 }
 
 async function metrics(page) {
@@ -271,6 +291,9 @@ const wantRail = ['Objective', 'Eyepiece', 'Tube length L', 'NA', 'Immersion'];
 if (wantRail.some((l) => !exclusive.railLabels.includes(l))) {
   fail(`optical rail missing keys ${exclusive.railLabels.join('|')}`);
 }
+const lambdaOut = await desk.evaluate(() => document.getElementById('micro-lambda')?.textContent || '');
+if (!/\d+\s*nm/.test(lambdaOut)) fail(`optical rail λ missing ${lambdaOut}`);
+
 if (!exclusive.cssHref.includes('microscope-shell.css')) {
   fail(`microscope CSS fingerprint missing (${exclusive.cssHref})`);
 }
@@ -359,6 +382,33 @@ if (clickedIn.shell !== 'lab-microscope3d' || !clickedIn.chrome || clickedIn.sid
 if (clickedIn.inputMode !== 'microscope') {
   fail(`microscope inputMode ${clickedIn.inputMode}`);
 }
+await desk.evaluate(() => {
+  const rail = document.getElementById('micro-rail');
+  if (rail && !rail.classList.contains('is-open')) rail.classList.add('is-open');
+});
+await desk.keyboard.press('Escape');
+const escRail = await desk.evaluate(() => ({
+  railOpen: document.getElementById('micro-rail')?.classList.contains('is-open') || false,
+  shell: document.documentElement.dataset.shell,
+  sideOpen: document.getElementById('sidebar')?.classList.contains('open') || false,
+  inputMode: document.documentElement.dataset.inputMode || '',
+}));
+if (escRail.railOpen) fail(`Esc did not close optical rail ${JSON.stringify(escRail)}`);
+if (escRail.shell !== 'lab-microscope3d') fail(`Esc closed shell too early ${JSON.stringify(escRail)}`);
+if (escRail.sideOpen) fail(`Esc opened catalog drawer ${JSON.stringify(escRail)}`);
+await desk.keyboard.press('Escape');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
+const escLeft = await desk.evaluate(() => ({
+  shell: document.documentElement.dataset.shell,
+  sideOpen: document.getElementById('sidebar')?.classList.contains('open') || false,
+  inputMode: document.documentElement.dataset.inputMode || 'lab',
+}));
+if (escLeft.shell !== 'lab-classic' || escLeft.sideOpen) fail(`second Esc exit ${JSON.stringify(escLeft)}`);
+if (escLeft.inputMode !== 'lab') fail(`inputMode after Esc exit ${escLeft.inputMode}`);
+// re-enter for remaining tests
+await desk.evaluate(() => window.__labCapture.switchModel('r016-显微镜'));
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
+
 await desk.keyboard.press('Meta+z');
 await desk.keyboard.press('Control+z');
 const afterUndo = await desk.evaluate(() => ({
@@ -470,6 +520,7 @@ if (!(overlayOpen.toolbarZ > overlayOpen.backdropZ)) {
 }
 const compactHit = await menuHitTest(compactProj);
 if (!compactHit.ok) fail(`1000 projector menu not on top of dimmer ${JSON.stringify(compactHit)}`);
+console.log('menuHitTest ok', JSON.stringify(compactHit));
 // Menu must still close the overlay (force via DOM — logo may intercept hit-tests).
 await compactProj.evaluate(() => document.getElementById('btn-menu')?.click());
 const afterMenuToggle = await stageGeom(compactProj);
@@ -553,10 +604,87 @@ if (!(wideOpen.toolbarZ > wideOpen.backdropZ)) {
 }
 const wideHit = await menuHitTest(wideProj);
 if (!wideHit.ok) fail(`1440 projector menu not on top of dimmer ${JSON.stringify(wideHit)}`);
-await wideProj.click('#btn-menu');
+console.log('menuHitTest wide ok', JSON.stringify(wideHit));
+
+// Catalog must scroll under the overlay; Escape closes it.
+await ensureCatalogRows(wideProj);
+const scrollInfo = await wideProj.evaluate(() => {
+  const side = document.getElementById('sidebar');
+  if (!side) return { ok: false, reason: 'no-sidebar' };
+  // Physics-only rows may fit the tall overlay — clamp height so overflow:auto is exercised.
+  const prevMax = side.style.maxHeight;
+  side.style.maxHeight = '220px';
+  const before = side.scrollTop;
+  side.scrollTop = before + 160;
+  const after = side.scrollTop;
+  const ok = side.scrollHeight > side.clientHeight + 8 && after > before;
+  const overflow = getComputedStyle(side).overflowY;
+  side.style.maxHeight = prevMax;
+  return { ok, before, after, overflow, scrollHeight: side.scrollHeight, clientHeight: side.clientHeight };
+});
+if (!scrollInfo.ok) fail(`1440 overlay catalog not scrollable ${JSON.stringify(scrollInfo)}`);
+await wideProj.keyboard.press('Escape');
+const afterEsc = await stageGeom(wideProj);
+if (afterEsc.overlay || afterEsc.sideOpen) fail(`1440 Escape did not close overlay ${JSON.stringify(afterEsc)}`);
+await wideProj.evaluate(() => document.getElementById('btn-menu')?.click());
+await wideProj.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'));
+await wideProj.evaluate(() => document.getElementById('btn-menu')?.click());
 const wideClosedAgain = await stageGeom(wideProj);
 if (wideClosedAgain.overlay) fail('1440 projector menu did not close overlay');
 await wideProj.close();
+
+
+// Fixed menu layout probe: RTL, page scroll, and a mocked safe-area inset.
+const layoutProj = await openPage({ width: 1000, height: 800 }, 2, 'lab-projector');
+await layoutProj.evaluate(() => {
+  document.documentElement.setAttribute('dir', 'rtl');
+  const style = document.createElement('style');
+  style.id = 'imm-safe-area-mock';
+  style.textContent = ':root { --imm-safe-top: 34px; } body { padding-top: var(--imm-safe-top); }';
+  document.head.appendChild(style);
+});
+await layoutProj.evaluate(() => document.getElementById('btn-menu')?.click());
+await layoutProj.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'));
+const rtlHit = await menuHitTest(layoutProj);
+if (!rtlHit.ok) fail(`RTL overlay menu not clickable ${JSON.stringify(rtlHit)}`);
+const beforeScroll = await layoutProj.evaluate(() => {
+  const btn = document.getElementById('btn-menu');
+  return btn ? Math.round(btn.getBoundingClientRect().top) : -1;
+});
+await layoutProj.evaluate(() => { window.scrollTo(0, 120); document.scrollingElement.scrollTop = 120; });
+await layoutProj.waitForTimeout(100);
+const afterScroll = await layoutProj.evaluate(() => {
+  const btn = document.getElementById('btn-menu');
+  const r = btn?.getBoundingClientRect();
+  return {
+    top: r ? Math.round(r.top) : -1,
+    pos: btn ? getComputedStyle(btn).position : '',
+    stageW: Math.round(document.querySelector('.stage')?.getBoundingClientRect().width || 0),
+  };
+});
+if (afterScroll.pos !== 'fixed') fail(`menu not fixed under RTL/safe-area ${JSON.stringify(afterScroll)}`);
+if (Math.abs(afterScroll.top - beforeScroll) > 4) {
+  fail(`fixed menu drifted after scroll ${beforeScroll}→${afterScroll.top}`);
+}
+if (afterScroll.stageW < 700) fail(`RTL overlay collapsed stage ${afterScroll.stageW}`);
+const scrollHit = await menuHitTest(layoutProj);
+if (!scrollHit.ok) fail(`menu not hittable after scroll ${JSON.stringify(scrollHit)}`);
+await layoutProj.screenshot({ path: join(shotsDir, 'shell-projector-1000-rtl-safe.png') });
+await layoutProj.close();
+
+// Focus / Classic ≤900: bottom drawer reuses bench-drawer-open padding-bottom.
+for (const shell of ['lab-focus', 'lab-classic']) {
+  const page = await openPage({ width: 390, height: 844 }, 2, shell);
+  await page.evaluate(() => document.getElementById('btn-params')?.click());
+  await page.waitForTimeout(250);
+  const geom = await stageGeom(page);
+  const pad = Number.parseFloat(geom.formulaPadBottom) || 0;
+  await page.screenshot({ path: join(shotsDir, `shell-${shell.replace('lab-', '')}-390-bench.png`) });
+  if (!geom.benchOpen) fail(`390 ${shell} could not open bottom params`);
+  if (pad < 40) fail(`390 ${shell} missing bottom formula pad (${geom.formulaPadBottom})`);
+  if (geom.benchCoversFormula) fail(`390 ${shell} bottom drawer covers formula`);
+  await page.close();
+}
 
 const narrow = await openPage({ width: 390, height: 844 }, 2, 'lab-projector');
 const narrowMenu = await narrow.evaluate(() => {
@@ -565,7 +693,7 @@ const narrowMenu = await narrow.evaluate(() => {
   return { label: btn?.getAttribute('aria-label') || '', display: cs?.display || '', pe: cs?.pointerEvents || '', w: btn?.getBoundingClientRect().width || 0 };
 });
 if (narrowMenu.display === 'none' || narrowMenu.pe === 'none' || narrowMenu.w < 8) fail(`390 projector menu not visible ${JSON.stringify(narrowMenu)}`);
-if (narrowMenu.label !== 'Open model list') console.warn(`390 menu label ${narrowMenu.label}`);
+if (narrowMenu.label !== 'Open model list') fail(`390 menu label ${narrowMenu.label}`);
 await narrow.evaluate(() => document.getElementById('btn-menu')?.click());
 const narrowOpen = await narrow.evaluate(() => {
   const side = getComputedStyle(document.querySelector('.sidebar'));
@@ -577,8 +705,8 @@ const narrowOpen = await narrow.evaluate(() => {
     expanded: document.getElementById('btn-menu').getAttribute('aria-expanded'),
   };
 });
-if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') console.warn(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
-if (narrowOpen.label !== 'Close model list') console.warn(`390 close label ${narrowOpen.label}`);
+if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') fail(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
+if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
 await narrow.evaluate(() => document.getElementById('drawer-backdrop')?.click());
 await narrow.evaluate(() => {
   localStorage.setItem('physics-lab-auto-open-bench', '1');
@@ -652,18 +780,48 @@ const narrowMicro = await microNarrow.evaluate(() => {
     brandOverWebgl: overlap(br, wr),
     brandOverRail: rail?.classList.contains('is-open') ? overlap(br, rr) : false,
     readoutsOk: (mr?.height || 0) > 8,
+    metrics: [...(readouts?.querySelectorAll('.micro-metric') || [])].map((el) => el.dataset.key),
     css: [...document.styleSheets].some((sheet) => (sheet.href || '').includes('microscope-shell.css')),
   };
 });
+if (narrowMicro.railOpen) fail(`390 micro rail should start closed ${JSON.stringify(narrowMicro)}`);
+if (narrowMicro.metrics.join(',') !== 'M,f_obj,NA,d_Abbe') fail(`390 micro metrics ${narrowMicro.metrics.join(',')}`);
 if (narrowMicro.brandOverWebgl) fail(`390 micro brand overlaps WebGL ${JSON.stringify(narrowMicro)}`);
 if (narrowMicro.brandOverRail) fail(`390 micro brand overlaps rail ${JSON.stringify(narrowMicro)}`);
 if (narrowMicro.brandH < 40 || narrowMicro.webglH < 120) {
   fail(`390 micro layout too small ${JSON.stringify(narrowMicro)}`);
 }
 if (!narrowMicro.css) fail('390 micro missing microscope-shell.css');
+if (!narrowMicro.readoutsOk) fail('390 micro readouts missing');
 await microNarrow.screenshot({ path: join(shotsDir, 'shell-micro-390.png') });
 await microNarrow.close();
 
 await browser.close();
+// WebKit proxy for Safari layout (real Safari needs Accessibility for Computer Use).
+try {
+  const { webkit } = await import('playwright');
+  const wk = await webkit.launch({ headless: true });
+  const wkPage = await wk.newPage({ viewport: { width: 1000, height: 800 }, deviceScaleFactor: 2 });
+  await wkPage.addInitScript(() => {
+    localStorage.setItem('physics-lab-locale-v1', 'en');
+    localStorage.removeItem('physics-lab-auto-open-bench');
+    localStorage.removeItem('physics-lab-folds-v1');
+    localStorage.removeItem('physics-lab-folds');
+  });
+  await wkPage.goto(`${base}?shell=lab-projector&v=${encodeURIComponent(buildStamp)}&_=${Date.now()}`, { waitUntil: 'domcontentloaded' });
+  await wkPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await wkPage.evaluate(() => document.getElementById('btn-menu')?.click());
+  await wkPage.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'));
+  const wkGeom = await stageGeom(wkPage);
+  await wkPage.screenshot({ path: join(shotsDir, 'shell-projector-1000-safari-proxy.png') });
+  if (wkGeom.stageW < 700) fail(`WebKit projector overlay stage collapsed ${wkGeom.stageW}`);
+  const wkHit = await menuHitTest(wkPage);
+  if (!wkHit.ok) fail(`WebKit projector menu not on top ${JSON.stringify(wkHit)}`);
+  console.log('menuHitTest webkit ok', JSON.stringify(wkHit));
+  await wk.close();
+} catch (err) {
+  fail(`WebKit projector proxy failed: ${err?.message || err}`);
+}
+
 if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
 console.log('shell chrome ok');

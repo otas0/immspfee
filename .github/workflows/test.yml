@@ -64,6 +64,17 @@ jobs:
       - name: Narrow-screen formula and caveat regression
         run: npm run test:narrow
 
+
+      - name: Bundle retains microscope enter wiring
+        run: |
+          mkdir -p artifacts
+          if rg -q 'focusCatalogModel' js/bundle/lab.js; then
+            echo "bundle focusCatalogModel ok" | tee -a artifacts/ci-summary.txt
+          else
+            echo "bundle missing focusCatalogModel" | tee -a artifacts/ci-summary.txt
+            exit 1
+          fi
+
       - name: Shell chrome, DPR cap, and projector overlay
         id: shell_chrome
         shell: bash
@@ -71,9 +82,15 @@ jobs:
           set -o pipefail
           mkdir -p artifacts
           npm run test:shell 2>&1 | tee artifacts/shell-chrome.log
+          if ! grep -q 'menuHitTest ok' artifacts/shell-chrome.log; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "shell chrome FAILED — menuHitTest missing" >> artifacts/ci-summary.txt
+            exit 1
+          fi
           if grep -q 'shell chrome ok' artifacts/shell-chrome.log; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
             echo "shell chrome ok" >> artifacts/ci-summary.txt
+            node -e "const s=require('./asset-stamp.json'); const fs=require('fs'); fs.appendFileSync('artifacts/ci-summary.txt', 'microscope-shell.css?v='+(s.microCss||s.css||'?')+'\n');"
           else
             echo "ok=false" >> "$GITHUB_OUTPUT"
             echo "shell chrome FAILED" >> artifacts/ci-summary.txt

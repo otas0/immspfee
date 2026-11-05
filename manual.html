@@ -38,8 +38,13 @@
       <ul class="muted">
         <li><strong>Language URL:</strong> <code>?lang=en</code> (etc.) wins over <code>localStorage</code> key <code>physics-lab-locale-v1</code>, then syncs both ways.</li>
         <li><strong>Shell URL:</strong> <code>?shell=lab-classic</code> | <code>lab-focus</code> | <code>lab-projector</code> | <code>lab-microscope3d</code> (persists to <code>immspfee-shell</code>).</li>
-        <li><strong>Lab Projector:</strong> catalog sidebar is hidden by default. The toolbar <em>menu</em> opens a temporary catalog overlay (click the dimmed backdrop or menu again to close). Parameters still use the right-hand column on wide screens, or the right/bottom fixed drawer at ≤1100px — never a reserved empty grid column beside the stage.</li>
-        <li><strong>Microscope shell:</strong> clicking <code>r016-显微镜</code> (or <code>?shell=lab-microscope3d&amp;lang=en</code>) leaves the catalog chrome for a dedicated WebGL optical stage — same Hecht finite-tube params, isolated optical rail (objective / eyepiece / NA / immersion / tube L) and fixed M · f_obj · NA · d_Abbe readouts. Catalog bench / HUD / shell list stay off. <em>Back to catalog</em> returns to Lab Classic, expands 物理 ▸ 光学, and highlights r016. Diagram: <a href="./docs/microscope-2d-vs-webgl.md">2D structure vs WebGL shell</a>.</li>
+        <li><strong>Lab Projector:</strong> catalog sidebar is hidden by default. The toolbar <em>menu</em> opens a temporary catalog overlay (click the dimmed backdrop, press Escape, or menu again to close). Parameters still use the right-hand column on wide screens, or the right/bottom fixed drawer at ≤1100px — never a reserved empty grid column beside the stage. Overlay-open vs closed stage-width shots: <a href="./docs/projector-overlay.md">projector-overlay</a> · <code>shots/shell-projector-1000.png</code> / <code>shots/shell-projector-1000-overlay.png</code>.</li>
+        <li><strong>Microscope shell:</strong> clicking <code>r016-显微镜</code> (or <code>?shell=lab-microscope3d&amp;lang=en</code>) leaves the catalog chrome for a dedicated WebGL optical stage — same Hecht finite-tube params, isolated optical rail (objective / eyepiece / NA / immersion / tube L / λ) and fixed M · f_obj · NA · d_Abbe readouts. Catalog bench / HUD / shell list stay off. <em>Back to catalog</em> returns to Lab Classic, expands 物理 ▸ 光学, and highlights r016. Diagram: <a href="./docs/microscope-2d-vs-webgl.md">2D structure vs WebGL shell</a>.
+          <figure style="margin:0.75rem 0 0;max-width:28rem">
+            <img src="./shots/shell-micro-390.png" alt="Microscope WebGL shell at 390px — brand row, stage, four optical readouts" width="390" height="844" loading="lazy" style="width:100%;height:auto;border:1px solid #2a3140" />
+            <figcaption class="muted" style="font-size:0.75rem;margin-top:0.35rem">390px dedicated shell — four readouts, optical rail collapsed (params opens it).</figcaption>
+          </figure>
+        </li>
         <li><strong><code>html.lang</code>:</strong> updated on switch for assistive tech (e.g. <code>zh-CN</code>, <code>en</code>, <code>ja</code>).</li>
         <li><strong>Focus:</strong> after a language change, focus returns to <code>#locale-select</code>.</li>
         <li><strong>Model titles:</strong> lazy packs <code>data/locales/models-en.json</code> / <code>models-ja.json</code> (<code>npm run gen:model-locales</code>). Other locales fall back to catalog source strings.</li>
@@ -611,7 +616,7 @@ expr_a = a_extra + 0.01 * t</pre>
         </tbody>
       </table>
     </div>
-    <p class="muted">侧栏默认只展开「物理」；搜索命中时展开匹配域。CSS 约定：条件隐藏用 <code>.btn.&lt;role&gt;</code> 压过 <code>.btn.ghost-always</code>。校验：<code>npm run test:catalog</code>。compact / Projector 下<strong>空第三列已废除</strong>——工作台只走 fixed 抽屉，不再为 bench 预留空白 grid 列。</p>
+    <p class="muted">侧栏默认只展开「物理」；搜索命中时展开匹配域。CSS 约定：条件隐藏用 <code>.btn.&lt;role&gt;</code> 压过 <code>.btn.ghost-always</code>。校验：<code>npm run test:catalog</code>。compact / Projector 下<strong>空第三列已废除</strong>——工作台只走 fixed 抽屉，不再为 bench 预留空白 grid 列。对照图见 <a href="./docs/projector-overlay.md">projector-overlay</a>（<code>shots/shell-projector-1000.png</code> 关 / <code>shots/shell-projector-1000-overlay.png</code> 开，舞台不塌）。</p>
 
   </main>
   <script>
