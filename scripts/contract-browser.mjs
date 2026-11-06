@@ -105,7 +105,7 @@ for (const id of SAMPLE) {
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       };
       await settle();
-      const samplePaint = () => {
+      const samplePaint = (step = 16) => {
         const canvas = document.getElementById('canvas');
         if (!canvas) return { painted: 0, samples: 0, w: 0, h: 0 };
         const ctx = canvas.getContext('2d');
@@ -115,7 +115,6 @@ for (const id of SAMPLE) {
         const img = ctx.getImageData(0, 0, w, h).data;
         let painted = 0;
         let samples = 0;
-        const step = 16;
         for (let y = 0; y < h; y += step) {
           for (let x = 0; x < w; x += step) {
             samples += 1;
@@ -125,12 +124,13 @@ for (const id of SAMPLE) {
         }
         return { painted, samples, w, h };
       };
-      let pix = samplePaint();
-      // Retries: factory/domain first paint can land late on CI (open-channel flake).
+      let pix = samplePaint(16);
+      // Retries: factory hist may need a step+paint; thin strokes miss step=16.
       for (let attempt = 0; attempt < 3 && pix.painted < 2; attempt += 1) {
+        for (let s = 0; s < 2; s += 1) cap.step?.(1 / 60);
         await new Promise((r) => setTimeout(r, 40 + attempt * 40));
         await settle();
-        pix = samplePaint();
+        pix = samplePaint(attempt >= 1 ? 4 : 16);
       }
       const canvas = document.getElementById('canvas');
       if (!canvas) return { id: modelId, ok: false, detail: 'no canvas' };

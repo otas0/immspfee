@@ -53,6 +53,10 @@ function shell(spec, o) {
       state.hist = [];
       o.init?.(state);
       this.step(state, 0);
+      // First paint needs ≥2 hist samples for the stroke; init only steps once.
+      // Duplicate the init ordinate so steady factory models (e.g. Manning V)
+      // are not title-only until the second RAF — avoids soft-paint open-channel.
+      if (state.hist.length === 1) state.hist.push(state.hist[0]);
     },
     step(state, dt) {
       const sp = Math.min(8, Math.max(0.05, P(state.params, 'speed', 1)));

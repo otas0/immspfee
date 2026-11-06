@@ -74,6 +74,14 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 `principleInk.sparse` from the contract payload) so models like
 `neutron-diffusion` that hover near 1% need fewer hand edits.
 
+### soft-paint / open-channel first frame
+
+`SOFT soft-paint open-channel-uniform` with `painted≈1` was title-only ink:
+factory `shell()` init stepped once (`hist.length === 1`) and `draw` returned
+before the stroke. Fix: duplicate the init ordinate so the first paint has a
+flat line; contract retries also `step` + denser sample (step 4). Soft remains
+a warn path for true empty canvases with readouts.
+
 ### Pages cold TTI (entry / main)
 
 Measured on `otas0.github.io/immspfee` with SW blocked: cold ready often

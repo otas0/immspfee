@@ -2158,7 +2158,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-YMRQNLSJ.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-NQSTWVPE.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -8052,4 +8052,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-YMRQNLSJ.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-NQSTWVPE.js");

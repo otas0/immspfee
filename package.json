@@ -11,6 +11,8 @@
     "test:catalog": "node scripts/validate-catalog.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
     "test:narrow": "node scripts/narrow-regression.mjs",
+    "//test:narrow": "Bohr EN timeout via NARROW_BOHR_MS (default 120000 in narrow-regression.mjs). Use test:narrow:bohr-slow for 180000.",
+    "test:narrow:bohr-slow": "NARROW_BOHR_MS=180000 node scripts/narrow-regression.mjs",
     "test:shell": "node scripts/shell-chrome.mjs",
     "test:boot": "node scripts/boot-reload.mjs && node scripts/sw-cache.mjs && node scripts/boot-follow.mjs",
     "test:boot-timing": "node scripts/boot-timing.mjs",

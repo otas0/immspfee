@@ -436,6 +436,7 @@ function shell(spec, o) {
       state.hist = [];
       o.init?.(state);
       this.step(state, 0);
+      if (state.hist.length === 1) state.hist.push(state.hist[0]);
     },
     step(state, dt) {
       const sp = Math.min(8, Math.max(0.05, P(state.params, "speed", 1)));
