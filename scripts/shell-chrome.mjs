@@ -719,13 +719,28 @@ await layoutProj.evaluate(() => {
   document.documentElement.setAttribute('dir', 'rtl');
   const style = document.createElement('style');
   style.id = 'imm-safe-area-mock';
-  style.textContent = ':root { --imm-safe-top: 34px; } body { padding-top: var(--imm-safe-top); }';
+  style.textContent = ':root { --imm-safe-top: 47px; } body { padding-top: max(var(--imm-safe-top), env(safe-area-inset-top, 0px)); } .toolbar { padding-top: max(0.4rem, env(safe-area-inset-top, 0px)); }';
   document.head.appendChild(style);
 });
 await layoutProj.evaluate(() => document.getElementById('btn-menu')?.click());
 await layoutProj.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'));
 const rtlHit = await menuHitTest(layoutProj);
 if (!rtlHit.ok) fail(`RTL overlay menu not clickable ${JSON.stringify(rtlHit)}`);
+const rtlOverlayEdge = await layoutProj.evaluate(() => {
+  const side = document.getElementById('sidebar');
+  const cs = side ? getComputedStyle(side) : null;
+  return {
+    left: cs?.left || '',
+    right: cs?.right || '',
+    dir: document.documentElement.getAttribute('dir') || '',
+  };
+});
+if (rtlOverlayEdge.dir !== 'rtl') fail(`RTL dir missing ${JSON.stringify(rtlOverlayEdge)}`);
+// Product: overlay stays physically left so it does not cover the RTL toolbar menu.
+if (!(rtlOverlayEdge.left === '0px' || Number.parseFloat(rtlOverlayEdge.left) === 0)) {
+  fail(`RTL overlay should stay left-docked ${JSON.stringify(rtlOverlayEdge)}`);
+}
+
 const beforeScroll = await layoutProj.evaluate(() => {
   const btn = document.getElementById('btn-menu');
   return btn ? Math.round(btn.getBoundingClientRect().top) : -1;

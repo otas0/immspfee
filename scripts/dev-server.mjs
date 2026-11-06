@@ -175,6 +175,14 @@ const server = http.createServer(async (req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 
+let connSeq = 0;
+server.on('connection', () => {
+  connSeq += 1;
+  if (connSeq === 1 || connSeq % 25 === 0) {
+    console.log(`lab-connection seq=${connSeq} pid=${process.pid}`);
+  }
+});
+
 server.on('error', (err) => {
   console.error('server error', err);
   releasePidLock();
@@ -188,4 +196,13 @@ process.on('uncaughtException', (err) => {
 const host = process.env.HOST || '0.0.0.0';
 server.listen(port, host, () => {
   console.log(`physics-demo http://127.0.0.1:${port} (bind ${host}) pid=${process.pid}`);
+  // Heartbeat: proves the listener is still alive when Playwright mid-suite gets CONNECTION_REFUSED.
+  const started = Date.now();
+  let beats = 0;
+  const hbMs = Number(process.env.LAB_HEARTBEAT_MS || 5000);
+  setInterval(() => {
+    beats += 1;
+    const up = ((Date.now() - started) / 1000).toFixed(0);
+    console.log(`lab-heartbeat pid=${process.pid} port=${port} up=${up}s beats=${beats}`);
+  }, hbMs).unref();
 });

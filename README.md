@@ -40,8 +40,15 @@ Default fidelity is often `principle` unless stamped otherwise. Factory families
 | Layer | Role |
 |-------|------|
 | Catalog | `data/catalog.json`; domain / subcategory sidebar |
-| Shell(s) | Pluggable chassis via `js/shells/registry.js` (`?shell=lab-classic` / `lab-focus`); `deriveCapabilities` for formalism / hint / pointer / actions |
+| Shell(s) | Pluggable chassis via `js/shells/registry.js` (`?shell=lab-classic` / `lab-focus` / `lab-projector` / `lab-microscope3d`); `deriveCapabilities` for formalism / hint / pointer / actions |
 | Stage | Shared canvas (2D); reserved single WebGL path for microscope |
+
+### Shell / Projector
+
+- **Lab Classic / Focus:** two-column compact layout ≤1100px; params use a fixed drawer (no empty third grid column).
+- **Lab Projector:** sidebar hidden; toolbar menu opens a temporary catalog overlay. Stage stays pinned so overlay open/close never collapses width to 0 (white stage). See [docs/projector-overlay.md](./docs/projector-overlay.md).
+- **Shots (Pages):** closed vs overlay — [docs/promo/shell-projector-1000.png](./docs/promo/shell-projector-1000.png) · [docs/promo/shell-projector-1000-overlay.png](./docs/promo/shell-projector-1000-overlay.png).
+- Deep links: `?shell=lab-projector`, `?shell=lab-microscope3d&lang=en`.
 | Bench | Schema controls; ≥20 params → focus dynamics by default |
 | HUD | Snapshot compare, class-pack JSON/ZIP, safe defaults |
 

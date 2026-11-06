@@ -24,3 +24,11 @@ Asserted by `npm run test:shell` (`menuHitTest`, Escape close, catalog scroll, s
 `#btn-menu` / `#btn-params` use `position: fixed; z-index: 70` while the drawer/overlay
 is open so they escape the `.stage` stacking context and stay clickable above the
 backdrop (`z-index: 24`) and overlay catalog (`z-index: 60`).
+
+## RTL overlay edge
+
+**Product decision:** keep the projector catalog overlay on the **physical left**
+(`left: 0`) even when `dir="rtl"`. Mirroring to `right: 0` covers the toolbar menu,
+which RTL layouts place on the inline-end (right). Menu/params stay
+`position: fixed; z-index: 70` above the dimmer; catalog text still flows RTL inside
+the left dock.

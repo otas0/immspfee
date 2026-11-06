@@ -2044,10 +2044,6 @@ html.shell-lab-projector body.drawer-open #btn-menu,
 .chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar:not(.open) {
   transform: translateX(-110%);
 }
-.chassis.shell-hide-sidebar.shell-sidebar-overlay ~ #drawer-backdrop,
-body.drawer-open .drawer-backdrop {
-  /* backdrop handled via body.drawer-open when overlay open */
-}
 
 .canvas-webgl {
   position: absolute;
@@ -2085,7 +2081,6 @@ body.drawer-open .drawer-backdrop {
     font-size: 1.85rem;
   }
 }
-
 
 .boot-banner {
   position: fixed;

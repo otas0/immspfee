@@ -120,3 +120,53 @@ jobs:
                   : `See the pages-check job log for formula / strip / microscope mismatches.`,
               },
             });
+
+  microscope-webgl3d:
+    name: microscope-webgl3d
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Cold-start lab-microscope3d must reach webgl3d
+        id: micro_webgl
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+          PAGES_SHA: ${{ github.sha }}
+        run: |
+          SHORT=$(echo "$PAGES_SHA" | cut -c1-7)
+          export PAGES_SHA="$SHORT"
+          mkdir -p shots artifacts
+          node scripts/pages-microscope-webgl.mjs
+
+      - name: Upload microscope fail screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microscope-webgl3d-${{ github.sha }}
+          path: |
+            shots/pages-micro-*.png
+            artifacts/pages-micro-*.json
+          if-no-files-found: ignore

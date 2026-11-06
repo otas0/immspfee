@@ -56,3 +56,9 @@ kill "$(awk '{print $1}' .lab-server.pid)"
 
 Do not trap `SIGHUP` to exit the server — agent / nohup launchers send it
 when the parent shell closes and would kill mid-suite.
+
+## stash `wip-other` (dropped 2026-11-06)
+
+Audited and dropped. Strings / dialog errors / micro chrome keys were already on
+`main`. Remaining hunks would have reverted the `factoryLoader` split and removed
+the live oil-immersion WebGL path — rejected.

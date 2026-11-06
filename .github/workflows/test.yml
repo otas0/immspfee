@@ -63,7 +63,11 @@ jobs:
         run: npm run report:schema
 
       - name: Rebuild lab bundle for CI fingerprint
-        run: npm run build:bundle
+        run: |
+          npm run build:bundle
+          test -f js/bundle/meta.json || { echo "build:bundle left no js/bundle/meta.json"; exit 1; }
+          test -f js/bundle/lab.js || { echo "build:bundle left no js/bundle/lab.js"; exit 1; }
+          node -e "const m=require('./js/bundle/meta.json'); const outs=m&&m.outputs; if(!outs||!outs.length||!outs.some(o=>String(o.file||'').includes('lab.js'))){console.error('meta.json missing lab.js output',m); process.exit(1)} console.log('bundle meta ok', outs.map(o=>o.file).join(','))"
 
       - name: Start lab server
         run: |
@@ -97,6 +101,16 @@ jobs:
           if ! grep -q 'menuHitTest ok' artifacts/shell-chrome.log; then
             echo "ok=false" >> "$GITHUB_OUTPUT"
             echo "shell chrome FAILED — menuHitTest missing" >> artifacts/ci-summary.txt
+            exit 1
+          fi
+          if ! grep -q 'menuHitTest wide ok' artifacts/shell-chrome.log; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "shell chrome FAILED — menuHitTest wide missing" >> artifacts/ci-summary.txt
+            exit 1
+          fi
+          if ! grep -q 'menuHitTest webkit ok' artifacts/shell-chrome.log; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "shell chrome FAILED — menuHitTest webkit missing" >> artifacts/ci-summary.txt
             exit 1
           fi
           if grep -q 'shell chrome ok' artifacts/shell-chrome.log; then
