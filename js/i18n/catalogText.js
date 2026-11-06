@@ -44,9 +44,13 @@ export function ensureGlyphRows() {
       : new URL('./glyphRows.js', import.meta.url).href;
     rowsReady = import(href).then((mod) => {
       rebuildBuckets(mod.ROWS || []);
+    }).catch((err) => {
+      console.warn('glyphRows load failed', err);
+      rowsReady = null;
+      rebuildBuckets([]);
     });
   }
-  return rowsReady;
+  return rowsReady || Promise.resolve();
 }
 
 export function glyphRowsReady() {

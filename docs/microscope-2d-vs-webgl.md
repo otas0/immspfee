@@ -51,11 +51,24 @@ Selecting the normal `r016-显微镜` catalog row must **not** auto-enter WebGL.
 | Click eyepiece chip (5×/10×/15×) | Set `params.eyepiece` | same |
 | Rail sliders / chips | L, NA, λ, immersion | same; rail “edited” chip shows live M / d_Abbe delta vs baseline |
 | Esc | Close rail if open, else leave shell | — |
-| PNG shot | `preserveDrawingBuffer` + `capturePng` after `gl.finish` | framebuffer of current draw |
+| PNG shot | `preserveDrawingBuffer` + `capturePng` + composite L/eyepiece DOM labels | framebuffer + overlay |
 
 2D catalog `r016` and 3D shell must agree on **M**, **NA**, and **d_Abbe** for the same `params` (same `opticsFromParams`). Compare readouts side-by-side when auditing; do not invent display numbers.
+
+### Lab-manual readout compare shots
+
+| View | File |
+| --- | --- |
+| Catalog 2D `r016` HUD | [docs/promo/micro-2d-r016.png](./promo/micro-2d-r016.png) |
+| WebGL 3D metrics | [docs/promo/micro-3d-readouts.png](./promo/micro-3d-readouts.png) |
+| 390 oil immersion | [docs/promo/micro-390-oil.png](./promo/micro-390-oil.png) |
+| WebKit orbit stage | [docs/promo/micro-webkit-3d.png](./promo/micro-webkit-3d.png) |
 
 ## Narrow (≈390)
 
 - Rail starts **closed**; open via 「光学参数」 / Optical params.
 - Strip stays sticky above domains; opening the rail must keep λ / NA outputs linked to `#micro-metric` values.
+
+## Pages asset-stamp
+
+Fingerprint authority is the **JSON fields** in `asset-stamp.json` (`js`, `css`, `microCss`, `main`, …), mirrored into `index.html` (`imm-js` / CSS `?v=`). GitHub Pages does **not** honor repo `_headers` Cache-Control; treat CDN `Cache-Control` as advisory and bust with stamp fields / `?v=` only.

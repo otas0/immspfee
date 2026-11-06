@@ -1,25 +1,45 @@
 {
-  "at": "2026-11-06T05:04:02.253Z",
+  "at": "2026-11-06T05:14:50.805Z",
   "outputs": [
     {
-      "file": "lab.js",
-      "bytes": 385259
+      "file": "chunk-factory-ZYY6ATZO.js",
+      "bytes": 350842
     },
     {
-      "file": "chunk-factory-Z4UXPYU6.js",
-      "bytes": 350754
+      "file": "lab.js",
+      "bytes": 299642
     },
     {
       "file": "chunk-chunk-54AD6SA2.js",
       "bytes": 269853
     },
     {
-      "file": "chunk-chunk-NUKTR6YU.js",
-      "bytes": 72703
+      "file": "chunk-handModels-B4JQTOV6.js",
+      "bytes": 158504
+    },
+    {
+      "file": "chunk-chunk-IALLJT72.js",
+      "bytes": 53636
+    },
+    {
+      "file": "chunk-chunk-NXEYOZOV.js",
+      "bytes": 17456
+    },
+    {
+      "file": "chunk-chunk-WM3LI2L6.js",
+      "bytes": 5386
+    },
+    {
+      "file": "chunk-chunk-O2CR3FKE.js",
+      "bytes": 2624
     },
     {
       "file": "chunk-topicOverrides-SU674NSK.js",
       "bytes": 323
     }
-  ]
+  ],
+  "cold": {
+    "lab": "js/bundle/lab.js",
+    "note": "static shared chunks inlined into lab.js"
+  }
 }

@@ -1,6 +1,7 @@
 /**
  * Wire format for the subject index. Repeated domain names are stored once.
- * Callers still see `{ id, domain, sub, name, family, formula }`.
+ * Formula stays in per-domain JSON (not the cold index) to keep first paint small.
+ * Callers still see `{ id, domain, sub, name, family, formula? }`.
  */
 export function packDomainIndex(rows) {
   const domains = [];
@@ -17,7 +18,6 @@ export function packDomainIndex(rows) {
       sub: row.sub || '',
       name: row.name || row.id,
       family: row.family || '',
-      formula: row.formula || '',
     };
   });
   return { domains, rows: packed };

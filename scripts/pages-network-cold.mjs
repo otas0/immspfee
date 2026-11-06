@@ -80,3 +80,22 @@ const summary = {
 fs.writeFileSync(path.join(outDir, 'pages-network-cold.json'), `${JSON.stringify({ summary, requests }, null, 2)}\n`);
 fs.writeFileSync(path.join(outDir, 'pages-network-summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
 console.log(JSON.stringify(summary, null, 2));
+
+const maxJs = Number(process.env.PAGES_NETWORK_MAX_JS || 5);
+const fail = process.env.PAGES_NETWORK_ASSERT === '1' || process.env.CI === 'true';
+const coldChunks = js.filter((r) => /chunk-(?!factory)/i.test(r.short) && !/glyphRows/i.test(r.short));
+const factoryCold = js.some((r) => /chunk-factory/i.test(r.short));
+if (fail) {
+  const errors = [];
+  if (jsCount > maxJs) errors.push(`jsCount ${jsCount} > ${maxJs}`);
+  if (verdict === 'module-waterfall') errors.push('verdict is module-waterfall');
+  if (factoryCold) errors.push('cold boot fetched chunk-factory');
+  // Shared utils must be inlined into lab.js — no static chunk-chunk-* on cold boot.
+  if (coldChunks.some((r) => /chunk-chunk-/i.test(r.short))) {
+    errors.push(`cold boot still fetched shared chunk(s): ${coldChunks.map((r) => r.short).join(',')}`);
+  }
+  if (errors.length) {
+    console.error(errors.join('\n'));
+    process.exit(1);
+  }
+}

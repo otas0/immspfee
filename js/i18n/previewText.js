@@ -6,7 +6,7 @@ import { ensureGlyphRows, translateCatalogText } from './catalogText.js';
 if (typeof location !== 'undefined') {
   try {
     const lang = new URLSearchParams(location.search).get('lang')
-      || (typeof localStorage !== 'undefined' && localStorage.getItem('immspfee-lang'))
+      || (typeof localStorage !== 'undefined' && localStorage.getItem('physics-lab-locale-v1'))
       || '';
     if (lang && lang !== 'zh') void ensureGlyphRows();
   } catch {

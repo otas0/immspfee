@@ -20,6 +20,7 @@ const stamped = {
   css: stamp.css,
   microCss: stamp.microCss,
   main: stamp.js,
+  bundleMeta: stamp.bundleMeta,
   domainIndex: stamp.domainIndex,
   domains: stamp.domains,
 };

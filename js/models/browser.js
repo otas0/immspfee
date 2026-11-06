@@ -2,7 +2,7 @@
  * Browser catalog loaded one subject at a time.
  * `models` is the live array the shell already holds.
  */
-import { buildFromSpecs, ensureRefresh, handcraftedList } from './assemble.js';
+import { buildFromSpecs, ensureHandModels, ensureRefresh, handcraftedList } from './assemble.js';
 import { ensureFactory } from './factoryLoader.js';
 import { buildAllUserModels, loadUserSpecs } from '../lab/userModels.js';
 import { domainChunkUrl, domainIndexUrl, loadAssetStamp } from '../boot/catalogStamp.js';
@@ -90,6 +90,7 @@ export function loadDomain(domain) {
   if (loaded.has(domain)) return Promise.resolve(models);
   if (inflight.has(domain)) return inflight.get(domain);
   const task = Promise.resolve()
+    .then(() => ensureHandModels())
     .then(async () => {
       const warm = window.__preloadedDomain;
       if (warm && warm.domain === domain && warm.promise) {
@@ -117,6 +118,7 @@ export function loadDomain(domain) {
 
 /** In-bundle hand model, without fetching its subject file. */
 export async function primeHandModel(id) {
+  if (id !== 'free-fall') await ensureHandModels();
   const impl = handcraftedList().find((model) => model.id === id);
   if (!impl) return false;
   if (!models.some((model) => model.id === id)) {

@@ -23,15 +23,18 @@ jobs:
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-pw1.48
 
       - name: Install Playwright Chromium
         if: steps.pw-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 10
         run: npx playwright install chromium --with-deps
 
-      - name: Install Playwright system deps (cache hit)
+      # Cache hit already has browser binaries; skip install-deps (it has hung runners).
+      - name: Confirm Playwright Chromium (cache hit)
         if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        timeout-minutes: 2
+        run: npx playwright install chromium
 
       - name: Unit tests
         id: unit_tests
@@ -55,6 +58,9 @@ jobs:
 
       - name: Forbid on-stage assumption / caveat strips
         run: node scripts/assert-no-stage-strips.mjs
+
+      - name: Sidebar domains stay collapsed by default
+        run: node scripts/assert-folds-default.mjs
 
       - name: models-en zero Han leakage
         run: node scripts/assert-models-en.mjs
@@ -141,6 +147,15 @@ jobs:
         run: npm run test:boot && npm run test:boot-timing
         env:
           PAGES_URL: https://otas0.github.io/immspfee/
+
+      - name: Pages network cold-start budget
+        if: always()
+        timeout-minutes: 5
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+          PAGES_NETWORK_ASSERT: '1'
+          PAGES_NETWORK_MAX_JS: '5'
+        run: npm run test:pages-network
 
       - name: Upload boot timing
         if: always()
@@ -267,7 +282,22 @@ jobs:
       - name: Fail job if contract-browser failed
         if: steps.contract_browser.outcome == 'failure'
         run: |
-          echo "contract-browser failed; see artifact + PR comment"
+          mkdir -p artifacts
+          {
+            echo "contract-browser failed"
+            if [ -f artifacts/contract-failed-ids.txt ]; then
+              echo "failed-ids:"
+              cat artifacts/contract-failed-ids.txt
+            fi
+            if [ -f artifacts/principle-ink.md ]; then
+              unreg=$(sed -n 's/^- low-ink unregistered: //p' artifacts/principle-ink.md | head -1)
+              echo "low-ink unregistered: ${unreg:-—}"
+              echo "low-ink unregistered: ${unreg:-—}" >> artifacts/ci-summary.txt
+            fi
+            if [ -f artifacts/contract-browser.json ]; then
+              node -e "const j=require('./artifacts/contract-browser.json'); const u=(j.inkGate&&j.inkGate.unregistered)||[]; console.log('inkGate.unregistered='+(u.join(',')||'—'));"
+            fi
+          } | tee -a artifacts/ci-summary.txt
           exit 1
 
       - name: Open PR when low-ink table drifted
@@ -309,6 +339,31 @@ jobs:
           path: |
             artifacts/
           if-no-files-found: ignore
+
+  webkit-projector:
+    name: webkit-projector (optional)
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[webkit]')
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright WebKit
+        timeout-minutes: 10
+        run: npx playwright install webkit --with-deps
+      - name: Start lab server
+        run: |
+          npm run build:bundle
+          node scripts/dev-server.mjs &
+          sleep 2
+      - name: WebKit projector overlay
+        env:
+          SHELL_WEBKIT_ONLY: '1'
+        run: node scripts/shell-chrome.mjs
 
   shots-extra:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[shots]')

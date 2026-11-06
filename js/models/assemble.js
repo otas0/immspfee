@@ -1,47 +1,35 @@
 /**
  * Build runnable models from catalog specs. Node tests pass the full catalog.
  * The browser passes one subject at a time.
+ *
+ * Cold boot only embeds free-fall; other hand models load via ensureHandModels().
  */
 import freeFall from './freeFall.js';
-import projectile from './projectile.js';
-import spring from './spring.js';
-import pendulum from './pendulum.js';
-import collision from './collision.js';
-import doublePendulum from './doublePendulum.js';
-import wave from './wave.js';
-import heat from './heat.js';
-import orbit from './orbit.js';
-import lorentz from './lorentz.js';
-import sorting from './sorting.js';
-import bfsGrid from './bfsGrid.js';
-import life from './life.js';
-import cacheLru from './cacheLru.js';
-import pipeline from './pipeline.js';
-import fifo from './fifo.js';
-import rcCircuit from './rcCircuit.js';
-import rlc from './rlc.js';
-import inclinedPlane from './inclinedPlane.js';
-import collision2d from './collision2d.js';
-import dijkstra from './dijkstra.js';
-import logicGates from './logicGates.js';
-import beamSfdBmd from './beamSfdBmd.js';
-import pidTune from './pidTune.js';
-import hodgkinHuxley from './hodgkinHuxley.js';
-import compoundMicroscope from './compoundMicroscope.js';
 import { factoryBuilder } from './factoryLoader.js';
 import { HAND_FORMALISM } from '../lab/formalism.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { localizeModel } from '../utils/zhLabels.js';
 import { buildAllUserModels } from '../lab/userModels.js';
 
-const handcrafted = [
-  freeFall, projectile, spring, pendulum, collision, doublePendulum, wave, heat,
-  orbit, lorentz, sorting, bfsGrid, life, cacheLru, pipeline, fifo, rcCircuit, rlc,
-  inclinedPlane, collision2d, dijkstra, logicGates, beamSfdBmd, pidTune,
-  hodgkinHuxley, compoundMicroscope,
-];
+/** @type {import('./freeFall.js').default[]} */
+let handcrafted = [freeFall];
+/** @type {Record<string, object>} */
+let byId = { [freeFall.id]: freeFall };
+let handsPending = null;
 
-const byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
+/** Load the rest of the handwritten catalog (browser: first subject; Node: tests). */
+export function ensureHandModels() {
+  if (handcrafted.length > 1) return Promise.resolve(handcrafted);
+  if (!handsPending) {
+    handsPending = import('./handModels.js').then((mod) => {
+      const extras = mod.HANDS || [];
+      handcrafted = [freeFall, ...extras];
+      byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
+      return handcrafted;
+    });
+  }
+  return handsPending;
+}
 
 export function ensureRefresh(model) {
   localizeModel(model);

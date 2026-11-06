@@ -16,6 +16,7 @@
     "test:boot-timing": "node scripts/boot-timing.mjs",
     "test:pages": "node scripts/pages-check.mjs",
     "assert:stage-strips": "node scripts/assert-no-stage-strips.mjs",
+    "assert:folds": "node scripts/assert-folds-default.mjs",
     "assert:models-en": "node scripts/assert-models-en.mjs",
     "report:schema": "node scripts/schema-coverage.mjs",
     "stamp:authority": "node scripts/stamp-authority.mjs",

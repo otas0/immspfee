@@ -241,6 +241,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let hoverHit = null;
   let oilStageY = 0.4;
   let oilActive = false;
+  let prevImmersion = null;
   /** Screen-space labels refreshed each draw (L dimension + picks). */
   let overlayLabels = [];
 
@@ -490,6 +491,9 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     lastView = { width: view.width, height: view.height };
     const optics = opticsFromParams(state.params || {});
     const tSec = performance.now() * 0.001;
+    // Immersion toggles must rebuild mesh + oil pass even if other key parts collide.
+    if (prevImmersion !== null && prevImmersion !== !!optics.immersion) lastKey = '';
+    prevImmersion = !!optics.immersion;
     const hoverKey = hoverHit ? `${hoverHit.kind}:${hoverHit.index}` : '-';
     const key = `${optics.obj.id}:${optics.eye.id}:${optics.Lmm}:${optics.immersion}:${optics.lambdaNm}:${hoverKey}:${view.width}x${view.height}`;
     const dpr = Math.min(window.devicePixelRatio || 1, Number(document.documentElement.dataset.dprCap) || 3);

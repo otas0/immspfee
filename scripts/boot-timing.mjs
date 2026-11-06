@@ -99,6 +99,7 @@ const direct = await elapsed(await browser.newContext({ serviceWorkers: 'block' 
 const cached = await elapsed(await browser.newContext({ serviceWorkers: 'block' }), base, fakeCache);
 let pagesDirect = null;
 let pagesCached = null;
+let pagesSwCached = null;
 if (pagesUrl) {
   try {
     pagesDirect = await sampleMedian(browser, pagesUrl, null, 3);
@@ -109,6 +110,27 @@ if (pagesUrl) {
     pagesCached = await sampleMedian(browser, pagesUrl, fakeCache, 3);
   } catch (err) {
     pagesCached = { ms: `error:${err.message}`, marks: null, samples: [] };
+  }
+  // Real SW path (cache-first fingerprinted assets) — separate bucket from fakeCache.
+  try {
+    const ctx = await browser.newContext({ serviceWorkers: 'allow' });
+    await ctx.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    });
+    const warmPage = await ctx.newPage();
+    const tWarm = Date.now();
+    await warmPage.goto(pagesUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await warmPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+    const warmMs = Date.now() - tWarm;
+    await warmPage.waitForTimeout(500);
+    const tCached = Date.now();
+    await warmPage.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+    await warmPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+    const cachedMs = Date.now() - tCached;
+    await ctx.close();
+    pagesSwCached = { ms: cachedMs, samples: [warmMs, cachedMs] };
+  } catch (err) {
+    pagesSwCached = { ms: `error:${err.message}`, samples: [] };
   }
 }
 await browser.close();
@@ -138,11 +160,14 @@ const report = {
   pagesCachedMs: pagesCached?.ms ?? null,
   pagesCachedSamples: pagesCached?.samples ?? null,
   pagesCachedMarks: pagesCached?.marks ?? null,
+  pagesSwCachedMs: pagesSwCached?.ms ?? null,
+  pagesSwCachedSamples: pagesSwCached?.samples ?? null,
   ceilings: {
     directMs: DIRECT_MAX,
     cachedReloadMs: CACHED_MAX,
     pagesDirectMs: PAGES_DIRECT_MAX,
     pagesCachedMs: PAGES_CACHED_MAX,
+    pagesSwCachedMs: Number(process.env.BOOT_PAGES_SW_MAX_MS || 12000),
     mainBytes: MAIN_MAX_BYTES,
   },
 };

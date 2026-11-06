@@ -131,7 +131,8 @@ const interaction = await page.evaluate(async () => {
     if (!pass) out.ok = false;
   };
   try {
-    cap.switchModel('projectile');
+    // Hand models beyond free-fall load lazily — always await switchModel.
+    await cap.switchModel('projectile');
     cap.pause();
     const st0 = cap.getState?.() || {};
     // 落地态再发射
@@ -163,7 +164,7 @@ const interaction = await page.evaluate(async () => {
         `landed=${stP?.landed} pauseApp=${stP?._pauseApp}`);
     }
 
-    cap.switchModel('bfs-grid');
+    await cap.switchModel('bfs-grid');
     cap.pause();
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const canvas = document.getElementById('canvas');
@@ -217,7 +218,7 @@ const interaction = await page.evaluate(async () => {
       check('bfs-shift-paint-wall', shiftOk, shiftOk ? '' : `mode=${stSh?._lastPaintMode}`);
     }
 
-    cap.switchModel('sorting');
+    await cap.switchModel('sorting');
     const stS = cap.getState?.();
     if (stS?.params) stS.params.demo = 1;
     const modelS = cap.getModel?.();
@@ -229,7 +230,7 @@ const interaction = await page.evaluate(async () => {
 
     // layoutSteps（numerics）改参应 reinit + toast「布局已重算」
     // Dijkstra is the live graph-layout model that exposes layoutSteps.
-    cap.switchModel('dijkstra');
+    await cap.switchModel('dijkstra');
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const hasLayout = Object.prototype.hasOwnProperty.call(cap.getParams?.() || {}, 'layoutSteps')
       || Object.prototype.hasOwnProperty.call(cap.getState?.()?.params || {}, 'layoutSteps');
@@ -247,7 +248,7 @@ const interaction = await page.evaluate(async () => {
     }
 
     // redoEdge：undo 后再 redo
-    cap.switchModel('logic-gates');
+    await cap.switchModel('logic-gates');
     const stL = cap.getState?.();
     const modelL = cap.getModel?.();
     if (stL && modelL?.pushNetHist) {

@@ -503,6 +503,52 @@ for (let pass = 0; pass < 2; pass += 1) {
   }
 }
 
+// Projector ↔ microscope must restore #canvas visibility and drop WebGL exclusivity.
+await setShell(desk, 'lab-projector');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-projector');
+await setShell(desk, 'lab-microscope3d');
+await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
+const microCanvas = await desk.evaluate(() => {
+  const c2 = document.getElementById('canvas');
+  const c3 = document.getElementById('canvas-webgl');
+  const cs2 = c2 ? getComputedStyle(c2) : null;
+  return {
+    stageMode: document.documentElement.dataset.stageMode || '',
+    canvasDisplay: cs2?.display || '',
+    canvasHidden: !!c2?.hidden,
+    webglHidden: !!c3?.hidden,
+  };
+});
+// Under microscope, 2D canvas must be display:none; WebGL must be visible.
+if (microCanvas.stageMode !== 'webgl3d' || microCanvas.canvasDisplay !== 'none' || microCanvas.webglHidden) {
+  fail(`projector→microscope canvas leak ${JSON.stringify(microCanvas)}`);
+}
+await setShell(desk, 'lab-projector');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-projector');
+const projCanvas = await desk.evaluate(() => {
+  const c2 = document.getElementById('canvas');
+  const c3 = document.getElementById('canvas-webgl');
+  const cs2 = c2 ? getComputedStyle(c2) : null;
+  return {
+    stageMode: document.documentElement.dataset.stageMode || '',
+    canvasDisplay: cs2?.display || '',
+    canvasHidden: !!c2?.hidden,
+    webglHidden: c3 ? !!c3.hidden : true,
+    microRoot: document.documentElement.classList.contains('shell-lab-microscope3d'),
+  };
+});
+if (
+  projCanvas.stageMode === 'webgl3d'
+  || projCanvas.canvasDisplay === 'none'
+  || projCanvas.canvasHidden
+  || !projCanvas.webglHidden
+  || projCanvas.microRoot
+) {
+  fail(`microscope→projector #canvas not restored ${JSON.stringify(projCanvas)}`);
+}
+await setShell(desk, 'lab-classic');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
+
 await desk.click('#btn-user-model');
 await desk.waitForSelector('#user-model-dialog[open]');
 await desk.fill('input[name="name"]', 'bad draft');

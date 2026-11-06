@@ -32,6 +32,11 @@ ordinary file locks / closing the second Agents Window over macOS flags.
 second Agents Window against this tree to “practice” races; one writer only.
 If a second window is already open, close it before editing lab files.
 
+**Keep a single Agents Window.** Concurrent agent hosts rewriting
+`js/entry.js` / `js/models/factoryLoader.js` / `js/bundle/*` caused
+double-writes and mismatched SW factory-chunk priming. Prefer one writer;
+review dirty diffs before a second host touches the same paths.
+
 When a write fails with `Operation not permitted`:
 
 ```bash

@@ -227,9 +227,12 @@ export function createMicroscopeStage(api) {
     if (dirty) {
       const edited = opticsFingerprint(state.params) !== baselineFp;
       dirty.hidden = !edited;
+      const t = typeof api.t === 'function' ? api.t : (k) => k;
       dirty.textContent = edited
-        ? `edited · M ${formatNum(o.M, 1)}× · d_Abbe ${formatNum(o.dResM * 1e6, 2)} µm`
-        : 'params edited';
+        ? t('ui.microRailDirtyLive')
+          .replace('{M}', formatNum(o.M, 1))
+          .replace('{d}', formatNum(o.dResM * 1e6, 2))
+        : t('ui.microRailDirty');
     }
     for (const row of READOUTS) {
       const el = stage.querySelector(`.micro-metric[data-key="${row.key}"] [data-v]`);

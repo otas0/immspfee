@@ -5,9 +5,10 @@
 import catalog from '../../data/catalog.json' with { type: 'json' };
 import { createFactoryModel } from './factory.js';
 import { setFactoryBuilder } from './factoryLoader.js';
-import { buildFromSpecs } from './assemble.js';
+import { buildFromSpecs, ensureHandModels } from './assemble.js';
 
 setFactoryBuilder(createFactoryModel);
+await ensureHandModels();
 
 function buildAll() {
   return buildFromSpecs(catalog);

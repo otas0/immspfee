@@ -1071,7 +1071,8 @@ function paintSidebar() {
         const subEl = document.createElement('details');
         subEl.className = 'sub-group';
         const sKey = foldKey(domain, sub);
-        const defaultOpen = searching || HOT_SUBS.has(sub) || ready.length <= 3;
+        // Deep-link focus writes explicit fold keys; otherwise stay collapsed.
+        const defaultOpen = searching;
         const subWantOpen = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
         const subSum = document.createElement('summary');
         const q = app.filter.q.trim();
@@ -2238,8 +2239,10 @@ async function boot() {
   }
   async function focusCatalogModel(id, loc = { domain: '物理', sub: '光学' }) {
     const folds = loadFolds();
+    // Only the target subject — collapse every other domain/sub (avoids painting 400+ rows).
+    for (const key of Object.keys(folds)) folds[key] = false;
     folds[foldKey(loc.domain)] = true;
-    folds[foldKey(loc.domain, loc.sub)] = true;
+    if (loc.sub) folds[foldKey(loc.domain, loc.sub)] = true;
     saveFolds(folds);
     const tryLoad = async () => {
       try {
@@ -2338,17 +2341,67 @@ async function boot() {
       };
       const stage = ensureWebglStage();
       try {
+        // Draw + sync DOM labels, then composite WebGL + L/eyepiece overlays (avoids black / label-less exports).
+        paintFrame({ skipMicroRefresh: true });
+        if (typeof stage?.getOverlayLabels === 'function') {
+          microUi?.syncOverlayLabels?.(stage.getOverlayLabels());
+        }
         const href = (typeof stage?.capturePng === 'function')
           ? stage.capturePng(app.state, view)
-          : (paintFrame({ skipMicroRefresh: true }), gl.toDataURL('image/png'));
-        if (!href || href === 'data:,') {
+          : gl.toDataURL('image/png');
+        if (!href || href === 'data:,' || href.length < 64) {
           showToast('WebGL capture failed');
           return;
         }
-        const a = document.createElement('a');
-        a.download = `microscope-${Date.now()}.png`;
-        a.href = href;
-        a.click();
+        const labels = typeof stage?.getOverlayLabels === 'function' ? stage.getOverlayLabels() : [];
+        const out = document.createElement('canvas');
+        out.width = gl.width;
+        out.height = gl.height;
+        const ctx = out.getContext('2d');
+        if (!ctx) {
+          showToast('WebGL capture failed');
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          const sx = out.width / Math.max(view.width, 1);
+          const sy = out.height / Math.max(view.height, 1);
+          ctx.font = `${Math.max(11, Math.round(12 * sx))}px "IBM Plex Mono", ui-monospace, monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          for (const lab of labels) {
+            const x = (lab.x || 0) * sx;
+            const y = (lab.y || 0) * sy;
+            const text = String(lab.text || '');
+            if (!text) continue;
+            const padX = 6 * sx;
+            const padY = 4 * sy;
+            const tw = ctx.measureText(text).width;
+            const th = Math.max(12, 14 * sy);
+            ctx.fillStyle = 'rgba(6, 8, 11, 0.72)';
+            ctx.strokeStyle = lab.active
+              ? 'rgba(110, 180, 255, 0.9)'
+              : lab.id === 'L'
+                ? 'rgba(240, 213, 106, 0.7)'
+                : 'rgba(232, 238, 246, 0.28)';
+            ctx.lineWidth = Math.max(1, sx);
+            ctx.beginPath();
+            ctx.rect(x - tw / 2 - padX, y - th - padY, tw + padX * 2, th + padY);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = lab.id === 'L' ? '#f0d56a' : lab.active ? '#6eb4ff' : '#e8eef6';
+            ctx.fillText(text, x, y - padY * 0.35);
+          }
+          const a = document.createElement('a');
+          a.download = `microscope-${Date.now()}.png`;
+          a.href = out.toDataURL('image/png');
+          a.click();
+        };
+        img.onerror = () => {
+          showToast('WebGL capture failed');
+        };
+        img.src = href;
       } catch (err) {
         console.warn('webgl png', err);
         showToast('WebGL capture failed');

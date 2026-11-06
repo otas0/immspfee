@@ -19,7 +19,6 @@ export function domainIndex(catalog) {
     sub: spec.sub || '',
     name: spec.name || spec.id,
     family: spec.family || '',
-    formula: spec.formula || '',
   }));
 }
 
@@ -48,6 +47,7 @@ export function fingerprint(root) {
     css: hashFile('css/styles.css'),
     microCss: hashFile('css/microscope-shell.css'),
     entry: hashFile('js/entry.js'),
+    bundleMeta: hashFile('js/bundle/meta.json'),
     domainIndex: sha12(indexBody),
     domains,
   };
@@ -121,17 +121,45 @@ export function assertStampIndependence(stamp) {
   }
 }
 
-/** First-screen index. Formula strings are short; this stops the file growing back into the bundle. */
+/** First-screen index budget (no formula strings — those live in domain chunks). */
 export function assertIndexBudget(catalog) {
   const packed = packDomainIndex(domainIndex(catalog));
   const bytes = Buffer.byteLength(JSON.stringify(packed));
-  const limit = 256 * 1024;
+  // After dropping formula strings: ~134KB. Keep headroom under the old 256KB ceiling.
+  const limit = 160 * 1024;
   if (bytes > limit) throw new Error(`domain index ${bytes} bytes exceeds ${limit}`);
+  if (JSON.stringify(packed).includes('"formula"')) {
+    throw new Error('packed domain index must not carry formula strings');
+  }
   const expanded = expandDomainIndex(packed);
   if (expanded.length !== catalog.length) {
     throw new Error(`packed domain index expanded to ${expanded.length}`);
   }
   return bytes;
+}
+
+/** Pages must ship meta.json so hashed chunk names stay discoverable / stamped. */
+export function assertBundleMeta(stamp, root) {
+  const metaPath = path.join(root, 'js/bundle/meta.json');
+  if (!fs.existsSync(metaPath)) throw new Error('js/bundle/meta.json missing');
+  const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+  if (!Array.isArray(meta.outputs) || !meta.outputs.some((row) => row.file === 'lab.js')) {
+    throw new Error('bundle meta.json missing lab.js output');
+  }
+  if (!stamp?.bundleMeta || stamp.bundleMeta === 'missing') {
+    throw new Error('asset-stamp missing bundleMeta hash');
+  }
+  const live = sha12(fs.readFileSync(metaPath));
+  if (stamp.bundleMeta !== live) {
+    throw new Error(`bundleMeta stamp ${stamp.bundleMeta} != meta.json ${live}`);
+  }
+  for (const row of meta.outputs) {
+    if (!row.file?.endsWith('.js')) continue;
+    if (!fs.existsSync(path.join(root, 'js/bundle', row.file))) {
+      throw new Error(`meta.json lists ${row.file} but file is missing`);
+    }
+  }
+  return stamp.bundleMeta;
 }
 
 export { packDomainIndex };

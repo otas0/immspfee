@@ -1,20 +1,24 @@
 import {
-  C,
-  P,
   applyLowInkStrokeBoost,
-  drawArrow,
   familyCapabilities,
-  forceGraphStep,
-  formatNum,
-  heatTempColor,
   localizeSchema,
-  mapNormToScreen,
-  paintGraph,
   t
-} from "./chunk-chunk-NUKTR6YU.js";
+} from "./chunk-chunk-IALLJT72.js";
 import {
   overrideOptions
 } from "./chunk-chunk-54AD6SA2.js";
+import {
+  forceGraphStep,
+  mapNormToScreen,
+  paintGraph
+} from "./chunk-chunk-O2CR3FKE.js";
+import {
+  C,
+  P,
+  drawArrow,
+  formatNum,
+  heatTempColor
+} from "./chunk-chunk-NXEYOZOV.js";
 
 // js/lab/sketches.js
 function ink() {

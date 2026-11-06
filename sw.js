@@ -1,8 +1,7 @@
 /**
- * Network-first HTML. Long cache only for fingerprinted js/css.
- * Subject JSON stays on the network so a catalog edit is not stuck.
+ * Network-first HTML + asset-stamp; cache-first for fingerprinted js|css|domains.
  */
-const CACHE = 'immspfee-hashed-v3';
+const CACHE = 'immspfee-hashed-v4';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -11,7 +10,10 @@ self.addEventListener('install', (event) => {
 function isFingerprintedAsset(url) {
   if (!url.searchParams.get('v')) return false;
   const p = url.pathname;
-  return p.endsWith('.js') || p.endsWith('.css');
+  return p.endsWith('.js')
+    || p.endsWith('.css')
+    || p.endsWith('/domain-index.json')
+    || /\/data\/domains\/.+\.json$/.test(p);
 }
 
 async function liveHashes() {
@@ -20,8 +22,11 @@ async function liveHashes() {
     const res = await fetch(new URL('asset-stamp.json', self.registration.scope), { cache: 'no-store' });
     if (!res.ok) return live;
     const stamp = await res.json();
-    for (const key of ['js', 'css', 'main', 'microCss']) {
+    for (const key of ['js', 'css', 'main', 'microCss', 'bundleMeta', 'domainIndex']) {
       if (stamp?.[key]) live.add(stamp[key]);
+    }
+    for (const value of Object.values(stamp?.domains || {})) {
+      if (value) live.add(value);
     }
   } catch { /* keep the cache if the stamp is unreachable */ }
   return live;

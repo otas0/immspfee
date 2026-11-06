@@ -37,12 +37,16 @@ if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 
     }
   }
 }
-const { assertDomainCoverage, assertIndexBudget, assertStampIndependence, fingerprint, readCatalog } = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
+const {
+  assertBundleMeta, assertDomainCoverage, assertIndexBudget, assertStampIndependence, fingerprint, readCatalog,
+} = await import(pathToFileURL(path.join(root, 'static-boot.mjs')).href);
 const { HAND_FORMALISM } = await import(pathToFileURL(path.join(repo, 'js/lab/formalism.js')).href);
 const catalog = readCatalog(repo);
 assertDomainCoverage(catalog);
 const indexBytes = assertIndexBudget(catalog);
-assertStampIndependence(fingerprint(repo));
+const stamp = fingerprint(repo);
+assertStampIndependence(stamp);
+assertBundleMeta(stamp, repo);
 const bareHands = catalog.filter((spec) => !spec.family || spec.family === 'hand');
 const handIds = bareHands.map((spec) => spec.id);
 const missingForm = handIds.filter((id) => !HAND_FORMALISM[id]);
@@ -52,6 +56,8 @@ if (missingForm.length || extraForm.length) {
   process.exit(1);
 }
 console.log('domain chunks cover', catalog.length, 'index', indexBytes, 'bytes', 'hands', bareHands.length);
+const { ensureHandModels } = await import(pathToFileURL(path.join(repo, 'js/models/assemble.js')).href);
+await ensureHandModels();
 const suiteUrl = pathToFileURL(path.join(root, '../js/tests/suite.js')).href;
 const { runSuite } = await import(suiteUrl);
 const results = runSuite();

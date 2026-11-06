@@ -92,26 +92,50 @@ if (!stamped) {
   console.error('factory chunk import was not rewritten with a stamp');
   process.exit(1);
 }
-const labSrc = fs.readFileSync(labFile, 'utf8');
-const staticNames = [...labSrc.matchAll(/from\s+"\.\/([^"]+\.js)"/g)].map((match) => match[1]);
-for (const name of staticNames) {
-  const shared = fs.readFileSync(path.join(outdir, name), 'utf8');
-  const nested = [...shared.matchAll(/from\s+"\.\/([^"]+\.js)"/g)].map((match) => match[1]);
-  const files = [name, ...nested];
-  for (const fileName of files) {
-    const body = fs.readFileSync(path.join(outdir, fileName), 'utf8');
-    if (body.includes('js/lab/rows/')) {
-      console.error(`${fileName} is a static dependency of lab.js and still carries topic rows`);
-      process.exit(1);
+/**
+ * Inline static shared chunks into lab.js so cold boot is one JS body (entry + lab).
+ * Factory may still import the same chunk file later — that is a second-visit cost.
+ */
+function inlineStaticChunks(entryFile) {
+  let src = fs.readFileSync(entryFile, 'utf8');
+  const staticImports = [...src.matchAll(/^import\s*\{([^}]+)\}\s*from\s*"\.\/(chunk-[^"]+\.js)";\s*$/gm)];
+  if (!staticImports.length) return src;
+  const bodies = [];
+  for (const match of staticImports) {
+    const fileName = match[2];
+    if (fileName.includes('chunk-factory')) continue;
+    const chunkPath = path.join(outdir, fileName);
+    let chunk = fs.readFileSync(chunkPath, 'utf8');
+    if (chunk.includes('js/lab/rows/') || chunk.includes('0.5*rho*v*v*c*Cl')) {
+      throw new Error(`${fileName} is a static dependency of lab.js and still carries topic rows`);
     }
+    chunk = chunk.replace(/\nexport\s*\{[\s\S]*?\};\s*$/m, '\n');
+    bodies.push(`/* inlined ${fileName} */\n${chunk}`);
+    src = src.replace(match[0], `/* static chunk inlined: ${fileName} */`);
   }
+  src = `${bodies.join('\n')}\n${src}`;
+  fs.writeFileSync(entryFile, src);
+  return src;
 }
-let initialBytes = fs.statSync(labFile).size;
-for (const match of labSrc.matchAll(/from\s+"\.\/([^"]+\.js)"/g)) {
-  if (match[1].includes('chunk-factory')) continue;
-  const file = path.join(outdir, match[1]);
-  if (fs.existsSync(file)) initialBytes += fs.statSync(file).size;
+
+const labSrc = inlineStaticChunks(labFile);
+if (/^import\s*\{[^}]+\}\s*from\s*"\.\/chunk-(?!factory)[^"]+\.js"/m.test(labSrc)) {
+  console.error('lab.js still has static chunk imports after inline');
+  process.exit(1);
 }
+const outputsAfter = fs.readdirSync(outdir)
+  .filter((name) => name.endsWith('.js'))
+  .map((file) => ({ file, bytes: fs.statSync(path.join(outdir, file)).size }))
+  .sort((a, b) => b.bytes - a.bytes);
+fs.writeFileSync(
+  path.join(outdir, 'meta.json'),
+  `${JSON.stringify({
+    at: new Date().toISOString(),
+    outputs: outputsAfter,
+    cold: { lab: 'js/bundle/lab.js', note: 'static shared chunks inlined into lab.js' },
+  }, null, 2)}\n`,
+);
+const initialBytes = fs.statSync(labFile).size;
 if (labSrc.includes('function buildTopicModel') || labSrc.includes('function createFactoryModel')) {
   console.error('lab.js still inlines factory/topicModel; open a subject before loading them');
   process.exit(1);
@@ -121,4 +145,10 @@ if (initialBytes > mainMax) {
   console.error(`initial bundle is ${initialBytes} bytes, over ${mainMax}`);
   process.exit(1);
 }
-console.log('bundle ok', outputs.map((o) => `${o.file}:${Math.round(o.bytes / 1024)}kb`).join(' '));
+const { gzipSync } = await import('node:zlib');
+const gz = gzipSync(fs.readFileSync(labFile), { level: 9 });
+console.log(
+  'bundle ok',
+  outputsAfter.map((o) => `${o.file}:${Math.round(o.bytes / 1024)}kb`).join(' '),
+  `lab.gz=${Math.round(gz.length / 1024)}kb`,
+);
