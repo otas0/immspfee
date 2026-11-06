@@ -88,14 +88,30 @@ await warmCtx.close();
 
 await browser.close();
 
+const handP95WarnMs = Number(process.env.FIRST_HAND_P95_WARN_MS || 10000);
+const cdnJitter = warm.readyMs > cold.readyMs;
 const out = {
   at: new Date().toISOString(),
   url,
   cold,
   warm,
   deltaReadyMs: cold.readyMs - warm.readyMs,
+  cdnJitter,
+  cdnJitterNote: cdnJitter
+    ? 'warm.readyMs > cold.readyMs — treat as CDN / edge jitter, not a SW regression'
+    : '',
   note: 'Hard-fail only if warm SW controller missing. Wall-clock / firstHand percentiles are advisory (CDN).',
 };
+if (cdnJitter) {
+  console.warn(`pages-tti-sw advisory: CDN jitter (warm ${warm.readyMs}ms > cold ${cold.readyMs}ms)`);
+}
+for (const row of [cold, warm]) {
+  if ((row.firstHandP95 || 0) > handP95WarnMs) {
+    console.warn(
+      `pages-tti-sw advisory: ${row.label} firstHandP95 ${row.firstHandP95}ms > ${handP95WarnMs}ms (CDN spike)`,
+    );
+  }
+}
 fs.writeFileSync(path.join(outDir, 'pages-tti-sw.json'), `${JSON.stringify(out, null, 2)}\n`);
 console.log(JSON.stringify(out, null, 2));
 

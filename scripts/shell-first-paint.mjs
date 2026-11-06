@@ -25,6 +25,15 @@ const IDS = (process.env.SHELL_PAINT_IDS || [
   'bernoulli',
   'laminar-turbulent',
   'hx-temp-profile',
+  // fam-* non-flow engines (no shell hist — painted≥2 still required)
+  'fam-sho-v01',
+  'fam-damped-v01',
+  'fam-wave1d-v01',
+  'fam-orbit-v01',
+  'fam-collision-v01',
+  'fam-circular-v01',
+  'fam-pendulum-chain-v01',
+  'fam-interfere-v01',
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 
 const browser = await chromium.launch({ headless: true });

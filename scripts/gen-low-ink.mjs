@@ -19,6 +19,8 @@ const SPARSE_UNION = 0.015;
  * after stroke thicken; do not tighten it out without a new contract ink sample.
  */
 const tighten = process.argv.includes('--tighten');
+const dryRun = process.argv.includes('--dry-run');
+const assertKeepLogicGates = process.argv.includes('--assert-keep-logic-gates');
 
 if (!fs.existsSync(reportPath)) {
   console.error('缺少 artifacts/contract-browser.json — 先跑 npm run test:contract-browser');
@@ -45,17 +47,14 @@ const unionExtra = [...sampledLow, ...sampledSparse, ...reportSparse];
 let ids = [...new Set(tighten ? sampledLow : [...prev, ...unionExtra])].sort();
 // --tighten must not drop logic-gates unless explicitly allowed (visual boost regression).
 const keepLogicGates = !process.argv.includes('--drop-logic-gates');
-if (tighten && keepLogicGates && prev.includes('logic-gates') && !ids.includes('logic-gates')) {
+if (keepLogicGates && !ids.includes('logic-gates')) {
   ids = [...ids, 'logic-gates'].sort();
-  console.warn('gen-low-ink: re-kept logic-gates after --tighten (pass --drop-logic-gates to remove)');
-}
-if (tighten && keepLogicGates && !ids.includes('logic-gates') && !prev.includes('logic-gates')) {
-  // Still force-keep if present in previous sparse sampling notes / current report
-  if (sampledSparse.includes('logic-gates') || reportSparse.includes('logic-gates') || sampledLow.includes('logic-gates')) {
-    ids = [...ids, 'logic-gates'].sort();
+  if (tighten) {
+    console.warn('gen-low-ink: re-kept logic-gates after --tighten (pass --drop-logic-gates to remove)');
   }
 }
-fs.writeFileSync(outJson, `${JSON.stringify({
+const keptLogicGates = keepLogicGates && ids.includes('logic-gates');
+const payload = {
   threshold: THRESHOLD,
   sparseUnion: SPARSE_UNION,
   source: 'artifacts/contract-browser.json',
@@ -64,12 +63,15 @@ fs.writeFileSync(outJson, `${JSON.stringify({
   n: ids.length,
   sampledLowInk: sampledLow,
   sampledSparseInk: sampledSparse,
-  keptLogicGates: keepLogicGates && ids.includes('logic-gates'),
+  keptLogicGates,
   ids,
-}, null, 2)}\n`);
+};
+if (!dryRun) {
+  fs.writeFileSync(outJson, `${JSON.stringify(payload, null, 2)}\n`);
+}
 
 const idLines = ids.map((id) => `  '${String(id).replace(/'/g, "\\'")}',`).join('\n');
-fs.writeFileSync(outJs, `/**
+if (!dryRun) fs.writeFileSync(outJs, `/**
  * principle 模型 ink density < 1% 静态表（与 data/principle-low-ink.json 同步）。
  * 仅对这些 id 做「内建曲线加粗」（无墨点网格）。
  * 更新：npm run gen:low-ink | npm run gen:low-ink:tighten
@@ -141,8 +143,16 @@ export function applyLowInkStrokeBoost(model) {
   return model;
 }
 `);
+if (dryRun) {
+  console.log(JSON.stringify(payload, null, 2));
+}
 console.log(
   `low-ink mode=${tighten ? 'tighten' : 'union'} n=${ids.length}`
-  + ` sampledLow=${sampledLow.length} sparse<${SPARSE_UNION}=${sampledSparse.length}`,
+  + ` sampledLow=${sampledLow.length} sparse<${SPARSE_UNION}=${sampledSparse.length}`
+  + ` keptLogicGates=${keptLogicGates}`,
 );
 console.log(ids.join(', ') || '(none)');
+if (assertKeepLogicGates && !keptLogicGates) {
+  console.error('gen-low-ink: --assert-keep-logic-gates failed (logic-gates missing from ids)');
+  process.exit(1);
+}

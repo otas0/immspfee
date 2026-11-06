@@ -86,14 +86,35 @@ a warn path for true empty canvases with readouts. Spot-check other steady
 
 **`fam-*` variants do not use `shell()` hist** — they ink via family sketches /
 gauges (`hist.length` stays 0). Do not force-seed hist on fam models; first-paint
-gate is `painted≥2` + readouts, not hist.
+gate is `painted≥2` + readouts, not hist. `shell-first-paint` also samples a
+handful of `fam-*` non-flow ids for that gate.
+
+#### Soft reappears — triage fork
+
+| Signal | Likely cause | Fix path |
+|--------|--------------|----------|
+| `painted≈1`, factory `shell()` / flow ODE, `hist.length < 2` | Init ordinate only | Seed duplicate hist in `topicModel.shell()` (or model `init`) |
+| Flaky soft on denser CI sample, ink returns on retry | Sample timing / one-step draw | Keep contract `step` + denser sample; do **not** invent decorative ink |
+| `fam-*` soft with `hist.length === 0` | Family sketch / gauge not drawing | Fix family `draw`, not hist seed |
+| Soft + empty readouts | Real empty canvas | Fail hard / fix model |
 
 ### pages-network-cold budget vs wall-clock
 
 CI asserts **jsCount ≤ 5**, no module-waterfall, no cold `chunk-factory` /
-`chunk-chunk-*`. Wall-clock boot (~1.5–6 s CDN, measured ~4.8 s) is **advisory
-only** (`PAGES_NETWORK_ADVISORY_BOOT_MS`, default 12000) — not a hard fail.
+`chunk-chunk-*`. Wall-clock advisory uses **`bootMsP95`** across
+`BOOT_SAMPLES` (default 3), not a single cold hit
+(`PAGES_NETWORK_ADVISORY_BOOT_MS`, default 12000) — not a hard fail.
 Use `npm run test:pages-tti-sw` for SW-blocked vs second-hit deltas.
+`firstHandP95 > FIRST_HAND_P95_WARN_MS` (default 10000) logs an advisory warn;
+`cdnJitter: true` when `warm.readyMs > cold.readyMs`.
+
+### locale dead keys vs `lab.gz`
+
+Static unused-key audits (~48 candidates: `dialog.*`, some `ui.boot*`, etc.)
+are **eval-only** — many keys are dynamic (`t(\`dialog.${x}\`)`) or boot-injected.
+Do **not** mass-delete for gzip wins. Already dropped: canvas `caveat.*` with no
+runtime consumer. Next cut: confirm each candidate with `rg` + `data-i18n` before
+removing from `js/i18n/strings.js`.
 
 ### designCaveatText vs no-assumption-chrome
 

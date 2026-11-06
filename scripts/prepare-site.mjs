@@ -29,6 +29,18 @@ fs.writeFileSync(path.join(out, 'asset-stamp.json'), `${JSON.stringify(stamped)}
 const indexPath = path.join(out, 'index.html');
 const html = fs.readFileSync(fs.existsSync(indexPath) ? indexPath : path.join(root, 'index.html'), 'utf8');
 fs.writeFileSync(indexPath, rewriteIndex(html, stamp));
+/** Stamp manual.html docs/assets images so CDN keeps the post-commit PNG, not a stale edge copy. */
+const manualSrc = path.join(root, 'manual.html');
+const manualOut = path.join(out, 'manual.html');
+if (fs.existsSync(manualSrc)) {
+  const assetV = stamped.js;
+  let manual = fs.readFileSync(manualSrc, 'utf8');
+  manual = manual.replace(
+    /(src="\.\/docs\/assets\/[^"]+\.(?:png|jpe?g|webp|gif))(?:\?v=[^"]*)?(")/gi,
+    `$1?v=${assetV}$2`,
+  );
+  fs.writeFileSync(manualOut, manual);
+}
 const dir = path.join(out, 'data/domains');
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(out, 'data/domain-index.json'), JSON.stringify(packDomainIndex(domainIndex(catalog))));

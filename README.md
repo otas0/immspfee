@@ -87,6 +87,26 @@ npm run test:all
 
 See [manual.html](./manual.html) and [docs/schema-coverage.md](./docs/schema-coverage.md).
 
+## CI runners (GitHub.com + GHES)
+
+Public Actions on this repo use **GitHub-hosted** labels only:
+
+| Job family | Runner label | Notes |
+|------------|--------------|--------|
+| Unit / contract / Pages probes | `ubuntu-latest` | Node **22**; Playwright Chromium |
+| WebKit safari-proxy | `macos-latest` | `macos-14` is **unsupported** here; do not pin it |
+| Pages deploy | `ubuntu-latest` | `.github/workflows/pages.yml` |
+
+**GHES / self-hosted matrix** (when mirroring this workflow behind Enterprise):
+
+| Label example | Use for | Node / browser |
+|---------------|---------|----------------|
+| `self-hosted` + `linux` + `x64` | contract, pages-tti-sw, pages-network | Node 22+; `npx playwright install chromium --with-deps` |
+| `self-hosted` + `macOS` + `arm64` | WebKit / safari-proxy only | Node 22+; `npx playwright install webkit` |
+| Avoid | Custom `macos-14-*` cloud labels unless your GHES fleet advertises them | Prefer `macos-latest` semantics or explicit fleet tags you control |
+
+Action major versions in-tree: `actions/checkout@v5`, `actions/setup-node@v5`, `actions/upload-artifact@v6`, `actions/cache@v5` (Node 24 runtime). Keep GHES runners on images that satisfy those action runtimes.
+
 ## Adding a factory family
 
 Read **[docs/add-factory-family.md](./docs/add-factory-family.md)**, then:
