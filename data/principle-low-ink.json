@@ -1,14 +1,10 @@
 {
   "threshold": 0.01,
   "source": "artifacts/contract-browser.json",
-  "generatedAt": "2026-11-06T05:13:45.688Z",
+  "generatedAt": "2026-11-06T06:09:51.724Z",
   "mode": "union",
   "n": 25,
-  "sampledLowInk": [
-    "free-fall",
-    "lens",
-    "nasch-ca"
-  ],
+  "sampledLowInk": [],
   "ids": [
     "active-filter",
     "adder",

@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -301,6 +304,8 @@ jobs:
           exit 1
 
       - name: Open PR when low-ink table drifted
+        # Bot push can 403 under branch rules; never fail the green suite for that.
+        continue-on-error: true
         if: |
           steps.gen_low_ink.outputs.changed == 'true' &&
           github.event_name == 'push' &&
