@@ -1,17 +1,25 @@
 {
-  "at": "2026-11-06T04:47:38.108Z",
+  "at": "2026-11-06T05:04:02.253Z",
   "outputs": [
     {
       "file": "lab.js",
-      "bytes": 383086
+      "bytes": 385259
     },
     {
-      "file": "chunk-factory-BTK4WHEY.js",
-      "bytes": 350710
+      "file": "chunk-factory-Z4UXPYU6.js",
+      "bytes": 350754
     },
     {
-      "file": "chunk-chunk-HHLDLSXD.js",
-      "bytes": 342111
+      "file": "chunk-chunk-54AD6SA2.js",
+      "bytes": 269853
+    },
+    {
+      "file": "chunk-chunk-NUKTR6YU.js",
+      "bytes": 72703
+    },
+    {
+      "file": "chunk-topicOverrides-SU674NSK.js",
+      "bytes": 323
     }
   ]
 }
