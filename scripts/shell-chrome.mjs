@@ -294,6 +294,12 @@ if (toggled.closeLabel !== 'Close model list') fail(`projector close label ${tog
 await setShell(desk, 'lab-classic');
 await setShell(desk, 'lab-focus');
 await setShell(desk, 'lab-projector');
+// Pin a non-microscope model, then enter WebGL — exit must restore THIS id, not force r016.
+await desk.evaluate(async () => {
+  await window.__labCapture.switchModel('free-fall');
+});
+await desk.waitForFunction(() => window.__labCapture?.getModelId?.() === 'free-fall');
+const beforeMicroId = await desk.evaluate(() => window.__labCapture.getModelId());
 await setShell(desk, 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
 await desk.waitForFunction(() => location.hash.includes('r016-'));
@@ -367,24 +373,29 @@ if (exclusive.inputMode !== 'microscope') fail(`inputMode ${exclusive.inputMode}
 await desk.click('#btn-micro-exit');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode !== 'webgl3d');
+await desk.waitForFunction(() => window.__labCapture?.getModelId?.() === beforeMicroId, null, { timeout: 20000 });
 const back = await metrics(desk);
 if (!back.webglHidden || back.webglDisplay !== 'none') {
   fail(`webgl still visible after classic return hidden=${back.webglHidden} display=${back.webglDisplay}`);
 }
 if (back.canvasHidden) fail('2D canvas stayed hidden after leaving microscope 3D');
-const focused = await desk.evaluate(() => {
-  const domain = document.querySelector('.domain-group[data-domain="物理"]');
-  const sub = [...(domain?.querySelectorAll('.sub-group') || [])]
-    .find((el) => (el.querySelector('.sub-name')?.dataset.sub || el.querySelector('.sub-name')?.textContent) === '光学');
-  const row = document.querySelector('[data-id="r016-显微镜"]');
+const focused = await desk.evaluate((wantId) => {
+  const modelId = window.__labCapture?.getModelId?.() || '';
+  const row = document.querySelector(`[data-id="${CSS.escape(wantId)}"]`);
+  const domain = row?.closest('.domain-group');
+  const sub = row?.closest('.sub-group');
   return {
+    modelId,
     domainOpen: domain instanceof HTMLDetailsElement ? domain.open : false,
-    subOpen: sub instanceof HTMLDetailsElement ? sub.open : false,
+    subOpen: sub instanceof HTMLDetailsElement ? sub.open : !sub,
     active: row?.classList.contains('active') || false,
   };
-});
-if (!focused.domainOpen || !focused.subOpen || !focused.active) {
-  fail(`exit did not expand 物理/光学 + highlight r016 ${JSON.stringify(focused)}`);
+}, beforeMicroId);
+if (focused.modelId !== beforeMicroId || !focused.active) {
+  fail(`exit did not restore pre-3D model ${beforeMicroId} ${JSON.stringify(focused)}`);
+}
+if (focused.domainOpen === false) {
+  fail(`exit did not expand domain for ${beforeMicroId} ${JSON.stringify(focused)}`);
 }
 
 await desk.waitForFunction(() => {

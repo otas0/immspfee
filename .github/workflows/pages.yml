@@ -48,6 +48,14 @@ jobs:
           # Ensure Jekyll never processes the artifact (Actions path is already static).
           touch _site/.nojekyll
           node scripts/prepare-site.mjs _site
+          node -e "
+            const s=require('./_site/asset-stamp.json');
+            if (!s.docsAssets || String(s.docsAssets).length < 8) {
+              console.error('asset-stamp.json missing docsAssets', s);
+              process.exit(1);
+            }
+            console.log('docsAssets', s.docsAssets, 'microCss', s.microCss);
+          "
 
       - uses: actions/configure-pages@v5
 

@@ -18,8 +18,9 @@ import { setInputMode, INPUT_MICROSCOPE, INPUT_LAB } from './inputMode.js';
  *   getActiveShellId: () => string,
  *   setActiveShellId: (id: string) => void,
  *   getModelId: () => string | undefined,
+ *   getModelLoc?: (id: string) => { domain: string, sub: string },
  *   getState: () => object | null,
- *   switchModel: (id: string, opts?: { skipShellSync?: boolean }) => void,
+ *   switchModel: (id: string, opts?: { skipShellSync?: boolean }) => void | Promise<void>,
  *   paintFrame: () => void,
  *   setSidebarOpen: (open: boolean) => void,
  *   setBenchOpen: (open: boolean) => void,
@@ -35,9 +36,21 @@ import { setInputMode, INPUT_MICROSCOPE, INPUT_LAB } from './inputMode.js';
  */
 export function createMicroscopeChrome(api) {
   let lock = false;
+  /** Model that was active before entering WebGL — exit restores this, not always r016. */
+  let resumeModel = null;
   const microChrome = () => document.getElementById('microscope-chrome');
   const microTitle = () => document.getElementById('micro-title');
   const microLede = () => document.getElementById('micro-lede');
+
+  function locFor(id) {
+    const fallback = { domain: '物理', sub: '光学' };
+    if (!id) return fallback;
+    try {
+      const loc = api.getModelLoc?.(id);
+      if (loc?.domain) return { domain: loc.domain, sub: loc.sub || '' };
+    } catch { /* ignore */ }
+    return id === MICROSCOPE_MODEL_ID ? fallback : { domain: '其他', sub: '' };
+  }
 
   const stage = createMicroscopeStage({
     getState: () => (typeof api.getState === 'function' ? api.getState() : null),
@@ -108,6 +121,14 @@ export function createMicroscopeChrome(api) {
     if (lock) return;
     lock = true;
     try {
+      const prevId = api.getModelId();
+      if (prevId && prevId !== MICROSCOPE_MODEL_ID) {
+        const loc = locFor(prevId);
+        resumeModel = { id: prevId, domain: loc.domain, sub: loc.sub };
+      } else if (!resumeModel) {
+        // Deep-link / already on r016: fall back to 2D microscope after exit.
+        resumeModel = { id: MICROSCOPE_MODEL_ID, domain: '物理', sub: '光学' };
+      }
       api.setActiveShellId(MICROSCOPE_SHELL_ID);
       persistShellId(MICROSCOPE_SHELL_ID);
       applyShell(MICROSCOPE_SHELL_ID, {
@@ -129,9 +150,15 @@ export function createMicroscopeChrome(api) {
     }
   }
 
-  async function leave({ nextShell = 'lab-classic' } = {}) {
+  /**
+   * @param {{ nextShell?: string, restore?: boolean }} [opts]
+   * restore=true (default): switch back to the model that was open before WebGL.
+   * restore=false: model already changed (catalog pick) — only drop the shell chrome.
+   */
+  async function leave({ nextShell = 'lab-classic', restore = true } = {}) {
     if (lock) return;
     lock = true;
+    const resume = resumeModel;
     try {
       const target = nextShell === MICROSCOPE_SHELL_ID ? 'lab-classic' : nextShell;
       api.setActiveShellId(target);
@@ -147,11 +174,18 @@ export function createMicroscopeChrome(api) {
       writeShellUrl(target);
       sync(false);
       api.setBenchOpen(true);
+      if (restore && resume?.id && api.getModelId() !== resume.id) {
+        await Promise.resolve(api.switchModel(resume.id, { skipShellSync: true }));
+      }
       api.paintFrame();
     } finally {
       lock = false;
     }
-    return api.focusCatalogModel?.(MICROSCOPE_MODEL_ID, { domain: '物理', sub: '光学' });
+    const focusId = restore && resume?.id ? resume.id : (api.getModelId() || MICROSCOPE_MODEL_ID);
+    const focusLoc = restore && resume?.id
+      ? { domain: resume.domain || '其他', sub: resume.sub || '' }
+      : locFor(focusId);
+    return api.focusCatalogModel?.(focusId, focusLoc);
   }
 
   function onModelChange(modelId) {
@@ -159,7 +193,8 @@ export function createMicroscopeChrome(api) {
     // Catalog row for r016 stays 2D Lab Classic. Only the separated sidebar
     // 3D entry / ?shell=lab-microscope3d / applyShellId enter the WebGL shell.
     if (modelId !== MICROSCOPE_MODEL_ID && api.getActiveShellId() === MICROSCOPE_SHELL_ID) {
-      leave({ nextShell: 'lab-classic' });
+      // Model already switched — do not yank back to resume/r016.
+      leave({ nextShell: 'lab-classic', restore: false });
       return;
     }
     sync(api.getActiveShellId() === MICROSCOPE_SHELL_ID);

@@ -2311,6 +2311,11 @@ async function boot() {
     getActiveShellId: () => activeShellId,
     setActiveShellId: (id) => { activeShellId = id; },
     getModelId: () => app.model?.id,
+    getModelLoc: (id) => {
+      const m = (id && getModelById(id)) || models.find((row) => row.id === id) || null;
+      if (!m) return { domain: '其他', sub: '' };
+      return { domain: m.domain || '其他', sub: m.sub || '' };
+    },
     getState: () => app.state,
     switchModel,
     paintFrame: () => { if (app.model && canvasWrap) paintFrame({ skipMicroRefresh: false }); },

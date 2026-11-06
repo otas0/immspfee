@@ -23,6 +23,7 @@ function pct(sorted, p) {
 
 const browser = await chromium.launch({ headless: true });
 const bootMsList = [];
+const bootEdgeRegions = [];
 let lastRequests = [];
 let lastMarks = null;
 
@@ -30,10 +31,18 @@ for (let i = 0; i < bootSamples; i += 1) {
   const context = await browser.newContext({ serviceWorkers: 'block' });
   const page = await context.newPage();
   const requests = [];
+  let edgeRegion = '';
   page.on('response', async (res) => {
     const req = res.request();
     const timing = req.timing();
     const u = req.url();
+    const headers = res.headers();
+    if (!edgeRegion && /otas0\.github\.io|immspfee/i.test(u)) {
+      edgeRegion = headers['x-github-edge-region']
+        || headers['x-served-by']
+        || headers['cf-ray']
+        || '';
+    }
     let size = 0;
     try {
       const buf = await res.body();
@@ -57,6 +66,7 @@ for (let i = 0; i < bootSamples; i += 1) {
       size,
       status: res.status(),
       type: req.resourceType(),
+      edgeRegion: headers['x-github-edge-region'] || '',
     });
   });
 
@@ -64,7 +74,9 @@ for (let i = 0; i < bootSamples; i += 1) {
   const t0 = Date.now();
   await page.goto(bust, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 90000 }).catch(() => null);
-  bootMsList.push(Date.now() - t0);
+  const sampleMs = Date.now() - t0;
+  bootMsList.push(sampleMs);
+  bootEdgeRegions.push(edgeRegion || null);
   lastMarks = await page.evaluate(() => window.__bootMarks || null).catch(() => null);
   lastRequests = requests;
   await context.close();
@@ -92,6 +104,7 @@ const summary = {
   url,
   bootMs,
   bootMsList,
+  bootEdgeRegions,
   bootMsP50,
   bootMsP95,
   bootSamples,
@@ -116,8 +129,12 @@ const fail = process.env.PAGES_NETWORK_ASSERT === '1' || process.env.CI === 'tru
 const coldChunks = js.filter((r) => /chunk-(?!factory)/i.test(r.short) && !/glyphRows/i.test(r.short));
 const factoryCold = js.some((r) => /chunk-factory/i.test(r.short));
 if ((bootMsP95 || bootMs) > advisoryBootMs) {
+  const spikeIdx = bootMsList.findIndex((ms) => ms === bootMsP95 || ms > advisoryBootMs);
+  const spikeEdge = spikeIdx >= 0 ? bootEdgeRegions[spikeIdx] : null;
   console.warn(
-    `pages-network advisory: bootMsP95 ${bootMsP95} (samples=${bootMsList.join(',')}) > ${advisoryBootMs} (CDN; not a hard fail)`,
+    `pages-network advisory: bootMsP95 ${bootMsP95} (samples=${bootMsList.join(',')}) > ${advisoryBootMs}`
+    + (spikeEdge ? ` edge=${spikeEdge}` : '')
+    + ' (CDN; not a hard fail)',
   );
 }
 if (fail) {

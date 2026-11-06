@@ -202,7 +202,8 @@ Bot cannot push.
 
 Exact PNG **bytes** from WebKit vary run-to-run (AA / font raster). `sync-safari-proxy-asset.mjs`
 compares with **pixelmatch**; `DRIFTED=1` only when mismatchRatio ≥ `SAFARI_PROXY_DRIFT_RATIO`
-(default **0.002**). Sub-threshold byte diffs keep tracked `docs/assets` and skip the issue.
+(default **0.02**). Sub-threshold byte diffs keep tracked `docs/assets` and skip the issue.
+Observed WebKit projector AA noise is often ~1–1.5%; 0.2% was too strict and reopened issues.
 
 
 ### pages-network 13.9s boot spike (2026-11-06)

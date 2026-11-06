@@ -157,15 +157,30 @@ jobs:
 
       - name: Locale key audit (advisory)
         if: always()
+        id: locale_audit
         continue-on-error: true
         run: |
           mkdir -p artifacts
           npm run audit:locale-keys | tee artifacts/locale-key-audit-summary.txt
           UNUSED=$(node -e "const j=require('./artifacts/locale-key-audit.json'); console.log(j.unusedCount||0)")
+          echo "unused=${UNUSED}" >> "$GITHUB_OUTPUT"
           echo "locale unusedCount=${UNUSED}" | tee -a artifacts/ci-summary.txt
           if [ "${UNUSED}" != "0" ]; then
             echo "advisory: locale unused keys — see artifacts/locale-key-audit.json (not a hard fail)"
           fi
+
+      - name: Comment locale unused keys on PR
+        if: always() && github.event_name == 'pull_request' && steps.locale_audit.outputs.unused != '0' && steps.locale_audit.outputs.unused != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY=$(node -e "
+            const j=require('./artifacts/locale-key-audit.json');
+            const sample=(j.unused||[]).slice(0,24).map(k=>'- \`'+k+'\`').join('\\n');
+            console.log('### Locale key audit (advisory)\\n\\n\`unusedCount='+j.unusedCount+'\` — not a hard fail.\\n\\n'+sample+'\\n\\n_See \`artifacts/locale-key-audit.json\`._');
+          ")
+          gh pr comment "${{ github.event.pull_request.number }}" --body "$BODY"
 
       - name: Pages network cold-start budget
         if: always()
@@ -227,6 +242,20 @@ jobs:
       - name: Assert keptLogicGates on tighten dry-run
         if: always() && hashFiles('artifacts/contract-browser.json') != ''
         run: npm run gen:low-ink:assert-keep
+
+      - name: Assert prepare-site docsAssets stamp
+        run: |
+          node scripts/prepare-site.mjs _site-ci-stamp
+          node -e "
+            const s=require('./_site-ci-stamp/asset-stamp.json');
+            if (!s.docsAssets) { console.error('missing docsAssets', s); process.exit(1); }
+            const html=require('fs').readFileSync('./_site-ci-stamp/manual.html','utf8');
+            if (!html.includes('?v='+s.docsAssets)) {
+              console.error('manual.html missing docsAssets ?v=', s.docsAssets);
+              process.exit(1);
+            }
+            console.log('docsAssets ok', s.docsAssets);
+          "
 
       - name: Upload contract-failed-ids on draw failure
         if: steps.contract_browser.outcome == 'failure'

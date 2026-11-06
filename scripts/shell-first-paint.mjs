@@ -45,6 +45,10 @@ const IDS = (process.env.SHELL_PAINT_IDS || [
   'fam-heat-cond-v01', // field2d
   'fam-capacitor-v01', // circuit
   'fam-rlc-v01', // circuit
+  'fam-dc-motor-v01', // control
+  'fam-struct-dyn-v01', // control
+  'fam-serial-v01', // comm
+  'fam-fft-v01', // comm
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 
 const browser = await chromium.launch({ headless: true });

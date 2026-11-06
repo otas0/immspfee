@@ -13,7 +13,10 @@ The compound microscope is the only WebGL/3D experience. Catalog lab chrome and 
 
 1. Catalog keydown handlers (Ctrl/Cmd+Z edge undo, Esc sidebar/bench, arrow / j·k model cycling) do not run.
 2. Wheel over `#model-list` / `#sidebar` is swallowed; the optical rail may still scroll.
-3. Escape closes the optical rail first, then exits to Lab Classic.
+3. Escape closes the optical rail first, then exits to Lab Classic and
+   **restores the catalog model that was active before entering WebGL**
+   (not a forced jump to 2D `r016-显微镜`). Deep-link enter with no prior
+   model still lands on `r016` 2D after exit.
 4. `#btn-micro-shot` captures `#canvas-webgl` only — never `#btn-shot` / 2D export.
 5. `#btn-micro-reset` / `#btn-micro-params` only act when the active model is `r016-显微镜`.
 6. Sidebar / bench / HUD stay hidden; shell select is remounted to a single “Back to catalog” option.

@@ -116,6 +116,8 @@ Public Actions on this repo use **GitHub-hosted** labels only:
 
 Do **not** invent parallel names (`immspfee-lab`, `webkit-mac`, …) — workflows above match these four tokens only. If your org already uses different tags, edit both the runner registration **and** `runs-on` together.
 
+**Registration checklist (GHES admin):** Settings → Actions → Runners → each machine must show exactly the label set above (case-sensitive `macOS` / `ARM64` / `x64`). Mirrors of this repo should keep the same tokens so `runs-on` diffs stay empty.
+
 Example job pin (GHES):
 
 ```yaml
