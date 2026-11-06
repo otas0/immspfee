@@ -303,27 +303,8 @@ jobs:
           } | tee -a artifacts/ci-summary.txt
           exit 1
 
-      - name: Open PR when low-ink table drifted
-        # Bot push can 403 under branch rules; never fail the green suite for that.
-        continue-on-error: true
-        if: |
-          steps.gen_low_ink.outputs.changed == 'true' &&
-          github.event_name == 'push' &&
-          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: sync principle-low-ink table from contract'
-          title: 'chore: sync low-ink table'
-          body: |
-            Auto-generated after `test:contract-browser` + `npm run gen:low-ink`.
-
-            Review ink density changes, then merge to keep the thicken list in sync.
-          branch: chore/low-ink-table-sync
-          delete-branch: true
-          add-paths: |
-            data/principle-low-ink.json
-            js/lab/lowInkIds.js
+      # low-ink auto-PR removed: GITHUB_TOKEN cannot push chore/low-ink-table-sync (403).
+      # When gen:low-ink drifts, upload artifact above and commit the table on main locally.
 
       - name: Visual baseline
         run: npm run test:visual
