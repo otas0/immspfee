@@ -28,6 +28,43 @@ const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
 const failures = [];
 function fail(msg) { failures.push(msg); }
 
+const webkitOnly = process.env.SHELL_WEBKIT_ONLY === '1';
+
+/** Optional macOS WebKit job — projector overlay only (no Chromium install). */
+async function runWebkitProjectorProxy() {
+  const { webkit } = await import('playwright');
+  const wk = await webkit.launch({ headless: true });
+  const wkPage = await wk.newPage({ viewport: { width: 1000, height: 800 }, deviceScaleFactor: 2 });
+  await wkPage.addInitScript(() => {
+    localStorage.setItem('physics-lab-locale-v1', 'en');
+    localStorage.removeItem('physics-lab-auto-open-bench');
+    localStorage.removeItem('physics-lab-folds-v1');
+    localStorage.removeItem('physics-lab-folds');
+  });
+  await wkPage.goto(`${base}?shell=lab-projector&v=${encodeURIComponent(buildStamp)}&_=${Date.now()}`, { waitUntil: 'domcontentloaded' });
+  await wkPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await wkPage.evaluate(() => document.getElementById('btn-menu')?.click());
+  await wkPage.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'));
+  const wkGeom = await stageGeom(wkPage);
+  await wkPage.screenshot({ path: join(shotsDir, 'shell-projector-1000-safari-proxy.png') });
+  if (wkGeom.stageW < 700) fail(`WebKit projector overlay stage collapsed ${wkGeom.stageW}`);
+  const wkHit = await menuHitTest(wkPage);
+  if (!wkHit.ok) fail(`WebKit projector menu not on top ${JSON.stringify(wkHit)}`);
+  console.log('menuHitTest webkit ok', JSON.stringify(wkHit));
+  await wk.close();
+}
+
+if (webkitOnly) {
+  try {
+    await runWebkitProjectorProxy();
+  } catch (err) {
+    fail(`WebKit projector proxy failed: ${err?.message || err}`);
+  }
+  if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
+  console.log('shell chrome ok');
+  process.exit(0);
+}
+
 const browser = await chromium.launch({ headless: true });
 
 async function openPage(viewport, dsf, shell) {
@@ -1036,26 +1073,7 @@ await microNarrow.close();
 await browser.close();
 // WebKit proxy for Safari layout (real Safari needs Accessibility for Computer Use).
 try {
-  const { webkit } = await import('playwright');
-  const wk = await webkit.launch({ headless: true });
-  const wkPage = await wk.newPage({ viewport: { width: 1000, height: 800 }, deviceScaleFactor: 2 });
-  await wkPage.addInitScript(() => {
-    localStorage.setItem('physics-lab-locale-v1', 'en');
-    localStorage.removeItem('physics-lab-auto-open-bench');
-    localStorage.removeItem('physics-lab-folds-v1');
-    localStorage.removeItem('physics-lab-folds');
-  });
-  await wkPage.goto(`${base}?shell=lab-projector&v=${encodeURIComponent(buildStamp)}&_=${Date.now()}`, { waitUntil: 'domcontentloaded' });
-  await wkPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
-  await wkPage.evaluate(() => document.getElementById('btn-menu')?.click());
-  await wkPage.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'));
-  const wkGeom = await stageGeom(wkPage);
-  await wkPage.screenshot({ path: join(shotsDir, 'shell-projector-1000-safari-proxy.png') });
-  if (wkGeom.stageW < 700) fail(`WebKit projector overlay stage collapsed ${wkGeom.stageW}`);
-  const wkHit = await menuHitTest(wkPage);
-  if (!wkHit.ok) fail(`WebKit projector menu not on top ${JSON.stringify(wkHit)}`);
-  console.log('menuHitTest webkit ok', JSON.stringify(wkHit));
-  await wk.close();
+  await runWebkitProjectorProxy();
 } catch (err) {
   // Chromium CI images omit WebKit; skip rather than fail the whole chrome suite.
   // Still emit the workflow grep token so test.yml does not treat skip as failure.
