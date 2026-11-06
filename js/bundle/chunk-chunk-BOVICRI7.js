@@ -301,6 +301,7 @@ var LOW_INK_IDS = /* @__PURE__ */ new Set([
   "free-fall",
   "hodgkin-huxley",
   "lens",
+  "logic-gates",
   "logistic-growth",
   "nasch-ca",
   "neutron-diffusion",

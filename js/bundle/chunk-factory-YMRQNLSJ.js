@@ -3,7 +3,7 @@ import {
   familyCapabilities,
   localizeSchema,
   t
-} from "./chunk-chunk-6D5NWBKA.js";
+} from "./chunk-chunk-BOVICRI7.js";
 import {
   overrideOptions
 } from "./chunk-chunk-54AD6SA2.js";

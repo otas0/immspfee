@@ -1,4 +1,4 @@
-/* inlined chunk-chunk-6D5NWBKA.js */
+/* inlined chunk-chunk-BOVICRI7.js */
 // js/utils/zhLabels.js
 var ZH_LABELS = {
   g: "\u91CD\u529B g",
@@ -302,6 +302,7 @@ var LOW_INK_IDS = /* @__PURE__ */ new Set([
   "free-fall",
   "hodgkin-huxley",
   "lens",
+  "logic-gates",
   "logistic-growth",
   "nasch-ca",
   "neutron-diffusion",
@@ -1950,7 +1951,7 @@ function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
 }
 
 
-/* static chunk inlined: chunk-chunk-6D5NWBKA.js */
+/* static chunk inlined: chunk-chunk-BOVICRI7.js */
 /* static chunk inlined: chunk-chunk-WM3LI2L6.js */
 /* static chunk inlined: chunk-chunk-NXEYOZOV.js */
 // js/models/freeFall.js
@@ -2157,7 +2158,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-EZWFVI5Z.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-YMRQNLSJ.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -8051,4 +8052,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-EZWFVI5Z.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-YMRQNLSJ.js");

@@ -1,13 +1,13 @@
 {
-  "at": "2026-11-06T06:38:17.187Z",
+  "at": "2026-11-06T06:41:51.705Z",
   "outputs": [
     {
-      "file": "chunk-factory-EZWFVI5Z.js",
+      "file": "chunk-factory-YMRQNLSJ.js",
       "bytes": 350842
     },
     {
       "file": "lab.js",
-      "bytes": 300739
+      "bytes": 300756
     },
     {
       "file": "chunk-chunk-54AD6SA2.js",
@@ -18,8 +18,8 @@
       "bytes": 158504
     },
     {
-      "file": "chunk-chunk-6D5NWBKA.js",
-      "bytes": 53971
+      "file": "chunk-chunk-BOVICRI7.js",
+      "bytes": 53988
     },
     {
       "file": "chunk-chunk-NXEYOZOV.js",
