@@ -53,6 +53,16 @@ Before a boot / SW / Pages change lands, confirm in one writer only:
 6. Do not set `uchg` on lab files; if writes fail with `Operation not permitted`,
    `chflags nouchg` the path (see below) instead of opening a second window.
 
+### low-ink table drift (CI)
+
+The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
+`chore/low-ink-table-sync`). When `gen:low-ink` drifts:
+
+1. Download the `low-ink-table-diff` artifact from the failed/green run, **or**
+2. Locally: `npm run test:contract-browser && npm run gen:low-ink`
+3. Commit `data/principle-low-ink.json` (+ `js/lab/lowInkIds.js` if touched)
+   and push **directly to `main`**.
+
 When a write fails with `Operation not permitted`:
 
 ```bash

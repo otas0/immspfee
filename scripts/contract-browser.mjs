@@ -97,37 +97,55 @@ for (const id of SAMPLE) {
       const switchP = Promise.resolve(cap.switchModel(modelId));
       if (softCut) await withSoft(switchP, softMs);
       else await switchP;
+      // Always drain switchModel — soft race must not leave a half-mounted factory model.
+      await switchP.catch(() => {});
       cap.pause();
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const settle = async () => {
+        cap.paintFrame?.();
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      };
+      await settle();
+      const samplePaint = () => {
+        const canvas = document.getElementById('canvas');
+        if (!canvas) return { painted: 0, samples: 0, w: 0, h: 0 };
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        if (!w || !h) return { painted: 0, samples: 0, w, h };
+        const img = ctx.getImageData(0, 0, w, h).data;
+        let painted = 0;
+        let samples = 0;
+        const step = 16;
+        for (let y = 0; y < h; y += step) {
+          for (let x = 0; x < w; x += step) {
+            samples += 1;
+            const i = (y * w + x) * 4;
+            if (img[i + 3] > 8 && (img[i] + img[i + 1] + img[i + 2]) > 12) painted += 1;
+          }
+        }
+        return { painted, samples, w, h };
+      };
+      let pix = samplePaint();
+      // One retry: factory/domain first paint can land after the first double-rAF on CI.
+      if (pix.painted < 2) {
+        await settle();
+        pix = samplePaint();
+      }
       const canvas = document.getElementById('canvas');
       if (!canvas) return { id: modelId, ok: false, detail: 'no canvas' };
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      if (!w || !h) return { id: modelId, ok: false, detail: 'empty size' };
-      const img = ctx.getImageData(0, 0, w, h).data;
-      let painted = 0;
-      let samples = 0;
-      const step = 16;
-      for (let y = 0; y < h; y += step) {
-        for (let x = 0; x < w; x += step) {
-          samples += 1;
-          const i = (y * w + x) * 4;
-          if (img[i + 3] > 8 && (img[i] + img[i + 1] + img[i + 2]) > 12) painted += 1;
-        }
-      }
+      if (!pix.w || !pix.h) return { id: modelId, ok: false, detail: 'empty size' };
       const readouts = (cap.getReadouts() || []).length;
       const caps = typeof cap.getCapabilities === 'function' ? cap.getCapabilities() : {};
-      const ok = painted >= 2 && readouts >= 1;
+      const ok = pix.painted >= 2 && readouts >= 1;
       return {
         id: modelId,
         ok,
-        painted,
-        samples,
-        inkDensity: samples ? painted / samples : 0,
+        painted: pix.painted,
+        samples: pix.samples,
+        inkDensity: pix.samples ? pix.painted / pix.samples : 0,
         readouts,
         fidelity: caps.fidelity || 'principle',
-        detail: ok ? '' : `painted=${painted} readouts=${readouts}`,
+        detail: ok ? '' : `painted=${pix.painted} readouts=${readouts}`,
       };
     } catch (err) {
       const msg = err?.message || String(err);

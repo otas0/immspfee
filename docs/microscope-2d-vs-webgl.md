@@ -73,4 +73,6 @@ Selecting the normal `r016-显微镜` catalog row must **not** auto-enter WebGL.
 
 Fingerprint authority is the **JSON fields** in `asset-stamp.json` (`js`, `css`, `microCss`, `main`, `bundleMeta`, …), mirrored into `index.html` (`imm-js` / CSS `?v=`). GitHub Pages does **not** honor repo `_headers` Cache-Control; treat CDN `Cache-Control` as advisory and bust with stamp fields / `?v=` only.
 
-Deploy check (after Pages workflow green): `curl -sS https://otas0.github.io/immspfee/asset-stamp.json` must show non-empty `bundleMeta` and `microCss` matching the commit’s local stamp after `prepare-site` / `build:bundle`.
+Deploy check (after Pages workflow green): `curl -sS https://otas0.github.io/immspfee/asset-stamp.json` must show non-empty `bundleMeta` and `microCss`.
+
+**`bundleMeta` may differ from a local checkout.** The Pages workflow runs `npm run build:bundle` before `prepare-site`, so the deployed `bundleMeta` / `js` / `main` hashes are those of the **CI rebuild**, not necessarily the hashes committed in the repo. Prefer matching **`microCss`** (and other pure static CSS/domain fields) to the commit; treat `bundleMeta` equality as best-effort unless you also commit the CI-built `js/bundle/*` outputs.

@@ -16,6 +16,7 @@ export const LOW_INK_IDS = new Set([
   'lens',
   'logistic-growth',
   'nasch-ca',
+  'neutron-diffusion',
   'opamp-configs',
   'phugoid-short',
   'pid-tune',

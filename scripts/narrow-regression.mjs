@@ -58,22 +58,33 @@ await page.addInitScript(() => {
 const failures = [];
 async function openModel(id) {
   currentModelId = id;
+  // Bohr EN packs + factory chunk can stall on slow CI / cold SW; give them headroom.
+  const slowEn = id === 'r018-玻尔模型';
+  const bootMs = slowEn ? 90000 : 60000;
+  const modelMs = slowEn ? 120000 : 60000;
   await page.goto(`${base}?lang=en&narrow=${encodeURIComponent(id)}#m=${encodeURIComponent(id)}`, {
     waitUntil: 'domcontentloaded',
-    timeout: 60000,
+    timeout: bootMs,
   });
-  await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await page.waitForFunction(() => window.__labCapture, null, { timeout: bootMs });
+  if (slowEn) {
+    // Wait for EN locale pack / title so formula + toolbar do not race Han defaults.
+    await page.waitForFunction(() => {
+      const title = document.getElementById('toolbar-title')?.textContent || '';
+      return title === 'Bohr Model' || title.includes('Bohr');
+    }, null, { timeout: modelMs }).catch(() => {});
+  }
   // Wait for ensureId + first switchModel before instrumenting canvas text.
-  await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, id, { timeout: 60000 });
+  await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, id, { timeout: modelMs });
   await page.evaluate(() => window.__installFillHook?.());
   await page.evaluate(() => { window.__fillTexts = []; });
   await page.evaluate(async (mid) => {
     await window.__labCapture.switchModel(mid);
     window.__labCapture.paintFrame?.();
   }, id);
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(slowEn ? 800 : 400);
   await page.evaluate(() => window.__labCapture.paintFrame?.());
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(slowEn ? 200 : 100);
   await page.evaluate(() => {
     const side = document.getElementById('sidebar');
     if (side?.classList.contains('open')) document.getElementById('btn-menu')?.click();

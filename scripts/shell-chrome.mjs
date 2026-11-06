@@ -529,15 +529,21 @@ const microBleed = await desk.evaluate(() => {
   const wrap = document.querySelector('.canvas-wrap')?.getBoundingClientRect();
   const chassis = document.querySelector('.chassis');
   return {
-    stageX: Math.round(stage?.x || -1),
+    // Use nullish coalescing — stage.x === 0 is the healthy full-bleed case.
+    stageX: Math.round(stage?.x ?? -1),
     stageW: Math.round(stage?.width || 0),
-    wrapX: Math.round(wrap?.x || -1),
+    wrapX: Math.round(wrap?.x ?? -1),
     wrapW: Math.round(wrap?.width || 0),
     vw: window.innerWidth,
     grid: chassis ? getComputedStyle(chassis).gridTemplateColumns : '',
   };
 });
-if (microBleed.stageX > 16 || microBleed.stageW < microBleed.vw - 24 || microBleed.wrapX > 16) {
+if (
+  microBleed.stageX !== 0
+  || microBleed.wrapX !== 0
+  || microBleed.stageW < microBleed.vw - 2
+  || !/^[\d.]+px$/.test(String(microBleed.grid || '').trim())
+) {
   fail(`microscope stage not full-bleed ${JSON.stringify(microBleed)}`);
 }
 await setShell(desk, 'lab-projector');

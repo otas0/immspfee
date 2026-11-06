@@ -1,9 +1,9 @@
 {
   "threshold": 0.01,
   "source": "artifacts/contract-browser.json",
-  "generatedAt": "2026-11-06T06:09:51.724Z",
+  "generatedAt": "2026-11-06T06:31:26.626Z",
   "mode": "union",
-  "n": 25,
+  "n": 26,
   "sampledLowInk": [],
   "ids": [
     "active-filter",
@@ -16,6 +16,7 @@
     "lens",
     "logistic-growth",
     "nasch-ca",
+    "neutron-diffusion",
     "opamp-configs",
     "phugoid-short",
     "pid-tune",
