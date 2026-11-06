@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
 
       - name: Cache Playwright Chromium
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
@@ -100,6 +100,10 @@ jobs:
             exit 1
           fi
 
+      - name: Shell first-paint (factory steady models)
+        timeout-minutes: 3
+        run: npm run test:shell-first-paint
+
       - name: Shell chrome, DPR cap, and projector overlay
         id: shell_chrome
         shell: bash
@@ -139,7 +143,7 @@ jobs:
 
       - name: Upload shell-chrome screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: shell-chrome-screenshots-${{ steps.short_sha.outputs.sha }}
           path: shots/shell-*.png
@@ -160,17 +164,28 @@ jobs:
           PAGES_NETWORK_MAX_JS: '5'
         run: npm run test:pages-network
 
+      - name: Pages TTI SW blocked vs second hit
+        if: always()
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+        run: npm run test:pages-tti-sw
+
       - name: Upload boot timing
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: boot-timing
-          path: artifacts/boot-timing.json
+          path: |
+            artifacts/boot-timing.json
+            artifacts/pages-tti-sw.json
+            artifacts/pages-network-summary.json
           if-no-files-found: ignore
 
       - name: Upload narrow-screen screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: narrow-screenshots
           path: shots/narrow-*.png
@@ -198,7 +213,7 @@ jobs:
 
       - name: Upload contract-failed-ids on draw failure
         if: steps.contract_browser.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: contract-failed-ids
           path: |
@@ -208,7 +223,7 @@ jobs:
 
       - name: Upload low-ink table diff
         if: steps.gen_low_ink.outputs.changed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: low-ink-table-diff
           path: |
@@ -311,7 +326,7 @@ jobs:
 
       - name: Upload visual diffs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: visual-diffs
           path: shots/diff/
@@ -319,7 +334,7 @@ jobs:
 
       - name: Upload contract / schema artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lab-artifacts
           path: |
@@ -353,7 +368,7 @@ jobs:
         env:
           SHELL_WEBKIT_ONLY: '1'
         run: node scripts/shell-chrome.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: webkit-safari-proxy-${{ github.sha }}
@@ -376,7 +391,7 @@ jobs:
           node scripts/dev-server.mjs &
           sleep 2
       - run: npm run shots:extra
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: shots-extra
           path: shots/extra/

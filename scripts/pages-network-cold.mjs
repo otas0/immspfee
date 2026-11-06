@@ -82,9 +82,14 @@ fs.writeFileSync(path.join(outDir, 'pages-network-summary.json'), `${JSON.string
 console.log(JSON.stringify(summary, null, 2));
 
 const maxJs = Number(process.env.PAGES_NETWORK_MAX_JS || 5);
+/** Advisory only — CDN wall-clock often ~1.5–6s (measured ~4.8s); do not gate CI on it. */
+const advisoryBootMs = Number(process.env.PAGES_NETWORK_ADVISORY_BOOT_MS || 12000);
 const fail = process.env.PAGES_NETWORK_ASSERT === '1' || process.env.CI === 'true';
 const coldChunks = js.filter((r) => /chunk-(?!factory)/i.test(r.short) && !/glyphRows/i.test(r.short));
 const factoryCold = js.some((r) => /chunk-factory/i.test(r.short));
+if (bootMs > advisoryBootMs) {
+  console.warn(`pages-network advisory: bootMs ${bootMs} > ${advisoryBootMs} (CDN; not a hard fail)`);
+}
 if (fail) {
   const errors = [];
   if (jsCount > maxJs) errors.push(`jsCount ${jsCount} > ${maxJs}`);

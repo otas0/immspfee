@@ -1,11 +1,8 @@
 /**
- * Nuclear, electrochemistry, and biomembrane entries stay public definitions.
- * Keep strings in catalog / i18n for audits only — do **not** paint them on the
- * canvas or shell strip (AGENTS: no on-stage assumption / caveat chrome).
- * Wording comes from the active locale for any non-stage consumer.
+ * Audit helpers only — no runtime import from topicModel / shells.
+ * i18n keys `caveat.*` remain in strings.js for locale audits; never paint on
+ * canvas or #shell-caveat (AGENTS: no on-stage assumption / caveat chrome).
  */
-import { t } from '../i18n/index.js';
-
 export function designCaveatKey(model) {
   if (!model) return '';
   const blob = `${model.id || ''} ${model.name || ''} ${model.sub || ''} ${model.formula || ''} ${(model.tags || []).join(' ')}`;
@@ -21,7 +18,7 @@ export function designCaveatKey(model) {
   return '';
 }
 
+/** Returns the i18n key (not localized text) so this module stays free of runtime i18n imports. */
 export function designCaveatText(model) {
-  const key = designCaveatKey(model);
-  return key ? t(key) : '';
+  return designCaveatKey(model);
 }

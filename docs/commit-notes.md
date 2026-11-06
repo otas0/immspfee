@@ -81,7 +81,19 @@ factory `shell()` init stepped once (`hist.length === 1`) and `draw` returned
 before the stroke. Fix: duplicate the init ordinate so the first paint has a
 flat line; contract retries also `step` + denser sample (step 4). Soft remains
 a warn path for true empty canvases with readouts. Spot-check other steady
-`shell()` factory models with `node scripts/shell-first-paint.mjs`.
+`shell()` factory models with `node scripts/shell-first-paint.mjs` (also CI,
+`timeout-minutes: 3`).
+
+**`fam-*` variants do not use `shell()` hist** — they ink via family sketches /
+gauges (`hist.length` stays 0). Do not force-seed hist on fam models; first-paint
+gate is `painted≥2` + readouts, not hist.
+
+### pages-network-cold budget vs wall-clock
+
+CI asserts **jsCount ≤ 5**, no module-waterfall, no cold `chunk-factory` /
+`chunk-chunk-*`. Wall-clock boot (~1.5–6 s CDN, measured ~4.8 s) is **advisory
+only** (`PAGES_NETWORK_ADVISORY_BOOT_MS`, default 12000) — not a hard fail.
+Use `npm run test:pages-tti-sw` for SW-blocked vs second-hit deltas.
 
 ### designCaveatText vs no-assumption-chrome
 
@@ -103,8 +115,9 @@ shows the job actually starts (non-empty steps) without that annotation.
 
 `node-version: '22'` alone does not clear the warning — `actions/checkout@v4`
 and `actions/setup-node@v4` still run on the Node 20 *action* runtime.
-Bump both to `@v5` (Node 24 runtime). The `url.parse` DEP0169 in the WebKit
-job log came from **setup-node post**, not lab source (no `url.parse` in
+Bump both to `@v5` (Node 24 runtime). Also bump `actions/upload-artifact@v6`
+and `actions/cache@v5` (Node 24). The `url.parse` DEP0169 in the WebKit job
+log came from **setup-node post**, not lab source (no `url.parse` in
 `js/` / `scripts/`).
 
 ### Pages cold TTI (entry / main)

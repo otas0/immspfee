@@ -85,6 +85,21 @@ async function openPage(viewport, dsf, shell) {
   return page;
 }
 
+/** Open param drawer; one click retry if the first press races layout. */
+async function openParamDrawer(page) {
+  const tryOpen = async () => {
+    await page.evaluate(() => document.getElementById('btn-params')?.click());
+    try {
+      await page.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 2500 });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (await tryOpen()) return;
+  await tryOpen();
+}
+
 async function setShell(page, id) {
   await page.evaluate((shellId) => {
     const sel = document.getElementById('shell-select');
@@ -777,11 +792,7 @@ if (afterBackdrop.overlay || afterBackdrop.sideOpen) {
 await compactProj.evaluate(() => localStorage.setItem('physics-lab-auto-open-bench', '1'));
 await compactProj.evaluate(() => window.__labCapture.switchModel('free-fall'));
 await compactProj.waitForTimeout(400);
-await compactProj.evaluate(() => {
-  const btn = document.getElementById('btn-params');
-  if (btn && !document.getElementById('bench')?.classList.contains('open')) btn.click();
-});
-await compactProj.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+await openParamDrawer(compactProj);
 const benchOpenGeom = await stageGeom(compactProj);
 await compactProj.screenshot({ path: join(shotsDir, 'shell-projector-1000-bench.png') });
 if (!benchOpenGeom.benchOpen) fail('1000 projector could not open the param drawer');
@@ -811,8 +822,7 @@ await focusCompact.screenshot({ path: join(shotsDir, 'shell-focus-1000.png') });
 if (focusGeom.colCount !== 2) fail(`1000 focus reserved extra columns (${focusGeom.cols})`);
 if (focusGeom.stageRightGap > 48) fail(`1000 focus empty strip gap=${focusGeom.stageRightGap}`);
 if (focusGeom.stageW < 500) fail(`1000 focus stage too small ${focusGeom.stageW}`);
-await focusCompact.evaluate(() => document.getElementById('btn-params')?.click());
-await focusCompact.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+await openParamDrawer(focusCompact);
 const focusBench = await stageGeom(focusCompact);
 await focusCompact.screenshot({ path: join(shotsDir, 'shell-focus-1000-bench.png') });
 if (!focusBench.benchOpen) fail('1000 focus could not open the param drawer');
@@ -820,8 +830,7 @@ if (focusBench.benchCoversFormula) console.warn('1000 focus open bench covers th
 await focusCompact.close();
 
 const classicCompact = await openPage({ width: 1000, height: 800 }, 2, 'lab-classic');
-await classicCompact.evaluate(() => document.getElementById('btn-params')?.click());
-await classicCompact.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+await openParamDrawer(classicCompact);
 const classicBench = await stageGeom(classicCompact);
 await classicCompact.screenshot({ path: join(shotsDir, 'shell-classic-1000-bench.png') });
 if (!classicBench.benchOpen) fail('1000 classic could not open the param drawer');
@@ -928,8 +937,7 @@ await layoutProj.close();
 // Focus / Classic ≤900: bottom drawer reuses bench-drawer-open padding-bottom.
 for (const shell of ['lab-focus', 'lab-classic']) {
   const page = await openPage({ width: 390, height: 844 }, 2, shell);
-  await page.evaluate(() => document.getElementById('btn-params')?.click());
-  await page.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+  await openParamDrawer(page);
   const geom = await stageGeom(page);
   const pad = Number.parseFloat(geom.formulaPadBottom) || 0;
   await page.screenshot({ path: join(shotsDir, `shell-${shell.replace('lab-', '')}-390-bench.png`) });
@@ -961,11 +969,8 @@ const narrowOpen = await narrow.evaluate(() => {
 if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') fail(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
 if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
 await narrow.evaluate(() => document.getElementById('drawer-backdrop')?.click());
-await narrow.evaluate(() => {
-  localStorage.setItem('physics-lab-auto-open-bench', '1');
-  document.getElementById('btn-params')?.click();
-});
-await narrow.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+await narrow.evaluate(() => localStorage.setItem('physics-lab-auto-open-bench', '1'));
+await openParamDrawer(narrow);
 const narrowBench = await stageGeom(narrow);
 await narrow.screenshot({ path: join(shotsDir, 'shell-projector-390-bench.png') });
 if (!narrowBench.benchOpen) fail('390 projector could not open the bottom param drawer');

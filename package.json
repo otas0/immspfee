@@ -38,7 +38,8 @@
     "shots:ui": "node scripts/capture-ui.mjs",
     "shots:extra": "node scripts/capture-extra.mjs",
     "test:all": "npm test && npm run test:pot && npm run test:catalog && npm run test:visual",
-    "test:pages-network": "node scripts/pages-network-cold.mjs"
+    "test:pages-network": "node scripts/pages-network-cold.mjs",
+    "test:pages-tti-sw": "node scripts/pages-tti-sw.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

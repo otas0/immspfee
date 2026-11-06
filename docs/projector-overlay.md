@@ -15,7 +15,7 @@ Local / CI artifacts (gitignored under `shots/`, uploaded as `shell-chrome-scree
 | Overlay open, stage intact | [`shots/shell-projector-1000-overlay.png`](../shots/shell-projector-1000-overlay.png) |
 | Wide overlay (1440) | [`shots/shell-projector-1440-overlay.png`](../shots/shell-projector-1440-overlay.png) |
 | RTL + safe-area mock | [`shots/shell-projector-1000-rtl-safe.png`](../shots/shell-projector-1000-rtl-safe.png) |
-| WebKit proxy (Safari stand-in) | [`shots/shell-projector-1000-safari-proxy.png`](../shots/shell-projector-1000-safari-proxy.png) |
+| WebKit proxy (Safari stand-in) | [`shots/shell-projector-1000-safari-proxy.png`](../shots/shell-projector-1000-safari-proxy.png) — CI uploads `webkit-safari-proxy-<sha>`; tracked copy [`docs/assets/shell-projector-1000-safari-proxy.png`](./assets/shell-projector-1000-safari-proxy.png) for manual.html |
 | Microscope 390 full-bleed | [`shots/shell-micro-390.png`](../shots/shell-micro-390.png) (also `docs/assets/shell-micro-390.png` for manual.html) |
 
 Asserted by `npm run test:shell` (`menuHitTest`, Escape close, catalog scroll, stageW ≥ 700 with overlay).

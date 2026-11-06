@@ -14,6 +14,10 @@ const outJs = path.join(root, 'js/lab/lowInkIds.js');
 const THRESHOLD = 0.01;
 /** Also fold principle ink &lt; 1.5% (sparse band) so CI flakes around 1% need less hand edits. */
 const SPARSE_UNION = 0.015;
+/**
+ * Keep `logic-gates` in the low-ink union once sampled sparse: visual boost dens≈1.9%
+ * after stroke thicken; do not tighten it out without a new contract ink sample.
+ */
 const tighten = process.argv.includes('--tighten');
 
 if (!fs.existsSync(reportPath)) {
