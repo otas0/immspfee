@@ -135,6 +135,12 @@ html.shell-lab-microscope3d .micro-actions .btn {
   border-color: var(--micro-line);
   background: transparent;
   font-size: 0.72rem;
+  /* Global .btn uses line-height:0 for icon/SVG chrome — raw text then stacks. */
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-transform: none;
+  flex-shrink: 0;
 }
 
 html.shell-lab-microscope3d .display-bezel {
@@ -466,6 +472,21 @@ html.shell-lab-microscope3d .micro-cap {
   }
 }
 
+/* ≤560px catalog chrome collapses every .btn to a 44×44 icon box — keep micro labels readable. */
+@media (max-width: 560px) {
+  html.shell-lab-microscope3d .micro-actions .btn {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0.4rem 0.55rem;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    text-transform: none;
+  }
+}
+
 @media (max-width: 390px) {
   html.shell-lab-microscope3d .microscope-chrome {
     padding: 0.65rem 0.7rem 0.55rem;
@@ -485,7 +506,8 @@ html.shell-lab-microscope3d .micro-cap {
   }
 
   html.shell-lab-microscope3d .micro-actions .btn {
-    padding: 0.4rem 0.5rem;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.65rem;
   }
 }
 

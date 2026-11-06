@@ -106,6 +106,16 @@ Public Actions on this repo use **GitHub-hosted** labels only:
 | `[self-hosted, macOS, ARM64, immspfee-webkit]` | WebKit / safari-proxy only | Node 22+; `npx playwright install webkit` |
 | Avoid | `macos-14`, `macos-14-xl`, vendor cloud tags unless your GHES admin registered them | Prefer fleet tags you control (`immspfee*`) |
 
+**Fleet tag convention (register these on the GHES runner machines):**
+
+| Machine role | Exact labels to apply |
+|--------------|------------------------|
+| Linux CI box (x86_64) | `self-hosted`, `linux`, `x64`, `immspfee` |
+| Linux CI box (CI-only pool) | add `ci` → `self-hosted`, `linux`, `x64`, `immspfee`, `ci` |
+| Apple Silicon WebKit box | `self-hosted`, `macOS`, `ARM64`, `immspfee-webkit` |
+
+Do **not** invent parallel names (`immspfee-lab`, `webkit-mac`, …) — workflows above match these four tokens only. If your org already uses different tags, edit both the runner registration **and** `runs-on` together.
+
 Example job pin (GHES):
 
 ```yaml

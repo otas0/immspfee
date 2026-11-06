@@ -155,6 +155,18 @@ jobs:
         env:
           PAGES_URL: https://otas0.github.io/immspfee/
 
+      - name: Locale key audit (advisory)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts
+          npm run audit:locale-keys | tee artifacts/locale-key-audit-summary.txt
+          UNUSED=$(node -e "const j=require('./artifacts/locale-key-audit.json'); console.log(j.unusedCount||0)")
+          echo "locale unusedCount=${UNUSED}" | tee -a artifacts/ci-summary.txt
+          if [ "${UNUSED}" != "0" ]; then
+            echo "advisory: locale unused keys — see artifacts/locale-key-audit.json (not a hard fail)"
+          fi
+
       - name: Pages network cold-start budget
         if: always()
         timeout-minutes: 5

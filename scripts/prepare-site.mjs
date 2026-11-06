@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  assertDomainCoverage, domainIndex, entryStamp, fingerprint, packDomainIndex, readCatalog, rewriteIndex, specsForDomain,
+  assertDomainCoverage, domainIndex, docsAssetsStamp, entryStamp, fingerprint, packDomainIndex, readCatalog, rewriteIndex, specsForDomain,
 } from './static-boot.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +21,7 @@ const stamped = {
   microCss: stamp.microCss,
   main: stamp.js,
   bundleMeta: stamp.bundleMeta,
+  docsAssets: stamp.docsAssets || docsAssetsStamp(root),
   domainIndex: stamp.domainIndex,
   domains: stamp.domains,
 };
@@ -29,11 +30,14 @@ fs.writeFileSync(path.join(out, 'asset-stamp.json'), `${JSON.stringify(stamped)}
 const indexPath = path.join(out, 'index.html');
 const html = fs.readFileSync(fs.existsSync(indexPath) ? indexPath : path.join(root, 'index.html'), 'utf8');
 fs.writeFileSync(indexPath, rewriteIndex(html, stamp));
-/** Stamp manual.html docs/assets images so CDN keeps the post-commit PNG, not a stale edge copy. */
+/**
+ * Stamp manual.html docs/assets images with the docsAssets content hash so a
+ * safari-proxy PNG sync busts CDN even when imm-js (entry+lab) is unchanged.
+ */
 const manualSrc = path.join(root, 'manual.html');
 const manualOut = path.join(out, 'manual.html');
 if (fs.existsSync(manualSrc)) {
-  const assetV = stamped.js;
+  const assetV = stamped.docsAssets || stamped.js;
   let manual = fs.readFileSync(manualSrc, 'utf8');
   manual = manual.replace(
     /(src="\.\/docs\/assets\/[^"]+\.(?:png|jpe?g|webp|gif))(?:\?v=[^"]*)?(")/gi,

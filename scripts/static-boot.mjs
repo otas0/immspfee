@@ -48,9 +48,23 @@ export function fingerprint(root) {
     microCss: hashFile('css/microscope-shell.css'),
     entry: hashFile('js/entry.js'),
     bundleMeta: hashFile('js/bundle/meta.json'),
+    docsAssets: docsAssetsStamp(root),
     domainIndex: sha12(indexBody),
     domains,
   };
+}
+
+/** Content hash of tracked `docs/assets/*` images — used to bust manual.html CDN copies. */
+export function docsAssetsStamp(root) {
+  const dir = path.join(root, 'docs/assets');
+  if (!fs.existsSync(dir)) return 'missing';
+  const h = crypto.createHash('sha256');
+  for (const name of fs.readdirSync(dir).sort()) {
+    if (!/\.(png|jpe?g|webp|gif)$/i.test(name)) continue;
+    h.update(name);
+    h.update(fs.readFileSync(path.join(dir, name)));
+  }
+  return h.digest('hex').slice(0, 12);
 }
 
 /** Bust the entry module when either the loader or lab bundle changes. */

@@ -1,7 +1,7 @@
 name: Contract soft-paint
 description: SOFT soft-paint triage (hist seed vs denser sample vs fam draw)
 title: "soft-paint: <model-id>"
-labels: ["soft-paint", "contract"]
+labels: ["soft-paint", "contract", "bug"]
 body:
   - type: markdown
     attributes:

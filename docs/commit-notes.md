@@ -192,6 +192,27 @@ If local `shots/shell-projector-1000-safari-proxy.png` ≠ tracked
 `SHELL_WEBKIT_ONLY=1 npm run test:shell-chrome` then sync only when CI
 `DRIFTED=1` (or you intentionally refresh the manual figure).
 
+`.gitignore` ignores `shots/shell-*.png` (local / CI scratch). The tracked
+manual figure is **`docs/assets/shell-projector-1000-safari-proxy.png`**
+(allowlisted). CI uploads both paths as `webkit-safari-proxy-<sha>`; humans
+copy from the artifact into `docs/assets/` (or `npm run sync:safari-proxy`
+after placing the shot under `shots/`). Bot cannot push.
+
+### pages-network 13.9s boot spike (2026-11-06)
+
+`BOOT_SAMPLES=5` local probe against Pages:
+
+| sample | bootMs |
+|--------|--------|
+| 1–3, 5 | ~2526–3690 |
+| 4 | **13963** |
+
+`bootMsP50≈2804`, `bootMsP95=13963`. Advisory threshold
+`PAGES_NETWORK_ADVISORY_BOOT_MS` (default 12000) warns on **p95**, not a
+single cold hit — one CDN edge spike would otherwise false-alarm or be missed
+by a lucky single sample. Hard asserts remain jsCount / waterfall / factory
+chunk only.
+
 ### Pages cold TTI (entry / main)
 
 Measured on `otas0.github.io/immspfee` with SW blocked: cold ready often

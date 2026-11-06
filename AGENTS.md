@@ -39,5 +39,6 @@ Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitt
    git commit -m "chore(webkit): sync safari-proxy asset"
    ```
 4. CI `[webkit]` job uploads `webkit-safari-proxy-<sha>`; on `DRIFTED=1` it opens/comments a GitHub issue (bot **cannot** push — human/agent commits the sync).
-5. After Pages deploy: hard-reload Safari (`⌘⇧R`) on `?shell=lab-microscope3d` for full-bleed; confirm `manual.html` safari-proxy PNG matches the commit (`prepare-site` stamps `?v=` on `docs/assets/*` images).
-6. Incognito / fresh profile: SW cache name `immspfee-hashed-v6` + microscope full-bleed after deploy.
+5. **shots vs docs:** `shots/shell-*.png` is gitignored scratch; only `docs/assets/shell-projector-1000-safari-proxy.png` is tracked for `manual.html`. Sync from the CI artifact (or `npm run sync:safari-proxy` after a local WebKit shot).
+6. After Pages deploy: hard-reload Safari (`⌘⇧R`) on `?shell=lab-microscope3d` for full-bleed; confirm `manual.html` image `?v=` equals `asset-stamp.json` → `docsAssets` (content hash of `docs/assets/*`, not only imm-js).
+7. Incognito / fresh profile: SW cache name `immspfee-hashed-v6` + microscope full-bleed after deploy.

@@ -41,6 +41,10 @@ const IDS = (process.env.SHELL_PAINT_IDS || [
   'fam-ca-v01', // cellular automaton lattice
   'fam-percolation-v01', // discrete lattice
   'fam-pgm-v01', // probabilistic / sampling-adjacent stand-in for MC
+  'fam-wave2d-v01', // field2d
+  'fam-heat-cond-v01', // field2d
+  'fam-capacitor-v01', // circuit
+  'fam-rlc-v01', // circuit
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 
 const browser = await chromium.launch({ headless: true });
