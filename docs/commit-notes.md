@@ -198,6 +198,13 @@ manual figure is **`docs/assets/shell-projector-1000-safari-proxy.png`**
 copy from the artifact into `docs/assets/` (or `npm run sync:safari-proxy`
 after placing the shot under `shots/`). Bot cannot push.
 
+Bot cannot push.
+
+Exact PNG **bytes** from WebKit vary run-to-run (AA / font raster). `sync-safari-proxy-asset.mjs`
+compares with **pixelmatch**; `DRIFTED=1` only when mismatchRatio ≥ `SAFARI_PROXY_DRIFT_RATIO`
+(default **0.002**). Sub-threshold byte diffs keep tracked `docs/assets` and skip the issue.
+
+
 ### pages-network 13.9s boot spike (2026-11-06)
 
 `BOOT_SAMPLES=5` local probe against Pages:
