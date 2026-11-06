@@ -523,6 +523,23 @@ const microCanvas = await desk.evaluate(() => {
 if (microCanvas.stageMode !== 'webgl3d' || microCanvas.canvasDisplay !== 'none' || microCanvas.webglHidden) {
   fail(`projector→microscope canvas leak ${JSON.stringify(microCanvas)}`);
 }
+// Full-bleed: shell-hide-sidebar must not leave an empty leading track (Safari left void).
+const microBleed = await desk.evaluate(() => {
+  const stage = document.querySelector('.stage')?.getBoundingClientRect();
+  const wrap = document.querySelector('.canvas-wrap')?.getBoundingClientRect();
+  const chassis = document.querySelector('.chassis');
+  return {
+    stageX: Math.round(stage?.x || -1),
+    stageW: Math.round(stage?.width || 0),
+    wrapX: Math.round(wrap?.x || -1),
+    wrapW: Math.round(wrap?.width || 0),
+    vw: window.innerWidth,
+    grid: chassis ? getComputedStyle(chassis).gridTemplateColumns : '',
+  };
+});
+if (microBleed.stageX > 16 || microBleed.stageW < microBleed.vw - 24 || microBleed.wrapX > 16) {
+  fail(`microscope stage not full-bleed ${JSON.stringify(microBleed)}`);
+}
 await setShell(desk, 'lab-projector');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-projector');
 const projCanvas = await desk.evaluate(() => {
