@@ -154,8 +154,11 @@ try {
     performance.getEntriesByType('resource').some((r) => /chunk-factory/i.test(r.name || ''))
   ));
   if (factoryOnCold) failures.push('cold boot pulled chunk-factory');
-  // Hand model free-fall is primed without loadDomain; wait for EN formula gloss.
+  // Hand free-fall has no formula string; EN formula + gloss race are asserted on neutron.
   await page.evaluate(async () => { await window.__labCapture.switchModel('free-fall'); });
+  await page.waitForFunction(() => window.__labCapture.getModelId?.() === 'free-fall', null, { timeout: 15000 }).catch(() => {});
+
+  await page.evaluate(async () => { await window.__labCapture.switchModel('neutron-diffusion'); });
   try {
     await page.waitForFunction(() => {
       const f = document.getElementById('shell-formula')?.textContent || '';
@@ -165,12 +168,6 @@ try {
     const cold = await page.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
     failures.push(`cold lang=en formula Han/race ${JSON.stringify(cold)}`);
   }
-
-  await page.evaluate(async () => { await window.__labCapture.switchModel('neutron-diffusion'); });
-  await page.waitForFunction(() => {
-    const f = document.getElementById('shell-formula')?.textContent || '';
-    return f.startsWith('Equation ') && !/[\u4e00-\u9fff]/.test(f);
-  }, null, { timeout: 25000 }).catch(() => {});
   await page.waitForTimeout(300);
   const info = await page.evaluate(() => {
     const formula = document.getElementById('shell-formula');

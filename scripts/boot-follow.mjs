@@ -141,7 +141,17 @@ const narrowPage = await narrowCtx.newPage();
 await narrowPage.goto(`${base}#m=neutron-diffusion`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await narrowPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
 await narrowPage.waitForSelector('#model-list button.model-item[data-id="neutron-diffusion"]', { timeout: 20000 });
-await narrowPage.waitForTimeout(700);
+await narrowPage.waitForTimeout(400);
+// Deep link focuses the row without auto-opening the mobile drawer (menu is the opener).
+const coldClosed = await narrowPage.evaluate(() => (
+  document.querySelector('.sidebar')?.classList.contains('open') || false
+));
+if (coldClosed) fail('deep link auto-opened the 390 drawer (menu should be the only opener)');
+await narrowPage.click('#btn-menu');
+await narrowPage.waitForFunction(() => (
+  document.querySelector('.sidebar')?.classList.contains('open') || false
+), null, { timeout: 10000 });
+await narrowPage.waitForTimeout(400);
 const placed = await narrowPage.evaluate(() => {
   const btn = document.querySelector('[data-id="neutron-diffusion"]');
   const toolbar = document.querySelector('.toolbar');
@@ -162,7 +172,7 @@ const placed = await narrowPage.evaluate(() => {
     listBottom: Math.round(lr.bottom),
   };
 });
-if (!placed.open) fail(`drawer stayed closed ${JSON.stringify(placed)}`);
+if (!placed.open) fail(`drawer stayed closed after menu ${JSON.stringify(placed)}`);
 if (!placed.inList || placed.overlapsToolbar) fail(`deep link covered at 390px ${JSON.stringify(placed)}`);
 await narrowPage.screenshot({ path: path.join(root, 'artifacts/drawer-390-neutron.png') });
 await narrowCtx.close();
