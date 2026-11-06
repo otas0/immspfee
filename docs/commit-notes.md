@@ -275,3 +275,5 @@ when the parent shell closes and would kill mid-suite.
 Audited and dropped. Strings / dialog errors / micro chrome keys were already on
 `main`. Remaining hunks would have reverted the `factoryLoader` split and removed
 the live oil-immersion WebGL path — rejected.
+
+<!-- locale PR comment path smoke -->
