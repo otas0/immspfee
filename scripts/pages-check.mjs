@@ -155,7 +155,7 @@ try {
   ));
   if (factoryOnCold) failures.push('cold boot pulled chunk-factory');
   // Hand model free-fall is primed without loadDomain; wait for EN formula gloss.
-  await page.evaluate(() => window.__labCapture.switchModel('free-fall'));
+  await page.evaluate(async () => { await window.__labCapture.switchModel('free-fall'); });
   try {
     await page.waitForFunction(() => {
       const f = document.getElementById('shell-formula')?.textContent || '';
@@ -166,7 +166,7 @@ try {
     failures.push(`cold lang=en formula Han/race ${JSON.stringify(cold)}`);
   }
 
-  await page.evaluate(() => window.__labCapture.switchModel('neutron-diffusion'));
+  await page.evaluate(async () => { await window.__labCapture.switchModel('neutron-diffusion'); });
   await page.waitForFunction(() => {
     const f = document.getElementById('shell-formula')?.textContent || '';
     return f.startsWith('Equation ') && !/[\u4e00-\u9fff]/.test(f);
