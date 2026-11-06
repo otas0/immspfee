@@ -1,7 +1,7 @@
 /**
  * Audit helpers only — no runtime import from topicModel / shells.
- * i18n keys `caveat.*` remain in strings.js for locale audits; never paint on
- * canvas or #shell-caveat (AGENTS: no on-stage assumption / caveat chrome).
+ * Returns stable key ids (`caveat.nuclear` …); localized copy was removed from
+ * `strings.js` to shrink the lab bundle (no on-stage caveat chrome).
  */
 export function designCaveatKey(model) {
   if (!model) return '';

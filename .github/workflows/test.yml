@@ -167,9 +167,10 @@ jobs:
       - name: Pages TTI SW blocked vs second hit
         if: always()
         timeout-minutes: 5
-        continue-on-error: true
         env:
           PAGES_URL: https://otas0.github.io/immspfee/
+          PAGES_TTI_HARD: '1'
+          FIRST_HAND_SAMPLES: '5'
         run: npm run test:pages-tti-sw
 
       - name: Upload boot timing
@@ -368,11 +369,16 @@ jobs:
         env:
           SHELL_WEBKIT_ONLY: '1'
         run: node scripts/shell-chrome.mjs
+      - name: Sync safari-proxy into docs/assets when drifted
+        if: always()
+        run: node scripts/sync-safari-proxy-asset.mjs
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: webkit-safari-proxy-${{ github.sha }}
-          path: shots/shell-projector-1000-safari-proxy.png
+          path: |
+            shots/shell-projector-1000-safari-proxy.png
+            docs/assets/shell-projector-1000-safari-proxy.png
           if-no-files-found: warn
 
   shots-extra:

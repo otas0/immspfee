@@ -99,9 +99,10 @@ Use `npm run test:pages-tti-sw` for SW-blocked vs second-hit deltas.
 
 **Verdict: painting caveat on the canvas violated AGENTS.** `#shell-caveat` was
 already stripped from the shell; `topicModel.shell().draw` still `fillText` the
-nuclear/electrochem/membrane caveat under the title. Removed — keep
-`designCaveat.js` / i18n keys for audits only. `assert-no-stage-strips` gates
-`designCaveatText(` in `topicModel.js` and factory-chunk `fillText(caveat)`.
+nuclear/electrochem/membrane caveat under the title. Removed. `designCaveat.js`
+keeps key ids for audits; localized `caveat.*` strings were dropped from
+`strings.js` (no runtime consumer → smaller `lab.js`). `assert-no-stage-strips`
+gates `designCaveatText(` in `topicModel.js` and factory-chunk `fillText(caveat)`.
 
 ### macos-14 WebKit runner
 
@@ -119,6 +120,32 @@ Bump both to `@v5` (Node 24 runtime). Also bump `actions/upload-artifact@v6`
 and `actions/cache@v5` (Node 24). The `url.parse` DEP0169 in the WebKit job
 log came from **setup-node post**, not lab source (no `url.parse` in
 `js/` / `scripts/`).
+
+**`actions/upload-artifact@v6` / `actions/cache@v5` on GHES:** both require
+Actions Runner **≥ 2.327.1** (Node 24 runtime). Self-hosted / GHES admins must
+upgrade runners before pinning these majors; github.com-hosted runners already
+qualify.
+
+### Playwright + service worker tests
+
+`js/entry.js` skips `navigator.serviceWorker.register` when
+`navigator.webdriver === true`. Playwright sets that flag, so SW never
+installs unless the test context spoofs it:
+
+```js
+await context.addInitScript(() => {
+  Object.defineProperty(navigator, 'webdriver', { get: () => false });
+});
+```
+
+Required in `scripts/sw-cache.mjs` and `scripts/pages-tti-sw.mjs`. Without the
+spoof, warm TTI looks like another cold network fetch.
+
+### pages-tti-sw hard gate
+
+CI runs `PAGES_TTI_HARD=1`: fail if the warm visit has no SW controller /
+`immspfee-hashed-*` cache. Wall-clock and `firstHandMs` p50/p95 stay advisory
+(`FIRST_HAND_SAMPLES`, default 5).
 
 ### Pages cold TTI (entry / main)
 

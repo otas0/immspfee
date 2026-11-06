@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 /**
  * Pages (or LAB_URL) TTI: cold with SW blocked vs second visit with SW allowed.
- * Writes artifacts/pages-tti-sw.json. Does not fail CI on wall-clock (CDN variance).
+ * Writes artifacts/pages-tti-sw.json.
+ *
+ * Hard gate (CI): warm visit must control a service worker (requires spoofing
+ * navigator.webdriver — entry.js skips SW when webdriver===true).
+ * Wall-clock / firstHandMs stay advisory (CDN variance); percentiles logged.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,9 +15,16 @@ import { chromium } from 'playwright';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const url = process.env.PAGES_URL || process.env.LAB_URL || 'https://otas0.github.io/immspfee/';
 const outDir = path.join(root, 'artifacts');
+const handSamples = Math.max(1, Number(process.env.FIRST_HAND_SAMPLES || 5));
 fs.mkdirSync(outDir, { recursive: true });
 
-async function measure(page, label) {
+function pct(sorted, p) {
+  if (!sorted.length) return null;
+  const i = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  return sorted[i];
+}
+
+async function measure(page, label, { sampleHands = 1 } = {}) {
   const bust = `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}&tti=${label}`;
   const t0 = Date.now();
   await page.goto(bust, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -34,32 +45,45 @@ async function measure(page, label) {
       controller: !!navigator.serviceWorker.controller,
     };
   });
-  const t1 = Date.now();
-  await page.evaluate(async () => {
-    await window.__labCapture.switchModel('projectile');
-  });
-  const firstHandMs = Date.now() - t1;
-  return { label, readyMs, boot, firstHandMs, cache };
+  const hands = [];
+  for (let i = 0; i < sampleHands; i += 1) {
+    const id = i % 2 === 0 ? 'projectile' : 'free-fall';
+    const t1 = Date.now();
+    await page.evaluate(async (mid) => {
+      await window.__labCapture.switchModel(mid);
+    }, id);
+    hands.push(Date.now() - t1);
+  }
+  const sorted = [...hands].sort((a, b) => a - b);
+  return {
+    label,
+    readyMs,
+    boot,
+    firstHandMs: hands[0],
+    firstHandSamples: hands,
+    firstHandP50: pct(sorted, 50),
+    firstHandP95: pct(sorted, 95),
+    cache,
+  };
 }
 
 const browser = await chromium.launch({ headless: true });
 
 const coldCtx = await browser.newContext({ serviceWorkers: 'block' });
 const coldPage = await coldCtx.newPage();
-const cold = await measure(coldPage, 'cold-sw-blocked');
+const cold = await measure(coldPage, 'cold-sw-blocked', { sampleHands: handSamples });
 await coldCtx.close();
 
 const warmCtx = await browser.newContext({ serviceWorkers: 'allow' });
-// entry.js skips SW when navigator.webdriver === true — spoof like sw-cache.mjs.
+// entry.js skips SW when navigator.webdriver === true — must spoof (see docs/commit-notes.md).
 await warmCtx.addInitScript(() => {
   Object.defineProperty(navigator, 'webdriver', { get: () => false });
 });
 const warmPage = await warmCtx.newPage();
-// First load registers SW; second load can hit cache.
-await measure(warmPage, 'warm-prime');
+await measure(warmPage, 'warm-prime', { sampleHands: 1 });
 await warmPage.waitForFunction(() => navigator.serviceWorker.controller, null, { timeout: 20000 }).catch(() => {});
 await warmPage.waitForTimeout(500);
-const warm = await measure(warmPage, 'warm-sw-second');
+const warm = await measure(warmPage, 'warm-sw-second', { sampleHands: handSamples });
 await warmCtx.close();
 
 await browser.close();
@@ -70,7 +94,16 @@ const out = {
   cold,
   warm,
   deltaReadyMs: cold.readyMs - warm.readyMs,
-  note: 'Wall-clock is CDN-bound; compare deltaReadyMs / firstHandMs. No hard fail.',
+  note: 'Hard-fail only if warm SW controller missing. Wall-clock / firstHand percentiles are advisory (CDN).',
 };
 fs.writeFileSync(path.join(outDir, 'pages-tti-sw.json'), `${JSON.stringify(out, null, 2)}\n`);
 console.log(JSON.stringify(out, null, 2));
+
+const hard = process.env.PAGES_TTI_HARD !== '0' && (process.env.CI === 'true' || process.env.PAGES_TTI_HARD === '1');
+if (hard) {
+  const ok = warm.cache?.controller && Array.isArray(warm.cache?.cacheKeys) && warm.cache.cacheKeys.some((k) => /immspfee-hashed/i.test(k));
+  if (!ok) {
+    console.error('pages-tti-sw hard fail: warm visit missing SW controller / hashed cache', warm.cache);
+    process.exit(1);
+  }
+}

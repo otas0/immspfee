@@ -791,8 +791,12 @@ if (afterBackdrop.overlay || afterBackdrop.sideOpen) {
 // Auto-open bench must not cover the formula strip.
 await compactProj.evaluate(() => localStorage.setItem('physics-lab-auto-open-bench', '1'));
 await compactProj.evaluate(() => window.__labCapture.switchModel('free-fall'));
-await compactProj.waitForTimeout(400);
-await openParamDrawer(compactProj);
+const autoBench = await compactProj.waitForFunction(
+  () => document.getElementById('bench')?.classList.contains('open'),
+  null,
+  { timeout: 2500 },
+).then(() => true).catch(() => false);
+if (!autoBench) await openParamDrawer(compactProj);
 const benchOpenGeom = await stageGeom(compactProj);
 await compactProj.screenshot({ path: join(shotsDir, 'shell-projector-1000-bench.png') });
 if (!benchOpenGeom.benchOpen) fail('1000 projector could not open the param drawer');
@@ -970,7 +974,13 @@ if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visib
 if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
 await narrow.evaluate(() => document.getElementById('drawer-backdrop')?.click());
 await narrow.evaluate(() => localStorage.setItem('physics-lab-auto-open-bench', '1'));
-await openParamDrawer(narrow);
+await narrow.evaluate(() => window.__labCapture?.switchModel?.('free-fall'));
+const narrowAuto = await narrow.waitForFunction(
+  () => document.getElementById('bench')?.classList.contains('open'),
+  null,
+  { timeout: 2500 },
+).then(() => true).catch(() => false);
+if (!narrowAuto) await openParamDrawer(narrow);
 const narrowBench = await stageGeom(narrow);
 await narrow.screenshot({ path: join(shotsDir, 'shell-projector-390-bench.png') });
 if (!narrowBench.benchOpen) fail('390 projector could not open the bottom param drawer');

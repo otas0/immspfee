@@ -42,7 +42,19 @@ try {
 } catch { /* first */ }
 
 const unionExtra = [...sampledLow, ...sampledSparse, ...reportSparse];
-const ids = [...new Set(tighten ? sampledLow : [...prev, ...unionExtra])].sort();
+let ids = [...new Set(tighten ? sampledLow : [...prev, ...unionExtra])].sort();
+// --tighten must not drop logic-gates unless explicitly allowed (visual boost regression).
+const keepLogicGates = !process.argv.includes('--drop-logic-gates');
+if (tighten && keepLogicGates && prev.includes('logic-gates') && !ids.includes('logic-gates')) {
+  ids = [...ids, 'logic-gates'].sort();
+  console.warn('gen-low-ink: re-kept logic-gates after --tighten (pass --drop-logic-gates to remove)');
+}
+if (tighten && keepLogicGates && !ids.includes('logic-gates') && !prev.includes('logic-gates')) {
+  // Still force-keep if present in previous sparse sampling notes / current report
+  if (sampledSparse.includes('logic-gates') || reportSparse.includes('logic-gates') || sampledLow.includes('logic-gates')) {
+    ids = [...ids, 'logic-gates'].sort();
+  }
+}
 fs.writeFileSync(outJson, `${JSON.stringify({
   threshold: THRESHOLD,
   sparseUnion: SPARSE_UNION,
@@ -52,6 +64,7 @@ fs.writeFileSync(outJson, `${JSON.stringify({
   n: ids.length,
   sampledLowInk: sampledLow,
   sampledSparseInk: sampledSparse,
+  keptLogicGates: keepLogicGates && ids.includes('logic-gates'),
   ids,
 }, null, 2)}\n`);
 

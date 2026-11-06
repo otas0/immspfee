@@ -16,6 +16,15 @@ const IDS = (process.env.SHELL_PAINT_IDS || [
   'weir-flow',
   'r091-屏蔽',
   'r107-缓冲',
+  // more engineering flow / hydraulics
+  'gradually-varied',
+  'sluice-gate',
+  'hydraulic-jump',
+  'pipe-network',
+  'pump-fan-curve',
+  'bernoulli',
+  'laminar-turbulent',
+  'hx-temp-profile',
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 
 const browser = await chromium.launch({ headless: true });
