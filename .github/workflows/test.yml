@@ -170,15 +170,20 @@ jobs:
           fi
 
       - name: Comment locale unused keys on PR
-        if: always() && github.event_name == 'pull_request' && steps.locale_audit.outputs.unused != '0' && steps.locale_audit.outputs.unused != ''
+        # Always post on PRs so the path is exercised even when unusedCount=0.
+        if: always() && github.event_name == 'pull_request' && steps.locale_audit.outputs.unused != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           BODY=$(node -e "
             const j=require('./artifacts/locale-key-audit.json');
+            const n=j.unusedCount||0;
             const sample=(j.unused||[]).slice(0,24).map(k=>'- \`'+k+'\`').join('\\n');
-            console.log('### Locale key audit (advisory)\\n\\n\`unusedCount='+j.unusedCount+'\` — not a hard fail.\\n\\n'+sample+'\\n\\n_See \`artifacts/locale-key-audit.json\`._');
+            const body = n
+              ? ('### Locale key audit (advisory)\\n\\n\`unusedCount='+n+'\` — not a hard fail.\\n\\n'+sample+'\\n\\n_See \`artifacts/locale-key-audit.json\`._')
+              : ('### Locale key audit (advisory)\\n\\n\`unusedCount=0\` — no static unused candidates.\\n\\n_See \`artifacts/locale-key-audit.json\`._');
+            console.log(body);
           ")
           gh pr comment "${{ github.event.pull_request.number }}" --body "$BODY"
 

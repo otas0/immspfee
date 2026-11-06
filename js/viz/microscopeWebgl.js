@@ -299,6 +299,14 @@ function project(mvp, x, y, z, width, height) {
   };
 }
 
+/** DIN / ISO objective identification rings (teaching colors). */
+function ObjRingRgb(mag) {
+  if (mag <= 4) return [0.92, 0.18, 0.16]; // red — 4×
+  if (mag <= 10) return [0.95, 0.82, 0.12]; // yellow — 10×
+  if (mag <= 40) return [0.25, 0.62, 0.95]; // light blue — 40×
+  return [0.94, 0.94, 0.96]; // white — 100×
+}
+
 function MagScale(m) {
   return Math.log10(Math.max(4, m));
 }
@@ -372,13 +380,13 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         id: obj.id,
       });
     });
-    EYEPIECES.forEach((eye, i) => {
+      EYEPIECES.forEach((eye, i) => {
       const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
       pts.push({
         kind: 'eye',
         index: i,
         x,
-        y: tubeTopY + 0.42,
+        y: tubeTopY + 0.52,
         z: 0.22,
         id: eye.id,
       });
@@ -428,18 +436,26 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     torusY(0, tubeCenterY + tubeH * 0.22, 0, tubeR + 0.005, 0.014, 0.75, 0.82, 0.9, data, 28, 8, 0.25);
     torusY(0, tubeCenterY - tubeH * 0.18, 0, tubeR + 0.005, 0.014, 0.75, 0.82, 0.9, data, 28, 8, 0.25);
 
-    // —— Head / eyepiece tube ——
-    cylinderY(0, tubeTopY + 0.12, 0, 0.085, 0.26, 0.62, 0.78, 0.95, data, 28, true, 0.22);
-    // rubber eyecup
-    frustumY(0, tubeTopY + 0.28, 0, 0.09, 0.07, 0.08, 0.12, 0.12, 0.14, data, 24, 0.05);
-    cylinderY(0, tubeTopY + 0.34, 0, 0.055, 0.05, 0.08, 0.1, 0.14, data, 20, true, 0.08);
+    // —— Binocular Siedentopf head (paired ocular tubes) ——
+    box(0, tubeTopY + 0.06, 0.02, 0.42, 0.1, 0.28, 0.48, 0.52, 0.58, data, 0.14);
+    // prism housing
+    box(0, tubeTopY + 0.14, 0.04, 0.28, 0.12, 0.22, 0.55, 0.58, 0.64, data, 0.16);
+    // left / right ocular tubes (fixed 30° interpupillary look)
+    const eyeTubeY = tubeTopY + 0.28;
+    for (const side of [-1, 1]) {
+      const ex = side * 0.11;
+      const ez = 0.14;
+      cylinderY(ex, eyeTubeY, ez, 0.048, 0.22, 0.62, 0.78, 0.95, data, 22, true, 0.22);
+      frustumY(ex, eyeTubeY + 0.14, ez, 0.055, 0.042, 0.08, 0.12, 0.12, 0.14, data, 18, 0.05);
+      cylinderY(ex, eyeTubeY + 0.2, ez, 0.038, 0.04, 0.08, 0.1, 0.14, data, 16, true, 0.08);
+    }
 
-    // Eyepiece pick chips (clickable 5× / 10× / 15×)
+    // Eyepiece pick chips (clickable 5× / 10× / 15×) — sit above binocular head
     EYEPIECES.forEach((eye, i) => {
       const active = eye.id === optics.eye.id;
       const hovered = hover?.kind === 'eye' && hover.index === i;
       const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
-      const y = tubeTopY + 0.42;
+      const y = tubeTopY + 0.52;
       const g = active ? 0.92 : hovered ? 0.78 : 0.48;
       const rb = active ? 0.38 : hovered ? 0.3 : 0.2;
       cylinderY(x, y, 0.22, 0.055, 0.07, rb, g, 0.88, data, 16, true, 0.18);
@@ -474,7 +490,11 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       frustumY(ox, turY - len / 2 - 0.02, oz, rTop, rBot, len, rb, g, 0.42, data, 22, 0.2);
       // chrome collar
       cylinderY(ox, turY - 0.02, oz, rTop + 0.008, 0.04, 0.7, 0.74, 0.78, data, 18, true, 0.25);
+      // DIN mag color ring (4 red / 10 yellow / 40 light-blue / 100 white)
+      const [rr, rg, rbRing] = ObjRingRgb(obj.mag);
+      torusY(ox, turY - len * 0.55, oz, rTop + 0.01, 0.014, rr, rg, rbRing, data, 18, 8, 0.28);
       if (obj.immersion) {
+        // immersion oil band below the white ID ring
         torusY(ox, turY - len - 0.01, oz, 0.05, 0.012, 0.92, 0.78, 0.22, data, 16, 8, 0.3);
       }
       if (active) {
@@ -484,18 +504,23 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       }
     });
 
-    // —— Stage + clips + aperture ——
+    // —— Stage + glass slide + clips + aperture ——
     const objLen = 0.26 + MagScale(mag) * 0.055;
     const stageY = turY - objLen - 0.18;
     box(0, stageY, 0, 1.12, 0.055, 0.78, 0.32, 0.34, 0.38, data, 0.1);
     // stage plate polish ring
     torusY(0, stageY + 0.03, 0, 0.18, 0.02, 0.18, 0.18, 0.2, data, 28, 8, 0.08);
     cylinderY(0, stageY + 0.02, 0, 0.14, 0.02, 0.06, 0.06, 0.07, data, 24, true, 0.04);
-    // specimen clips
-    box(-0.28, stageY + 0.05, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
-    box(0.28, stageY + 0.05, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
-    cylinderY(-0.18, stageY + 0.06, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
-    cylinderY(0.18, stageY + 0.06, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
+    // rectangular glass slide (≈75×25 mm silhouette) + frosted label end
+    box(0, stageY + 0.045, 0.02, 0.72, 0.012, 0.24, 0.72, 0.86, 0.92, data, 0.35);
+    box(-0.28, stageY + 0.05, 0.02, 0.16, 0.014, 0.24, 0.88, 0.86, 0.78, data, 0.12);
+    // cover slip disc over aperture
+    cylinderY(0.06, stageY + 0.055, 0.02, 0.09, 0.006, 0.85, 0.92, 0.95, data, 20, true, 0.4);
+    // specimen clips (spring fingers over slide edges)
+    box(-0.28, stageY + 0.065, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
+    box(0.28, stageY + 0.065, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
+    cylinderY(-0.18, stageY + 0.07, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
+    cylinderY(0.18, stageY + 0.07, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
 
     // —— Condenser stack + iris ——
     frustumY(0, stageY - 0.14, 0, 0.14, 0.1, 0.18, 0.4, 0.43, 0.48, data, 24, 0.14);

@@ -74,6 +74,12 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 `principleInk.sparse` from the contract payload) so models like
 `neutron-diffusion` that hover near 1% need fewer hand edits.
 
+### soft-paint issue template smoke
+
+Open via GitHub **New issue → Contract soft-paint** (`.github/ISSUE_TEMPLATE/soft-paint.yml`).
+Labels must bind as `soft-paint` + `contract` + `bug` (create missing labels once per fork).
+Fill model id + triage fork from the table below; close after confirming label chips.
+
 ### soft-paint / open-channel first frame
 
 `SOFT soft-paint open-channel-uniform` with `painted≈1` was title-only ink:
@@ -104,6 +110,9 @@ CI asserts **jsCount ≤ 5**, no module-waterfall, no cold `chunk-factory` /
 `chunk-chunk-*`. Wall-clock advisory uses **`bootMsP95`** across
 `BOOT_SAMPLES` (default 3), not a single cold hit
 (`PAGES_NETWORK_ADVISORY_BOOT_MS`, default 12000) — not a hard fail.
+Spike lines append `edge=<region>` when the p95 sample recorded a CDN edge
+(from `cf-ray` / `x-served-by`); absence of `edge=` means the spike sample had
+no edge header, not that logging is broken.
 Use `npm run test:pages-tti-sw` for SW-blocked vs second-hit deltas.
 `firstHandP95 > FIRST_HAND_P95_WARN_MS` (default 10000) logs an advisory warn;
 `cdnJitter: true` when `warm.readyMs > cold.readyMs`.

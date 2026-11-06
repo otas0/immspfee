@@ -2312,9 +2312,12 @@ async function boot() {
     setActiveShellId: (id) => { activeShellId = id; },
     getModelId: () => app.model?.id,
     getModelLoc: (id) => {
-      const m = (id && getModelById(id)) || models.find((row) => row.id === id) || null;
+      // Prefer domain-index / catalog rows — runtime model objects often omit domain/sub.
+      const row = (id && domainIndex.find((r) => r.id === id)) || null;
+      if (row?.domain) return { domain: row.domain, sub: row.sub || '' };
+      const m = (id && getModelById(id)) || models.find((entry) => entry.id === id) || null;
       if (!m) return { domain: '其他', sub: '' };
-      return { domain: m.domain || '其他', sub: m.sub || '' };
+      return { domain: m.domain || modelDomain(m) || '其他', sub: m.sub || modelSub(m) || '' };
     },
     getState: () => app.state,
     switchModel,

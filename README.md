@@ -118,6 +118,18 @@ Do **not** invent parallel names (`immspfee-lab`, `webkit-mac`, …) — workflo
 
 **Registration checklist (GHES admin):** Settings → Actions → Runners → each machine must show exactly the label set above (case-sensitive `macOS` / `ARM64` / `x64`). Mirrors of this repo should keep the same tokens so `runs-on` diffs stay empty.
 
+**Screenshot alignment (paste into the mirror’s ops ticket):** open **Settings → Actions → Runners → \<machine\>** and confirm the label chips match one row below before enabling the workflow. Keep a PNG of that runner detail page next to the mirror README (do not invent labels in the screenshot).
+
+```
+Linux CI box — expected chips:
+  [self-hosted] [linux] [x64] [immspfee]          (+ optional [ci])
+
+Apple Silicon WebKit — expected chips:
+  [self-hosted] [macOS] [ARM64] [immspfee-webkit]
+```
+
+Reject registration if the UI shows `macos-14`, `X64` (wrong case), or a custom `immspfee-lab` token — those will never match `runs-on` in this tree.
+
 Example job pin (GHES):
 
 ```yaml

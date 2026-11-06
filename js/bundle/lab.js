@@ -4672,6 +4672,12 @@ function project(mvp, x, y, z, width, height) {
     y: (1 - (ndcY * 0.5 + 0.5)) * height
   };
 }
+function ObjRingRgb(mag) {
+  if (mag <= 4) return [0.92, 0.18, 0.16];
+  if (mag <= 10) return [0.95, 0.82, 0.12];
+  if (mag <= 40) return [0.25, 0.62, 0.95];
+  return [0.94, 0.94, 0.96];
+}
 function MagScale(m) {
   return Math.log10(Math.max(4, m));
 }
@@ -4751,7 +4757,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
         kind: "eye",
         index: i,
         x,
-        y: tubeTopY + 0.42,
+        y: tubeTopY + 0.52,
         z: 0.22,
         id: eye.id
       });
@@ -4786,14 +4792,21 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     cylinderY(0, tubeCenterY, 0, tubeR, tubeH, 0.55, 0.72, 0.88, data, 32, true, 0.2);
     torusY(0, tubeCenterY + tubeH * 0.22, 0, tubeR + 5e-3, 0.014, 0.75, 0.82, 0.9, data, 28, 8, 0.25);
     torusY(0, tubeCenterY - tubeH * 0.18, 0, tubeR + 5e-3, 0.014, 0.75, 0.82, 0.9, data, 28, 8, 0.25);
-    cylinderY(0, tubeTopY + 0.12, 0, 0.085, 0.26, 0.62, 0.78, 0.95, data, 28, true, 0.22);
-    frustumY(0, tubeTopY + 0.28, 0, 0.09, 0.07, 0.08, 0.12, 0.12, 0.14, data, 24, 0.05);
-    cylinderY(0, tubeTopY + 0.34, 0, 0.055, 0.05, 0.08, 0.1, 0.14, data, 20, true, 0.08);
+    box(0, tubeTopY + 0.06, 0.02, 0.42, 0.1, 0.28, 0.48, 0.52, 0.58, data, 0.14);
+    box(0, tubeTopY + 0.14, 0.04, 0.28, 0.12, 0.22, 0.55, 0.58, 0.64, data, 0.16);
+    const eyeTubeY = tubeTopY + 0.28;
+    for (const side of [-1, 1]) {
+      const ex = side * 0.11;
+      const ez = 0.14;
+      cylinderY(ex, eyeTubeY, ez, 0.048, 0.22, 0.62, 0.78, 0.95, data, 22, true, 0.22);
+      frustumY(ex, eyeTubeY + 0.14, ez, 0.055, 0.042, 0.08, 0.12, 0.12, 0.14, data, 18, 0.05);
+      cylinderY(ex, eyeTubeY + 0.2, ez, 0.038, 0.04, 0.08, 0.1, 0.14, data, 16, true, 0.08);
+    }
     EYEPIECES.forEach((eye, i) => {
       const active = eye.id === optics.eye.id;
       const hovered = hover?.kind === "eye" && hover.index === i;
       const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
-      const y = tubeTopY + 0.42;
+      const y = tubeTopY + 0.52;
       const g = active ? 0.92 : hovered ? 0.78 : 0.48;
       const rb = active ? 0.38 : hovered ? 0.3 : 0.2;
       cylinderY(x, y, 0.22, 0.055, 0.07, rb, g, 0.88, data, 16, true, 0.18);
@@ -4821,6 +4834,8 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       const rb = active ? 0.35 : hovered ? 0.28 : 0.2;
       frustumY(ox, turY - len / 2 - 0.02, oz, rTop, rBot, len, rb, g, 0.42, data, 22, 0.2);
       cylinderY(ox, turY - 0.02, oz, rTop + 8e-3, 0.04, 0.7, 0.74, 0.78, data, 18, true, 0.25);
+      const [rr, rg, rbRing] = ObjRingRgb(obj.mag);
+      torusY(ox, turY - len * 0.55, oz, rTop + 0.01, 0.014, rr, rg, rbRing, data, 18, 8, 0.28);
       if (obj.immersion) {
         torusY(ox, turY - len - 0.01, oz, 0.05, 0.012, 0.92, 0.78, 0.22, data, 16, 8, 0.3);
       }
@@ -4835,10 +4850,13 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     box(0, stageY, 0, 1.12, 0.055, 0.78, 0.32, 0.34, 0.38, data, 0.1);
     torusY(0, stageY + 0.03, 0, 0.18, 0.02, 0.18, 0.18, 0.2, data, 28, 8, 0.08);
     cylinderY(0, stageY + 0.02, 0, 0.14, 0.02, 0.06, 0.06, 0.07, data, 24, true, 0.04);
-    box(-0.28, stageY + 0.05, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
-    box(0.28, stageY + 0.05, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
-    cylinderY(-0.18, stageY + 0.06, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
-    cylinderY(0.18, stageY + 0.06, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
+    box(0, stageY + 0.045, 0.02, 0.72, 0.012, 0.24, 0.72, 0.86, 0.92, data, 0.35);
+    box(-0.28, stageY + 0.05, 0.02, 0.16, 0.014, 0.24, 0.88, 0.86, 0.78, data, 0.12);
+    cylinderY(0.06, stageY + 0.055, 0.02, 0.09, 6e-3, 0.85, 0.92, 0.95, data, 20, true, 0.4);
+    box(-0.28, stageY + 0.065, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
+    box(0.28, stageY + 0.065, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
+    cylinderY(-0.18, stageY + 0.07, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
+    cylinderY(0.18, stageY + 0.07, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
     frustumY(0, stageY - 0.14, 0, 0.14, 0.1, 0.18, 0.4, 0.43, 0.48, data, 24, 0.14);
     torusY(0, stageY - 0.2, 0, 0.12, 0.018, 0.55, 0.58, 0.62, data, 24, 8, 0.2);
     cylinderY(0, stageY - 0.28, 0, 0.08, 0.1, 0.35, 0.38, 0.42, data, 20, true, 0.12);
@@ -5399,9 +5417,29 @@ function setInputMode(mode) {
 }
 
 // js/shells/microscopeChrome.js
+var RESUME_STORAGE_KEY = "immspfee-micro-resume-v1";
+function readStoredResume() {
+  try {
+    const raw = sessionStorage.getItem(RESUME_STORAGE_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    if (j && typeof j.id === "string" && j.id) {
+      return { id: j.id, domain: j.domain || "\u5176\u4ED6", sub: j.sub || "" };
+    }
+  } catch {
+  }
+  return null;
+}
+function writeStoredResume(entry) {
+  try {
+    if (!entry?.id) sessionStorage.removeItem(RESUME_STORAGE_KEY);
+    else sessionStorage.setItem(RESUME_STORAGE_KEY, JSON.stringify(entry));
+  } catch {
+  }
+}
 function createMicroscopeChrome(api) {
   let lock = false;
-  let resumeModel = null;
+  let resumeModel = readStoredResume();
   const microChrome = () => document.getElementById("microscope-chrome");
   const microTitle = () => document.getElementById("micro-title");
   const microLede = () => document.getElementById("micro-lede");
@@ -5414,6 +5452,10 @@ function createMicroscopeChrome(api) {
     } catch {
     }
     return id === MICROSCOPE_MODEL_ID ? fallback : { domain: "\u5176\u4ED6", sub: "" };
+  }
+  function setResume(entry) {
+    resumeModel = entry;
+    writeStoredResume(entry);
   }
   const stage = createMicroscopeStage({
     getState: () => typeof api.getState === "function" ? api.getState() : null,
@@ -5474,16 +5516,16 @@ function createMicroscopeChrome(api) {
     }
     api.syncDrawerChrome();
   }
-  function enter({ skipModel = false } = {}) {
+  async function enter({ skipModel = false } = {}) {
     if (lock) return;
     lock = true;
     try {
       const prevId = api.getModelId();
       if (prevId && prevId !== MICROSCOPE_MODEL_ID) {
         const loc = locFor(prevId);
-        resumeModel = { id: prevId, domain: loc.domain, sub: loc.sub };
+        setResume({ id: prevId, domain: loc.domain, sub: loc.sub });
       } else if (!resumeModel) {
-        resumeModel = { id: MICROSCOPE_MODEL_ID, domain: "\u7269\u7406", sub: "\u5149\u5B66" };
+        setResume({ id: MICROSCOPE_MODEL_ID, domain: "\u7269\u7406", sub: "\u5149\u5B66" });
       }
       api.setActiveShellId(MICROSCOPE_SHELL_ID);
       persistShellId(MICROSCOPE_SHELL_ID);
@@ -5497,7 +5539,7 @@ function createMicroscopeChrome(api) {
       });
       writeShellUrl(MICROSCOPE_SHELL_ID);
       if (!skipModel && api.getModelId() !== MICROSCOPE_MODEL_ID) {
-        api.switchModel(MICROSCOPE_MODEL_ID, { skipShellSync: true });
+        await Promise.resolve(api.switchModel(MICROSCOPE_MODEL_ID, { skipShellSync: true }));
       }
       sync(true);
       api.paintFrame();
@@ -5506,9 +5548,12 @@ function createMicroscopeChrome(api) {
     }
   }
   async function leave({ nextShell = "lab-classic", restore = true } = {}) {
+    for (let i = 0; lock && i < 200; i += 1) {
+      await new Promise((r) => setTimeout(r, 16));
+    }
     if (lock) return;
     lock = true;
-    const resume = resumeModel;
+    let resume = resumeModel;
     try {
       const target = nextShell === MICROSCOPE_SHELL_ID ? "lab-classic" : nextShell;
       api.setActiveShellId(target);
@@ -5524,8 +5569,16 @@ function createMicroscopeChrome(api) {
       writeShellUrl(target);
       sync(false);
       api.setBenchOpen(true);
-      if (restore && resume?.id && api.getModelId() !== resume.id) {
+      if (restore && resume?.id) {
+        const healed = locFor(resume.id);
+        if (healed.domain && healed.domain !== "\u5176\u4ED6" && healed.domain !== resume.domain) {
+          resume = { id: resume.id, domain: healed.domain, sub: healed.sub || "" };
+          setResume(resume);
+        }
         await Promise.resolve(api.switchModel(resume.id, { skipShellSync: true }));
+        if (api.getModelId() !== resume.id) {
+          console.warn("[microscope] resume switch failed", resume.id, "still", api.getModelId());
+        }
       }
       api.paintFrame();
     } finally {
@@ -5533,7 +5586,9 @@ function createMicroscopeChrome(api) {
     }
     const focusId = restore && resume?.id ? resume.id : api.getModelId() || MICROSCOPE_MODEL_ID;
     const focusLoc = restore && resume?.id ? { domain: resume.domain || "\u5176\u4ED6", sub: resume.sub || "" } : locFor(focusId);
-    return api.focusCatalogModel?.(focusId, focusLoc);
+    const focused = api.focusCatalogModel?.(focusId, focusLoc);
+    if (!restore) setResume(null);
+    return focused;
   }
   function onModelChange(modelId) {
     if (lock) return;
@@ -5545,11 +5600,11 @@ function createMicroscopeChrome(api) {
   }
   function applyShellId(id) {
     if (id === MICROSCOPE_SHELL_ID) {
-      enter({ skipModel: api.getModelId() === MICROSCOPE_MODEL_ID });
+      void enter({ skipModel: api.getModelId() === MICROSCOPE_MODEL_ID });
       return true;
     }
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) {
-      leave({ nextShell: id });
+      void leave({ nextShell: id });
       return true;
     }
     return false;
@@ -7803,9 +7858,11 @@ async function boot() {
     },
     getModelId: () => app.model?.id,
     getModelLoc: (id) => {
-      const m = id && getModelById(id) || models.find((row) => row.id === id) || null;
+      const row = id && domainIndex.find((r) => r.id === id) || null;
+      if (row?.domain) return { domain: row.domain, sub: row.sub || "" };
+      const m = id && getModelById(id) || models.find((entry) => entry.id === id) || null;
       if (!m) return { domain: "\u5176\u4ED6", sub: "" };
-      return { domain: m.domain || "\u5176\u4ED6", sub: m.sub || "" };
+      return { domain: m.domain || modelDomain(m) || "\u5176\u4ED6", sub: m.sub || modelSub(m) || "" };
     },
     getState: () => app.state,
     switchModel,

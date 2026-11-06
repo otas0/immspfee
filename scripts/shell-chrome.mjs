@@ -373,7 +373,11 @@ if (exclusive.inputMode !== 'microscope') fail(`inputMode ${exclusive.inputMode}
 await desk.click('#btn-micro-exit');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode !== 'webgl3d');
-await desk.waitForFunction(() => window.__labCapture?.getModelId?.() === beforeMicroId, null, { timeout: 20000 });
+await desk.waitForFunction(
+  (id) => window.__labCapture?.getModelId?.() === id,
+  beforeMicroId,
+  { timeout: 20000 },
+);
 const back = await metrics(desk);
 if (!back.webglHidden || back.webglDisplay !== 'none') {
   fail(`webgl still visible after classic return hidden=${back.webglHidden} display=${back.webglDisplay}`);
@@ -398,16 +402,21 @@ if (focused.domainOpen === false) {
   fail(`exit did not expand domain for ${beforeMicroId} ${JSON.stringify(focused)}`);
 }
 
+// After exit-restore the open domain may be Mechanics (free-fall), not Optics —
+ // expand Physics before asserting EN labels on r016.
+await desk.evaluate(() => {
+  for (const summary of document.querySelectorAll('#model-list details > summary')) {
+    if (/physics|物理|mechanics|力学/i.test(summary.textContent || '')) {
+      const details = summary.closest('details');
+      if (details) details.open = true;
+    }
+  }
+});
+await desk.waitForFunction(() => document.querySelectorAll('#model-list button.model-item[data-id]').length > 0, null, { timeout: 60000 });
 await desk.waitForFunction(() => {
   const el = document.querySelector('[data-id="r016-显微镜"] .name');
   return el && el.textContent.trim() === 'Compound microscope';
 }, null, { timeout: 20000 });
-await desk.evaluate(() => {
-  const summary = [...document.querySelectorAll('#model-list details > summary')].find((el) => /physics|物理/i.test(el.textContent || ''));
-  const details = summary?.closest('details');
-  if (details) details.open = true;
-});
-await desk.waitForFunction(() => document.querySelectorAll('#model-list button.model-item[data-id]').length > 0, null, { timeout: 60000 });
 await desk.waitForFunction(() => {
   const el = document.querySelector('[data-id="r016-显微镜"] .name, [data-id="free-fall"] .name');
   const text = el?.textContent.trim() || '';

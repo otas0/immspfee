@@ -34,10 +34,31 @@ import { setInputMode, INPUT_MICROSCOPE, INPUT_LAB } from './inputMode.js';
  *   captureWebglPng?: () => void,
  * }} api
  */
+const RESUME_STORAGE_KEY = 'immspfee-micro-resume-v1';
+
+function readStoredResume() {
+  try {
+    const raw = sessionStorage.getItem(RESUME_STORAGE_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    if (j && typeof j.id === 'string' && j.id) {
+      return { id: j.id, domain: j.domain || '其他', sub: j.sub || '' };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function writeStoredResume(entry) {
+  try {
+    if (!entry?.id) sessionStorage.removeItem(RESUME_STORAGE_KEY);
+    else sessionStorage.setItem(RESUME_STORAGE_KEY, JSON.stringify(entry));
+  } catch { /* ignore */ }
+}
+
 export function createMicroscopeChrome(api) {
   let lock = false;
   /** Model that was active before entering WebGL — exit restores this, not always r016. */
-  let resumeModel = null;
+  let resumeModel = readStoredResume();
   const microChrome = () => document.getElementById('microscope-chrome');
   const microTitle = () => document.getElementById('micro-title');
   const microLede = () => document.getElementById('micro-lede');
@@ -50,6 +71,11 @@ export function createMicroscopeChrome(api) {
       if (loc?.domain) return { domain: loc.domain, sub: loc.sub || '' };
     } catch { /* ignore */ }
     return id === MICROSCOPE_MODEL_ID ? fallback : { domain: '其他', sub: '' };
+  }
+
+  function setResume(entry) {
+    resumeModel = entry;
+    writeStoredResume(entry);
   }
 
   const stage = createMicroscopeStage({
@@ -117,18 +143,19 @@ export function createMicroscopeChrome(api) {
     api.syncDrawerChrome();
   }
 
-  function enter({ skipModel = false } = {}) {
+  async function enter({ skipModel = false } = {}) {
     if (lock) return;
     lock = true;
     try {
       const prevId = api.getModelId();
       if (prevId && prevId !== MICROSCOPE_MODEL_ID) {
         const loc = locFor(prevId);
-        resumeModel = { id: prevId, domain: loc.domain, sub: loc.sub };
+        setResume({ id: prevId, domain: loc.domain, sub: loc.sub });
       } else if (!resumeModel) {
         // Deep-link / already on r016: fall back to 2D microscope after exit.
-        resumeModel = { id: MICROSCOPE_MODEL_ID, domain: '物理', sub: '光学' };
+        setResume({ id: MICROSCOPE_MODEL_ID, domain: '物理', sub: '光学' });
       }
+      // else keep sessionStorage resume (refresh mid-3D / re-enter while on r016)
       api.setActiveShellId(MICROSCOPE_SHELL_ID);
       persistShellId(MICROSCOPE_SHELL_ID);
       applyShell(MICROSCOPE_SHELL_ID, {
@@ -140,8 +167,9 @@ export function createMicroscopeChrome(api) {
         },
       });
       writeShellUrl(MICROSCOPE_SHELL_ID);
+      // Must await: a late r016 settle after leave() would wipe the restored catalog model.
       if (!skipModel && api.getModelId() !== MICROSCOPE_MODEL_ID) {
-        api.switchModel(MICROSCOPE_MODEL_ID, { skipShellSync: true });
+        await Promise.resolve(api.switchModel(MICROSCOPE_MODEL_ID, { skipShellSync: true }));
       }
       sync(true);
       api.paintFrame();
@@ -156,9 +184,13 @@ export function createMicroscopeChrome(api) {
    * restore=false: model already changed (catalog pick) — only drop the shell chrome.
    */
   async function leave({ nextShell = 'lab-classic', restore = true } = {}) {
+    // Wait out an in-flight enter() so r016 switch cannot land after restore.
+    for (let i = 0; lock && i < 200; i += 1) {
+      await new Promise((r) => setTimeout(r, 16));
+    }
     if (lock) return;
     lock = true;
-    const resume = resumeModel;
+    let resume = resumeModel;
     try {
       const target = nextShell === MICROSCOPE_SHELL_ID ? 'lab-classic' : nextShell;
       api.setActiveShellId(target);
@@ -174,8 +206,18 @@ export function createMicroscopeChrome(api) {
       writeShellUrl(target);
       sync(false);
       api.setBenchOpen(true);
-      if (restore && resume?.id && api.getModelId() !== resume.id) {
+      if (restore && resume?.id) {
+        // Heal stale sessionStorage that captured domain="其他" before getModelLoc used domainIndex.
+        const healed = locFor(resume.id);
+        if (healed.domain && healed.domain !== '其他' && healed.domain !== resume.domain) {
+          resume = { id: resume.id, domain: healed.domain, sub: healed.sub || '' };
+          setResume(resume);
+        }
+        // Always switch (even if ids match after a partial restore) so ensureId runs.
         await Promise.resolve(api.switchModel(resume.id, { skipShellSync: true }));
+        if (api.getModelId() !== resume.id) {
+          console.warn('[microscope] resume switch failed', resume.id, 'still', api.getModelId());
+        }
       }
       api.paintFrame();
     } finally {
@@ -185,7 +227,11 @@ export function createMicroscopeChrome(api) {
     const focusLoc = restore && resume?.id
       ? { domain: resume.domain || '其他', sub: resume.sub || '' }
       : locFor(focusId);
-    return api.focusCatalogModel?.(focusId, focusLoc);
+    const focused = api.focusCatalogModel?.(focusId, focusLoc);
+    // Keep resume sticky across a later re-enter from r016 2D; clear only when
+    // the user navigated away via catalog while inside WebGL (restore=false).
+    if (!restore) setResume(null);
+    return focused;
   }
 
   function onModelChange(modelId) {
@@ -202,11 +248,11 @@ export function createMicroscopeChrome(api) {
 
   function applyShellId(id) {
     if (id === MICROSCOPE_SHELL_ID) {
-      enter({ skipModel: api.getModelId() === MICROSCOPE_MODEL_ID });
+      void enter({ skipModel: api.getModelId() === MICROSCOPE_MODEL_ID });
       return true;
     }
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) {
-      leave({ nextShell: id });
+      void leave({ nextShell: id });
       return true;
     }
     return false;
