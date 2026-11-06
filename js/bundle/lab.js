@@ -553,7 +553,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-NXEYOZOV.js */
+/* inlined chunk-chunk-WGTE5ZU7.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -1075,10 +1075,105 @@ function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
   return yy - y;
 }
 
+// js/utils/mobilePerf.js
+var HEAVY_MODEL_IDS = /* @__PURE__ */ new Set([
+  "mandelbrot-julia",
+  "heat-2d",
+  "membrane-2d",
+  "collision-2d",
+  "sph-simple",
+  "interference",
+  "diffraction",
+  "single-slit",
+  "life",
+  "heat",
+  "lorenz",
+  "rossler",
+  "ideal-gas",
+  "entropy-mix",
+  "r018-\u73BB\u5C14\u6A21\u578B"
+]);
+function viewportTier() {
+  if (typeof matchMedia !== "function") return "desktop";
+  if (matchMedia("(max-height: 500px) and (max-width: 1100px)").matches) return "phone";
+  if (matchMedia("(max-width: 900px)").matches) return "phone";
+  if (matchMedia("(max-width: 1100px)").matches) return "tablet";
+  return "desktop";
+}
+function isCompactViewport() {
+  return viewportTier() !== "desktop";
+}
+function isPhoneViewport() {
+  return viewportTier() === "phone";
+}
+function mobileBudget(tier = viewportTier()) {
+  if (tier === "phone") {
+    return {
+      maxSubSteps: 8,
+      mandelStep: 6,
+      mandelIterCap: 48,
+      fieldNCap: 24,
+      particleNCap: 40,
+      interferenceCols: 32,
+      interferenceRows: 20,
+      heatNCap: 96,
+      lifeNCap: 48,
+      lifeMaxGens: 1,
+      microDprCap: 1.75,
+      trailCap: 400,
+      hudMinMs: 125
+    };
+  }
+  if (tier === "tablet") {
+    return {
+      maxSubSteps: 16,
+      mandelStep: 4,
+      mandelIterCap: 72,
+      fieldNCap: 32,
+      particleNCap: 64,
+      interferenceCols: 48,
+      interferenceRows: 28,
+      heatNCap: 128,
+      lifeNCap: 64,
+      lifeMaxGens: 2,
+      microDprCap: 2,
+      trailCap: 700,
+      hudMinMs: 100
+    };
+  }
+  return {
+    maxSubSteps: 48,
+    mandelStep: 3,
+    mandelIterCap: 120,
+    fieldNCap: 48,
+    particleNCap: 120,
+    interferenceCols: 64,
+    interferenceRows: 40,
+    heatNCap: 256,
+    lifeNCap: 128,
+    lifeMaxGens: 8,
+    microDprCap: 3,
+    trailCap: 1400,
+    hudMinMs: 0
+  };
+}
+function isHeavyModel(id) {
+  return !!(id && HEAVY_MODEL_IDS.has(id));
+}
+function perfClassFor(id) {
+  return isHeavyModel(id) ? "heavy" : "normal";
+}
+function pushTrail(trail, point, maxLen) {
+  const cap = Math.max(8, Math.floor(maxLen ?? mobileBudget().trailCap));
+  trail.push(point);
+  if (trail.length > cap) trail.splice(0, trail.length - cap);
+  return trail;
+}
+
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
 /* static chunk inlined: chunk-chunk-WM3LI2L6.js */
-/* static chunk inlined: chunk-chunk-NXEYOZOV.js */
+/* static chunk inlined: chunk-chunk-WGTE5ZU7.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1283,7 +1378,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-5H6RAJXE.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-EM6UTHTT.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -1420,7 +1515,8 @@ var STRINGS = {
     "dialog.errToy": "\u62D2\u7EDD\u73A9\u5177\u5411\u6587\u6848\uFF1B\u672C\u5B9E\u9A8C\u5BA4\u6A21\u578B\u987B\u5DE5\u7A0B/\u5B66\u672F\u53EF\u7528",
     "toast.paramFail": "\u53C2\u6570\u5E94\u7528\u5931\u8D25: {key}",
     "toast.safeRestore": "\u5DF2\u6062\u590D\u5B89\u5168\u9ED8\u8BA4\u53C2\u6570",
-    "toast.layoutRelayout": "\u5E03\u5C40\u5DF2\u91CD\u7B97"
+    "toast.layoutRelayout": "\u5E03\u5C40\u5DF2\u91CD\u7B97",
+    "toast.heavyPaused": "\u91CD\u6A21\u578B\u5DF2\u5728\u79FB\u52A8\u7AEF\u6682\u505C \u2014 \u70B9\u64AD\u653E\u7EE7\u7EED"
   },
   en: {
     "ui.search": "search",
@@ -1531,7 +1627,8 @@ var STRINGS = {
     "dialog.errToy": "Reject toy-oriented copy; lab models must be engineering/academic",
     "toast.paramFail": "Param apply failed: {key}",
     "toast.safeRestore": "Restored safe defaults",
-    "toast.layoutRelayout": "Layout recomputed"
+    "toast.layoutRelayout": "Layout recomputed",
+    "toast.heavyPaused": "Heavy model paused on this device \u2014 tap Play"
   },
   ja: {
     "ui.search": "\u691C\u7D22",
@@ -2662,7 +2759,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-B4JQTOV6.js").then((mod) => {
+    handsPending = import("./chunk-handModels-M2IZMRQA.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -5488,6 +5585,13 @@ function createMicroscopeChrome(api) {
     }
     api.remountShellSelect?.({ microOnly: false });
   }
+  function applyMicroDprCap(on) {
+    const root = document.documentElement;
+    if (!on) return;
+    const shellCap = Number(getShell(MICROSCOPE_SHELL_ID)?.dprCap) || 3;
+    const cap = Math.min(shellCap, mobileBudget().microDprCap);
+    root.dataset.dprCap = String(cap);
+  }
   function sync(on) {
     setInputMode(on ? INPUT_MICROSCOPE : INPUT_LAB);
     const chrome = microChrome();
@@ -5505,6 +5609,7 @@ function createMicroscopeChrome(api) {
       api.syncPauseUi();
       api.setSidebarOpen(false);
       api.setBenchOpen(false);
+      applyMicroDprCap(true);
       stage.ensureDom();
       stage.setVisible(true);
       const narrow = typeof matchMedia === "function" && matchMedia("(max-width: 720px)").matches;
@@ -5839,10 +5944,10 @@ function saveFolds(map) {
   }
 }
 function isCompact() {
-  return window.matchMedia("(max-width: 1100px)").matches;
+  return isCompactViewport();
 }
 function isMobileDrawer() {
-  return window.matchMedia("(max-width: 900px)").matches;
+  return isPhoneViewport();
 }
 function revealCatalogButton(btn) {
   const list = btn?.closest?.(".model-list");
@@ -5875,9 +5980,12 @@ function createState(model) {
 function applyGlobals() {
   sanitizeGlobals(app.globals);
   stepper.setFixedDt(app.globals.fixedDt);
-  stepper.setMaxSubSteps(app.globals.maxSubSteps);
+  const budget = mobileBudget();
+  const steps = Math.min(Math.max(1, Number(app.globals.maxSubSteps) || 48), budget.maxSubSteps);
+  stepper.setMaxSubSteps(steps);
   speedSlider.value = String(app.globals.timeScale);
   speedLabel.textContent = `${Number(app.globals.timeScale).toFixed(1)}\xD7`;
+  document.documentElement.dataset.viewportTier = viewportTier();
 }
 function syncPauseUi() {
   btnPause.innerHTML = app.paused ? btnHtml("play", t("ui.play")) : btnHtml("pause", t("ui.pause"));
@@ -6896,6 +7004,13 @@ function switchModel(id, opts = {}) {
   }
   persistActiveModel(model.id);
   syncModelClockPause();
+  if (!opts.skipHeavyPause && isHeavyModel(model.id) && isCompact()) {
+    if (!app.paused) {
+      app.paused = true;
+      syncPauseUi();
+    }
+    showToast(t("toast.heavyPaused"));
+  }
   requestAnimationFrame(measureSysSticky);
   if (!opts.skipShellSync) microUi?.onModelChange(model.id);
 }
@@ -7041,7 +7156,11 @@ function frame(now) {
     });
   }
   paintFrame();
-  updateHud();
+  const hudMin = mobileBudget().hudMinMs;
+  if (!hudMin || app.paused || !frame._hudAt || now - frame._hudAt >= hudMin) {
+    frame._hudAt = now;
+    updateHud();
+  }
   requestAnimationFrame(frame);
 }
 btnPause.addEventListener("click", () => {
@@ -7410,9 +7529,10 @@ btnHc?.addEventListener("click", (e) => {
   localStorage.setItem("physics-lab-hc", document.documentElement.classList.contains("hc") ? "1" : "0");
 });
 document.querySelector(".stage")?.addEventListener("click", (e) => {
-  if (!isMobileDrawer()) return;
-  if (e.target.closest("#btn-menu, #btn-params, .toolbar-actions, .tb-more")) return;
-  if (sidebar.classList.contains("open")) setSidebarOpen(false);
+  if (!isCompact()) return;
+  if (e.target.closest("#btn-menu, #btn-params, .toolbar-actions, .tb-more, #bench, #sidebar")) return;
+  if (isMobileDrawer() && sidebar.classList.contains("open")) setSidebarOpen(false);
+  if (bench.classList.contains("open")) setBenchOpen(false);
 });
 sidebar.addEventListener("click", (e) => e.stopPropagation());
 bench.addEventListener("click", (e) => e.stopPropagation());
@@ -7504,6 +7624,7 @@ document.addEventListener("imm-palettes", () => {
 window.addEventListener("resize", () => {
   const chassis = document.getElementById("chassis");
   chassis?.classList.remove("shell-sidebar-overlay");
+  applyGlobals();
   if (!isCompact()) {
     const collapsed = localStorage.getItem("physics-lab-bench-collapsed") === "1";
     bench.classList.add("open");
@@ -7593,6 +7714,10 @@ window.__labCapture = {
     paramBench.refresh?.();
   },
   isPaused: () => !!app.paused,
+  getViewportTier: () => viewportTier(),
+  getEffectiveMaxSubSteps: () => stepper.maxSubSteps,
+  getMobileBudget: () => mobileBudget(),
+  isHeavyModel: (id) => isHeavyModel(id),
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
   restoreSafeDefaults: () => restoreSafeDefaults(),
   getCapabilities: () => deriveCapabilities(app.model),
@@ -8229,4 +8354,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-5H6RAJXE.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-EM6UTHTT.js");

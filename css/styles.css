@@ -1772,14 +1772,19 @@ body.drawer-open #btn-params {
     right: 4px;
     bottom: max(4px, env(safe-area-inset-bottom, 0px));
     width: auto;
-    height: min(58dvh, 480px);
-    max-height: calc(100dvh - 12rem);
+    /* Cap height so the stage keeps ≥120px of canvas (was 58dvh crushing the bezel). */
+    height: min(42dvh, 360px, calc(100dvh - 14rem));
+    max-height: calc(100dvh - 14rem);
     transform: translateY(110%);
   }
   /* Bottom drawer: mirror the mid-compact right-pad — keep formula above the sheet */
   .chassis.bench-drawer-open .model-shell {
     padding-right: 0;
-    padding-bottom: calc(min(58dvh, 480px) + 12px);
+    padding-bottom: calc(min(42dvh, 360px, calc(100dvh - 14rem)) + 12px);
+  }
+  .chassis.bench-drawer-open .display-bezel,
+  .chassis.bench-drawer-open .canvas-wrap {
+    min-height: 120px;
   }
   .model-shell {
     position: relative;

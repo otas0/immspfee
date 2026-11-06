@@ -10,6 +10,7 @@ import { familyCapabilities } from '../lab/formalism.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { forceGraphStep, mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
 import { buildTopicModel } from '../lab/topicModel.js';
+import { mobileBudget, perfClassFor, pushTrail } from '../utils/mobilePerf.js';
 
 function schemaNum(label, group, unit, min, max) {
   return { label, group, unit, min, max };
@@ -23,6 +24,7 @@ function baseMeta(spec) {
     formula: spec.formula || '',
     description: spec.description || '',
     sub: spec.sub || '',
+    perfClass: perfClassFor(spec.id),
   };
 }
 
@@ -401,8 +403,7 @@ function buildOde1d(spec) {
         state.a = a;
       }
       state.t += dt;
-      state.trail.push(inclined ? state.s : state.y);
-      if (state.trail.length > 240) state.trail.shift();
+      pushTrail(state.trail, inclined ? state.s : state.y, 240);
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
@@ -502,8 +503,7 @@ function buildOde2d(spec) {
       state.x += state.vx * dt;
       state.y += state.vy * dt;
       state.t += dt;
-      state.trail.push({ x: state.x, y: state.y });
-      if (state.trail.length > 500) state.trail.shift();
+      pushTrail(state.trail, { x: state.x, y: state.y }, 500);
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
@@ -561,8 +561,7 @@ function buildCircular(spec) {
       const w = P(state.params, 'omega', 1.5);
       state.x = R * Math.cos(w * state.t);
       state.y = R * Math.sin(w * state.t);
-      state.trail.push({ x: state.x, y: state.y });
-      if (state.trail.length > 360) state.trail.shift();
+      pushTrail(state.trail, { x: state.x, y: state.y }, 360);
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
@@ -614,7 +613,9 @@ function buildParticles(spec) {
       e: schemaNum('e', 'dynamics', '—', 0, 1),
     },
     init(state) {
-      const n = Math.max(4, Math.floor(P(state.params, 'N', 40)));
+      const cap = mobileBudget().particleNCap;
+      const n = Math.min(cap, Math.max(4, Math.floor(P(state.params, 'N', 40))));
+      if (Number(state.params.N) > n) state.params.N = n;
       const r = rnd(P(state.params, 'seed', 7));
       const T = P(state.params, 'T', 300);
       const speed = Math.sqrt(T) * 0.02;
@@ -632,6 +633,8 @@ function buildParticles(spec) {
       const visc = P(state.params, 'viscosity', 0.2);
       const g = P(state.params, 'g', 0) * (isGas && spec.id === 'sph-simple' ? 1 : 0);
       const e = P(state.params, 'e', 0.9);
+      const cap = mobileBudget().particleNCap;
+      if (state.parts.length > cap) state.parts.length = cap;
       for (const p of state.parts) {
         p.vy += g * dt * 0.15;
         p.vx *= (1 - visc * dt * 0.3);
@@ -822,8 +825,7 @@ function buildEuler(spec) {
       state.wy += dwy * dt;
       state.wz += dwz * dt;
       state.t += dt;
-      state.trail.push({ x: state.wx, y: state.wy, z: state.wz });
-      if (state.trail.length > 400) state.trail.shift();
+      pushTrail(state.trail, { x: state.wx, y: state.wy, z: state.wz }, 400);
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
@@ -1150,7 +1152,9 @@ function buildInterference(spec) {
       const { width: W, height: H } = view;
       const box = padBox(W, H, 32);
       title(ctx, spec.name);
-      const cols = 64; const rows = 40;
+      const budget = mobileBudget();
+      const cols = budget.interferenceCols;
+      const rows = budget.interferenceRows;
       const d = P(state.params, 'd', 0.25);
       const lam = P(state.params, 'lambda', 0.18);
       const ph = P(state.params, 'phase', 0);
@@ -1199,10 +1203,13 @@ function buildField2d(spec) {
       excite: schemaNum('激励', 'initial', '—', 0, 1),
     },
     init(state) {
-      const n = Math.max(8, Math.floor(P(state.params, 'n', 24)));
+      const cap = mobileBudget().fieldNCap;
+      const n = Math.min(cap, Math.max(8, Math.floor(P(state.params, 'n', 24))));
+      if (Number(state.params.n) > n) state.params.n = n;
       state.n = n;
       state.u = new Float64Array(n * n);
       state.v = new Float64Array(n * n);
+      state._next = new Float64Array(n * n);
       const ex = Math.floor(P(state.params, 'excite', 0.5) * (n - 1));
       state.u[ex * n + Math.floor(n / 2)] = 1;
       state.t = 0;
@@ -1210,7 +1217,9 @@ function buildField2d(spec) {
     step(state, dt) {
       const n = state.n;
       const a = P(state.params, 'alpha', 0.15) * P(state.params, 'tension', 1);
-      const next = new Float64Array(n * n);
+      if (!state._next || state._next.length !== n * n) state._next = new Float64Array(n * n);
+      const next = state._next;
+      next.fill(0);
       for (let i = 1; i < n - 1; i += 1) {
         for (let j = 1; j < n - 1; j += 1) {
           const idx = i * n + j;
@@ -1222,7 +1231,9 @@ function buildField2d(spec) {
           }
         }
       }
+      const swap = state.u;
       state.u = next;
+      state._next = swap;
       state.t += dt;
     },
     draw(ctx, state, view) {
@@ -3537,18 +3548,18 @@ function buildChaos(spec) {
         state.z += dz * h;
       }
       state.t += h;
-      state.trail.push({ x: state.x, y: state.y, z: state.z });
-      if (state.trail.length > 1400) state.trail.shift();
+      pushTrail(state.trail, { x: state.x, y: state.y, z: state.z }, mobileBudget().trailCap);
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
       title(ctx, spec.name);
       if (isMandel) {
-        const iterMax = Math.floor(P(state.params, 'iter', 40));
+        const budget = mobileBudget();
+        const iterMax = Math.min(budget.mandelIterCap, Math.floor(P(state.params, 'iter', 40)));
         const zoom = P(state.params, 'zoom', 1.2);
         const cx0 = P(state.params, 'cx', -0.7);
         const cy0 = P(state.params, 'cy', 0.27);
-        const step = 3;
+        const step = budget.mandelStep;
         for (let py = 30; py < H - 10; py += step) {
           for (let px = 10; px < W - 10; px += step) {
             let zx = ((px - W / 2) / (0.25 * W * zoom));
@@ -3884,8 +3895,7 @@ function buildAero(spec) {
           state.y = 0.08;
           state.vy = 0;
         }
-        state.trail.push({ x: state.x, y: state.y });
-        if (state.trail.length > 200) state.trail.shift();
+        pushTrail(state.trail, { x: state.x, y: state.y }, 200);
       }
       state.t += dt;
     },

@@ -1,11 +1,13 @@
 import { formatNum } from '../utils/draw.js';
 import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
+import { mobileBudget, perfClassFor } from '../utils/mobilePerf.js';
 
 /** Conway 生命游戏（计算机科学 / 元胞自动机） */
 export default {
   id: 'life',
   name: '生命游戏',
+  perfClass: perfClassFor('life'),
   params: {
     n: 36, stepDt: 0.12, density: 0.28, seed: 3, algo: 0,
   },
@@ -25,7 +27,9 @@ export default {
   },
 
   init(state) {
-    const n = Math.floor(P(state.params, 'n', 32));
+    const cap = mobileBudget().lifeNCap;
+    const n = Math.min(cap, Math.max(8, Math.floor(P(state.params, 'n', 32))));
+    if (Number(state.params.n) > n) state.params.n = n;
     const dens = P(state.params, 'density', 0.3);
     let s = Math.floor(P(state.params, 'seed', 1)) || 1;
     const rnd = () => {
@@ -52,8 +56,11 @@ export default {
     state.t += dt;
     const n = state.n;
     const algo = state.algo;
-    while (state.acc >= period) {
+    const maxGens = mobileBudget().lifeMaxGens;
+    let gens = 0;
+    while (state.acc >= period && gens < maxGens) {
       state.acc -= period;
+      gens += 1;
       const next = Array.from({ length: n }, () => Array(n).fill(0));
       let alive = 0;
       for (let y = 0; y < n; y += 1) {
@@ -86,6 +93,7 @@ export default {
       state.alive = alive;
       state.gen += 1;
     }
+    if (gens >= maxGens && state.acc >= period) state.acc = period * 0.5;
   },
 
   draw(ctx, state, view) {

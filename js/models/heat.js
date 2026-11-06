@@ -1,5 +1,6 @@
 import { formatNum } from '../utils/draw.js';
 import { C, heatTempColor } from '../utils/theme.js';
+import { mobileBudget, perfClassFor } from '../utils/mobilePerf.js';
 
 /**
  * 一维热传导：∂T/∂t = α ∂²T/∂x²
@@ -8,6 +9,7 @@ import { C, heatTempColor } from '../utils/theme.js';
 export default {
   id: 'heat',
   name: '热传导',
+  perfClass: perfClassFor('heat'),
   params: {
     N: 80,
     L: 1,
@@ -29,11 +31,14 @@ export default {
 
   init(state) {
     const p = state.params;
-    const N = Math.max(10, Math.floor(p.N));
+    const cap = mobileBudget().heatNCap;
+    const N = Math.min(cap, Math.max(10, Math.floor(p.N)));
+    if (Number(p.N) > N) p.N = N;
     state.N = N;
     state.dx = p.L / (N - 1);
     state.t = 0;
     state.T = new Float64Array(N);
+    state._next = new Float64Array(N);
     for (let i = 0; i < N; i += 1) {
       state.T[i] = p.T0;
     }
@@ -54,13 +59,16 @@ export default {
     const dtMax = (dx * dx) / (2 * Math.max(alpha, 1e-9));
     const h = Math.min(dt, dtMax * 0.9);
     const r = (alpha * h) / (dx * dx);
-    const next = new Float64Array(N);
+    if (!state._next || state._next.length !== N) state._next = new Float64Array(N);
+    const next = state._next;
     next[0] = state.params.Tleft;
     next[N - 1] = state.params.Tright;
     for (let i = 1; i < N - 1; i += 1) {
       next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
     }
+    const swap = state.T;
     state.T = next;
+    state._next = swap;
     state.t += h;
   },
 

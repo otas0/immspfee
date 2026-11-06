@@ -248,6 +248,91 @@ if (!benchCover.formula.startsWith('Equation ')) {
   failures.push(`390px open bench formula missing (${benchCover.formula})`);
 }
 
+// P0: open Params must leave ≥120px of canvas (bench no longer uses 58dvh crush).
+const canvasFloor = await page.evaluate(() => {
+  const wrap = document.querySelector('.canvas-wrap');
+  const r = wrap?.getBoundingClientRect();
+  return { h: r?.height || 0, open: !!document.getElementById('bench')?.classList.contains('open') };
+});
+if (!canvasFloor.open || canvasFloor.h < 120) {
+  failures.push(`390px bench open canvas too short ${JSON.stringify(canvasFloor)}`);
+}
+
+// Heavy models: auto-pause + budget clamp on phone.
+for (const heavyId of ['mandelbrot-julia', 'heat-2d', 'collision-2d']) {
+  await openModel(heavyId);
+  const heavy = await page.evaluate((id) => {
+    const st = window.__labCapture.getState?.() || {};
+    return {
+      id: window.__labCapture.getModelId?.(),
+      paused: !!window.__labCapture.isPaused?.(),
+      heavy: !!window.__labCapture.isHeavyModel?.(id),
+      tier: window.__labCapture.getViewportTier?.(),
+      steps: window.__labCapture.getEffectiveMaxSubSteps?.(),
+      N: st.params?.N ?? st.params?.n ?? null,
+      parts: Array.isArray(st.parts) ? st.parts.length : null,
+      fieldN: st.n ?? null,
+    };
+  }, heavyId);
+  await page.screenshot({ path: path.join(shots, `narrow-heavy-${heavyId}.png`) });
+  if (heavy.id !== heavyId) failures.push(`heavy switch ${heavyId} → ${heavy.id}`);
+  if (!heavy.paused) failures.push(`${heavyId}: expected auto-pause on phone (${JSON.stringify(heavy)})`);
+  if (heavy.tier !== 'phone') failures.push(`${heavyId}: tier ${heavy.tier}`);
+  if (!(heavy.steps <= 8)) failures.push(`${heavyId}: maxSubSteps ${heavy.steps} > 8`);
+  if (heavyId === 'collision-2d' && heavy.parts != null && heavy.parts > 40) {
+    failures.push(`${heavyId}: particle cap exceeded (${heavy.parts})`);
+  }
+  if (heavyId === 'heat-2d' && heavy.fieldN != null && heavy.fieldN > 24) {
+    failures.push(`${heavyId}: field n cap exceeded (${heavy.fieldN})`);
+  }
+}
+
+// Tablet mid-compact: stage tap closes bench (901–1100 unified dismiss).
+await page.setViewportSize({ width: 1000, height: 700 });
+await openModel('free-fall');
+await page.evaluate(() => {
+  window.__labCapture?.setBenchOpen?.(true)
+    || document.getElementById('btn-params')?.click();
+});
+await page.waitForTimeout(200);
+const tabletBefore = await page.evaluate(() => ({
+  open: !!document.getElementById('bench')?.classList.contains('open'),
+  tier: window.__labCapture.getViewportTier?.(),
+  steps: window.__labCapture.getEffectiveMaxSubSteps?.(),
+}));
+await page.evaluate(() => {
+  document.querySelector('.stage')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+});
+await page.waitForTimeout(200);
+const tabletAfter = await page.evaluate(() => ({
+  open: !!document.getElementById('bench')?.classList.contains('open'),
+}));
+await page.screenshot({ path: path.join(shots, 'tablet-1000-dismiss.png') });
+if (tabletBefore.tier !== 'tablet') failures.push(`1000×700 tier ${tabletBefore.tier}`);
+if (!(tabletBefore.steps <= 16)) failures.push(`tablet maxSubSteps ${tabletBefore.steps}`);
+if (!tabletBefore.open) failures.push('tablet bench did not open');
+if (tabletAfter.open) failures.push('tablet stage click did not close bench');
+
+// Landscape short-height fixture: canvas floor with Params open.
+await page.setViewportSize({ width: 844, height: 390 });
+await openModel('free-fall');
+await page.evaluate(() => document.getElementById('btn-params')?.click());
+await page.waitForTimeout(250);
+const landscape = await page.evaluate(() => {
+  const wrap = document.querySelector('.canvas-wrap');
+  const r = wrap?.getBoundingClientRect();
+  return {
+    h: r?.height || 0,
+    open: !!document.getElementById('bench')?.classList.contains('open'),
+    tier: window.__labCapture.getViewportTier?.(),
+  };
+});
+await page.screenshot({ path: path.join(shots, 'narrow-landscape-844x390.png') });
+if (landscape.tier !== 'phone') failures.push(`landscape tier ${landscape.tier}`);
+if (!landscape.open || landscape.h < 120) {
+  failures.push(`landscape bench canvas too short ${JSON.stringify(landscape)}`);
+}
+
 await page.setViewportSize({ width: 1280, height: 800 });
 currentModelId = 'user-model-miss';
 await page.goto(`${base}?miss=1&lang=en`, { waitUntil: 'domcontentloaded' });

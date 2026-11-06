@@ -1,0 +1,21 @@
+{
+  "description": "Models that auto-pause on compact viewports (phone/tablet). Runtime source of truth is js/utils/mobilePerf.js HEAVY_MODEL_IDS; keep this list in sync for audits.",
+  "perfClass": "heavy",
+  "ids": [
+    "mandelbrot-julia",
+    "heat-2d",
+    "membrane-2d",
+    "collision-2d",
+    "sph-simple",
+    "interference",
+    "diffraction",
+    "single-slit",
+    "life",
+    "heat",
+    "lorenz",
+    "rossler",
+    "ideal-gas",
+    "entropy-mix",
+    "r018-玻尔模型"
+  ]
+}

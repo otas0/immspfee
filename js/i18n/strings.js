@@ -121,6 +121,7 @@ export const STRINGS = {
     'toast.paramFail': '参数应用失败: {key}',
     'toast.safeRestore': '已恢复安全默认参数',
     'toast.layoutRelayout': '布局已重算',
+    'toast.heavyPaused': '重模型已在移动端暂停 — 点播放继续',
   },
   en: {
     'ui.search': 'search',
@@ -232,6 +233,7 @@ export const STRINGS = {
     'toast.paramFail': 'Param apply failed: {key}',
     'toast.safeRestore': 'Restored safe defaults',
     'toast.layoutRelayout': 'Layout recomputed',
+    'toast.heavyPaused': 'Heavy model paused on this device — tap Play',
   },
   ja: {
     'ui.search': '検索',

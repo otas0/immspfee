@@ -11,6 +11,7 @@ import {
 } from './registry.js';
 import { createMicroscopeStage } from './microscopeStage.js';
 import { setInputMode, INPUT_MICROSCOPE, INPUT_LAB } from './inputMode.js';
+import { mobileBudget } from '../utils/mobilePerf.js';
 
 /**
  * @param {{
@@ -112,6 +113,14 @@ export function createMicroscopeChrome(api) {
     api.remountShellSelect?.({ microOnly: false });
   }
 
+  function applyMicroDprCap(on) {
+    const root = document.documentElement;
+    if (!on) return;
+    const shellCap = Number(getShell(MICROSCOPE_SHELL_ID)?.dprCap) || 3;
+    const cap = Math.min(shellCap, mobileBudget().microDprCap);
+    root.dataset.dprCap = String(cap);
+  }
+
   function sync(on) {
     setInputMode(on ? INPUT_MICROSCOPE : INPUT_LAB);
     const chrome = microChrome();
@@ -130,6 +139,7 @@ export function createMicroscopeChrome(api) {
       api.syncPauseUi();
       api.setSidebarOpen(false);
       api.setBenchOpen(false);
+      applyMicroDprCap(true);
       stage.ensureDom();
       stage.setVisible(true);
       // Narrow: rail closed. Desktop: open so optics knobs are discoverable.

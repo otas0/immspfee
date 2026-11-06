@@ -74,6 +74,16 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 `principleInk.sparse` from the contract payload) so models like
 `neutron-diffusion` that hover near 1% need fewer hand edits.
 
+### Mobile / tablet perf budget (P0–P2)
+
+`js/utils/mobilePerf.js` clamps `maxSubSteps`, Mandelbrot/interference grids, particle
+`N`, field `n`, life gens, and microscope `dprCap` by viewport tier (`phone` ≤900 /
+short-height, `tablet` ≤1100, else `desktop`). Heavy ids (`data/perf-heavy.json` +
+`HEAVY_MODEL_IDS`) auto-pause on compact enter with `toast.heavyPaused`. HUD DOM
+writes throttle to ~8Hz on phone. Bottom bench height is capped so `.canvas-wrap`
+keeps `min-height: 120px`. Stage tap dismisses bench on all compact widths (not
+only ≤900). Covered by `npm run test:narrow` (heavy ids + 1000×700 + 844×390).
+
 ### soft-paint issue template smoke
 
 Open via GitHub **New issue → Contract soft-paint** (`.github/ISSUE_TEMPLATE/soft-paint.yml`).

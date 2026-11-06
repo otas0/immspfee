@@ -21,9 +21,11 @@ import {
   finiteOr,
   formatNum,
   heatTempColor,
+  mobileBudget,
+  perfClassFor,
   phaseHueColor,
   springK
-} from "./chunk-chunk-NXEYOZOV.js";
+} from "./chunk-chunk-WGTE5ZU7.js";
 
 // js/models/projectile.js
 var projectile_default = {
@@ -1119,6 +1121,7 @@ var wave_default = {
 var heat_default = {
   id: "heat",
   name: "\u70ED\u4F20\u5BFC",
+  perfClass: perfClassFor("heat"),
   params: {
     N: 80,
     L: 1,
@@ -1144,11 +1147,14 @@ var heat_default = {
   },
   init(state) {
     const p = state.params;
-    const N = Math.max(10, Math.floor(p.N));
+    const cap = mobileBudget().heatNCap;
+    const N = Math.min(cap, Math.max(10, Math.floor(p.N)));
+    if (Number(p.N) > N) p.N = N;
     state.N = N;
     state.dx = p.L / (N - 1);
     state.t = 0;
     state.T = new Float64Array(N);
+    state._next = new Float64Array(N);
     for (let i = 0; i < N; i += 1) {
       state.T[i] = p.T0;
     }
@@ -1166,13 +1172,16 @@ var heat_default = {
     const dtMax = dx * dx / (2 * Math.max(alpha, 1e-9));
     const h = Math.min(dt, dtMax * 0.9);
     const r = alpha * h / (dx * dx);
-    const next = new Float64Array(N);
+    if (!state._next || state._next.length !== N) state._next = new Float64Array(N);
+    const next = state._next;
     next[0] = state.params.Tleft;
     next[N - 1] = state.params.Tright;
     for (let i = 1; i < N - 1; i += 1) {
       next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
     }
+    const swap = state.T;
     state.T = next;
+    state._next = swap;
     state.t += h;
   },
   draw(ctx, state, view) {
@@ -2008,6 +2017,7 @@ function expandOnce(state) {
 var life_default = {
   id: "life",
   name: "\u751F\u547D\u6E38\u620F",
+  perfClass: perfClassFor("life"),
   params: {
     n: 36,
     stepDt: 0.12,
@@ -2034,7 +2044,9 @@ var life_default = {
     }
   },
   init(state) {
-    const n = Math.floor(P(state.params, "n", 32));
+    const cap = mobileBudget().lifeNCap;
+    const n = Math.min(cap, Math.max(8, Math.floor(P(state.params, "n", 32))));
+    if (Number(state.params.n) > n) state.params.n = n;
     const dens = P(state.params, "density", 0.3);
     let s = Math.floor(P(state.params, "seed", 1)) || 1;
     const rnd = () => {
@@ -2060,8 +2072,11 @@ var life_default = {
     state.t += dt;
     const n = state.n;
     const algo = state.algo;
-    while (state.acc >= period) {
+    const maxGens = mobileBudget().lifeMaxGens;
+    let gens = 0;
+    while (state.acc >= period && gens < maxGens) {
       state.acc -= period;
+      gens += 1;
       const next = Array.from({ length: n }, () => Array(n).fill(0));
       let alive = 0;
       for (let y = 0; y < n; y += 1) {
@@ -2092,6 +2107,7 @@ var life_default = {
       state.alive = alive;
       state.gen += 1;
     }
+    if (gens >= maxGens && state.acc >= period) state.acc = period * 0.5;
   },
   draw(ctx, state, view) {
     const { width: W, height: H } = view;

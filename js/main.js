@@ -6,6 +6,13 @@ import { createFixedStepper } from './utils/integrator.js';
 import { downloadCanvasPng, downloadCsv, composeExport } from './utils/export.js';
 import { createParamBench } from './ui/paramBench.js';
 import { finiteOr, sanitizeGlobals } from './utils/params.js';
+import {
+  isCompactViewport,
+  isHeavyModel,
+  isPhoneViewport,
+  mobileBudget,
+  viewportTier,
+} from './utils/mobilePerf.js';
 import { btnHtml, iconOnly, ICO } from './ui/icons.js';
 import { setModelPalette, getModelColors, palettesReady, palettesReadyNow } from './utils/theme.js';
 import { deriveCapabilities } from './ui/modelShell.js';
@@ -199,10 +206,11 @@ function saveFolds(map) {
 }
 
 function isCompact() {
-  return window.matchMedia('(max-width: 1100px)').matches;
+  return isCompactViewport();
 }
 function isMobileDrawer() {
-  return window.matchMedia('(max-width: 900px)').matches;
+  // Phone + short-landscape: bottom drawer / overlay sidebar.
+  return isPhoneViewport();
 }
 
 /** Keep the active row inside the list and below a toolbar that covers the drawer. */
@@ -236,9 +244,13 @@ function createState(model) {
 function applyGlobals() {
   sanitizeGlobals(app.globals);
   stepper.setFixedDt(app.globals.fixedDt);
-  stepper.setMaxSubSteps(app.globals.maxSubSteps);
+  // Compact viewports clamp substeps so heavy paints cannot stack 48×/frame.
+  const budget = mobileBudget();
+  const steps = Math.min(Math.max(1, Number(app.globals.maxSubSteps) || 48), budget.maxSubSteps);
+  stepper.setMaxSubSteps(steps);
   speedSlider.value = String(app.globals.timeScale);
   speedLabel.textContent = `${Number(app.globals.timeScale).toFixed(1)}×`;
+  document.documentElement.dataset.viewportTier = viewportTier();
 }
 
 function syncPauseUi() {
@@ -1316,6 +1328,14 @@ function switchModel(id, opts = {}) {
   }
   persistActiveModel(model.id);
   syncModelClockPause();
+  // Heavy models on phone/tablet: pause on enter so the first paint stays interactive.
+  if (!opts.skipHeavyPause && isHeavyModel(model.id) && isCompact()) {
+    if (!app.paused) {
+      app.paused = true;
+      syncPauseUi();
+    }
+    showToast(t('toast.heavyPaused'));
+  }
   requestAnimationFrame(measureSysSticky);
   if (!opts.skipShellSync) microUi?.onModelChange(model.id);
 }
@@ -1473,7 +1493,12 @@ function frame(now) {
   }
 
   paintFrame();
-  updateHud();
+  // Throttle HUD DOM writes on compact (~8Hz); always refresh when paused / flash.
+  const hudMin = mobileBudget().hudMinMs;
+  if (!hudMin || app.paused || !frame._hudAt || (now - frame._hudAt) >= hudMin) {
+    frame._hudAt = now;
+    updateHud();
+  }
   requestAnimationFrame(frame);
 }
 
@@ -1861,9 +1886,11 @@ btnHc?.addEventListener('click', (e) => {
 });
 
 document.querySelector('.stage')?.addEventListener('click', (e) => {
-  if (!isMobileDrawer()) return;
-  if (e.target.closest('#btn-menu, #btn-params, .toolbar-actions, .tb-more')) return;
-  if (sidebar.classList.contains('open')) setSidebarOpen(false);
+  // Compact (≤1100) + phone drawer: tap stage dismisses overlay chrome.
+  if (!isCompact()) return;
+  if (e.target.closest('#btn-menu, #btn-params, .toolbar-actions, .tb-more, #bench, #sidebar')) return;
+  if (isMobileDrawer() && sidebar.classList.contains('open')) setSidebarOpen(false);
+  if (bench.classList.contains('open')) setBenchOpen(false);
 });
 sidebar.addEventListener('click', (e) => e.stopPropagation());
 bench.addEventListener('click', (e) => e.stopPropagation());
@@ -1964,6 +1991,7 @@ document.addEventListener('imm-palettes', () => {
 window.addEventListener('resize', () => {
   const chassis = document.getElementById('chassis');
   chassis?.classList.remove('shell-sidebar-overlay');
+  applyGlobals();
   if (!isCompact()) {
     const collapsed = localStorage.getItem('physics-lab-bench-collapsed') === '1';
     bench.classList.add('open');
@@ -2044,6 +2072,10 @@ window.__labCapture = {
     paramBench.refresh?.();
   },
   isPaused: () => !!app.paused,
+  getViewportTier: () => viewportTier(),
+  getEffectiveMaxSubSteps: () => stepper.maxSubSteps,
+  getMobileBudget: () => mobileBudget(),
+  isHeavyModel: (id) => isHeavyModel(id),
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
   restoreSafeDefaults: () => restoreSafeDefaults(),
   getCapabilities: () => deriveCapabilities(app.model),
