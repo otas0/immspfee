@@ -2,6 +2,8 @@
  * principle 模型 ink density < 1% 静态表（与 data/principle-low-ink.json 同步）。
  * 仅对这些 id 做「内建曲线加粗」（无墨点网格）。
  * 更新：npm run gen:low-ink | npm run gen:low-ink:tighten
+ * KEEP IN SYNC: applyLowInkStrokeBoost must match scripts/gen-low-ink.mjs template
+ * (guard missing strokeRect/fillRect on probe canvases).
  */
 export const LOW_INK_THRESHOLD = 0.01;
 
@@ -14,6 +16,7 @@ export const LOW_INK_IDS = new Set([
   'free-fall',
   'hodgkin-huxley',
   'lens',
+  'logic-gates',
   'logistic-growth',
   'nasch-ca',
   'neutron-diffusion',

@@ -1,10 +1,15 @@
 {
   "threshold": 0.01,
+  "sparseUnion": 0.015,
   "source": "artifacts/contract-browser.json",
-  "generatedAt": "2026-11-06T06:31:26.626Z",
+  "generatedAt": "2026-11-06T06:40:51.038Z",
   "mode": "union",
-  "n": 26,
+  "n": 27,
   "sampledLowInk": [],
+  "sampledSparseInk": [
+    "nasch-ca",
+    "neutron-diffusion"
+  ],
   "ids": [
     "active-filter",
     "adder",
@@ -14,6 +19,7 @@
     "free-fall",
     "hodgkin-huxley",
     "lens",
+    "logic-gates",
     "logistic-growth",
     "nasch-ca",
     "neutron-diffusion",

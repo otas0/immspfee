@@ -52,6 +52,13 @@ Before a boot / SW / Pages change lands, confirm in one writer only:
    `meta.json` together with `asset-stamp.json` / `index.html` stamps.
 6. Do not set `uchg` on lab files; if writes fail with `Operation not permitted`,
    `chflags nouchg` the path (see below) instead of opening a second window.
+7. **Single writer until `main` is pushed.** Open a second Agents Window only for
+   read-only review after the push lands; never two writers on `js/` / `css/` /
+   `scripts/` at once.
+8. **LOW_INK guard sync:** `js/lab/lowInkIds.js` `applyLowInkStrokeBoost` must stay
+   aligned with the template inside `scripts/gen-low-ink.mjs` (optional
+   `strokeRect` / `fillRect` on probe canvases). After editing either side, re-run
+   `npm run gen:low-ink` or hand-copy the wrapper.
 
 ### low-ink table drift (CI)
 
@@ -62,6 +69,19 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 2. Locally: `npm run test:contract-browser && npm run gen:low-ink`
 3. Commit `data/principle-low-ink.json` (+ `js/lab/lowInkIds.js` if touched)
    and push **directly to `main`**.
+
+`gen:low-ink` unions ink &lt; 1% **and** principle sparse &lt; 1.5% (plus
+`principleInk.sparse` from the contract payload) so models like
+`neutron-diffusion` that hover near 1% need fewer hand edits.
+
+### Pages cold TTI (entry / main)
+
+Measured on `otas0.github.io/immspfee` with SW blocked: cold ready often
+**~1.5–6 s** depending on CDN; `__bootMarks.entryMs` + `mainMs` are usually
+**&lt; 2 s** once bytes arrive (`entry.js` ~2 KB, `lab.js` ~80 KB gz transfer).
+Further cuts are mostly **network / SW**, not more splitting of `entry.js`.
+Prefer: keep factory off cold boot, keep handModels lazy, and avoid growing
+`lab.js` cold path. Do not chase sub-second cold TTI on cold Pages edges.
 
 When a write fails with `Operation not permitted`:
 

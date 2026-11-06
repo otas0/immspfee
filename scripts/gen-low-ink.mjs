@@ -12,6 +12,8 @@ const reportPath = path.join(root, 'artifacts/contract-browser.json');
 const outJson = path.join(root, 'data/principle-low-ink.json');
 const outJs = path.join(root, 'js/lab/lowInkIds.js');
 const THRESHOLD = 0.01;
+/** Also fold principle ink &lt; 1.5% (sparse band) so CI flakes around 1% need less hand edits. */
+const SPARSE_UNION = 0.015;
 const tighten = process.argv.includes('--tighten');
 
 if (!fs.existsSync(reportPath)) {
@@ -20,23 +22,32 @@ if (!fs.existsSync(reportPath)) {
 }
 
 const j = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-const sampledLow = (j.report || [])
-  .filter((r) => (r.fidelity || 'principle') === 'principle' && (r.inkDensity || 0) < THRESHOLD)
+const principleRows = (j.report || []).filter((r) => (r.fidelity || 'principle') === 'principle');
+const sampledLow = principleRows
+  .filter((r) => (r.inkDensity || 0) < THRESHOLD)
   .map((r) => r.id);
+const sampledSparse = principleRows
+  .filter((r) => (r.inkDensity || 0) < SPARSE_UNION)
+  .map((r) => r.id);
+// Prefer principleInk.sparse from the contract payload when present.
+const reportSparse = Array.isArray(j.principleInk?.sparse) ? j.principleInk.sparse : [];
 
 let prev = [];
 try {
   prev = JSON.parse(fs.readFileSync(outJson, 'utf8')).ids || [];
 } catch { /* first */ }
 
-const ids = [...new Set(tighten ? sampledLow : [...prev, ...sampledLow])].sort();
+const unionExtra = [...sampledLow, ...sampledSparse, ...reportSparse];
+const ids = [...new Set(tighten ? sampledLow : [...prev, ...unionExtra])].sort();
 fs.writeFileSync(outJson, `${JSON.stringify({
   threshold: THRESHOLD,
+  sparseUnion: SPARSE_UNION,
   source: 'artifacts/contract-browser.json',
   generatedAt: new Date().toISOString(),
   mode: tighten ? 'tighten' : 'union',
   n: ids.length,
   sampledLowInk: sampledLow,
+  sampledSparseInk: sampledSparse,
   ids,
 }, null, 2)}\n`);
 
@@ -45,6 +56,8 @@ fs.writeFileSync(outJs, `/**
  * principle 模型 ink density < 1% 静态表（与 data/principle-low-ink.json 同步）。
  * 仅对这些 id 做「内建曲线加粗」（无墨点网格）。
  * 更新：npm run gen:low-ink | npm run gen:low-ink:tighten
+ * KEEP IN SYNC: applyLowInkStrokeBoost must match scripts/gen-low-ink.mjs template
+ * (guard missing strokeRect/fillRect on probe canvases).
  */
 export const LOW_INK_THRESHOLD = ${THRESHOLD};
 
@@ -111,5 +124,8 @@ export function applyLowInkStrokeBoost(model) {
   return model;
 }
 `);
-console.log(`low-ink mode=${tighten ? 'tighten' : 'union'} n=${ids.length} sampledLow=${sampledLow.length}`);
+console.log(
+  `low-ink mode=${tighten ? 'tighten' : 'union'} n=${ids.length}`
+  + ` sampledLow=${sampledLow.length} sparse<${SPARSE_UNION}=${sampledSparse.length}`,
+);
 console.log(ids.join(', ') || '(none)');

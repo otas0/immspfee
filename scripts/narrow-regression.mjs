@@ -59,9 +59,11 @@ const failures = [];
 async function openModel(id) {
   currentModelId = id;
   // Bohr EN packs + factory chunk can stall on slow CI / cold SW; give them headroom.
+  // Override: NARROW_BOHR_MS=180000 npm run test:narrow
   const slowEn = id === 'r018-玻尔模型';
-  const bootMs = slowEn ? 90000 : 60000;
-  const modelMs = slowEn ? 120000 : 60000;
+  const bohrMs = Number(process.env.NARROW_BOHR_MS || 120000);
+  const bootMs = slowEn ? Math.max(90000, Math.floor(bohrMs * 0.75)) : 60000;
+  const modelMs = slowEn ? bohrMs : 60000;
   await page.goto(`${base}?lang=en&narrow=${encodeURIComponent(id)}#m=${encodeURIComponent(id)}`, {
     waitUntil: 'domcontentloaded',
     timeout: bootMs,

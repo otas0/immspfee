@@ -538,11 +538,16 @@ const microBleed = await desk.evaluate(() => {
     grid: chassis ? getComputedStyle(chassis).gridTemplateColumns : '',
   };
 });
+const gridOk = (g) => {
+  const s = String(g || '').trim();
+  // Desktop often resolves to "1440px"; 390 may keep "minmax(0px, 1fr)".
+  return /^[\d.]+px$/.test(s) || /^minmax\(0(?:px)?,\s*1fr\)$/.test(s);
+};
 if (
   microBleed.stageX !== 0
   || microBleed.wrapX !== 0
   || microBleed.stageW < microBleed.vw - 2
-  || !/^[\d.]+px$/.test(String(microBleed.grid || '').trim())
+  || !gridOk(microBleed.grid)
 ) {
   fail(`microscope stage not full-bleed ${JSON.stringify(microBleed)}`);
 }
@@ -1004,6 +1009,27 @@ if (narrowMicro.brandH < 40 || narrowMicro.webglH < 120) {
 }
 if (!narrowMicro.css) fail('390 micro missing microscope-shell.css');
 if (!narrowMicro.readoutsOk) fail('390 micro readouts missing');
+// Full-bleed at 390: no leftover sidebar track (same contract as desktop).
+const narrowBleed = await microNarrow.evaluate(() => {
+  const stage = document.querySelector('.stage')?.getBoundingClientRect();
+  const wrap = document.querySelector('.canvas-wrap')?.getBoundingClientRect();
+  const chassis = document.querySelector('.chassis');
+  return {
+    stageX: Math.round(stage?.x ?? -1),
+    stageW: Math.round(stage?.width || 0),
+    wrapX: Math.round(wrap?.x ?? -1),
+    vw: window.innerWidth,
+    grid: chassis ? getComputedStyle(chassis).gridTemplateColumns : '',
+  };
+});
+if (
+  narrowBleed.stageX !== 0
+  || narrowBleed.wrapX !== 0
+  || narrowBleed.stageW < narrowBleed.vw - 2
+  || !gridOk(narrowBleed.grid)
+) {
+  fail(`390 microscope stage not full-bleed ${JSON.stringify(narrowBleed)}`);
+}
 await microNarrow.screenshot({ path: join(shotsDir, 'shell-micro-390.png') });
 await microNarrow.close();
 

@@ -329,7 +329,8 @@ jobs:
   webkit-projector:
     name: webkit-projector (optional)
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[webkit]')
-    runs-on: ubuntu-latest
+    # Ubuntu WebKit apt deps frequently fail (exit 100); macOS ships a usable WebKit binary.
+    runs-on: macos-14
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -340,7 +341,7 @@ jobs:
       - run: npm ci
       - name: Install Playwright WebKit
         timeout-minutes: 10
-        run: npx playwright install webkit --with-deps
+        run: npx playwright install webkit
       - name: Start lab server
         run: |
           npm run build:bundle
