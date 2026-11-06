@@ -1024,7 +1024,7 @@ function paintSidebar() {
     details.className = 'domain-group';
     details.dataset.domain = domain;
     const dKey = foldKey(domain);
-    const wantOpen = searching || (folds[dKey] != null ? !!folds[dKey] : false);
+    const wantOpen = searching || (folds[dKey] != null ? !!folds[dKey] : domain === '物理');
     const sum = document.createElement('summary');
     sum.innerHTML = `<span class="domain-name" data-domain="${domain}">${domainLabel(domain)}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');

@@ -110,10 +110,19 @@ for (const [id, file] of layout) {
 await page.setViewportSize({ width: 390, height: 844 });
 await openModel('r018-玻尔模型');
 // Boot may already open the mobile drawer when focusing the active row — only open if closed.
-await page.evaluate(() => {
+await page.evaluate(() => document.getElementById('btn-menu')?.click());
+await page.waitForFunction(() => {
   const side = document.getElementById('sidebar');
-  if (!side?.classList.contains('open')) document.getElementById('btn-menu')?.click();
+  return !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open'));
+}, null, { timeout: 10000 });
+await page.evaluate(() => {
+  for (const el of document.querySelectorAll('#model-list details.domain-group, #model-list details.sub-group')) {
+    if (el instanceof HTMLDetailsElement) el.open = true;
+  }
+  const list = document.getElementById('model-list');
+  if (list) list.scrollTop = 0;
 });
+await page.waitForFunction(() => document.querySelectorAll('#model-list .model-item .name').length >= 3, null, { timeout: 60000 });
 await page.waitForTimeout(300);
 const drawer = await page.evaluate(() => {
   const list = document.getElementById('model-list');
@@ -127,7 +136,7 @@ const drawer = await page.evaluate(() => {
   const inside = (n) => !!(lr && n && n.h > 8 && n.bottom > lr.top + 4 && n.top < lr.bottom - 4);
   const visible = names.filter(inside);
   return {
-    open: document.getElementById('sidebar')?.classList.contains('open') || false,
+    open: !!(document.getElementById('sidebar')?.classList.contains('open') || document.body.classList.contains('drawer-open')),
     listH: lr?.height || 0,
     firstThreeInside: visible.length >= 3,
     firstThree: visible.slice(0, 3).map((n) => n.text),
@@ -139,9 +148,9 @@ if (!drawer.firstThreeInside) {
   failures.push(`390px drawer hides one of the first three model names (${drawer.firstThree.join(' | ')})`);
 }
 
-await page.click('#btn-menu');
+await page.evaluate(() => document.getElementById('btn-menu')?.click());
 await page.waitForTimeout(200);
-await page.click('#btn-params');
+await page.evaluate(() => document.getElementById('btn-params')?.click());
 await page.waitForTimeout(300);
 const benchCover = await page.evaluate(() => {
   const bench = document.getElementById('bench');
@@ -164,7 +173,7 @@ if (!benchCover.formula.startsWith('Equation ')) {
 }
 
 await page.setViewportSize({ width: 1280, height: 800 });
-await page.goto(`${base}?miss=1`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${base}?miss=1&lang=en`, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
 await page.click('#btn-user-model');
 await page.waitForSelector('#user-model-dialog[open]');
@@ -190,6 +199,15 @@ if (q !== '碰撞 · 没有这条') failures.push(`filter-q ${JSON.stringify(q)}
 const dialogOpen = await page.locator('#user-model-dialog[open]').count();
 if (!dialogOpen || listed !== 0) {
   failures.push(`missing-key search must keep the dialog open and clear the sidebar (open=${dialogOpen} listed=${listed})`);
+}
+const errBlob = await page.evaluate(() => {
+  const toast = document.getElementById('toast')?.textContent || '';
+  const err = document.getElementById('user-model-error')?.innerText || '';
+  const dialog = document.getElementById('user-model-dialog')?.innerText || '';
+  return `${toast}\n${err}\n${dialog}`;
+});
+if (!/碰撞\s*·\s*没有这条/.test(errBlob)) {
+  failures.push(`lang=en miss-key toast/error missing spaced Han key (${errBlob.slice(0, 240)})`);
 }
 
 await browser.close();

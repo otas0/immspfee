@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * After Pages deploys the current short hash, open neutron diffusion and
- * compare the formula strip, full assumption, and caveat to the local strip.
+ * check the English formula strip. Assumption/caveat stay in catalog metadata
+ * (AGENTS: no on-stage assumption/caveat chrome). Also smoke the microscope shell.
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -16,8 +17,6 @@ const base = process.env.PAGES_URL || 'https://otas0.github.io/immspfee/';
 const url = `${base}?v=${hash}&lang=en`;
 const want = {
   formulaPrefix: 'Equation ',
-  assumptionNeedle: 'not a design',
-  caveat: 'Public definition only. Not a reactor or device design tool.',
 };
 
 async function waitForDeploy() {
@@ -146,40 +145,27 @@ try {
   await page.evaluate(() => window.__labCapture.switchModel('neutron-diffusion'));
   await page.waitForTimeout(500);
   const info = await page.evaluate(() => {
-    const asm = document.getElementById('shell-assumptions');
-    if (asm) asm.scrollTop = asm.scrollHeight;
     const formula = document.getElementById('shell-formula');
+    const asm = document.getElementById('shell-assumptions');
     const caveat = document.getElementById('shell-caveat');
-    const fr = formula?.getBoundingClientRect();
-    const cr = caveat?.getBoundingClientRect();
-    const cs = caveat ? getComputedStyle(caveat) : null;
-    const lineH = parseFloat(cs?.lineHeight) || 16;
-    const lines = cr && lineH ? Math.round(cr.height / lineH) : 0;
-    const overlap = !!(fr && cr && cr.height > 8 && fr.bottom > cr.top + 1 && fr.top < cr.bottom - 1);
-    const endInBox = !!(asm && asm.scrollTop + asm.clientHeight >= asm.scrollHeight - 2);
+    const shellText = document.getElementById('model-shell')?.innerText || '';
     return {
       formula: formula?.textContent || '',
-      assumption: asm?.textContent || '',
-      caveat: caveat?.textContent || '',
-      endInBox,
-      overlap,
-      lines,
+      hasAsmEl: !!asm,
+      hasCaveatEl: !!caveat,
+      assumptionText: /Assumptions/.test(shellText),
+      formulaHan: /[\u4e00-\u9fff]/.test(formula?.textContent || ''),
     };
   });
   if (!info.formula.startsWith(want.formulaPrefix)) {
     failures.push(`formula ${JSON.stringify(info.formula)}`);
   }
-  if (!info.assumption.includes(want.assumptionNeedle) || !info.endInBox) {
-    failures.push(`assumption ${JSON.stringify(info.assumption)}`);
-  }
-  if (info.caveat !== want.caveat) failures.push(`caveat ${JSON.stringify(info.caveat)}`);
-  if (info.overlap) failures.push('formula covers caveat');
-  if (info.lines < 1 || info.lines > 2) failures.push(`caveat lines ${info.lines} (want 1..2)`);
+  if (info.formulaHan) failures.push(`formula still has Han (${info.formula})`);
+  if (info.hasAsmEl || info.assumptionText) failures.push('assumption strip still on the shell');
+  if (info.hasCaveatEl) failures.push('caveat strip still on the shell');
   console.log('pages check', hash, {
     formulaOk: info.formula.startsWith(want.formulaPrefix),
-    assumptionOk: info.assumption.includes(want.assumptionNeedle),
-    caveat: info.caveat,
-    lines: info.lines,
+    stripsOff: !info.hasAsmEl && !info.hasCaveatEl && !info.assumptionText,
   });
 
   // Microscope shell smoke: CSS fingerprint + isolated chrome

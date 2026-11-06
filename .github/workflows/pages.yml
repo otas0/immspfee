@@ -116,6 +116,6 @@ jobs:
                 title: ok ? `Pages neutron strip ok (${short})` : `Pages neutron strip failed (${short})`,
                 summary: ok
                   ? `Deployed ?v=${short}&lang=en matches the local narrow strip.`
-                  : `See the pages-check job log for formula / assumption / caveat mismatches.`,
+                  : `See the pages-check job log for formula / strip / microscope mismatches.`,
               },
             });

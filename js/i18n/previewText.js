@@ -1,5 +1,7 @@
 import { STRINGS } from './strings.js';
-import { ensureGlyphRows, translateCatalogText } from './catalogText.js';
+import { ensureGlyphRows, translateCatalogText, hydrateGlyphRows } from './catalogText.js';
+import { ROWS } from './glyphRows.js';
+hydrateGlyphRows(ROWS);
 
 function lookup(locale, key, vars) {
   const table = STRINGS[locale] || STRINGS.en;
