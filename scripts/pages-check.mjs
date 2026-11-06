@@ -142,6 +142,21 @@ const failures = [];
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  // Cold-boot EN formula: lexicon prefetch must clear Han without a second paint race.
+  try {
+    await page.waitForFunction(() => {
+      const f = document.getElementById('shell-formula')?.textContent || '';
+      return f.startsWith('Equation ') && !/[\u4e00-\u9fff]/.test(f);
+    }, null, { timeout: 15000 });
+  } catch {
+    const cold = await page.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
+    failures.push(`cold lang=en formula Han/race ${JSON.stringify(cold)}`);
+  }
+  const factoryOnCold = await page.evaluate(() => (
+    performance.getEntriesByType('resource').some((r) => /chunk-factory/i.test(r.name || ''))
+  ));
+  if (factoryOnCold) failures.push('cold boot pulled chunk-factory');
+
   await page.evaluate(() => window.__labCapture.switchModel('neutron-diffusion'));
   await page.waitForTimeout(500);
   const info = await page.evaluate(() => {
@@ -172,7 +187,18 @@ try {
   const microUrl = `${base}?shell=lab-microscope3d&lang=en&v=${hash}`;
   await page.goto(microUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await page.evaluate(() => {
+    if (document.documentElement.dataset.shell !== 'lab-microscope3d') {
+      window.__labCapture.enterMicroscope3d?.() || window.__labCapture.switchModel('r016-显微镜');
+    }
+  });
   await page.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d', null, { timeout: 30000 });
+  await page.waitForFunction(() => {
+    const chrome = document.getElementById('microscope-chrome');
+    const stage = document.getElementById('micro-stage');
+    return chrome && !chrome.hidden && stage && !stage.hidden
+      && document.documentElement.dataset.stageMode === 'webgl3d';
+  }, null, { timeout: 30000 });
   const micro = await page.evaluate(() => {
     const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.getAttribute('href') || '');
     const css = links.find((h) => h.includes('microscope-shell.css')) || '';
@@ -200,10 +226,18 @@ try {
   if (micro.metrics.join(',') !== 'M,f_obj,NA,d_Abbe') failures.push(`micro metrics ${micro.metrics.join(',')}`);
   if (micro.benchDisplay !== 'none') failures.push(`Pages micro bench ${micro.benchDisplay}`);
   if (micro.hudDisplay !== 'none') failures.push(`Pages micro HUD ${micro.hudDisplay}`);
+  const microLambda = await page.evaluate(() => document.getElementById('micro-lambda')?.textContent || '');
+  if (!/\d+\s*nm/.test(microLambda)) failures.push(`Pages micro λ ${JSON.stringify(microLambda)}`);
+  const microRailOpen = await page.evaluate(() => (
+    document.getElementById('micro-rail')?.classList.contains('is-open') || false
+  ));
+  if (microRailOpen) failures.push('Pages 390 micro rail should start closed');
   console.log('pages microscope smoke', hash, {
     css: micro.css,
     stageMode: micro.stageMode,
     metrics: micro.metrics.join(','),
+    lambda: microLambda,
+    railOpen: microRailOpen,
   });
   try {
     const { mkdirSync, appendFileSync, writeFileSync, readFileSync, existsSync } = await import('node:fs');

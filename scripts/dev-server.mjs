@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * 静态站 + POST /__shots/:name 写入 shots/（供浏览器同域抓纯画布 PNG）
+ * Static lab server + POST /__shots/:name for same-origin canvas PNG capture.
+ * Single-instance: refuses to bind when .lab-server.pid already points at a live process
+ * on the same PORT (avoids “fake service” after SIGKILL/SIGTERM races).
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -12,6 +14,60 @@ import {
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8765);
+const pidPath = path.join(root, '.lab-server.pid');
+
+function pidAlive(pid) {
+  if (!Number.isFinite(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readPidFile() {
+  try {
+    const raw = fs.readFileSync(pidPath, 'utf8').trim();
+    const [pidStr, portStr] = raw.split(/[\s:]+/);
+    return { pid: Number(pidStr), port: Number(portStr || port) };
+  } catch {
+    return null;
+  }
+}
+
+function acquirePidLock() {
+  const existing = readPidFile();
+  if (existing && existing.port === port && pidAlive(existing.pid) && existing.pid !== process.pid) {
+    console.error(
+      `lab server already running pid=${existing.pid} port=${existing.port} (${pidPath}). `
+      + 'Stop it first, or set PORT to another value.',
+    );
+    process.exit(1);
+  }
+  try { fs.unlinkSync(pidPath); } catch { /* ignore */ }
+  fs.writeFileSync(pidPath, `${process.pid} ${port}\n`);
+}
+
+function releasePidLock() {
+  try {
+    const cur = readPidFile();
+    if (!cur || cur.pid === process.pid) fs.unlinkSync(pidPath);
+  } catch { /* ignore */ }
+}
+
+acquirePidLock();
+// Ignore SIGHUP so a closing launcher shell (agent / nohup) does not kill the
+// lab mid-Playwright. SIGINT / SIGTERM still release the pid lock and exit.
+try { process.on('SIGHUP', () => {}); } catch { /* ignore */ }
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    releasePidLock();
+    process.exit(0);
+  });
+}
+process.on('exit', releasePidLock);
+
 const catalog = readCatalog(root);
 const domains = new Set(catalog.map((spec) => spec.domain || '其他'));
 const shots = path.join(root, 'shots');
@@ -120,6 +176,7 @@ const server = http.createServer(async (req, res) => {
 
 server.on('error', (err) => {
   console.error('server error', err);
+  releasePidLock();
   process.exit(1);
 });
 
@@ -129,5 +186,5 @@ process.on('uncaughtException', (err) => {
 
 const host = process.env.HOST || '0.0.0.0';
 server.listen(port, host, () => {
-  console.log(`physics-demo http://127.0.0.1:${port} (bind ${host})`);
+  console.log(`physics-demo http://127.0.0.1:${port} (bind ${host}) pid=${process.pid}`);
 });

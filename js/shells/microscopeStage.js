@@ -48,7 +48,6 @@ export function createMicroscopeStage(api) {
     stage.className = 'micro-stage';
     stage.hidden = true;
     stage.innerHTML = `
-      <div class="micro-oil" aria-hidden="true"></div>
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
@@ -77,6 +76,13 @@ export function createMicroscopeStage(api) {
             <output id="micro-na-out">0.25</output>
           </div>
           <span class="micro-cap" id="micro-na-cap"></span>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Wavelength λ</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-lambda-in" min="400" max="700" step="1" />
+            <output id="micro-lambda">550 nm</output>
+          </div>
         </label>
         <div class="micro-field">
           <span class="micro-field-label">Immersion</span>
@@ -175,6 +181,14 @@ export function createMicroscopeStage(api) {
       paint();
       api.onChange();
     });
+    const lambdaIn = stage.querySelector('#micro-lambda-in');
+    lambdaIn?.addEventListener('input', () => {
+      const state = api.getState();
+      if (!state?.params) return;
+      state.params.lambda_nm = Number(lambdaIn.value);
+      paint();
+      api.onChange();
+    });
     return stage;
   }
 
@@ -211,6 +225,10 @@ export function createMicroscopeStage(api) {
     }
     if (naOut) naOut.textContent = formatNum(o.NA, 3);
     if (naCap) naCap.textContent = `cap ${formatNum(o.NAcap, 3)} · n=${formatNum(o.n, 3)}`;
+    const lambdaIn = stage.querySelector('#micro-lambda-in');
+    const lambdaOut = stage.querySelector('#micro-lambda');
+    if (lambdaIn) lambdaIn.value = String(Math.round(o.lambdaNm));
+    if (lambdaOut) lambdaOut.textContent = `${formatNum(o.lambdaNm, 0)} nm`;
     const note = stage.querySelector('#micro-imm-note');
     if (note) {
       note.textContent = o.immersion

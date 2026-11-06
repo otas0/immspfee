@@ -239,7 +239,8 @@ const interaction = await page.evaluate(async () => {
       const toast = document.getElementById('lab-toast');
       const toastTxt = toast?.textContent || '';
       const p = cap.getParams?.() || cap.getState?.()?.params || {};
-      const layoutPass = Number(p.layoutSteps) === 12 && /布局已重算/.test(toastTxt);
+      const layoutPass = Number(p.layoutSteps) === 12
+        && /(Layout recomputed|布局已重算)/.test(toastTxt);
       check('layoutSteps-reinit', layoutPass, `layoutSteps=${p.layoutSteps} toast=${toastTxt}`);
     } else {
       check('layoutSteps-reinit', false, 'dijkstra missing layoutSteps');

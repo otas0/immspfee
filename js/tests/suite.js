@@ -293,26 +293,7 @@ export function runSuite() {
           && !!na0,
         `M0=${m0} M1=${m1} nOil=${nOil}`,
       );
-      const turret = { params: { ...compoundMicroscope.params } };
-      compoundMicroscope.init(turret);
       const ctx = new Proxy({}, { get: () => () => {}, set: () => true });
-      compoundMicroscope.draw(ctx, turret, { width: 800, height: 600 });
-      const hit = turret._layout?.hits?.find((h) => h.kind === 'obj' && h.index === 2);
-      const before = compoundMicroscope.getReadouts(turret, { digits: 3 });
-      const clicked = hit && compoundMicroscope.onPointer(turret, {
-        type: 'down', x: hit.x + hit.w / 2, y: hit.y + hit.h / 2,
-      });
-      const after = compoundMicroscope.getReadouts(turret, { digits: 3 });
-      assert(
-        '物镜转盘 10×→40× 锁定 f_obj 与 M',
-        !!clicked
-          && before.find((x) => x.label === 'f_obj')?.value === '16.000 mm'
-          && before.find((x) => x.label === 'M')?.value === '-100.000×'
-          && after.find((x) => x.label === 'f_obj')?.value === '4.000 mm'
-          && after.find((x) => x.label === 'M')?.value === '-400.000×',
-        `before ${before.find((x) => x.label === 'M')?.value} after ${after.find((x) => x.label === 'M')?.value} f ${after.find((x) => x.label === 'f_obj')?.value}`,
-      );
-
       const clickObj = (index) => {
         const state = { params: { ...compoundMicroscope.params } };
         compoundMicroscope.init(state);
@@ -323,21 +304,33 @@ export function runSuite() {
         });
         return { ok: !!okClick, readouts: compoundMicroscope.getReadouts(state, { digits: 3 }) };
       };
-      const at4 = clickObj(0);
+      // One table locks every common turret stop (default 10× plus 4× / 40× / 100×).
+      const TURRET = [
+        { index: 0, mag: '4×', f: '40.000 mm', M: '-40.000×' },
+        { index: 1, mag: '10×', f: '16.000 mm', M: '-100.000×' },
+        { index: 2, mag: '40×', f: '4.000 mm', M: '-400.000×' },
+        { index: 3, mag: '100×', f: '1.600 mm', M: '-1000.000×' },
+      ];
+      for (const row of TURRET) {
+        const hit = clickObj(row.index);
+        assert(
+          `物镜转盘 ${row.mag} 锁定 f_obj 与 M`,
+          hit.ok
+            && hit.readouts.find((x) => x.label === 'f_obj')?.value === row.f
+            && hit.readouts.find((x) => x.label === 'M')?.value === row.M,
+          `f ${hit.readouts.find((x) => x.label === 'f_obj')?.value} M ${hit.readouts.find((x) => x.label === 'M')?.value}`,
+        );
+      }
+      const at10 = clickObj(1);
+      const at40 = clickObj(2);
       assert(
-        '物镜转盘 4× 锁定 f_obj 与 M',
-        at4.ok
-          && at4.readouts.find((x) => x.label === 'f_obj')?.value === '40.000 mm'
-          && at4.readouts.find((x) => x.label === 'M')?.value === '-40.000×',
-        `f ${at4.readouts.find((x) => x.label === 'f_obj')?.value} M ${at4.readouts.find((x) => x.label === 'M')?.value}`,
-      );
-      const at100 = clickObj(3);
-      assert(
-        '物镜转盘 100× 锁定 f_obj 与 M',
-        at100.ok
-          && at100.readouts.find((x) => x.label === 'f_obj')?.value === '1.600 mm'
-          && at100.readouts.find((x) => x.label === 'M')?.value === '-1000.000×',
-        `f ${at100.readouts.find((x) => x.label === 'f_obj')?.value} M ${at100.readouts.find((x) => x.label === 'M')?.value}`,
+        '物镜转盘 10×→40× 锁定 f_obj 与 M',
+        at10.ok && at40.ok
+          && at10.readouts.find((x) => x.label === 'f_obj')?.value === '16.000 mm'
+          && at10.readouts.find((x) => x.label === 'M')?.value === '-100.000×'
+          && at40.readouts.find((x) => x.label === 'f_obj')?.value === '4.000 mm'
+          && at40.readouts.find((x) => x.label === 'M')?.value === '-400.000×',
+        `10× ${at10.readouts.find((x) => x.label === 'M')?.value} 40× ${at40.readouts.find((x) => x.label === 'M')?.value}`,
       );
     }
   }

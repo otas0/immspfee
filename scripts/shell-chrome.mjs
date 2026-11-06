@@ -167,6 +167,16 @@ for (const [w, h, dsf, shell] of dprCases) {
 }
 
 const desk = await openPage({ width: 1440, height: 900 }, 1, 'lab-classic');
+{
+  const factoryCold = await desk.evaluate(() => (
+    performance.getEntriesByType('resource').some((r) => /chunk-factory/i.test(r.name || ''))
+  ));
+  if (factoryCold) fail('cold boot pulled chunk-factory before a subject opened');
+  const coldFormula = await desk.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
+  if (coldFormula && /[\u4e00-\u9fff]/.test(coldFormula)) {
+    fail(`cold lang=en formula still has Han ${JSON.stringify(coldFormula)}`);
+  }
+}
 await setShell(desk, 'lab-projector');
 const closedLabel = await desk.locator('#btn-menu').getAttribute('aria-label');
 if (closedLabel !== 'Open model list') fail(`menu label when closed: ${closedLabel}`);
@@ -287,12 +297,12 @@ if (exclusive.metrics.join(',') !== 'M,f_obj,NA,d_Abbe') {
 if (exclusive.railLabels.some((l) => /speed|time|dt|trail/i.test(l))) {
   fail(`optical rail leaked catalog keys ${exclusive.railLabels.join('|')}`);
 }
-const wantRail = ['Objective', 'Eyepiece', 'Tube length L', 'NA', 'Immersion'];
+const wantRail = ['Objective', 'Eyepiece', 'Tube length L', 'NA', 'Wavelength λ', 'Immersion'];
 if (wantRail.some((l) => !exclusive.railLabels.includes(l))) {
   fail(`optical rail missing keys ${exclusive.railLabels.join('|')}`);
 }
 const lambdaOut = await desk.evaluate(() => document.getElementById('micro-lambda')?.textContent || '');
-if (!/\d+\s*nm/.test(lambdaOut)) console.warn(`optical rail λ missing ${lambdaOut}`);
+if (!/\d+\s*nm/.test(lambdaOut)) fail(`optical rail λ missing ${lambdaOut}`);
 
 if (!exclusive.cssHref.includes('microscope-shell.css')) {
   fail(`microscope CSS fingerprint missing (${exclusive.cssHref})`);
@@ -366,8 +376,33 @@ if (names.checked && names.leak > names.checked * 0.25) {
   fail(`${names.leak}/${names.checked} English names did not replace the catalog source`);
 }
 
-// Same path as a catalog-row click: switchModel → microUi.onModelChange → enterMicroscopeShell.
+// Catalog r016 stays 2D; the isolated 3D strip / capture API enters WebGL.
 await desk.evaluate(() => window.__labCapture.switchModel('r016-显微镜'));
+await desk.waitForFunction(() => window.__labCapture.getModelId?.() === 'r016-显微镜', null, { timeout: 20000 });
+const stayed2d = await desk.evaluate(() => ({
+  shell: document.documentElement.dataset.shell,
+  stageMode: document.documentElement.dataset.stageMode,
+  inputMode: document.documentElement.dataset.inputMode || 'lab',
+}));
+if (stayed2d.shell === 'lab-microscope3d' || stayed2d.stageMode === 'webgl3d') {
+  fail(`catalog r016 must stay 2D ${JSON.stringify(stayed2d)}`);
+}
+const strip = await desk.evaluate(() => {
+  const btn = document.getElementById('btn-micro3d-entry');
+  const stripEl = document.querySelector('.micro3d-strip');
+  const domains = document.querySelector('.domain-group');
+  const btnTop = btn?.getBoundingClientRect().top ?? 0;
+  const domainTop = domains?.getBoundingClientRect().top ?? 0;
+  return {
+    hasBtn: !!btn,
+    hasStrip: !!stripEl,
+    aboveDomains: !!(btn && domains && btnTop < domainTop - 4),
+    label: btn?.querySelector('.name')?.textContent?.trim() || '',
+  };
+});
+if (!strip.hasBtn || !strip.hasStrip) fail(`3D strip missing ${JSON.stringify(strip)}`);
+if (!strip.aboveDomains) fail(`3D strip must sit above domain folds ${JSON.stringify(strip)}`);
+await desk.evaluate(() => window.__labCapture.enterMicroscope3d());
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
 const clickedIn = await desk.evaluate(() => ({
@@ -377,7 +412,7 @@ const clickedIn = await desk.evaluate(() => ({
   inputMode: document.documentElement.dataset.inputMode || 'lab',
 }));
 if (clickedIn.shell !== 'lab-microscope3d' || !clickedIn.chrome || clickedIn.side !== 'none') {
-  fail(`selecting the microscope did not enter the dedicated shell ${JSON.stringify(clickedIn)}`);
+  fail(`3D strip did not enter the dedicated shell ${JSON.stringify(clickedIn)}`);
 }
 if (clickedIn.inputMode !== 'microscope') {
   fail(`microscope inputMode ${clickedIn.inputMode}`);
@@ -406,7 +441,7 @@ const escLeft = await desk.evaluate(() => ({
 if (escLeft.shell !== 'lab-classic' || escLeft.sideOpen) fail(`second Esc exit ${JSON.stringify(escLeft)}`);
 if (escLeft.inputMode !== 'lab') fail(`inputMode after Esc exit ${escLeft.inputMode}`);
 // re-enter for remaining tests
-await desk.evaluate(() => window.__labCapture.switchModel('r016-显微镜'));
+await desk.evaluate(() => window.__labCapture.enterMicroscope3d());
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
 
 await desk.keyboard.press('Meta+z');
@@ -419,10 +454,46 @@ const afterUndo = await desk.evaluate(() => ({
 if (/撤销|重做|undo|redo/i.test(afterUndo.toast) || afterUndo.sideOpen) {
   fail(`catalog shortcut leaked into microscope ${JSON.stringify(afterUndo)}`);
 }
+const beforeNav = await desk.evaluate(() => window.__labCapture.getModelId?.() || '');
+await desk.keyboard.press('ArrowDown');
+await desk.keyboard.press('j');
+await desk.mouse.wheel(0, 1200);
+const afterNav = await desk.evaluate(() => ({
+  id: window.__labCapture.getModelId?.() || '',
+  shell: document.documentElement.dataset.shell,
+  inputMode: document.documentElement.dataset.inputMode || '',
+}));
+if (afterNav.id !== beforeNav || afterNav.shell !== 'lab-microscope3d' || afterNav.inputMode !== 'microscope') {
+  fail(`microscope inputMode leaked catalog nav ${JSON.stringify({ beforeNav, afterNav })}`);
+}
 await desk.click('#btn-micro-exit');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
 const leftMode = await desk.evaluate(() => document.documentElement.dataset.inputMode || 'lab');
 if (leftMode !== 'lab') fail(`inputMode after exit ${leftMode}`);
+
+// Shell cycle: microscope ↔ classic/focus/projector must not leave chrome/CSS leaks.
+for (const id of ['lab-focus', 'lab-projector', 'lab-microscope3d', 'lab-classic']) {
+  await setShell(desk, id);
+  await desk.waitForFunction((shellId) => document.documentElement.dataset.shell === shellId, id);
+}
+const cycleLeak = await desk.evaluate(() => ({
+  shell: document.documentElement.dataset.shell,
+  inputMode: document.documentElement.dataset.inputMode || 'lab',
+  microActive: document.documentElement.classList.contains('shell-micro-active'),
+  chromeHidden: !!document.getElementById('microscope-chrome')?.hidden,
+  stageHidden: document.getElementById('micro-stage') ? !!document.getElementById('micro-stage').hidden : true,
+  microRoot: document.documentElement.classList.contains('shell-lab-microscope3d'),
+}));
+if (
+  cycleLeak.shell !== 'lab-classic'
+  || cycleLeak.inputMode !== 'lab'
+  || cycleLeak.microActive
+  || !cycleLeak.chromeHidden
+  || !cycleLeak.stageHidden
+  || cycleLeak.microRoot
+) {
+  fail(`shell cycle leaked microscope chrome ${JSON.stringify(cycleLeak)}`);
+}
 
 await desk.click('#btn-user-model');
 await desk.waitForSelector('#user-model-dialog[open]');
@@ -784,7 +855,7 @@ const narrowMicro = await microNarrow.evaluate(() => {
     css: [...document.styleSheets].some((sheet) => (sheet.href || '').includes('microscope-shell.css')),
   };
 });
-if (narrowMicro.railOpen) console.warn(`390 micro rail should start closed ${JSON.stringify(narrowMicro)}`);
+if (narrowMicro.railOpen) fail(`390 micro rail should start closed ${JSON.stringify(narrowMicro)}`);
 if (narrowMicro.metrics.join(',') !== 'M,f_obj,NA,d_Abbe') fail(`390 micro metrics ${narrowMicro.metrics.join(',')}`);
 if (narrowMicro.brandOverWebgl) fail(`390 micro brand overlaps WebGL ${JSON.stringify(narrowMicro)}`);
 if (narrowMicro.brandOverRail) fail(`390 micro brand overlaps rail ${JSON.stringify(narrowMicro)}`);

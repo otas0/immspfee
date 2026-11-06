@@ -11,6 +11,10 @@ import { fileURLToPath } from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outdir = path.join(root, 'js/bundle');
 fs.mkdirSync(outdir, { recursive: true });
+// Drop stale hashed chunks so git / Pages never serve an orphan import graph.
+for (const name of fs.readdirSync(outdir)) {
+  fs.unlinkSync(path.join(outdir, name));
+}
 
 const entrySrc = fs.readFileSync(path.join(root, 'js/entry.js'), 'utf8');
 const loadsBundle = /import\s*\([^)]*bundle\/lab\.js/.test(entrySrc) || entrySrc.includes('./bundle/lab.js');

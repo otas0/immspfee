@@ -39,7 +39,8 @@ async function openModel(id) {
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
   await page.evaluate(() => { window.__fillTexts = []; });
   await page.evaluate((mid) => window.__labCapture.switchModel(mid), id);
-  await page.waitForTimeout(400);
+  await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, id, { timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(200);
   // focusCatalogModel may auto-open the mobile drawer; closed-layout checks need it shut.
   await page.evaluate(() => {
     const side = document.getElementById('sidebar');
@@ -50,6 +51,12 @@ async function openModel(id) {
 
 for (const [id, file] of layout) {
   await openModel(id);
+  if (id === 'neutron-diffusion') {
+    const formula = await page.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
+    if (!formula.startsWith('Equation ') || /[\u4e00-\u9fff]/.test(formula)) {
+      failures.push(`lang=en formula Han/race on ${id}: ${JSON.stringify(formula)}`);
+    }
+  }
   const info = await page.evaluate(() => {
     const bench = document.getElementById('bench');
     const formula = document.getElementById('shell-formula');

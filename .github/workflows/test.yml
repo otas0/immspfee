@@ -49,9 +49,21 @@ jobs:
           if [ -n "$key" ]; then
             echo "::error title=glyphRows.js drift::first key $key — regenerate with npm run gen:glyphs and commit js/i18n/glyphRows.js"
           fi
+          if grep -qE 'tick still reads params\.t|missing hall\(\)|missing quantumHall\(\)' artifacts/npm-test.log 2>/dev/null; then
+            echo "::error title=Hall / quantumHall gate::topicModel hall() and quantumHall() must stay separate and must not read params.t / P(..., 't')"
+          fi
+
+      - name: Forbid on-stage assumption / caveat strips
+        run: node scripts/assert-no-stage-strips.mjs
+
+      - name: models-en zero Han leakage
+        run: node scripts/assert-models-en.mjs
 
       - name: Schema coverage report
         run: npm run report:schema
+
+      - name: Rebuild lab bundle for CI fingerprint
+        run: npm run build:bundle
 
       - name: Start lab server
         run: |
@@ -61,7 +73,7 @@ jobs:
       - name: Pot regression
         run: npm run test:pot
 
-      - name: Narrow-screen formula and caveat regression
+      - name: Narrow-screen formula regression
         run: npm run test:narrow
 
 

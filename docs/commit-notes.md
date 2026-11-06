@@ -24,5 +24,19 @@ assumption/caveat strips and undone cold-boot folded domains — rejected agains
 `uchg` (user immutable) on `index.html` / related files caused
 `Operation not permitted` on unlink/write while two Cursor hosts ran
 (`extension-host Agents Window`, `extension-host immspfee-education`).
-Clear with `chflags nouchg <path>` (or `chflags -R nouchg .` in the repo).
-Do not set `uchg` from agents; close the extra Agents Window when racing the lab tree.
+
+**Do not set `uchg` on any lab file from agents or shell helpers.** Prefer
+ordinary file locks / closing the second Agents Window over macOS flags.
+
+When a write fails with `Operation not permitted`:
+
+```bash
+# one path
+chflags nouchg path/to/file
+
+# or clear the whole tree (last resort)
+chflags -R nouchg .
+```
+
+Also stop a stale lab server via `.lab-server.pid` before starting another
+(`scripts/dev-server.mjs` refuses a second bind on the same PORT).

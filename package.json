@@ -15,6 +15,8 @@
     "test:boot": "node scripts/boot-reload.mjs && node scripts/sw-cache.mjs && node scripts/boot-follow.mjs",
     "test:boot-timing": "node scripts/boot-timing.mjs",
     "test:pages": "node scripts/pages-check.mjs",
+    "assert:stage-strips": "node scripts/assert-no-stage-strips.mjs",
+    "assert:models-en": "node scripts/assert-models-en.mjs",
     "report:schema": "node scripts/schema-coverage.mjs",
     "stamp:authority": "node scripts/stamp-authority.mjs",
     "sync:authority": "node scripts/sync-runtime-authority.mjs",

@@ -154,6 +154,35 @@ export function runLab12() {
     const got = translateCatalogText('en', zh);
     assert(`${zh} 译成 ${en}`, got === en, got);
   }
+  const phraseLocales = {
+    集总参数: {
+      ja: 'しゅうそうパラメータである',
+      ko: '집중 매개변수',
+      es: 'parámetro concentrado',
+      fr: 'paramètre localisé',
+      de: 'konzentrierter Parameter',
+    },
+    稳态阶跃响应: {
+      ja: 'ていじょうステップ応答である',
+      ko: '정상상태 계단응답',
+      es: 'respuesta al escalón en régimen',
+      fr: 'réponse indicielle en régime',
+      de: 'Beharrungs-Sprungantwort',
+    },
+    有限差分格式: {
+      ja: 'ゆうげんさぶんスキームである',
+      ko: '유한차분 형식',
+      es: 'esquema de diferencias finitas',
+      fr: 'schéma aux différences finies',
+      de: 'Finite-Differenzen-Schema',
+    },
+  };
+  for (const [zh, byLoc] of Object.entries(phraseLocales)) {
+    for (const [loc, want] of Object.entries(byLoc)) {
+      const got = translateCatalogText(loc, zh);
+      assert(`${zh} ${loc} gloss`, got === want, got);
+    }
+  }
 
   function assertHallThickness(id, { quantum = false } = {}) {
     const hall = byId(id);
@@ -193,6 +222,8 @@ export function runLab12() {
     && !Object.prototype.hasOwnProperty.call(irr.paramSchema || {}, 't')
     && irr.paramSchema?.A?.label === '面积 A'
     && irr.paramSchema?.d?.label === '水深 d'
+    && !/深度/.test(irr.paramSchema?.d?.label || '')
+    && !/深度/.test(irr.paramSchema?.A?.label || '')
     && irrClock
     && Math.abs(irrRead - irrQ) < 1e-9, `${irr?.paramSchema?.A?.label}/${irr?.paramSchema?.d?.label} Q=${irrRead}`);
   const irrHalf = irr ? boot(irr, { duration: 1800 }) : null;

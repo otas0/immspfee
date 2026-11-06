@@ -2611,7 +2611,7 @@ function irrigation(spec) {
   return shell(spec, {
     equation: 'Q = A d / t',
     authority: '灌溉水量平衡（体积 = 面积 × 水深）',
-    assumptions: '均匀灌水深度、无损失',
+    assumptions: '均匀灌水深、无损失；不是渠道设计工具',
     params: { A: 1000, d: 0.03, duration: 3600 },
     schema: {
       A: S('面积 A', 'dynamics', 'm²', 10, 1e5),

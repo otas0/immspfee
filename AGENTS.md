@@ -15,3 +15,15 @@
 ## Parallel agents / file locks
 
 Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
+
+## Lab bundle (`js/bundle/`)
+
+- Directory dirt is gitignored; **track `lab.js`, `chunk-*.js`, and `meta.json`**. Chunk filenames already carry a content hash (`chunk-[name]-[hash].js`), so bare relative imports stay cache-safe without `?v=`.
+- `build:bundle` wipes the folder first so orphan hashed chunks cannot linger.
+- Before every push that touches `js/main.js`, shells, models, or i18n: run `npm run build:bundle`, commit the new `js/bundle/*` outputs, then refresh stamps (`prepare-site` on Pages, or rewrite `index.html` / `asset-stamp.json` locally).
+- `asset-stamp.json` / `index.html` `imm-js` use `entryStamp(entry.js + lab.js)` — HTML and the entry module share one deploy stamp. Entry also exposes `window.__LAB_ASSET_V` and stamps dynamic relative URLs via `stampedUrl()`.
+- CI rebuilds the bundle before the `focusCatalogModel` fingerprint check so Pages and `test.yml` cannot drift silently.
+
+## Dev server
+
+`node scripts/dev-server.mjs` writes `.lab-server.pid` (port + pid). A second instance on the same `PORT` exits instead of binding a zombie listener after SIGKILL/SIGTERM races.

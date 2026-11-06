@@ -18,6 +18,8 @@
   --radius-sm: 6px;
   --sidebar-w: 240px;
   --bench-w: 320px;
+  /* Projector overlay clears the stage toolbar so #btn-menu stays clickable */
+  --projector-overlay-top: 3.25rem;
   --font-display: "Sora", "Noto Sans SC", sans-serif;
   --font-body: "Sora", "Noto Sans SC", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -410,6 +412,79 @@ html.hc .domain-group .domain-count {
   .user-model-grid { grid-template-columns: 1fr; }
   .user-model-grid .span-2 { grid-column: auto; }
 }
+/* Isolated 3D stage entry — above every domain fold, never inside 物理/光学. */
+.micro3d-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.45rem 0.15rem 0.65rem;
+  padding: 0.55rem 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+}
+.micro3d-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.micro3d-entry {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--panel);
+  font: 600 0.78rem/1.25 var(--font-display);
+  letter-spacing: -0.02em;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.micro3d-entry .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.micro3d-entry .tags {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.micro3d-entry .tag {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 0.12rem 0.35rem;
+  color: inherit;
+}
+.micro3d-entry:hover {
+  filter: brightness(1.08);
+}
+.micro3d-entry.is-active {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+html.hc .micro3d-entry {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+html.hc .micro3d-entry .tag {
+  border-color: rgba(0, 0, 0, 0.35);
+}
+
 .recents-strip {
   display: flex;
   flex-wrap: wrap;
@@ -1934,7 +2009,7 @@ html.shell-lab-projector .icon-btn.ghost,
   position: fixed;
   left: 0;
   /* Clear the stage toolbar so #btn-menu stays clickable above the catalog */
-  top: 3.25rem;
+  top: var(--projector-overlay-top);
   bottom: 0;
   width: min(280px, 86vw);
   z-index: 40;

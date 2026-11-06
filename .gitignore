@@ -6,4 +6,11 @@ shots/shell-*.png
 shots/diff/
 artifacts/
 *.log
-js/bundle/
+# Local esbuild dirt; tracked outputs are allowlisted below (content-hashed chunks).
+js/bundle/*
+!js/bundle/lab.js
+!js/bundle/chunk-*.js
+!js/bundle/meta.json
+.lab-server.pid
+scripts/.narrow-regression.mjs.*
+scripts/narrow-batch.mjs

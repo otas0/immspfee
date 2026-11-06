@@ -92,7 +92,8 @@ export function createMicroscopeChrome(api) {
       api.setBenchOpen(false);
       stage.ensureDom();
       stage.setVisible(true);
-      stage.setRailOpen(true);
+      // Cold enter keeps the optical rail closed (esp. 390); open via Params.
+      stage.setRailOpen(false);
       stage.paint();
     } else {
       stage.setRailOpen(false);
@@ -153,13 +154,13 @@ export function createMicroscopeChrome(api) {
 
   function onModelChange(modelId) {
     if (lock) return;
-    if (modelId === MICROSCOPE_MODEL_ID && api.getActiveShellId() !== MICROSCOPE_SHELL_ID) {
-      enter({ skipModel: true });
-    } else if (modelId !== MICROSCOPE_MODEL_ID && api.getActiveShellId() === MICROSCOPE_SHELL_ID) {
+    // Catalog row for r016 stays 2D Lab Classic. Only the separated sidebar
+    // 3D entry / ?shell=lab-microscope3d / applyShellId enter the WebGL shell.
+    if (modelId !== MICROSCOPE_MODEL_ID && api.getActiveShellId() === MICROSCOPE_SHELL_ID) {
       leave({ nextShell: 'lab-classic' });
-    } else {
-      sync(api.getActiveShellId() === MICROSCOPE_SHELL_ID);
+      return;
     }
+    sync(api.getActiveShellId() === MICROSCOPE_SHELL_ID);
   }
 
   function applyShellId(id) {
@@ -200,7 +201,25 @@ export function createMicroscopeChrome(api) {
       leave({ nextShell: 'lab-classic' });
       return true;
     }
+    // Catalog model cycling must not run under microscope inputMode.
+    if (
+      !e.target?.closest?.('input, textarea, select, #micro-rail')
+      && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'j', 'k', 'J', 'K', 'PageUp', 'PageDown'].includes(e.key)
+    ) {
+      e.preventDefault();
+      return true;
+    }
     return false;
+  }
+
+  function onWheel(e) {
+    if (api.getActiveShellId() !== MICROSCOPE_SHELL_ID) return;
+    // Allow scrolling the optical rail; block catalog-list / model-switch side effects.
+    if (e.target?.closest?.('#micro-rail')) return;
+    if (e.target?.closest?.('#model-list, #sidebar')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }
 
   function bind() {
@@ -220,6 +239,7 @@ export function createMicroscopeChrome(api) {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
       stage.toggleRail();
     });
+    document.addEventListener('wheel', onWheel, { capture: true, passive: false });
   }
 
   return {

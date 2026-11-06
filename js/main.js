@@ -125,13 +125,14 @@ const HOT_SUBS = new Set([
 /** URL: write `#m=<id>`; read hash then `?model=<id>`. URL beats localStorage on boot. */
 function readModelIdFromUrl() {
   try {
+    const q = new URLSearchParams(location.search);
+    const fromQuery = q.get('model') || q.get('narrow') || q.get('shot') || q.get('m');
+    if (fromQuery) return fromQuery;
     const hash = (location.hash || '').replace(/^#/, '');
     if (hash.includes('=')) {
       const m = new URLSearchParams(hash).get('m');
       if (m) return m;
     }
-    const q = new URLSearchParams(location.search).get('model');
-    if (q) return q;
     return null;
   } catch {
     return null;
@@ -154,6 +155,10 @@ function persistActiveModel(id) {
 }
 
 function resolveInitialModelId() {
+  // Exclusive shells (microscope) pin their model — do not fall through to free-fall
+  // after mountShellSelect already entered the shell.
+  const shellModel = getShell(resolveShellId())?.modelId;
+  if (shellModel) return shellModel;
   const candidates = [readModelIdFromUrl(), readModelIdFromStorage()];
   for (const id of candidates) {
     if (!id) continue;
@@ -362,7 +367,7 @@ function applyParamChange(key) {
     const kept = { ...app.state.params };
     app.state = { params: kept };
     app.model.init(app.state);
-    if (key === 'layoutSteps') showToast('布局已重算');
+    if (key === 'layoutSteps') showToast(t('toast.layoutRelayout'));
     else toastReinitThrottled();
   }
   // 死规则：改参后立即 refresh，保证 HUD/图在暂停时也立刻响应
@@ -884,6 +889,31 @@ function renderRecentsStrip() {
   return strip;
 }
 
+/** Isolated from domain folds — the only catalog path into lab-microscope3d. */
+function renderMicro3dStrip() {
+  const strip = document.createElement('div');
+  strip.className = 'micro3d-strip';
+  strip.setAttribute('aria-label', t('ui.micro3dSection'));
+  const kicker = document.createElement('span');
+  kicker.className = 'micro3d-kicker';
+  kicker.textContent = t('ui.micro3dSection');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'btn-micro3d-entry';
+  btn.className = 'micro3d-entry'
+    + (activeShellId === 'lab-microscope3d' ? ' is-active' : '');
+  btn.innerHTML = `<span class="name">${t('ui.micro3dEntry')}</span>`
+    + `<span class="tags"><span class="tag">WebGL</span></span>`;
+  btn.title = t('ui.micro3dLede');
+  if (activeShellId === 'lab-microscope3d') btn.setAttribute('aria-current', 'page');
+  btn.addEventListener('click', () => {
+    microUi?.enter?.();
+    setSidebarOpen(false);
+  });
+  strip.append(kicker, btn);
+  return strip;
+}
+
 function modelSub(m) {
   if (m.sub) return m.sub;
   const tags = m.tags || [];
@@ -976,6 +1006,8 @@ function paintSidebar() {
     announce('筛选已空');
   });
   modelListEl.appendChild(countEl);
+  // 3D stage entry sits above every domain fold — never mixed into 物理/光学.
+  modelListEl.appendChild(renderMicro3dStrip());
   if (foldBarEl) {
     foldBarEl.innerHTML = '';
     const btnExpand = document.createElement('button');
@@ -1024,7 +1056,8 @@ function paintSidebar() {
     details.className = 'domain-group';
     details.dataset.domain = domain;
     const dKey = foldKey(domain);
-    const wantOpen = searching || (folds[dKey] != null ? !!folds[dKey] : domain === '物理');
+    // Cold boot stays folded — opening a subject is what triggers loadDomain.
+    const wantOpen = searching || (folds[dKey] != null ? !!folds[dKey] : false);
     const sum = document.createElement('summary');
     sum.innerHTML = `<span class="domain-name" data-domain="${domain}">${domainLabel(domain)}</span><span class="domain-count">${count}</span>`;
     const body = document.createElement('div');
@@ -1948,7 +1981,11 @@ window.__labCapture = {
     paintFrame();
     return url;
   },
-  switchModel: (id) => switchModel(id),
+  // Fire-and-forget: Playwright page.evaluate awaits thenables; a hung ensureId
+  // must not pin the test runner forever — callers wait on UI / getModelId.
+  switchModel: (id) => { void Promise.resolve(switchModel(id)); },
+  enterMicroscope3d: () => { microUi?.enter?.(); },
+  getModelId: () => app.model?.id,
   loadDomain: (domain) => loadDomain(domain),
   pause: () => { if (!app.paused) { app.paused = true; syncPauseUi(); } },
   play: () => { if (app.paused) { app.paused = false; syncPauseUi(); } },
@@ -2120,7 +2157,7 @@ function fillShellSelectOptions(el, { microOnly = false } = {}) {
   }
   const current = activeShellId || resolveShellId();
   for (const s of listShells()) {
-    if (s.id === 'lab-microscope3d') continue; // enter only via r016 / ?shell=
+    if (s.id === 'lab-microscope3d') continue; // enter only via 3D strip / ?shell=
     const opt = document.createElement('option');
     opt.value = s.id;
     opt.textContent = s.label;
@@ -2212,7 +2249,8 @@ async function boot() {
       btn.classList.add('active');
       btn.setAttribute('aria-current', 'page');
     }
-    if (isMobileDrawer() && !isProjectorShell()) setSidebarOpen(true);
+    // Cold boot / focus must not auto-open the mobile drawer — menu stays the only opener.
+    // Microscope leave can call setSidebarOpen(true) explicitly when a reveal is wanted.
     const settle = () => {
       const current = modelListEl?.querySelector(`[data-id="${CSS.escape(id)}"]`);
       if (current) revealCatalogButton(current);
@@ -2329,9 +2367,15 @@ async function boot() {
   buildSidebar();
   await palettesReady;
   const fromUrl = readModelIdFromUrl();
+  const wantShell = resolveShellId();
+  const shellDef = getShell(wantShell);
   const initialId = resolveInitialModelId();
+  if (shellDef?.modelId) await ensureId(shellDef.modelId);
+  else if (initialId && initialId !== DEFAULT_MODEL_ID) await ensureId(initialId);
   switchModel(initialId);
-  if (fromUrl) {
+  // Re-enter exclusive shells after the catalog bind — boot must not strand chrome hidden.
+  if (shellDef?.modelId) microUi?.applyShellId(wantShell);
+  if (fromUrl && !shellDef?.modelId) {
     const activeRow = domainIndex.find((row) => row.id === fromUrl);
     if (activeRow) {
       await focusCatalogModel(fromUrl, { domain: activeRow.domain || '其他', sub: activeRow.sub || '' });

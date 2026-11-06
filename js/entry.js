@@ -1,6 +1,10 @@
 /**
  * First module. Paint the shell, preload the wanted subject, then load the lab bundle.
  * PERF: Pages must load ./bundle/lab.js — never ./main.js.
+ *
+ * Cache bust: the HTML boot script stamps entry.js?v=<entryStamp>. Relative imports
+ * do not inherit that query string — always append ?v= via stampedUrl() (and expose
+ * window.__LAB_ASSET_V for any late dynamic imports).
  */
 const canvas = document.getElementById('canvas');
 const wrap = document.querySelector('.canvas-wrap');
@@ -28,6 +32,17 @@ if (status) status.hidden = true;
 
 function mark(name) {
   try { performance.mark(name); } catch { /* ignore */ }
+}
+
+/** Propagate entry.js?v= onto relative module / fetch URLs (bare relatives stay cacheable forever). */
+const assetV = new URL(import.meta.url).searchParams.get('v') || '';
+window.__LAB_ASSET_V = assetV;
+function stampedUrl(rel) {
+  if (!assetV) return rel;
+  if (/[?&]v=/.test(rel)) return rel;
+  return rel.includes('?')
+    ? `${rel}&v=${encodeURIComponent(assetV)}`
+    : `${rel}?v=${encodeURIComponent(assetV)}`;
 }
 
 function wantedModelId() {
@@ -59,7 +74,7 @@ async function preloadCatalog() {
   } catch { /* ignore */ }
   const indexHref = stamp.domainIndex
     ? `./data/domain-index.json?v=${encodeURIComponent(stamp.domainIndex)}`
-    : './data/domain-index.json';
+    : stampedUrl('./data/domain-index.json');
   preloadLink(indexHref);
   const indexPromise = fetch(indexHref).then((r) => {
     if (!r.ok) throw new Error(String(r.status));
@@ -73,7 +88,7 @@ async function preloadCatalog() {
   if (!row?.domain) return indexPromise;
   const domainHref = stamp.domains?.[row.domain]
     ? `./data/domains/${encodeURIComponent(row.domain)}.json?v=${encodeURIComponent(stamp.domains[row.domain])}`
-    : `./data/domains/${encodeURIComponent(row.domain)}.json`;
+    : stampedUrl(`./data/domains/${encodeURIComponent(row.domain)}.json`);
   preloadLink(domainHref);
   window.__preloadedDomain = {
     domain: row.domain,
@@ -85,10 +100,7 @@ async function preloadCatalog() {
   return indexPromise;
 }
 
-const stamp = new URL(import.meta.url).searchParams.get('v');
-const labUrl = stamp
-  ? `./bundle/lab.js?v=${encodeURIComponent(stamp)}`
-  : './bundle/lab.js';
+const labUrl = stampedUrl('./bundle/lab.js');
 
 mark('boot-main-start');
 await Promise.all([
@@ -105,6 +117,7 @@ document.documentElement.dataset.boot = 'ready';
 if ('serviceWorker' in navigator && navigator.webdriver !== true) {
   // Default scope is the SW directory (…/immspfee/), not origin root — required on project Pages.
   const worker = new URL('../sw.js', import.meta.url);
+  if (assetV) worker.searchParams.set('v', assetV);
   navigator.serviceWorker.register(worker.href).then(() => navigator.serviceWorker.ready).then((reg) => {
     const urls = [...document.querySelectorAll('script[src], link[rel="stylesheet"][href]')]
       .map((el) => el.src || el.href);

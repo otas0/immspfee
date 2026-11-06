@@ -303,32 +303,8 @@ html.shell-lab-microscope3d .micro-cap {
   white-space: nowrap;
 }
 
-/* Oil film overlay — driven only by optics.immersion via data-immersion */
-html.shell-lab-microscope3d .micro-oil {
-  position: absolute;
-  left: 50%;
-  top: 58%;
-  width: min(28%, 160px);
-  aspect-ratio: 1.35 / 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50% 50% 48% 52%;
-  pointer-events: none;
-  opacity: 0;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(200, 230, 255, 0.55), transparent 45%),
-    radial-gradient(ellipse at 50% 60%, var(--micro-oil), transparent 70%);
-  filter: blur(0.5px);
-  transition: opacity 0.35s ease;
-  z-index: 2;
-}
+/* Oil film is WebGL-only (optics.immersion shader). */
 
-html.shell-lab-microscope3d .micro-stage[data-immersion="1"] .micro-oil {
-  opacity: 1;
-  animation: micro-oil-pulse 2.4s ease-in-out infinite;
-}
-
-@keyframes micro-oil-pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); filter: blur(0.4px); }
   50% { transform: translate(-50%, -52%) scale(1.06); filter: blur(1.1px); }
 }
 
