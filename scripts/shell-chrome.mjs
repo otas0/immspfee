@@ -30,7 +30,7 @@ function fail(msg) { failures.push(msg); }
 
 const webkitOnly = process.env.SHELL_WEBKIT_ONLY === '1';
 
-/** Optional macOS WebKit job — projector overlay only (no Chromium install). */
+/** Optional macOS WebKit job — projector overlay + microscope 390 (no Chromium install). */
 async function runWebkitProjectorProxy() {
   const { webkit } = await import('playwright');
   const wk = await webkit.launch({ headless: true });
@@ -51,6 +51,31 @@ async function runWebkitProjectorProxy() {
   const wkHit = await menuHitTest(wkPage);
   if (!wkHit.ok) fail(`WebKit projector menu not on top ${JSON.stringify(wkHit)}`);
   console.log('menuHitTest webkit ok', JSON.stringify(wkHit));
+
+  // Microscope 390 full-bleed + DPR cap under real WebKit.
+  await wkPage.setViewportSize({ width: 390, height: 844 });
+  await wkPage.goto(`${base}?shell=lab-microscope3d&lang=en&v=${encodeURIComponent(buildStamp)}&_=${Date.now()}`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await wkPage.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d', null, { timeout: 60000 });
+  await wkPage.waitForTimeout(500);
+  const micro = await wkPage.evaluate(() => {
+    const gl = document.getElementById('canvas-webgl');
+    return {
+      dprCap: Number(document.documentElement.dataset.dprCap) || 0,
+      cw: gl?.clientWidth || 0,
+      hidden: !!gl?.hidden,
+      shell: document.documentElement.dataset.shell,
+    };
+  });
+  await wkPage.screenshot({ path: join(shotsDir, 'shell-micro-390-webkit.png') });
+  if (micro.shell !== 'lab-microscope3d' || micro.hidden || micro.cw < 100) {
+    fail(`WebKit micro 390 webgl ${JSON.stringify(micro)}`);
+  }
+  if (!(micro.dprCap > 0 && micro.dprCap <= 1.75 + 1e-6)) {
+    fail(`WebKit micro dprCap ${micro.dprCap}`);
+  }
+  console.log('webkit micro 390 ok', JSON.stringify(micro));
   await wk.close();
 }
 

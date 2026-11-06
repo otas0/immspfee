@@ -11,6 +11,8 @@ import {
   isHeavyModel,
   isPhoneViewport,
   mobileBudget,
+  powerSaverEnabled,
+  setPowerSaver,
   viewportTier,
 } from './utils/mobilePerf.js';
 import { btnHtml, iconOnly, ICO } from './ui/icons.js';
@@ -70,6 +72,7 @@ const sidebar = document.getElementById('sidebar');
 const filterQ = document.getElementById('filter-q');
 const filterTag = document.getElementById('filter-tag');
 const filterFormalism = document.getElementById('filter-formalism');
+const filterHeavyBtn = document.getElementById('filter-heavy');
 const foldBarEl = document.getElementById('fold-bar');
 const btnUserModel = document.getElementById('btn-user-model');
 const userModelDialog = document.getElementById('user-model-dialog');
@@ -97,7 +100,7 @@ const app = {
   model: null,
   state: null,
   paused: false,
-  filter: { q: '', tag: '', formalism: '' },
+  filter: { q: '', tag: '', formalism: '', heavy: false },
   lastReadouts: [],
   globals: {
     timeScale: 1,
@@ -114,6 +117,7 @@ const app = {
     compareReadouts: false,
     pinBaseline: false,
     wideBounds: true,
+    powerSaver: false,
   },
 };
 
@@ -243,8 +247,10 @@ function createState(model) {
 
 function applyGlobals() {
   sanitizeGlobals(app.globals);
+  if (typeof app.globals.powerSaver === 'boolean') setPowerSaver(!!app.globals.powerSaver);
+  else app.globals.powerSaver = powerSaverEnabled();
   stepper.setFixedDt(app.globals.fixedDt);
-  // Compact viewports clamp substeps so heavy paints cannot stack 48×/frame.
+  // Compact viewports (and desktop power-saver) clamp substeps.
   const budget = mobileBudget();
   const steps = Math.min(Math.max(1, Number(app.globals.maxSubSteps) || 48), budget.maxSubSteps);
   stepper.setMaxSubSteps(steps);
@@ -840,6 +846,7 @@ function filteredModels() {
       return exactSub.filter((m) => {
         if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
         if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
+        if (app.filter.heavy && !isHeavyModel(m.id)) return false;
         return true;
       });
     }
@@ -848,6 +855,7 @@ function filteredModels() {
   return models.filter((m) => {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
     if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
+    if (app.filter.heavy && !isHeavyModel(m.id)) return false;
     if (!tokens.length) return true;
     const hay = `${m.name} ${m.id} ${m.sub || ''} ${m.formula || ''} ${(m.tags || []).join(' ')} ${m.description || ''} ${m.formalism || ''}`.toLowerCase();
     return tokens.some((t) => hay.includes(t));
@@ -866,7 +874,13 @@ function makeModelButton(raw) {
   if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
     .map((t) => `<span class="tag">${t}</span>`);
-  if (heavy) tags.unshift(`<span class="tag heavy" title="${t('ui.perfHeavyHint')}">${t('ui.perfHeavy')}</span>`);
+  if (heavy) {
+    const hint = t('ui.perfHeavyHint');
+    tags.unshift(
+      `<span class="tag heavy" title="${hint}" aria-label="${hint}">${t('ui.perfHeavy')}</span>`,
+    );
+    btn.setAttribute('aria-label', `${m.name}. ${hint}`);
+  }
   btn.title = heavy ? `${m.name} · ${t('ui.perfHeavyHint')}` : m.name;
   btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags.join('')}</span>`;
   btn.addEventListener('click', () => {
@@ -979,12 +993,13 @@ function paintSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
   const folds = loadFolds();
-  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism;
+  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism || !!app.filter.heavy;
   const countEl = document.createElement('div');
   countEl.className = 'filter-count';
   const parts = [];
   if (app.filter.tag) parts.push(`tag:${app.filter.tag}`);
   if (app.filter.formalism) parts.push(`form:${app.filter.formalism}`);
+  if (app.filter.heavy) parts.push('heavy');
   if (app.filter.q.trim()) parts.push(`q:${app.filter.q.trim()}`);
   const catalogTotal = domainIndex.length || models.length;
   countEl.textContent = parts.length
@@ -1002,14 +1017,16 @@ function paintSidebar() {
     showToast(msg);
   };
   countEl.addEventListener('click', () => {
-    if (app.filter.tag || app.filter.formalism) {
+    if (app.filter.tag || app.filter.formalism || app.filter.heavy) {
       const keepQ = !!app.filter.q.trim();
       app.filter.tag = '';
       app.filter.formalism = '';
+      app.filter.heavy = false;
       if (filterTag) filterTag.value = '';
       if (filterFormalism) filterFormalism.value = '';
+      syncHeavyFilterChip();
       buildSidebar();
-      announce(keepQ ? '已清除 tag · form（再点清除搜索）' : '已清除 tag · form 筛选');
+      announce(keepQ ? '已清除 tag · form · heavy（再点清除搜索）' : '已清除 tag · form · heavy 筛选');
       return;
     }
     if (app.filter.q.trim()) {
@@ -1357,10 +1374,64 @@ function updateHud(opts = {}) {
   if (!opts.force && !opts.flash && !opts.snapshotPrev && sig === updateHud._sig) {
     return;
   }
+  const baseline = prevReadoutMap;
+  // Compare mode: patch per-card when label layout is stable (avoid full innerHTML thrash).
+  if (
+    compare
+    && !opts.force
+    && !opts.snapshotPrev
+    && readoutsEl.children.length === readouts.length
+    && [...readoutsEl.children].every((card, i) => card.querySelector('.label')?.textContent === readouts[i]?.label)
+  ) {
+    readoutsEl.style.setProperty('--hud-accent', accent);
+    readoutsEl.classList.add('is-compare');
+    for (let i = 0; i < readouts.length; i += 1) {
+      const card = readoutsEl.children[i];
+      const r = readouts[i];
+      const valEl = card.querySelector('.value');
+      let prevEl = card.querySelector('.prev');
+      if (!prevEl) {
+        const row = card.querySelector('.value-row');
+        prevEl = document.createElement('span');
+        prevEl.className = 'prev';
+        prevEl.title = '改前';
+        row?.insertBefore(prevEl, valEl);
+      }
+      const nextVal = r.value;
+      if (valEl && valEl.textContent !== nextVal) {
+        if (!app.globals.pinBaseline) prevEl.textContent = valEl.textContent || '—';
+        valEl.textContent = nextVal;
+        if (opts.flash) card.classList.add('is-changed');
+      }
+      card.classList.toggle('has-compare', true);
+    }
+    const srTable = document.getElementById('sr-readouts');
+    if (srTable) {
+      const cells = srTable.querySelectorAll('tbody td');
+      if (cells.length === readouts.length) {
+        readouts.forEach((r, i) => { cells[i].textContent = r.value; });
+      }
+    }
+    updateHud._sig = sig;
+    if (opts.flash && !app.globals.pinBaseline) {
+      clearTimeout(updateHud._cmpT);
+      updateHud._cmpT = setTimeout(() => {
+        prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+      }, 120);
+    }
+    if (opts.flash) {
+      clearTimeout(updateHud._flashT);
+      updateHud._flashT = setTimeout(() => {
+        for (const el of readoutsEl.querySelectorAll('.readout-card.is-changed')) {
+          el.classList.remove('is-changed');
+        }
+      }, 900);
+    }
+    return;
+  }
   updateHud._sig = sig;
   readoutsEl.style.setProperty('--hud-accent', accent);
   readoutsEl.classList.toggle('is-compare', compare);
-  const baseline = prevReadoutMap;
   readoutsEl.innerHTML = readouts.map((r) => {
     const prev = baseline.get(r.label);
     const changed = opts.flash && prev != null && prev !== r.value;
@@ -1871,7 +1942,7 @@ function domainsForFilter() {
 }
 
 async function refreshSidebar() {
-  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism) {
+  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism || app.filter.heavy) {
     await loadIndex();
     const domains = domainsForFilter();
     await Promise.all(domains.map((domain) => loadDomain(domain)));
@@ -1888,6 +1959,21 @@ filterTag.addEventListener('change', () => {
 });
 filterFormalism?.addEventListener('change', () => {
   app.filter.formalism = filterFormalism.value;
+  void refreshSidebar();
+});
+
+function syncHeavyFilterChip() {
+  if (!filterHeavyBtn) return;
+  const on = !!app.filter.heavy;
+  filterHeavyBtn.classList.toggle('is-active', on);
+  filterHeavyBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  filterHeavyBtn.textContent = t('ui.perfHeavyFilter');
+  filterHeavyBtn.setAttribute('aria-label', t('ui.perfHeavyFilterHint'));
+}
+
+filterHeavyBtn?.addEventListener('click', () => {
+  app.filter.heavy = !app.filter.heavy;
+  syncHeavyFilterChip();
   void refreshSidebar();
 });
 
@@ -2513,8 +2599,10 @@ async function boot() {
   } catch { window.__bootMarks = window.__bootMarks || {}; }
   populateTagFilter();
   populateFormalismFilter();
+  syncHeavyFilterChip();
   populateUserModelFamilies();
   bindUserModelUi();
+  app.globals.powerSaver = powerSaverEnabled();
   applyGlobals();
   syncPauseUi();
   buildSidebar();

@@ -564,7 +564,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-2NYFUH3F.js */
+/* inlined chunk-chunk-6JMBWQBR.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -1104,6 +1104,26 @@ var HEAVY_MODEL_IDS = /* @__PURE__ */ new Set([
   "entropy-mix",
   "r018-\u73BB\u5C14\u6A21\u578B"
 ]);
+var POWER_SAVER_KEY = "physics-lab-power-saver";
+function powerSaverEnabled() {
+  try {
+    if (typeof document !== "undefined" && document.documentElement?.dataset?.powerSaver === "1") {
+      return true;
+    }
+    return localStorage.getItem(POWER_SAVER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function setPowerSaver(on) {
+  try {
+    localStorage.setItem(POWER_SAVER_KEY, on ? "1" : "0");
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.powerSaver = on ? "1" : "0";
+    }
+  } catch {
+  }
+}
 function viewportTier() {
   if (typeof matchMedia !== "function") return "desktop";
   if (matchMedia("(max-height: 500px) and (max-width: 1100px)").matches) return "phone";
@@ -1117,14 +1137,13 @@ function isCompactViewport() {
 function isPhoneViewport() {
   return viewportTier() === "phone";
 }
-function mobileBudget(tier = viewportTier()) {
+function budgetFor(tier) {
   if (tier === "phone") {
     return {
       maxSubSteps: 8,
       mandelStep: 6,
       mandelIterCap: 48,
       fieldNCap: 24,
-      // Spatial hash lets phones run more particles than the old O(N²) cap of 40.
       particleNCap: 64,
       interferenceCols: 32,
       interferenceRows: 20,
@@ -1169,11 +1188,19 @@ function mobileBudget(tier = viewportTier()) {
     hudMinMs: 0
   };
 }
+function mobileBudget(tier = viewportTier()) {
+  if (tier === "desktop" && powerSaverEnabled()) return budgetFor("tablet");
+  return budgetFor(tier);
+}
 function isHeavyModel(id) {
   return !!(id && HEAVY_MODEL_IDS.has(id));
 }
 function perfClassFor(id) {
   return isHeavyModel(id) ? "heavy" : "normal";
+}
+function particleHashCell(n) {
+  const count = Math.max(4, Number(n) || 40);
+  return Math.max(0.05, Math.min(0.12, 0.7 / Math.sqrt(count)));
 }
 function pushTrail(trail, point, maxLen) {
   const cap = Math.max(8, Math.floor(maxLen ?? mobileBudget().trailCap));
@@ -1184,6 +1211,17 @@ function pushTrail(trail, point, maxLen) {
 function createRingTrail(cap) {
   const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
   return { buf: new Array(n), head: 0, len: 0, cap: n };
+}
+function ensureRingCap(ring, cap) {
+  const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
+  if (!ring?.buf) return createRingTrail(n);
+  if (ring.cap === n) return ring;
+  const pts = [];
+  ringForEach(ring, (p) => pts.push(p));
+  const next = createRingTrail(n);
+  const start = Math.max(0, pts.length - n);
+  for (let i = start; i < pts.length; i += 1) ringPush(next, pts[i]);
+  return next;
 }
 function ringPush(ring, point) {
   if (!ring?.buf?.length) return ring;
@@ -1207,7 +1245,7 @@ function ringLast(ring) {
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
 /* static chunk inlined: chunk-chunk-TGXQVZOP.js */
-/* static chunk inlined: chunk-chunk-2NYFUH3F.js */
+/* static chunk inlined: chunk-chunk-6JMBWQBR.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1412,7 +1450,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-W37XZUKQ.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-B3W22IGK.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -1467,6 +1505,8 @@ var STRINGS = {
     "ui.recents": "\u6700\u8FD1",
     "ui.perfHeavy": "\u91CD",
     "ui.perfHeavyHint": "\u79FB\u52A8\u7AEF\u8FDB\u9875\u6682\u505C \xB7 \u70B9\u64AD\u653E\u7EE7\u7EED",
+    "ui.perfHeavyFilter": "\u91CD\u6A21\u578B",
+    "ui.perfHeavyFilterHint": "\u53EA\u663E\u793A\u79FB\u52A8\u7AEF\u91CD\u6A21\u578B\uFF08\u8FDB\u9875\u6682\u505C\uFF09",
     "ui.noMatch": "\u65E0\u5339\u914D",
     "ui.openMenu": "\u6253\u5F00\u6A21\u578B\u5217\u8868",
     "ui.closeMenu": "\u5173\u95ED\u6A21\u578B\u5217\u8868",
@@ -1581,6 +1621,8 @@ var STRINGS = {
     "ui.recents": "recent",
     "ui.perfHeavy": "heavy",
     "ui.perfHeavyHint": "Paused on mobile enter \u2014 tap Play",
+    "ui.perfHeavyFilter": "heavy",
+    "ui.perfHeavyFilterHint": "Show heavy models only (auto-pause on mobile)",
     "ui.noMatch": "no match",
     "ui.openMenu": "Open model list",
     "ui.closeMenu": "Close model list",
@@ -2797,7 +2839,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-PR5ZLY3Y.js").then((mod) => {
+    handsPending = import("./chunk-handModels-JDDY263D.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -3481,6 +3523,13 @@ function createParamBench(root, hooks = {}) {
         render();
       }
     }));
+    rows.appendChild(boolRow("powerSaver", !!g.powerSaver, {
+      label: "Power saver",
+      onCommit: (v) => {
+        g.powerSaver = v;
+        onGlobalsChange?.(g);
+      }
+    }));
     appendSectionBody(sec, rows, {
       foldable: true,
       open: sysOpen,
@@ -3806,6 +3855,7 @@ function createParamBench(root, hooks = {}) {
     if (typeof globals.shotLegend !== "boolean") globals.shotLegend = false;
     if (typeof globals.compareReadouts !== "boolean") globals.compareReadouts = false;
     if (typeof globals.wideBounds !== "boolean") globals.wideBounds = true;
+    if (typeof globals.powerSaver !== "boolean") globals.powerSaver = false;
     sanitizeGlobals(globals);
     builtins = new Set(Object.keys(model.params || {}));
     render();
@@ -6126,6 +6176,7 @@ var sidebar = document.getElementById("sidebar");
 var filterQ = document.getElementById("filter-q");
 var filterTag = document.getElementById("filter-tag");
 var filterFormalism = document.getElementById("filter-formalism");
+var filterHeavyBtn = document.getElementById("filter-heavy");
 var foldBarEl = document.getElementById("fold-bar");
 var btnUserModel = document.getElementById("btn-user-model");
 var userModelDialog = document.getElementById("user-model-dialog");
@@ -6151,7 +6202,7 @@ var app = {
   model: null,
   state: null,
   paused: false,
-  filter: { q: "", tag: "", formalism: "" },
+  filter: { q: "", tag: "", formalism: "", heavy: false },
   lastReadouts: [],
   globals: {
     timeScale: 1,
@@ -6167,7 +6218,8 @@ var app = {
     shotLegend: false,
     compareReadouts: false,
     pinBaseline: false,
-    wideBounds: true
+    wideBounds: true,
+    powerSaver: false
   }
 };
 var FOLD_KEY = "physics-lab-folds-v1";
@@ -6293,6 +6345,8 @@ function createState(model) {
 }
 function applyGlobals() {
   sanitizeGlobals(app.globals);
+  if (typeof app.globals.powerSaver === "boolean") setPowerSaver(!!app.globals.powerSaver);
+  else app.globals.powerSaver = powerSaverEnabled();
   stepper.setFixedDt(app.globals.fixedDt);
   const budget = mobileBudget();
   const steps = Math.min(Math.max(1, Number(app.globals.maxSubSteps) || 48), budget.maxSubSteps);
@@ -6875,6 +6929,7 @@ function filteredModels() {
       return exactSub.filter((m) => {
         if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
         if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
+        if (app.filter.heavy && !isHeavyModel(m.id)) return false;
         return true;
       });
     }
@@ -6883,6 +6938,7 @@ function filteredModels() {
   return models.filter((m) => {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
     if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
+    if (app.filter.heavy && !isHeavyModel(m.id)) return false;
     if (!tokens.length) return true;
     const hay = `${m.name} ${m.id} ${m.sub || ""} ${m.formula || ""} ${(m.tags || []).join(" ")} ${m.description || ""} ${m.formalism || ""}`.toLowerCase();
     return tokens.some((t2) => hay.includes(t2));
@@ -6899,7 +6955,13 @@ function makeModelButton(raw) {
   if (heavy) btn.dataset.perfClass = "heavy";
   if (active) btn.setAttribute("aria-current", "page");
   const tags = (m.tags || []).filter((t2) => !DOMAIN_ORDER.includes(t2)).slice(0, 2).map((t2) => `<span class="tag">${t2}</span>`);
-  if (heavy) tags.unshift(`<span class="tag heavy" title="${t("ui.perfHeavyHint")}">${t("ui.perfHeavy")}</span>`);
+  if (heavy) {
+    const hint = t("ui.perfHeavyHint");
+    tags.unshift(
+      `<span class="tag heavy" title="${hint}" aria-label="${hint}">${t("ui.perfHeavy")}</span>`
+    );
+    btn.setAttribute("aria-label", `${m.name}. ${hint}`);
+  }
   btn.title = heavy ? `${m.name} \xB7 ${t("ui.perfHeavyHint")}` : m.name;
   btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags.join("")}</span>`;
   btn.addEventListener("click", () => {
@@ -6995,12 +7057,13 @@ function paintSidebar() {
   modelListEl.innerHTML = "";
   const list = filteredModels();
   const folds = loadFolds();
-  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism;
+  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism || !!app.filter.heavy;
   const countEl = document.createElement("div");
   countEl.className = "filter-count";
   const parts = [];
   if (app.filter.tag) parts.push(`tag:${app.filter.tag}`);
   if (app.filter.formalism) parts.push(`form:${app.filter.formalism}`);
+  if (app.filter.heavy) parts.push("heavy");
   if (app.filter.q.trim()) parts.push(`q:${app.filter.q.trim()}`);
   const catalogTotal = domainIndex.length || models.length;
   countEl.textContent = parts.length ? `\u7B5B\u9009 ${list.length} / ${catalogTotal} \xB7 ${parts.join(" \xB7 ")}` : `\u5168\u90E8 ${catalogTotal} \u6A21\u578B`;
@@ -7013,14 +7076,16 @@ function paintSidebar() {
     showToast(msg);
   };
   countEl.addEventListener("click", () => {
-    if (app.filter.tag || app.filter.formalism) {
+    if (app.filter.tag || app.filter.formalism || app.filter.heavy) {
       const keepQ = !!app.filter.q.trim();
       app.filter.tag = "";
       app.filter.formalism = "";
+      app.filter.heavy = false;
       if (filterTag) filterTag.value = "";
       if (filterFormalism) filterFormalism.value = "";
+      syncHeavyFilterChip();
       buildSidebar();
-      announce(keepQ ? "\u5DF2\u6E05\u9664 tag \xB7 form\uFF08\u518D\u70B9\u6E05\u9664\u641C\u7D22\uFF09" : "\u5DF2\u6E05\u9664 tag \xB7 form \u7B5B\u9009");
+      announce(keepQ ? "\u5DF2\u6E05\u9664 tag \xB7 form \xB7 heavy\uFF08\u518D\u70B9\u6E05\u9664\u641C\u7D22\uFF09" : "\u5DF2\u6E05\u9664 tag \xB7 form \xB7 heavy \u7B5B\u9009");
       return;
     }
     if (app.filter.q.trim()) {
@@ -7343,10 +7408,59 @@ function updateHud(opts = {}) {
   if (!opts.force && !opts.flash && !opts.snapshotPrev && sig === updateHud._sig) {
     return;
   }
+  const baseline = prevReadoutMap;
+  if (compare && !opts.force && !opts.snapshotPrev && readoutsEl.children.length === readouts.length && [...readoutsEl.children].every((card, i) => card.querySelector(".label")?.textContent === readouts[i]?.label)) {
+    readoutsEl.style.setProperty("--hud-accent", accent);
+    readoutsEl.classList.add("is-compare");
+    for (let i = 0; i < readouts.length; i += 1) {
+      const card = readoutsEl.children[i];
+      const r = readouts[i];
+      const valEl = card.querySelector(".value");
+      let prevEl = card.querySelector(".prev");
+      if (!prevEl) {
+        const row = card.querySelector(".value-row");
+        prevEl = document.createElement("span");
+        prevEl.className = "prev";
+        prevEl.title = "\u6539\u524D";
+        row?.insertBefore(prevEl, valEl);
+      }
+      const nextVal = r.value;
+      if (valEl && valEl.textContent !== nextVal) {
+        if (!app.globals.pinBaseline) prevEl.textContent = valEl.textContent || "\u2014";
+        valEl.textContent = nextVal;
+        if (opts.flash) card.classList.add("is-changed");
+      }
+      card.classList.toggle("has-compare", true);
+    }
+    const srTable2 = document.getElementById("sr-readouts");
+    if (srTable2) {
+      const cells = srTable2.querySelectorAll("tbody td");
+      if (cells.length === readouts.length) {
+        readouts.forEach((r, i) => {
+          cells[i].textContent = r.value;
+        });
+      }
+    }
+    updateHud._sig = sig;
+    if (opts.flash && !app.globals.pinBaseline) {
+      clearTimeout(updateHud._cmpT);
+      updateHud._cmpT = setTimeout(() => {
+        prevReadoutMap = new Map(readouts.map((r) => [r.label, r.value]));
+      }, 120);
+    }
+    if (opts.flash) {
+      clearTimeout(updateHud._flashT);
+      updateHud._flashT = setTimeout(() => {
+        for (const el of readoutsEl.querySelectorAll(".readout-card.is-changed")) {
+          el.classList.remove("is-changed");
+        }
+      }, 900);
+    }
+    return;
+  }
   updateHud._sig = sig;
   readoutsEl.style.setProperty("--hud-accent", accent);
   readoutsEl.classList.toggle("is-compare", compare);
-  const baseline = prevReadoutMap;
   readoutsEl.innerHTML = readouts.map((r) => {
     const prev = baseline.get(r.label);
     const changed = opts.flash && prev != null && prev !== r.value;
@@ -7828,7 +7942,7 @@ function domainsForFilter() {
   return loaded2;
 }
 async function refreshSidebar() {
-  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism) {
+  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism || app.filter.heavy) {
     await loadIndex();
     const domains = domainsForFilter();
     await Promise.all(domains.map((domain) => loadDomain(domain)));
@@ -7845,6 +7959,19 @@ filterTag.addEventListener("change", () => {
 });
 filterFormalism?.addEventListener("change", () => {
   app.filter.formalism = filterFormalism.value;
+  void refreshSidebar();
+});
+function syncHeavyFilterChip() {
+  if (!filterHeavyBtn) return;
+  const on = !!app.filter.heavy;
+  filterHeavyBtn.classList.toggle("is-active", on);
+  filterHeavyBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  filterHeavyBtn.textContent = t("ui.perfHeavyFilter");
+  filterHeavyBtn.setAttribute("aria-label", t("ui.perfHeavyFilterHint"));
+}
+filterHeavyBtn?.addEventListener("click", () => {
+  app.filter.heavy = !app.filter.heavy;
+  syncHeavyFilterChip();
   void refreshSidebar();
 });
 btnHc?.addEventListener("click", (e) => {
@@ -8460,8 +8587,10 @@ async function boot() {
   }
   populateTagFilter();
   populateFormalismFilter();
+  syncHeavyFilterChip();
   populateUserModelFamilies();
   bindUserModelUi();
+  app.globals.powerSaver = powerSaverEnabled();
   applyGlobals();
   syncPauseUi();
   buildSidebar();
@@ -8677,4 +8806,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-W37XZUKQ.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-B3W22IGK.js");

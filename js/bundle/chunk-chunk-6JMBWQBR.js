@@ -537,6 +537,26 @@ var HEAVY_MODEL_IDS = /* @__PURE__ */ new Set([
   "entropy-mix",
   "r018-\u73BB\u5C14\u6A21\u578B"
 ]);
+var POWER_SAVER_KEY = "physics-lab-power-saver";
+function powerSaverEnabled() {
+  try {
+    if (typeof document !== "undefined" && document.documentElement?.dataset?.powerSaver === "1") {
+      return true;
+    }
+    return localStorage.getItem(POWER_SAVER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function setPowerSaver(on) {
+  try {
+    localStorage.setItem(POWER_SAVER_KEY, on ? "1" : "0");
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.powerSaver = on ? "1" : "0";
+    }
+  } catch {
+  }
+}
 function viewportTier() {
   if (typeof matchMedia !== "function") return "desktop";
   if (matchMedia("(max-height: 500px) and (max-width: 1100px)").matches) return "phone";
@@ -550,14 +570,13 @@ function isCompactViewport() {
 function isPhoneViewport() {
   return viewportTier() === "phone";
 }
-function mobileBudget(tier = viewportTier()) {
+function budgetFor(tier) {
   if (tier === "phone") {
     return {
       maxSubSteps: 8,
       mandelStep: 6,
       mandelIterCap: 48,
       fieldNCap: 24,
-      // Spatial hash lets phones run more particles than the old O(N²) cap of 40.
       particleNCap: 64,
       interferenceCols: 32,
       interferenceRows: 20,
@@ -602,11 +621,19 @@ function mobileBudget(tier = viewportTier()) {
     hudMinMs: 0
   };
 }
+function mobileBudget(tier = viewportTier()) {
+  if (tier === "desktop" && powerSaverEnabled()) return budgetFor("tablet");
+  return budgetFor(tier);
+}
 function isHeavyModel(id) {
   return !!(id && HEAVY_MODEL_IDS.has(id));
 }
 function perfClassFor(id) {
   return isHeavyModel(id) ? "heavy" : "normal";
+}
+function particleHashCell(n) {
+  const count = Math.max(4, Number(n) || 40);
+  return Math.max(0.05, Math.min(0.12, 0.7 / Math.sqrt(count)));
 }
 function pushTrail(trail, point, maxLen) {
   const cap = Math.max(8, Math.floor(maxLen ?? mobileBudget().trailCap));
@@ -617,6 +644,17 @@ function pushTrail(trail, point, maxLen) {
 function createRingTrail(cap) {
   const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
   return { buf: new Array(n), head: 0, len: 0, cap: n };
+}
+function ensureRingCap(ring, cap) {
+  const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
+  if (!ring?.buf) return createRingTrail(n);
+  if (ring.cap === n) return ring;
+  const pts = [];
+  ringForEach(ring, (p) => pts.push(p));
+  const next = createRingTrail(n);
+  const start = Math.max(0, pts.length - n);
+  for (let i = start; i < pts.length; i += 1) ringPush(next, pts[i]);
+  return next;
 }
 function ringPush(ring, point) {
   if (!ring?.buf?.length) return ring;
@@ -663,14 +701,18 @@ export {
   heatTempColor,
   phaseHueColor,
   drawPaletteLegend,
+  powerSaverEnabled,
+  setPowerSaver,
   viewportTier,
   isCompactViewport,
   isPhoneViewport,
   mobileBudget,
   isHeavyModel,
   perfClassFor,
+  particleHashCell,
   pushTrail,
   createRingTrail,
+  ensureRingCap,
   ringPush,
   ringForEach,
   ringLast

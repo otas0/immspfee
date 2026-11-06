@@ -150,8 +150,65 @@ await withPage({ width: 390, height: 844 }, async (page) => {
   if (!alive) failures.push('micro stage died after drag');
 });
 
+// Capture 390 Params open/closed (shots/; copy to docs/assets when CAPTURE_DOCS=1).
+await withPage({ width: 390, height: 844 }, async (page) => {
+  await page.goto(`${base}?lang=en&shell=lab-classic#m=free-fall`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.waitForFunction(() => window.__labCapture?.switchModel, null, { timeout: 90000 });
+  await page.evaluate(async () => { await window.__labCapture.switchModel('free-fall'); });
+  await page.waitForTimeout(400);
+  const shots = path.join(root, 'shots');
+  fs.mkdirSync(shots, { recursive: true });
+  const closedPath = path.join(shots, 'narrow-params-closed-390.png');
+  const openPath = path.join(shots, 'narrow-params-open-390.png');
+  await page.screenshot({ path: closedPath });
+  await page.click('#btn-params');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: openPath });
+  const floor = await page.evaluate(() => {
+    const wrap = document.querySelector('.canvas-wrap');
+    return wrap?.getBoundingClientRect()?.height || 0;
+  });
+  if (floor < 120) failures.push(`docs shot canvas floor ${floor}`);
+  if (process.env.CAPTURE_DOCS === '1') {
+    const docs = path.join(root, 'docs', 'assets');
+    fs.mkdirSync(docs, { recursive: true });
+    fs.copyFileSync(closedPath, path.join(docs, 'narrow-params-closed-390.png'));
+    fs.copyFileSync(openPath, path.join(docs, 'narrow-params-open-390.png'));
+    console.log('CAPTURE_DOCS: wrote docs/assets/narrow-params-*-390.png');
+  }
+});
+
 await browser.close();
-fs.writeFileSync(path.join(outDir, 'pages-mobile-smoke.json'), `${JSON.stringify({ base, failures }, null, 2)}\n`);
+
+/** Attach TTI / network advisory lines (edge=) when prior CI steps wrote artifacts. */
+function readJson(name) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(outDir, name), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+const tti = readJson('pages-tti-sw.json');
+const net = readJson('pages-network-summary.json');
+const stampLive = readJson('pages-live-stamp.json') || readJson('pages-mobile-stamp.json');
+const advisory = [];
+if (tti?.cold?.firstHandP95 != null) {
+  advisory.push(`tti firstHandP95=${tti.cold.firstHandP95}ms cdnJitter=${!!tti.cdnJitter}`);
+}
+if (net?.bootMsP95 != null) {
+  const edge = Array.isArray(net.bootEdgeRegions)
+    ? (net.bootEdgeRegions.find(Boolean) || '')
+    : (net.spikeEdge || '');
+  advisory.push(
+    `network bootMsP95=${net.bootMsP95}`
+    + (edge ? ` edge=${edge}` : ' edge=(none)'),
+  );
+}
+if (stampLive?.js) advisory.push(`stamp js=${stampLive.js} css=${stampLive.css || ''}`);
+
+const report = { base, failures, advisory, tti: tti?.cold || null, network: net || null, stamp: stampLive };
+fs.writeFileSync(path.join(outDir, 'pages-mobile-smoke.json'), `${JSON.stringify(report, null, 2)}\n`);
+if (advisory.length) console.log('pages-mobile advisory:', advisory.join(' · '));
 if (failures.length) {
   console.error(failures.join('\n'));
   process.exit(1);

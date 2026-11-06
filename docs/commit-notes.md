@@ -87,7 +87,15 @@ dismisses bench on all compact widths (not only ≤900). Particles use a spatial
 params/size are unchanged; lorenz/rossler trails use a head-index ring buffer.
 `npm test` asserts `perf-heavy.json` ↔ `HEAVY_MODEL_IDS`. Covered by
 `npm run test:narrow` (heavy + watchdog + tablet + landscape) and
-`npm run test:pages-mobile` against Pages. Manual: `manual.html` §9b.
+`npm run test:pages-mobile` (post-deploy hard gate in `pages.yml`; advisory
+`continue-on-error` in `test.yml`). Stamp gate: `npm run test:pages-stamp`
+records live `asset-stamp.json`, asserts match to this deploy’s built stamp,
+and advisories when unchanged vs cache. Follow-ups: sidebar `heavy` filter chip
++ English `aria-label`; Mandelbrot cache keyed by DPR; adaptive spatial-hash
+cell; HUD compare per-card patch; desktop Power saver (tablet budget);
+lorenz ring rebuild on trailCap change; WebKit `SHELL_WEBKIT_ONLY` also smokes
+micro 390; `manual.html` §9b 390 Params open/closed shots. Manual Safari
+toast/feel remains human-only.
 
 ### soft-paint issue template smoke
 

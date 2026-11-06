@@ -166,6 +166,9 @@ export function createParamBench(root, hooks = {}) {
     rows.appendChild(boolRow('wideBounds', g.wideBounds !== false, {
       label: '宽量程输入', onCommit: (v) => { g.wideBounds = v; onGlobalsChange?.(g); render(); },
     }));
+    rows.appendChild(boolRow('powerSaver', !!g.powerSaver, {
+      label: 'Power saver', onCommit: (v) => { g.powerSaver = v; onGlobalsChange?.(g); },
+    }));
     appendSectionBody(sec, rows, {
       foldable: true,
       open: sysOpen,
@@ -480,6 +483,7 @@ export function createParamBench(root, hooks = {}) {
     if (typeof globals.shotLegend !== 'boolean') globals.shotLegend = false;
     if (typeof globals.compareReadouts !== 'boolean') globals.compareReadouts = false;
     if (typeof globals.wideBounds !== 'boolean') globals.wideBounds = true;
+    if (typeof globals.powerSaver !== 'boolean') globals.powerSaver = false;
     sanitizeGlobals(globals);
     builtins = new Set(Object.keys(model.params || {}));
     render();

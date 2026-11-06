@@ -217,6 +217,51 @@ jobs:
           FIRST_HAND_SAMPLES: '5'
         run: npm run test:pages-tti-sw
 
+      - name: Restore previous Pages stamp (cache)
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/restore@v5
+        with:
+          path: artifacts/prev-stamp
+          key: pages-live-stamp-${{ github.run_id }}
+          restore-keys: |
+            pages-live-stamp-
+
+      - name: Record live Pages stamp + advisory roll
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+          PREV_STAMP_PATH: artifacts/prev-stamp/pages-live-stamp.json
+        run: |
+          mkdir -p artifacts
+          npm run test:pages-stamp
+          mkdir -p artifacts/stamp-cache
+          cp -f artifacts/pages-live-stamp.json artifacts/stamp-cache/pages-live-stamp.json
+          echo "pages stamp recorded" | tee -a artifacts/ci-summary.txt
+
+      - name: Save Pages stamp cache (next run compare)
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v5
+        with:
+          path: artifacts/stamp-cache
+          key: pages-live-stamp-${{ github.run_id }}
+
+      - name: Pages mobile smoke (advisory)
+        id: pages_mobile
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 8
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+        run: |
+          npm run test:pages-mobile 2>&1 | tee artifacts/pages-mobile.log
+          if [ -f artifacts/pages-mobile-smoke.json ]; then
+            node -e "const j=require('./artifacts/pages-mobile-smoke.json'); console.log('pages-mobile advisory', (j.advisory||[]).join(' · ')||'(none)');" | tee -a artifacts/ci-summary.txt
+          fi
+
       - name: Upload boot timing
         if: always()
         uses: actions/upload-artifact@v6
@@ -226,6 +271,10 @@ jobs:
             artifacts/boot-timing.json
             artifacts/pages-tti-sw.json
             artifacts/pages-network-summary.json
+            artifacts/pages-live-stamp.json
+            artifacts/pages-mobile-smoke.json
+            artifacts/pages-mobile-stamp.json
+            artifacts/pages-mobile.log
           if-no-files-found: ignore
 
       - name: Upload narrow-screen screenshots
@@ -479,6 +528,7 @@ jobs:
           name: webkit-safari-proxy-${{ github.sha }}
           path: |
             shots/shell-projector-1000-safari-proxy.png
+            shots/shell-micro-390-webkit.png
             docs/assets/shell-projector-1000-safari-proxy.png
           if-no-files-found: warn
 

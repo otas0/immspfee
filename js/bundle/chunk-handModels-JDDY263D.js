@@ -25,7 +25,7 @@ import {
   perfClassFor,
   phaseHueColor,
   springK
-} from "./chunk-chunk-2NYFUH3F.js";
+} from "./chunk-chunk-6JMBWQBR.js";
 
 // js/models/projectile.js
 var projectile_default = {

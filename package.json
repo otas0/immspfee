@@ -43,6 +43,7 @@
     "test:pages-network": "node scripts/pages-network-cold.mjs",
     "test:pages-tti-sw": "node scripts/pages-tti-sw.mjs",
     "test:pages-mobile": "node scripts/pages-mobile-smoke.mjs",
+    "test:pages-stamp": "node scripts/assert-pages-stamp-rolled.mjs",
     "sync:safari-proxy": "node scripts/sync-safari-proxy-asset.mjs"
   },
   "devDependencies": {

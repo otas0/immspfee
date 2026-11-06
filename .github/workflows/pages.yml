@@ -66,6 +66,13 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v5
 
+      - name: Upload built asset-stamp (for post-deploy expect)
+        uses: actions/upload-artifact@v6
+        with:
+          name: pages-built-stamp
+          path: _site/asset-stamp.json
+          if-no-files-found: error
+
   pages-check:
     name: pages-check
     needs: deploy
@@ -95,6 +102,22 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      - name: Restore previous Pages stamp
+        continue-on-error: true
+        uses: actions/cache/restore@v5
+        with:
+          path: artifacts/prev-stamp
+          key: pages-live-stamp-deploy-${{ github.run_id }}
+          restore-keys: |
+            pages-live-stamp-deploy-
+            pages-live-stamp-
+
+      - name: Download built asset-stamp from deploy job
+        uses: actions/download-artifact@v6
+        with:
+          name: pages-built-stamp
+          path: artifacts/built-stamp
+
       - name: Neutron strip on deployed Pages
         id: pages_strip
         env:
@@ -107,12 +130,66 @@ jobs:
           export PAGES_SHA="$SHORT"
           npm run test:pages
 
+      - name: Assert live stamp matches this deploy (+ ≠ previous)
+        id: pages_stamp
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+          PREV_STAMP_PATH: artifacts/prev-stamp/pages-live-stamp.json
+          EXPECT_STAMP_PATH: artifacts/built-stamp/asset-stamp.json
+          PAGES_STAMP_EXPECT: '1'
+        run: |
+          mkdir -p artifacts artifacts/stamp-cache
+          # Poll until CDN serves this build's stamp (content hash).
+          ok=0
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if npm run test:pages-stamp; then ok=1; break; fi
+            sleep 10
+          done
+          if [ "$ok" != "1" ]; then
+            echo "live Pages stamp never matched this deploy"
+            exit 1
+          fi
+          # Advisory: also log whether js/css differs from previous deploy cache.
+          PAGES_STAMP_EXPECT=0 PAGES_STAMP_HARD=0 npm run test:pages-stamp || true
+          cp -f artifacts/pages-live-stamp.json artifacts/stamp-cache/pages-live-stamp.json
+
+      - name: Pages mobile smoke (post-deploy gate)
+        id: pages_mobile
+        env:
+          PAGES_URL: https://otas0.github.io/immspfee/
+        run: |
+          mkdir -p artifacts shots
+          npm run test:pages-mobile 2>&1 | tee artifacts/pages-mobile.log
+
+      - name: Save Pages stamp after deploy
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v5
+        with:
+          path: artifacts/stamp-cache
+          key: pages-live-stamp-deploy-${{ github.run_id }}
+
+      - name: Upload pages-mobile report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pages-mobile-${{ github.sha }}
+          path: |
+            artifacts/pages-mobile-smoke.json
+            artifacts/pages-mobile.log
+            artifacts/pages-live-stamp.json
+            shots/narrow-params-*-390.png
+          if-no-files-found: ignore
+
       - name: Publish pages-check run
         if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const ok = '${{ steps.pages_strip.outcome }}' === 'success';
+            const stripOk = '${{ steps.pages_strip.outcome }}' === 'success';
+            const stampOk = '${{ steps.pages_stamp.outcome }}' === 'success';
+            const mobileOk = '${{ steps.pages_mobile.outcome }}' === 'success';
+            const ok = stripOk && stampOk && mobileOk;
             const short = context.sha.slice(0, 7);
             await github.rest.checks.create({
               owner: context.repo.owner,
@@ -122,10 +199,12 @@ jobs:
               status: 'completed',
               conclusion: ok ? 'success' : 'failure',
               output: {
-                title: ok ? `Pages neutron strip ok (${short})` : `Pages neutron strip failed (${short})`,
+                title: ok
+                  ? `Pages strip + stamp + mobile ok (${short})`
+                  : `Pages gate failed (${short}) strip=${stripOk} stamp=${stampOk} mobile=${mobileOk}`,
                 summary: ok
-                  ? `Deployed ?v=${short}&lang=en matches the local narrow strip.`
-                  : `See the pages-check job log for formula / strip / microscope mismatches.`,
+                  ? `Deployed strip, asset-stamp rolled, and pages-mobile smoke passed.`
+                  : `See the pages-check job log (neutron strip / stamp roll / pages-mobile).`,
               },
             });
 

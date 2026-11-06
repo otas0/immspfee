@@ -22,6 +22,35 @@ export const HEAVY_MODEL_IDS = new Set([
   'r018-玻尔模型',
 ]);
 
+const POWER_SAVER_KEY = 'physics-lab-power-saver';
+
+/**
+ * Desktop optional power-saver (also set via globals.powerSaver → localStorage).
+ * @returns {boolean}
+ */
+export function powerSaverEnabled() {
+  try {
+    if (typeof document !== 'undefined' && document.documentElement?.dataset?.powerSaver === '1') {
+      return true;
+    }
+    return localStorage.getItem(POWER_SAVER_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * @param {boolean} on
+ */
+export function setPowerSaver(on) {
+  try {
+    localStorage.setItem(POWER_SAVER_KEY, on ? '1' : '0');
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.powerSaver = on ? '1' : '0';
+    }
+  } catch { /* ignore */ }
+}
+
 /**
  * @returns {'phone' | 'tablet' | 'desktop'}
  */
@@ -42,17 +71,13 @@ export function isPhoneViewport() {
   return viewportTier() === 'phone';
 }
 
-/**
- * @param {'phone' | 'tablet' | 'desktop'} [tier]
- */
-export function mobileBudget(tier = viewportTier()) {
+function budgetFor(tier) {
   if (tier === 'phone') {
     return {
       maxSubSteps: 8,
       mandelStep: 6,
       mandelIterCap: 48,
       fieldNCap: 24,
-      // Spatial hash lets phones run more particles than the old O(N²) cap of 40.
       particleNCap: 64,
       interferenceCols: 32,
       interferenceRows: 20,
@@ -98,12 +123,31 @@ export function mobileBudget(tier = viewportTier()) {
   };
 }
 
+/**
+ * @param {'phone' | 'tablet' | 'desktop'} [tier]
+ */
+export function mobileBudget(tier = viewportTier()) {
+  // Desktop + power-saver uses the tablet budget (heavy models stay interactive).
+  if (tier === 'desktop' && powerSaverEnabled()) return budgetFor('tablet');
+  return budgetFor(tier);
+}
+
 export function isHeavyModel(id) {
   return !!(id && HEAVY_MODEL_IDS.has(id));
 }
 
 export function perfClassFor(id) {
   return isHeavyModel(id) ? 'heavy' : 'normal';
+}
+
+/**
+ * Spatial-hash cell size from particle count (collision radius ≈ 0.05).
+ * @param {number} n
+ */
+export function particleHashCell(n) {
+  const count = Math.max(4, Number(n) || 40);
+  // denser packs → slightly smaller cells; floor at collision diameter.
+  return Math.max(0.05, Math.min(0.12, 0.7 / Math.sqrt(count)));
 }
 
 /**
@@ -126,6 +170,23 @@ export function pushTrail(trail, point, maxLen) {
 export function createRingTrail(cap) {
   const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
   return { buf: new Array(n), head: 0, len: 0, cap: n };
+}
+
+/**
+ * Rebuild ring when viewport budget changes (phone ↔ tablet ↔ desktop).
+ * @param {{ buf: unknown[], head: number, len: number, cap: number } | null | undefined} ring
+ * @param {number} [cap]
+ */
+export function ensureRingCap(ring, cap) {
+  const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
+  if (!ring?.buf) return createRingTrail(n);
+  if (ring.cap === n) return ring;
+  const pts = [];
+  ringForEach(ring, (p) => pts.push(p));
+  const next = createRingTrail(n);
+  const start = Math.max(0, pts.length - n);
+  for (let i = start; i < pts.length; i += 1) ringPush(next, pts[i]);
+  return next;
 }
 
 /**

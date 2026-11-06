@@ -785,6 +785,26 @@ html.hc .model-item.active { background: #fff; color: #000; }
   color: #c45c26;
   background: color-mix(in srgb, #c45c26 14%, var(--panel-2));
 }
+.filter-chip {
+  appearance: none;
+  align-self: end;
+  margin: 0 0 0.15rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  font: 600 0.68rem/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.filter-chip.is-active,
+.filter-chip[aria-pressed='true'] {
+  color: #c45c26;
+  border-color: color-mix(in srgb, #c45c26 45%, var(--line));
+  background: color-mix(in srgb, #c45c26 12%, var(--panel));
+}
 .model-item.active .tag {
   color: inherit;
   background: rgba(255,255,255,0.15);

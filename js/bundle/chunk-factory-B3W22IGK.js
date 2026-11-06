@@ -16,15 +16,17 @@ import {
   P,
   createRingTrail,
   drawArrow,
+  ensureRingCap,
   formatNum,
   heatTempColor,
   mobileBudget,
+  particleHashCell,
   perfClassFor,
   pushTrail,
   ringForEach,
   ringLast,
   ringPush
-} from "./chunk-chunk-2NYFUH3F.js";
+} from "./chunk-chunk-6JMBWQBR.js";
 
 // js/lab/sketches.js
 function ink() {
@@ -5652,7 +5654,7 @@ function buildParticles(spec) {
       }
       if (/collision-2d|sph/.test(spec.id)) {
         const parts = state.parts;
-        const cell = 0.05;
+        const cell = particleHashCell(parts.length);
         const buckets = /* @__PURE__ */ new Map();
         const cellKey = (x, y) => `${x / cell | 0},${y / cell | 0}`;
         for (let i = 0; i < parts.length; i += 1) {
@@ -8721,7 +8723,7 @@ function buildChaos(spec) {
         state.z += dz * h;
       }
       state.t += h;
-      if (!state.trail?.buf) state.trail = createRingTrail(mobileBudget().trailCap);
+      state.trail = ensureRingCap(state.trail, mobileBudget().trailCap);
       ringPush(state.trail, { x: state.x, y: state.y, z: state.z });
     },
     draw(ctx, state, view) {
@@ -8733,19 +8735,21 @@ function buildChaos(spec) {
         const cx0 = P(state.params, "cx", -0.7);
         const cy0 = P(state.params, "cy", 0.27);
         const step = budget.mandelStep;
-        const key = `${iterMax}|${zoom}|${cx0}|${cy0}|${step}|${W}x${H}`;
+        const dpr = Math.max(1, Number(view.dpr) || (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1);
+        const key = `${iterMax}|${zoom}|${cx0}|${cy0}|${step}|${W}x${H}|dpr=${dpr.toFixed(2)}`;
         if (state._mandelKey === key && state._mandelCanvas) {
-          ctx.drawImage(state._mandelCanvas, 0, 0);
+          ctx.drawImage(state._mandelCanvas, 0, 0, W, H);
           title(ctx, spec.name);
           return;
         }
         const off = typeof document !== "undefined" && document.createElement ? state._mandelCanvas || document.createElement("canvas") : null;
         if (off) {
-          off.width = Math.max(1, Math.floor(W));
-          off.height = Math.max(1, Math.floor(H));
+          off.width = Math.max(1, Math.floor(W * dpr));
+          off.height = Math.max(1, Math.floor(H * dpr));
         }
         const g = off ? off.getContext("2d") : ctx;
         if (off) {
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
           g.fillStyle = "#0b0e14";
           g.fillRect(0, 0, W, H);
         }
@@ -8769,7 +8773,7 @@ function buildChaos(spec) {
         if (off) {
           state._mandelCanvas = off;
           state._mandelKey = key;
-          ctx.drawImage(off, 0, 0);
+          ctx.drawImage(off, 0, 0, W, H);
         } else {
           state._mandelKey = key;
         }
