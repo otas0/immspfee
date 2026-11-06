@@ -279,11 +279,34 @@ for (const heavyId of ['mandelbrot-julia', 'heat-2d', 'collision-2d']) {
   if (!heavy.paused) failures.push(`${heavyId}: expected auto-pause on phone (${JSON.stringify(heavy)})`);
   if (heavy.tier !== 'phone') failures.push(`${heavyId}: tier ${heavy.tier}`);
   if (!(heavy.steps <= 8)) failures.push(`${heavyId}: maxSubSteps ${heavy.steps} > 8`);
-  if (heavyId === 'collision-2d' && heavy.parts != null && heavy.parts > 40) {
+  if (heavyId === 'collision-2d' && heavy.parts != null && heavy.parts > 64) {
     failures.push(`${heavyId}: particle cap exceeded (${heavy.parts})`);
   }
   if (heavyId === 'heat-2d' && heavy.fieldN != null && heavy.fieldN > 24) {
     failures.push(`${heavyId}: field n cap exceeded (${heavy.fieldN})`);
+  }
+  // Frame watchdog: after Play, rAF should keep ticking for ~2s (not a hard freeze).
+  const watchdog = await page.evaluate(async () => {
+    window.__labCapture.play?.();
+    let frames = 0;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 2000) {
+      await new Promise((r) => requestAnimationFrame(r));
+      frames += 1;
+      if (frames > 400) break;
+    }
+    window.__labCapture.pause?.();
+    return {
+      frames,
+      steps: window.__labCapture.getEffectiveMaxSubSteps?.(),
+      paused: !!window.__labCapture.isPaused?.(),
+    };
+  });
+  if (watchdog.frames < 40) {
+    failures.push(`${heavyId}: frame watchdog starved frames=${watchdog.frames}`);
+  }
+  if (!(watchdog.steps <= 8)) {
+    failures.push(`${heavyId}: watchdog steps ${watchdog.steps} > 8`);
   }
 }
 

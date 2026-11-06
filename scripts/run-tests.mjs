@@ -55,6 +55,20 @@ if (missingForm.length || extraForm.length) {
   console.error(`HAND_FORMALISM drift missing=${missingForm.join(',') || '-'} extra=${extraForm.join(',') || '-'}`);
   process.exit(1);
 }
+{
+  const { HEAVY_MODEL_IDS } = await import(pathToFileURL(path.join(repo, 'js/utils/mobilePerf.js')).href);
+  const heavyPath = path.join(repo, 'data/perf-heavy.json');
+  const heavyJson = JSON.parse(fs.readFileSync(heavyPath, 'utf8'));
+  const fromCode = [...HEAVY_MODEL_IDS].sort();
+  const fromJson = [...(heavyJson.ids || [])].sort();
+  const miss = fromCode.filter((id) => !fromJson.includes(id));
+  const extra = fromJson.filter((id) => !fromCode.includes(id));
+  if (miss.length || extra.length || fromCode.length !== fromJson.length) {
+    console.error(`perf-heavy drift code≠json missing=${miss.join(',') || '-'} extra=${extra.join(',') || '-'}`);
+    process.exit(1);
+  }
+  console.log('perf-heavy sync ok', fromCode.length, 'ids');
+}
 console.log('domain chunks cover', catalog.length, 'index', indexBytes, 'bytes', 'hands', bareHands.length);
 const { ensureHandModels } = await import(pathToFileURL(path.join(repo, 'js/models/assemble.js')).href);
 await ensureHandModels();

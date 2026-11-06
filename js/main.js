@@ -858,14 +858,17 @@ function makeModelButton(raw) {
   const m = localizeModel(raw);
   const btn = document.createElement('button');
   const active = app.model?.id === m.id;
+  const heavy = isHeavyModel(m.id);
   btn.type = 'button';
-  btn.className = 'model-item' + (active ? ' active' : '');
+  btn.className = 'model-item' + (active ? ' active' : '') + (heavy ? ' is-heavy' : '');
   btn.dataset.id = m.id;
+  if (heavy) btn.dataset.perfClass = 'heavy';
   if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
-    .map((t) => `<span class="tag">${t}</span>`).join('');
-  btn.title = m.name;
-  btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
+    .map((t) => `<span class="tag">${t}</span>`);
+  if (heavy) tags.unshift(`<span class="tag heavy" title="${t('ui.perfHeavyHint')}">${t('ui.perfHeavy')}</span>`);
+  btn.title = heavy ? `${m.name} · ${t('ui.perfHeavyHint')}` : m.name;
+  btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags.join('')}</span>`;
   btn.addEventListener('click', () => {
     switchModel(m.id);
     setSidebarOpen(false);
@@ -1019,8 +1022,10 @@ function paintSidebar() {
     announce('筛选已空');
   });
   modelListEl.appendChild(countEl);
-  // 3D stage entry sits above every domain fold — never mixed into 物理/光学.
-  modelListEl.appendChild(renderMicro3dStrip());
+  // 3D stage entry is pinned above the scrollable list (never inside #model-list).
+  const microHost = document.getElementById('micro3d-host');
+  if (microHost) microHost.replaceChildren(renderMicro3dStrip());
+  else modelListEl.appendChild(renderMicro3dStrip());
   if (foldBarEl) {
     foldBarEl.innerHTML = '';
     const btnExpand = document.createElement('button');
@@ -1317,7 +1322,8 @@ function switchModel(id, opts = {}) {
   renderBaselineSelect();
   updateHud();
   if (isCompact() && !(microUi?.isMicroscopeShell?.())) {
-    if (autoOpenBenchOnSelect()) {
+    // Heavy models stay paused and keep the bench closed so the canvas stays tappable.
+    if (autoOpenBenchOnSelect() && !isHeavyModel(model.id)) {
       setBenchOpen(true);
       requestAnimationFrame(() => requestAnimationFrame(scrollBenchToDynamics));
     } else {
@@ -1344,9 +1350,15 @@ function updateHud(opts = {}) {
   const digits = app.globals.readoutDigits;
   const readouts = app.model.getReadouts(app.state, { digits }) || [];
   app.lastReadouts = readouts;
-  const accent = getModelColors(app.model?.id).body || '#fff';
-  readoutsEl.style.setProperty('--hud-accent', accent);
   const compare = !!app.globals.compareReadouts;
+  const accent = getModelColors(app.model?.id).body || '#fff';
+  // Skip DOM rewrite when values / chrome flags are unchanged (desktop + mobile).
+  const sig = `${app.model?.id || ''}|cmp=${compare ? 1 : 0}|${readouts.map((r) => `${r.label}=${r.value}`).join('\n')}`;
+  if (!opts.force && !opts.flash && !opts.snapshotPrev && sig === updateHud._sig) {
+    return;
+  }
+  updateHud._sig = sig;
+  readoutsEl.style.setProperty('--hud-accent', accent);
   readoutsEl.classList.toggle('is-compare', compare);
   const baseline = prevReadoutMap;
   readoutsEl.innerHTML = readouts.map((r) => {
@@ -2042,15 +2054,16 @@ window.__labCapture = {
   // care about the visible model should also wait on getModelId().
   // Surface failures instead of letting an unhandled rejection / paint throw
   // look like a silent page death in Playwright.
-  switchModel: (id) => Promise.resolve()
-    .then(() => switchModel(id))
+  switchModel: (id, opts) => Promise.resolve()
+    .then(() => switchModel(id, opts))
     .catch((err) => {
       const msg = err?.stack || err?.message || String(err);
       window.__labLastSwitchError = { id, message: msg, at: Date.now() };
       console.error('[lab] switchModel failed', id, err);
       throw err;
     }),
-  enterMicroscope3d: () => { microUi?.enter?.(); },
+  enterMicroscope3d: (opts) => Promise.resolve(microUi?.enter?.(opts)),
+  leaveMicroscope3d: (opts) => Promise.resolve(microUi?.leave?.(opts)),
   getModelId: () => app.model?.id,
   paintFrame: () => { paintFrame(); },
   loadDomain: (domain) => loadDomain(domain),

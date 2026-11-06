@@ -80,15 +80,27 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 `N`, field `n`, life gens, and microscope `dprCap` by viewport tier (`phone` ≤900 /
 short-height, `tablet` ≤1100, else `desktop`). Heavy ids (`data/perf-heavy.json` +
 `HEAVY_MODEL_IDS`) auto-pause on compact enter with `toast.heavyPaused`. HUD DOM
-writes throttle to ~8Hz on phone. Bottom bench height is capped so `.canvas-wrap`
-keeps `min-height: 120px`. Stage tap dismisses bench on all compact widths (not
-only ≤900). Covered by `npm run test:narrow` (heavy ids + 1000×700 + 844×390).
+writes throttle to ~8Hz on phone and skip unchanged readout signatures on desktop.
+Bottom bench height is capped so `.canvas-wrap` keeps `min-height: 120px`. Stage tap
+dismisses bench on all compact widths (not only ≤900). Particles use a spatial hash
+(`particleNCap` 64 phone / 80 tablet). Mandelbrot caches an offscreen canvas when
+params/size are unchanged; lorenz/rossler trails use a head-index ring buffer.
+`npm test` asserts `perf-heavy.json` ↔ `HEAVY_MODEL_IDS`. Covered by
+`npm run test:narrow` (heavy + watchdog + tablet + landscape) and
+`npm run test:pages-mobile` against Pages. Manual: `manual.html` §9b.
 
 ### soft-paint issue template smoke
 
 Open via GitHub **New issue → Contract soft-paint** (`.github/ISSUE_TEMPLATE/soft-paint.yml`).
 Labels must bind as `soft-paint` + `contract` + `bug` (create missing labels once per fork).
-Fill model id + triage fork from the table below; close after confirming label chips.
+Fill model id + triage fork from the table below; close after confirming label chips
+(template checkbox: “Before closing — confirm labels …”).
+
+### microscope 3D mesh bar
+
+WebGL mesh targets **above** typical NOBOOK teaching cutaways (enamel/chrome,
+Siedentopf binocular, DIN rings, mechanical stage, Abbe + Köhler). Still one
+WebGL path. Rail shows DIN ring legend; do not put fidelity caveats on canvas.
 
 ### soft-paint / open-channel first frame
 

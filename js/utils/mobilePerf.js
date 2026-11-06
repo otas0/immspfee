@@ -52,7 +52,8 @@ export function mobileBudget(tier = viewportTier()) {
       mandelStep: 6,
       mandelIterCap: 48,
       fieldNCap: 24,
-      particleNCap: 40,
+      // Spatial hash lets phones run more particles than the old O(N²) cap of 40.
+      particleNCap: 64,
       interferenceCols: 32,
       interferenceRows: 20,
       heatNCap: 96,
@@ -69,7 +70,7 @@ export function mobileBudget(tier = viewportTier()) {
       mandelStep: 4,
       mandelIterCap: 72,
       fieldNCap: 32,
-      particleNCap: 64,
+      particleNCap: 80,
       interferenceCols: 48,
       interferenceRows: 28,
       heatNCap: 128,
@@ -116,4 +117,45 @@ export function pushTrail(trail, point, maxLen) {
   trail.push(point);
   if (trail.length > cap) trail.splice(0, trail.length - cap);
   return trail;
+}
+
+/**
+ * True ring buffer (head index) for high-churn trails (lorenz / rossler).
+ * @param {number} [cap]
+ */
+export function createRingTrail(cap) {
+  const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
+  return { buf: new Array(n), head: 0, len: 0, cap: n };
+}
+
+/**
+ * @param {{ buf: unknown[], head: number, len: number, cap: number }} ring
+ * @param {unknown} point
+ */
+export function ringPush(ring, point) {
+  if (!ring?.buf?.length) return ring;
+  ring.buf[ring.head] = point;
+  ring.head = (ring.head + 1) % ring.cap;
+  if (ring.len < ring.cap) ring.len += 1;
+  return ring;
+}
+
+/**
+ * @param {{ buf: unknown[], head: number, len: number, cap: number }} ring
+ * @param {(point: unknown, i: number) => void} fn
+ */
+export function ringForEach(ring, fn) {
+  if (!ring?.len) return;
+  const start = ring.len < ring.cap ? 0 : ring.head;
+  for (let i = 0; i < ring.len; i += 1) {
+    fn(ring.buf[(start + i) % ring.cap], i);
+  }
+}
+
+/**
+ * @param {{ buf: unknown[], head: number, len: number, cap: number }} ring
+ */
+export function ringLast(ring) {
+  if (!ring?.len) return null;
+  return ring.buf[(ring.head - 1 + ring.cap) % ring.cap];
 }

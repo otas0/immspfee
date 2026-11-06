@@ -380,7 +380,7 @@ function applyLowInkStrokeBoost(model) {
 }
 
 
-/* inlined chunk-chunk-WM3LI2L6.js */
+/* inlined chunk-chunk-YP6OT2DD.js */
 // js/utils/integrator.js
 function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
   let accumulator = 0;
@@ -439,6 +439,17 @@ var EYEPIECES = [
 ];
 var OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}\xD7` }));
 var EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}\xD7` }));
+function objectiveRingColor(mag) {
+  if (mag <= 4) return { rgb: [0.92, 0.18, 0.16], hex: "#eb2e29", name: "red" };
+  if (mag <= 10) return { rgb: [0.95, 0.82, 0.12], hex: "#f2d11f", name: "yellow" };
+  if (mag <= 40) return { rgb: [0.25, 0.62, 0.95], hex: "#3f9ef2", name: "light blue" };
+  return { rgb: [0.94, 0.94, 0.96], hex: "#f0f0f5", name: "white" };
+}
+var OBJECTIVE_RING_LEGEND = OBJECTIVES.map((o) => ({
+  mag: o.mag,
+  id: o.id,
+  ...objectiveRingColor(o.mag)
+}));
 function findObjective(id) {
   return OBJECTIVES.find((o) => o.id === id) || OBJECTIVES[1];
 }
@@ -553,7 +564,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-WGTE5ZU7.js */
+/* inlined chunk-chunk-2NYFUH3F.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -1113,7 +1124,8 @@ function mobileBudget(tier = viewportTier()) {
       mandelStep: 6,
       mandelIterCap: 48,
       fieldNCap: 24,
-      particleNCap: 40,
+      // Spatial hash lets phones run more particles than the old O(N²) cap of 40.
+      particleNCap: 64,
       interferenceCols: 32,
       interferenceRows: 20,
       heatNCap: 96,
@@ -1130,7 +1142,7 @@ function mobileBudget(tier = viewportTier()) {
       mandelStep: 4,
       mandelIterCap: 72,
       fieldNCap: 32,
-      particleNCap: 64,
+      particleNCap: 80,
       interferenceCols: 48,
       interferenceRows: 28,
       heatNCap: 128,
@@ -1169,11 +1181,33 @@ function pushTrail(trail, point, maxLen) {
   if (trail.length > cap) trail.splice(0, trail.length - cap);
   return trail;
 }
+function createRingTrail(cap) {
+  const n = Math.max(8, Math.floor(cap ?? mobileBudget().trailCap));
+  return { buf: new Array(n), head: 0, len: 0, cap: n };
+}
+function ringPush(ring, point) {
+  if (!ring?.buf?.length) return ring;
+  ring.buf[ring.head] = point;
+  ring.head = (ring.head + 1) % ring.cap;
+  if (ring.len < ring.cap) ring.len += 1;
+  return ring;
+}
+function ringForEach(ring, fn) {
+  if (!ring?.len) return;
+  const start = ring.len < ring.cap ? 0 : ring.head;
+  for (let i = 0; i < ring.len; i += 1) {
+    fn(ring.buf[(start + i) % ring.cap], i);
+  }
+}
+function ringLast(ring) {
+  if (!ring?.len) return null;
+  return ring.buf[(ring.head - 1 + ring.cap) % ring.cap];
+}
 
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
-/* static chunk inlined: chunk-chunk-WM3LI2L6.js */
-/* static chunk inlined: chunk-chunk-WGTE5ZU7.js */
+/* static chunk inlined: chunk-chunk-YP6OT2DD.js */
+/* static chunk inlined: chunk-chunk-2NYFUH3F.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1378,7 +1412,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-EM6UTHTT.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-W37XZUKQ.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -1431,6 +1465,8 @@ var STRINGS = {
     "ui.collapseAll": "\u5168\u90E8\u6536\u8D77",
     "ui.foldHint": "\u6298\u53E0\uFF1A\u6309\u94AE\u5168\u5F00/\u5168\u6536\uFF1B\u70B9\u6807\u9898\u5F00\u5408",
     "ui.recents": "\u6700\u8FD1",
+    "ui.perfHeavy": "\u91CD",
+    "ui.perfHeavyHint": "\u79FB\u52A8\u7AEF\u8FDB\u9875\u6682\u505C \xB7 \u70B9\u64AD\u653E\u7EE7\u7EED",
     "ui.noMatch": "\u65E0\u5339\u914D",
     "ui.openMenu": "\u6253\u5F00\u6A21\u578B\u5217\u8868",
     "ui.closeMenu": "\u5173\u95ED\u6A21\u578B\u5217\u8868",
@@ -1543,6 +1579,8 @@ var STRINGS = {
     "ui.collapseAll": "collapse all",
     "ui.foldHint": "Fold: expand/collapse all; click a heading to toggle",
     "ui.recents": "recent",
+    "ui.perfHeavy": "heavy",
+    "ui.perfHeavyHint": "Paused on mobile enter \u2014 tap Play",
     "ui.noMatch": "no match",
     "ui.openMenu": "Open model list",
     "ui.closeMenu": "Close model list",
@@ -2759,7 +2797,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-M2IZMRQA.js").then((mod) => {
+    handsPending = import("./chunk-handModels-EPYVXLWU.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -6578,13 +6616,16 @@ function makeModelButton(raw) {
   const m = localizeModel2(raw);
   const btn = document.createElement("button");
   const active = app.model?.id === m.id;
+  const heavy = isHeavyModel(m.id);
   btn.type = "button";
-  btn.className = "model-item" + (active ? " active" : "");
+  btn.className = "model-item" + (active ? " active" : "") + (heavy ? " is-heavy" : "");
   btn.dataset.id = m.id;
+  if (heavy) btn.dataset.perfClass = "heavy";
   if (active) btn.setAttribute("aria-current", "page");
-  const tags = (m.tags || []).filter((t2) => !DOMAIN_ORDER.includes(t2)).slice(0, 2).map((t2) => `<span class="tag">${t2}</span>`).join("");
-  btn.title = m.name;
-  btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags}</span>`;
+  const tags = (m.tags || []).filter((t2) => !DOMAIN_ORDER.includes(t2)).slice(0, 2).map((t2) => `<span class="tag">${t2}</span>`);
+  if (heavy) tags.unshift(`<span class="tag heavy" title="${t("ui.perfHeavyHint")}">${t("ui.perfHeavy")}</span>`);
+  btn.title = heavy ? `${m.name} \xB7 ${t("ui.perfHeavyHint")}` : m.name;
+  btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags.join("")}</span>`;
   btn.addEventListener("click", () => {
     switchModel(m.id);
     setSidebarOpen(false);
@@ -6716,7 +6757,9 @@ function paintSidebar() {
     announce("\u7B5B\u9009\u5DF2\u7A7A");
   });
   modelListEl.appendChild(countEl);
-  modelListEl.appendChild(renderMicro3dStrip());
+  const microHost = document.getElementById("micro3d-host");
+  if (microHost) microHost.replaceChildren(renderMicro3dStrip());
+  else modelListEl.appendChild(renderMicro3dStrip());
   if (foldBarEl) {
     foldBarEl.innerHTML = "";
     const btnExpand = document.createElement("button");
@@ -6993,7 +7036,7 @@ function switchModel(id, opts = {}) {
   renderBaselineSelect();
   updateHud();
   if (isCompact() && !microUi?.isMicroscopeShell?.()) {
-    if (autoOpenBenchOnSelect()) {
+    if (autoOpenBenchOnSelect() && !isHeavyModel(model.id)) {
       setBenchOpen(true);
       requestAnimationFrame(() => requestAnimationFrame(scrollBenchToDynamics));
     } else {
@@ -7018,9 +7061,14 @@ function updateHud(opts = {}) {
   const digits = app.globals.readoutDigits;
   const readouts = app.model.getReadouts(app.state, { digits }) || [];
   app.lastReadouts = readouts;
-  const accent = getModelColors(app.model?.id).body || "#fff";
-  readoutsEl.style.setProperty("--hud-accent", accent);
   const compare = !!app.globals.compareReadouts;
+  const accent = getModelColors(app.model?.id).body || "#fff";
+  const sig = `${app.model?.id || ""}|cmp=${compare ? 1 : 0}|${readouts.map((r) => `${r.label}=${r.value}`).join("\n")}`;
+  if (!opts.force && !opts.flash && !opts.snapshotPrev && sig === updateHud._sig) {
+    return;
+  }
+  updateHud._sig = sig;
+  readoutsEl.style.setProperty("--hud-accent", accent);
   readoutsEl.classList.toggle("is-compare", compare);
   const baseline = prevReadoutMap;
   readoutsEl.innerHTML = readouts.map((r) => {
@@ -7672,15 +7720,14 @@ window.__labCapture = {
   // care about the visible model should also wait on getModelId().
   // Surface failures instead of letting an unhandled rejection / paint throw
   // look like a silent page death in Playwright.
-  switchModel: (id) => Promise.resolve().then(() => switchModel(id)).catch((err) => {
+  switchModel: (id, opts) => Promise.resolve().then(() => switchModel(id, opts)).catch((err) => {
     const msg = err?.stack || err?.message || String(err);
     window.__labLastSwitchError = { id, message: msg, at: Date.now() };
     console.error("[lab] switchModel failed", id, err);
     throw err;
   }),
-  enterMicroscope3d: () => {
-    microUi?.enter?.();
-  },
+  enterMicroscope3d: (opts) => Promise.resolve(microUi?.enter?.(opts)),
+  leaveMicroscope3d: (opts) => Promise.resolve(microUi?.leave?.(opts)),
   getModelId: () => app.model?.id,
   paintFrame: () => {
     paintFrame();
@@ -8354,4 +8401,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-EM6UTHTT.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-W37XZUKQ.js");

@@ -67,6 +67,9 @@
         <button type="button" id="btn-user-model" class="btn user-model-btn" data-i18n="ui.userModel" title="自建工业级模型（须权威方程与假设）">＋ 自建模型</button>
       </div>
 
+      <!-- Outside #model-list overflow so 3D stage entry never scrolls away with the catalog. -->
+      <div class="micro3d-host" id="micro3d-host"></div>
+
       <nav class="model-list" id="model-list" aria-label="模型列表"></nav>
 
       <dialog id="user-model-dialog" class="user-model-dialog" aria-labelledby="user-model-title">

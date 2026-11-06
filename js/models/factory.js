@@ -10,7 +10,15 @@ import { familyCapabilities } from '../lab/formalism.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { forceGraphStep, mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
 import { buildTopicModel } from '../lab/topicModel.js';
-import { mobileBudget, perfClassFor, pushTrail } from '../utils/mobilePerf.js';
+import {
+  createRingTrail,
+  mobileBudget,
+  perfClassFor,
+  pushTrail,
+  ringForEach,
+  ringLast,
+  ringPush,
+} from '../utils/mobilePerf.js';
 
 function schemaNum(label, group, unit, min, max) {
   return { label, group, unit, min, max };
@@ -644,24 +652,51 @@ function buildParticles(spec) {
         if (p.x < 0.02 || p.x > 0.98) { p.vx *= -e; p.x = Math.max(0.02, Math.min(0.98, p.x)); }
         if (p.y < 0.02 || p.y > 0.98) { p.vy *= -e; p.y = Math.max(0.02, Math.min(0.98, p.y)); }
       }
-      // crude pairwise for collision-2d / sph
+      // Spatial hash pairwise for collision-2d / sph (O(n) typical vs O(n²)).
       if (/collision-2d|sph/.test(spec.id)) {
-        const n = state.parts.length;
-        for (let i = 0; i < n; i += 1) {
-          for (let j = i + 1; j < n; j += 1) {
-            const a = state.parts[i];
-            const b = state.parts[j];
-            const dx = b.x - a.x; const dy = b.y - a.y;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < 0.0025 && d2 > 1e-8) {
-              const d = Math.sqrt(d2);
-              const nx = dx / d; const ny = dy / d;
-              const dv = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-              if (dv > 0) continue;
-              a.vx -= dv * nx * 0.5 * (1 + e);
-              a.vy -= dv * ny * 0.5 * (1 + e);
-              b.vx += dv * nx * 0.5 * (1 + e);
-              b.vy += dv * ny * 0.5 * (1 + e);
+        const parts = state.parts;
+        const cell = 0.05;
+        const buckets = new Map();
+        const cellKey = (x, y) => `${(x / cell) | 0},${(y / cell) | 0}`;
+        for (let i = 0; i < parts.length; i += 1) {
+          const p = parts[i];
+          const k = cellKey(p.x, p.y);
+          let bin = buckets.get(k);
+          if (!bin) { bin = []; buckets.set(k, bin); }
+          bin.push(i);
+        }
+        const resolve = (i, j) => {
+          const a = parts[i];
+          const b = parts[j];
+          const dx = b.x - a.x; const dy = b.y - a.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 >= 0.0025 || d2 <= 1e-8) return;
+          const d = Math.sqrt(d2);
+          const nx = dx / d; const ny = dy / d;
+          const dv = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+          if (dv > 0) return;
+          a.vx -= dv * nx * 0.5 * (1 + e);
+          a.vy -= dv * ny * 0.5 * (1 + e);
+          b.vx += dv * nx * 0.5 * (1 + e);
+          b.vy += dv * ny * 0.5 * (1 + e);
+        };
+        for (const [k, idxs] of buckets) {
+          const comma = k.indexOf(',');
+          const cx = Number(k.slice(0, comma));
+          const cy = Number(k.slice(comma + 1));
+          for (let ndx = 0; ndx <= 1; ndx += 1) {
+            for (let ndy = ndx === 0 ? 0 : -1; ndy <= 1; ndy += 1) {
+              const other = buckets.get(`${cx + ndx},${cy + ndy}`);
+              if (!other) continue;
+              if (ndx === 0 && ndy === 0) {
+                for (let a = 0; a < idxs.length; a += 1) {
+                  for (let b = a + 1; b < idxs.length; b += 1) resolve(idxs[a], idxs[b]);
+                }
+              } else {
+                for (const i of idxs) {
+                  for (const j of other) resolve(i, j);
+                }
+              }
             }
           }
         }
@@ -3505,8 +3540,10 @@ function buildChaos(spec) {
       state.x = 0.1;
       state.y = 0;
       state.z = 0;
-      state.trail = [];
+      state.trail = isMandel ? [] : createRingTrail(mobileBudget().trailCap);
       state.frame = 0;
+      state._mandelKey = '';
+      state._mandelCanvas = null;
     },
     step(state, dt) {
       if (isMandel) {
@@ -3548,11 +3585,11 @@ function buildChaos(spec) {
         state.z += dz * h;
       }
       state.t += h;
-      pushTrail(state.trail, { x: state.x, y: state.y, z: state.z }, mobileBudget().trailCap);
+      if (!state.trail?.buf) state.trail = createRingTrail(mobileBudget().trailCap);
+      ringPush(state.trail, { x: state.x, y: state.y, z: state.z });
     },
     draw(ctx, state, view) {
       const { width: W, height: H } = view;
-      title(ctx, spec.name);
       if (isMandel) {
         const budget = mobileBudget();
         const iterMax = Math.min(budget.mandelIterCap, Math.floor(P(state.params, 'iter', 40)));
@@ -3560,6 +3597,24 @@ function buildChaos(spec) {
         const cx0 = P(state.params, 'cx', -0.7);
         const cy0 = P(state.params, 'cy', 0.27);
         const step = budget.mandelStep;
+        const key = `${iterMax}|${zoom}|${cx0}|${cy0}|${step}|${W}x${H}`;
+        if (state._mandelKey === key && state._mandelCanvas) {
+          ctx.drawImage(state._mandelCanvas, 0, 0);
+          title(ctx, spec.name);
+          return;
+        }
+        const off = (typeof document !== 'undefined' && document.createElement)
+          ? (state._mandelCanvas || document.createElement('canvas'))
+          : null;
+        if (off) {
+          off.width = Math.max(1, Math.floor(W));
+          off.height = Math.max(1, Math.floor(H));
+        }
+        const g = off ? off.getContext('2d') : ctx;
+        if (off) {
+          g.fillStyle = '#0b0e14';
+          g.fillRect(0, 0, W, H);
+        }
         for (let py = 30; py < H - 10; py += step) {
           for (let px = 10; px < W - 10; px += step) {
             let zx = ((px - W / 2) / (0.25 * W * zoom));
@@ -3574,12 +3629,21 @@ function buildChaos(spec) {
               zx = xt;
               n += 1;
             }
-            ctx.fillStyle = n >= iterMax ? '#111' : heatTempColor(n, 0, iterMax);
-            ctx.fillRect(px, py, step, step);
+            g.fillStyle = n >= iterMax ? '#111' : heatTempColor(n, 0, iterMax);
+            g.fillRect(px, py, step, step);
           }
         }
+        if (off) {
+          state._mandelCanvas = off;
+          state._mandelKey = key;
+          ctx.drawImage(off, 0, 0);
+        } else {
+          state._mandelKey = key;
+        }
+        title(ctx, spec.name);
         return;
       }
+      title(ctx, spec.name);
       const box = padBox(W, H);
       const proj = Math.round(P(state.params, 'proj', 0));
       const labels = ['xy', 'xz', 'yz'];
@@ -3595,22 +3659,25 @@ function buildChaos(spec) {
       ctx.strokeStyle = C.body;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      state.trail.forEach((p, i) => {
-        let u; let v;
-        if (proj === 1) { u = p.x; v = p.z; }
-        else if (proj === 2) { u = p.y; v = p.z; }
-        else { u = p.x; v = p.y; }
-        const x = box.l + box.w * 0.5 + u * 6;
-        const y = box.t + box.h * 0.5 + v * 6;
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-      });
+      const trail = state.trail?.buf ? state.trail : null;
+      if (trail) {
+        ringForEach(trail, (p, i) => {
+          let u; let v;
+          if (proj === 1) { u = p.x; v = p.z; }
+          else if (proj === 2) { u = p.y; v = p.z; }
+          else { u = p.x; v = p.y; }
+          const x = box.l + box.w * 0.5 + u * 6;
+          const y = box.t + box.h * 0.5 + v * 6;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+      }
       ctx.stroke();
-      if (state.trail.length) {
-        const p = state.trail[state.trail.length - 1];
+      const last = trail ? ringLast(trail) : null;
+      if (last) {
         let u; let v;
-        if (proj === 1) { u = p.x; v = p.z; }
-        else if (proj === 2) { u = p.y; v = p.z; }
-        else { u = p.x; v = p.y; }
+        if (proj === 1) { u = last.x; v = last.z; }
+        else if (proj === 2) { u = last.y; v = last.z; }
+        else { u = last.x; v = last.y; }
         ctx.fillStyle = C.accent;
         ctx.beginPath();
         ctx.arc(box.l + box.w * 0.5 + u * 6, box.t + box.h * 0.5 + v * 6, 4, 0, Math.PI * 2);
