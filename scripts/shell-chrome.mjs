@@ -531,21 +531,42 @@ const strip = await desk.evaluate(() => {
   const btnTop = btn?.getBoundingClientRect().top ?? 0;
   const domainTop = domains?.getBoundingClientRect().top ?? 0;
   const host = document.getElementById('micro3d-host');
-  const sticky = stripEl ? getComputedStyle(stripEl).position === 'sticky' : false;
-  const hostSticky = host ? /sticky|fixed/.test(getComputedStyle(host).position) : false;
+  const count = document.querySelector('#model-list .filter-count');
   return {
     hasBtn: !!btn,
     hasStrip: !!stripEl,
     aboveDomains: !!(btn && domains && btnTop < domainTop - 4),
-    sticky: sticky || hostSticky,
-    hostPinned: !!host && host.contains(stripEl),
+    hostPinned: !!host && host.contains(stripEl) && !list?.contains(host),
+    countInList: !!count && !!list?.contains(count),
+    stripPos: stripEl ? getComputedStyle(stripEl).position : '',
     label: btn?.querySelector('.name')?.textContent?.trim() || '',
   };
 });
 if (!strip.hasBtn || !strip.hasStrip) fail(`3D strip missing ${JSON.stringify(strip)}`);
 if (!strip.aboveDomains) fail(`3D strip must sit above domain folds ${JSON.stringify(strip)}`);
-if (!strip.sticky && !strip.hostPinned) {
-  fail(`3D strip should stay sticky on scroll ${JSON.stringify(strip)}`);
+if (!strip.hostPinned) fail(`3D strip must live in #micro3d-host outside #model-list ${JSON.stringify(strip)}`);
+if (!strip.countInList) fail(`filter-count must stay inside scrolling #model-list ${JSON.stringify(strip)}`);
+if (strip.stripPos === 'sticky') fail(`3D strip should be static in pinned host ${JSON.stringify(strip)}`);
+const pinBefore = await desk.evaluate(() => {
+  const host = document.getElementById('micro3d-host');
+  const list = document.getElementById('model-list');
+  return { top: host?.getBoundingClientRect().top ?? -1, scrollH: list?.scrollHeight ?? 0 };
+});
+await desk.evaluate(() => {
+  const list = document.getElementById('model-list');
+  if (list) list.scrollTop = Math.min(list.scrollHeight, 400);
+});
+const pinAfter = await desk.evaluate(() => {
+  const host = document.getElementById('micro3d-host');
+  const list = document.getElementById('model-list');
+  return {
+    top: host?.getBoundingClientRect().top ?? -1,
+    scrollTop: list?.scrollTop ?? 0,
+  };
+});
+if (pinAfter.scrollTop < 40) fail(`model-list did not scroll for pin check ${JSON.stringify(pinAfter)}`);
+if (Math.abs(pinAfter.top - pinBefore.top) > 1.5) {
+  fail(`#micro3d-host moved with list scroll before=${pinBefore.top} after=${pinAfter.top}`);
 }
 await desk.evaluate(() => window.__labCapture.enterMicroscope3d());
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
@@ -1059,6 +1080,29 @@ const narrowOpen = await narrow.evaluate(() => {
 });
 if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') fail(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
 if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
+// Overlay must keep #micro3d-host pinned (sidebar overflow:hidden, list scrolls).
+await ensureCatalogRows(narrow);
+const narrowPin = await narrow.evaluate(() => {
+  const host = document.getElementById('micro3d-host');
+  const list = document.getElementById('model-list');
+  const side = document.getElementById('sidebar');
+  const before = host?.getBoundingClientRect().top ?? -1;
+  if (list) list.scrollTop = Math.min(list.scrollHeight, 320);
+  const after = host?.getBoundingClientRect().top ?? -1;
+  return {
+    hostPinned: !!host && !list?.contains(host),
+    sideOverflow: side ? getComputedStyle(side).overflow : '',
+    listOverflow: list ? getComputedStyle(list).overflowY || getComputedStyle(list).overflow : '',
+    scrolled: list?.scrollTop || 0,
+    delta: Math.abs(after - before),
+  };
+});
+if (!narrowPin.hostPinned) fail(`390 overlay host not pinned ${JSON.stringify(narrowPin)}`);
+if (narrowPin.sideOverflow === 'auto' || narrowPin.sideOverflow === 'scroll') {
+  fail(`390 overlay sidebar must not be the scroll container ${JSON.stringify(narrowPin)}`);
+}
+if (narrowPin.scrolled < 20) fail(`390 overlay list did not scroll ${JSON.stringify(narrowPin)}`);
+if (narrowPin.delta > 1.5) fail(`390 overlay #micro3d-host moved on list scroll ${JSON.stringify(narrowPin)}`);
 await narrow.evaluate(() => document.getElementById('drawer-backdrop')?.click());
 await narrow.evaluate(() => localStorage.setItem('physics-lab-auto-open-bench', '1'));
 await narrow.evaluate(() => window.__labCapture?.switchModel?.('free-fall'));

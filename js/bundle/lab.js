@@ -4853,7 +4853,7 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
   const shoeY = 0.09;
   const shoeRad = 0.09;
   const tipZ = 0.78;
-  const arcSegs = 16;
+  const arcSegs = 24;
   for (let i = 0; i < arcSegs; i += 1) {
     const a0 = Math.PI + i / arcSegs * Math.PI;
     const a1 = Math.PI + (i + 1) / arcSegs * Math.PI;
@@ -4861,26 +4861,26 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
     const z0 = shoeZc + Math.sin(a0) * shoeR;
     const x1 = Math.cos(a1) * shoeR;
     const z1 = shoeZc + Math.sin(a1) * shoeR;
-    tubeSeg(x0, shoeY, z0, x1, shoeY, z1, shoeRad, ...enamel, data, 14, false, 0.1);
-    tubeSeg(x0, shoeY + 0.07, z0, x1, shoeY + 0.07, z1, 0.016, ...chrome, data, 8, false, 0.4);
+    tubeSeg(x0, shoeY, z0, x1, shoeY, z1, shoeRad, ...enamel, data, 18, false, 0.1);
+    tubeSeg(x0, shoeY + 0.07, z0, x1, shoeY + 0.07, z1, 0.016, ...chrome, data, 10, false, 0.4);
   }
-  tubeSeg(-shoeR, shoeY, shoeZc, -shoeR, shoeY, tipZ, shoeRad, ...enamel, data, 14, false, 0.1);
-  tubeSeg(shoeR, shoeY, shoeZc, shoeR, shoeY, tipZ, shoeRad, ...enamel, data, 14, false, 0.1);
-  sphere(-shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, data, 16, 12, 0.42);
-  sphere(shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, data, 16, 12, 0.42);
-  cylinderY(0, 0.22, heelZ, 0.095, 0.3, ...enamel, data, 28, true, 0.1);
-  torusY(0, 0.34, heelZ, 0.1, 0.016, ...chrome, data, 24, 8, 0.36);
+  tubeSeg(-shoeR, shoeY, shoeZc, -shoeR, shoeY, tipZ, shoeRad, ...enamel, data, 18, false, 0.1);
+  tubeSeg(shoeR, shoeY, shoeZc, shoeR, shoeY, tipZ, shoeRad, ...enamel, data, 18, false, 0.1);
+  sphere(-shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, data, 20, 14, 0.42);
+  sphere(shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, data, 20, 14, 0.42);
+  cylinderY(0, 0.22, heelZ, 0.095, 0.3, ...enamel, data, 36, true, 0.1);
+  torusY(0, 0.34, heelZ, 0.1, 0.016, ...chrome, data, 32, 10, 0.36);
   const armPoint = (t2) => {
     const y = 0.24 + t2 * 1.3;
     const z = heelZ - Math.sin(t2 * Math.PI) * 0.38 + t2 * (-0.08 - heelZ);
     const x = 0.05 * Math.sin(t2 * Math.PI);
     return [x, y, z];
   };
-  const armSegs = 16;
+  const armSegs = 24;
   for (let i = 0; i < armSegs; i += 1) {
     const a = armPoint(i / armSegs);
     const b = armPoint((i + 1) / armSegs);
-    tubeSeg(a[0], a[1], a[2], b[0], b[1], b[2], 0.074, ...enamel, data, 14, false, 0.11);
+    tubeSeg(a[0], a[1], a[2], b[0], b[1], b[2], 0.074, ...enamel, data, 18, false, 0.11);
     tubeSeg(
       a[0],
       a[1] + 0.055,
@@ -4891,13 +4891,13 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
       0.014,
       ...chrome,
       data,
-      8,
+      10,
       false,
       0.4
     );
   }
   const armEnd = armPoint(1);
-  sphere(armEnd[0], armEnd[1], armEnd[2], 0.086, ...enamelHi, data, 14, 10, 0.12);
+  sphere(armEnd[0], armEnd[1], armEnd[2], 0.086, ...enamelHi, data, 18, 12, 0.12);
   const focus = armPoint(0.3);
   sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, data, 16, 12, 0.12);
   for (const side of [-1, 1]) {

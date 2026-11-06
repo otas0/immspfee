@@ -216,12 +216,12 @@ Measured against `otas0.github.io/immspfee` (Playwright Chromium + WebKit,
 
 | Visit | Typical | Notes |
 |-------|---------|--------|
-| Cold (first navigation) | cache `immspfee-hashed-v6` may appear while `controller` is still **false** | First document is not yet controlled |
+| Cold (first navigation) | cache `immspfee-hashed-v7` may appear while `controller` is still **false** | First document is not yet controlled |
 | Warm (reload / second hit) | `controller: true`, same cache name, `sw.js?v=<imm-js stamp>` within ~2–4 s | Hard gate uses this visit |
 | Microscope 390 | `html.shell-micro-active`, WebGL stage full viewport width, `#sidebar` `display:none` | Confirm after deploy + ⌘⇧R / private window |
 
 Incognito / private: same cold→warm pattern — confirm Application → Cache Storage
-name `immspfee-hashed-v6` on the warm load after ⌘⇧R.
+name `immspfee-hashed-v7` on the warm load after ⌘⇧R.
 
 ### safari-proxy shots vs docs/assets
 
@@ -272,7 +272,7 @@ Prefer: keep factory off cold boot, keep handModels lazy, and avoid growing
 2026-11-06 re-measure (SW blocked): cold ready **~4.8 s**,
 `entryMs≈3.7 s`, `mainMs≈1.1 s`, first handModels switch **~4.5 s**.
 `microCss` matched the commit; `bundleMeta` differed (Pages `build:bundle`
-before `prepare-site` — expected). SW cache bumped to `immspfee-hashed-v6`;
+before `prepare-site` — expected). SW cache bumped to `immspfee-hashed-v7`;
 `entry.js` adds `modulepreload` for `lab.js` (no further entry split).
 
 When a write fails with `Operation not permitted`:
