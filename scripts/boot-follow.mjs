@@ -167,14 +167,32 @@ if (!fs.existsSync(baselinePath)) {
 } else {
   const current = PNG.sync.read(shot);
   const baseline = PNG.sync.read(fs.readFileSync(baselinePath));
-  if (current.width !== baseline.width || current.height !== baseline.height) {
+  const dw = Math.abs(current.width - baseline.width);
+  const dh = Math.abs(current.height - baseline.height);
+  // Linux CI vs macOS often differ by 1 CSS px on the canvas snapshot.
+  if (dw > 1 || dh > 1) {
     fail(`palette frame ${current.width}x${current.height} != baseline ${baseline.width}x${baseline.height}`);
   } else {
-    const mismatched = pixelmatch(current.data, baseline.data, null, current.width, current.height, {
-      threshold: 0.1,
-      includeAA: true,
-    });
-    console.log('palette pixel mismatch', mismatched);
+    const w = Math.min(current.width, baseline.width);
+    const h = Math.min(current.height, baseline.height);
+    const crop = (png, tw, th) => {
+      if (png.width === tw && png.height === th) return png.data;
+      const out = Buffer.alloc(tw * th * 4);
+      for (let y = 0; y < th; y += 1) {
+        const src = y * png.width * 4;
+        png.data.copy(out, y * tw * 4, src, src + tw * 4);
+      }
+      return out;
+    };
+    const mismatched = pixelmatch(
+      crop(current, w, h),
+      crop(baseline, w, h),
+      null,
+      w,
+      h,
+      { threshold: 0.1, includeAA: true },
+    );
+    console.log('palette pixel mismatch', mismatched, dw || dh ? `(crop ${w}x${h})` : '');
     if (mismatched > 250) fail(`palette frame differs from the baseline by ${mismatched} pixels`);
   }
 }
