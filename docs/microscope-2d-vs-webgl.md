@@ -71,4 +71,6 @@ Selecting the normal `r016-显微镜` catalog row must **not** auto-enter WebGL.
 
 ## Pages asset-stamp
 
-Fingerprint authority is the **JSON fields** in `asset-stamp.json` (`js`, `css`, `microCss`, `main`, …), mirrored into `index.html` (`imm-js` / CSS `?v=`). GitHub Pages does **not** honor repo `_headers` Cache-Control; treat CDN `Cache-Control` as advisory and bust with stamp fields / `?v=` only.
+Fingerprint authority is the **JSON fields** in `asset-stamp.json` (`js`, `css`, `microCss`, `main`, `bundleMeta`, …), mirrored into `index.html` (`imm-js` / CSS `?v=`). GitHub Pages does **not** honor repo `_headers` Cache-Control; treat CDN `Cache-Control` as advisory and bust with stamp fields / `?v=` only.
+
+Deploy check (after Pages workflow green): `curl -sS https://otas0.github.io/immspfee/asset-stamp.json` must show non-empty `bundleMeta` and `microCss` matching the commit’s local stamp after `prepare-site` / `build:bundle`.

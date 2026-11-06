@@ -1,7 +1,7 @@
 /**
  * Network-first HTML + asset-stamp; cache-first for fingerprinted js|css|domains.
  */
-const CACHE = 'immspfee-hashed-v4';
+const CACHE = 'immspfee-hashed-v5';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -38,12 +38,16 @@ self.addEventListener('activate', (event) => {
     await Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)));
     const cache = await caches.open(CACHE);
     const live = await liveHashes();
-    if (!live.size) return;
-    const requests = await cache.keys();
-    await Promise.all(requests.map(async (request) => {
-      const version = new URL(request.url).searchParams.get('v');
-      if (version && !live.has(version)) await cache.delete(request);
-    }));
+    if (live.size) {
+      const requests = await cache.keys();
+      await Promise.all(requests.map(async (request) => {
+        const version = new URL(request.url).searchParams.get('v');
+        if (version && !live.has(version)) await cache.delete(request);
+      }));
+    }
+    // Claim so the registering tab gets a controller without a second navigation
+    // (sw-cache / Pages second-hit assertions depend on this).
+    await self.clients.claim();
   })());
 });
 
@@ -90,13 +94,13 @@ async function networkFirst(request) {
 }
 
 async function cacheFirst(request) {
-  const cached = await caches.match(request);
+  // Match by URL + ignoreVary so primed module/script entries hit on reload
+  // (browser Request Vary / mode often miss a bare caches.match(request)).
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request.url, { ignoreVary: true });
   if (cached) return tagged(cached, 'cache');
   const fresh = await fetch(request);
-  if (fresh.ok) {
-    const cache = await caches.open(CACHE);
-    await cache.put(request, fresh.clone());
-  }
+  if (fresh.ok) await cache.put(request.url, fresh.clone());
   return tagged(fresh, 'network');
 }
 

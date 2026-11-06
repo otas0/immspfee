@@ -546,6 +546,54 @@ if (
 ) {
   fail(`microscope→projector #canvas not restored ${JSON.stringify(projCanvas)}`);
 }
+
+// Focus ↔ microscope: same #canvas / WebGL exclusivity contract as projector.
+await setShell(desk, 'lab-focus');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-focus');
+await setShell(desk, 'lab-microscope3d');
+await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
+const focusMicroCanvas = await desk.evaluate(() => {
+  const c2 = document.getElementById('canvas');
+  const c3 = document.getElementById('canvas-webgl');
+  const cs2 = c2 ? getComputedStyle(c2) : null;
+  return {
+    stageMode: document.documentElement.dataset.stageMode || '',
+    canvasDisplay: cs2?.display || '',
+    canvasHidden: !!c2?.hidden,
+    webglHidden: !!c3?.hidden,
+  };
+});
+if (
+  focusMicroCanvas.stageMode !== 'webgl3d'
+  || focusMicroCanvas.canvasDisplay !== 'none'
+  || focusMicroCanvas.webglHidden
+) {
+  fail(`focus→microscope canvas leak ${JSON.stringify(focusMicroCanvas)}`);
+}
+await setShell(desk, 'lab-focus');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-focus');
+const focusRestored = await desk.evaluate(() => {
+  const c2 = document.getElementById('canvas');
+  const c3 = document.getElementById('canvas-webgl');
+  const cs2 = c2 ? getComputedStyle(c2) : null;
+  return {
+    stageMode: document.documentElement.dataset.stageMode || '',
+    canvasDisplay: cs2?.display || '',
+    canvasHidden: !!c2?.hidden,
+    webglHidden: c3 ? !!c3.hidden : true,
+    microRoot: document.documentElement.classList.contains('shell-lab-microscope3d'),
+  };
+});
+if (
+  focusRestored.stageMode === 'webgl3d'
+  || focusRestored.canvasDisplay === 'none'
+  || focusRestored.canvasHidden
+  || !focusRestored.webglHidden
+  || focusRestored.microRoot
+) {
+  fail(`microscope→focus #canvas not restored ${JSON.stringify(focusRestored)}`);
+}
+
 await setShell(desk, 'lab-classic');
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
 

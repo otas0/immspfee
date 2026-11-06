@@ -37,6 +37,22 @@ If a second window is already open, close it before editing lab files.
 double-writes and mismatched SW factory-chunk priming. Prefer one writer;
 review dirty diffs before a second host touches the same paths.
 
+### Agents Window + factory-chunk sessionStorage checklist
+
+Before a boot / SW / Pages change lands, confirm in one writer only:
+
+1. **One Agents Window** against `physics-demo` (close any second host).
+2. `js/entry.js` still primes `sessionStorage['immspfee-factory-chunk']` into the
+   SW `prime` URL list after subject open (do not drop the try/catch).
+3. `js/models/factoryLoader.js` still writes that key when the factory chunk URL
+   resolves, and posts `prime` when `navigator.serviceWorker.controller` exists.
+4. `scripts/sw-cache.mjs` still asserts the second subject open hits
+   `chunk-factory` from `X-Imm-SW: cache` (not network).
+5. After `build:bundle`, commit `js/bundle/lab.js` + hashed `chunk-*` +
+   `meta.json` together with `asset-stamp.json` / `index.html` stamps.
+6. Do not set `uchg` on lab files; if writes fail with `Operation not permitted`,
+   `chflags nouchg` the path (see below) instead of opening a second window.
+
 When a write fails with `Operation not permitted`:
 
 ```bash

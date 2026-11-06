@@ -2229,6 +2229,8 @@ function mountShellSelect(el) {
 }
 
 async function boot() {
+  // Bind before any await so dialog open works as soon as __labCapture appears.
+  bindUserModelUi();
   if (localStorage.getItem('physics-lab-hc') === '1') {
     document.documentElement.classList.add('hc');
   }
@@ -2367,7 +2369,10 @@ async function boot() {
           ctx.drawImage(img, 0, 0);
           const sx = out.width / Math.max(view.width, 1);
           const sy = out.height / Math.max(view.height, 1);
-          ctx.font = `${Math.max(11, Math.round(12 * sx))}px "IBM Plex Mono", ui-monospace, monospace`;
+          // Cap font growth on DPR>2 / high-res buffers so labels stay readable,
+          // not billboard-sized relative to the eyepiece glyphs.
+          const fontPx = Math.min(22, Math.max(11, Math.round(12 * Math.min(sx, 2.25))));
+          ctx.font = `${fontPx}px "IBM Plex Mono", ui-monospace, monospace`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
           for (const lab of labels) {
@@ -2375,10 +2380,10 @@ async function boot() {
             const y = (lab.y || 0) * sy;
             const text = String(lab.text || '');
             if (!text) continue;
-            const padX = 6 * sx;
-            const padY = 4 * sy;
+            const padX = Math.min(14, 6 * Math.min(sx, 2.25));
+            const padY = Math.min(10, 4 * Math.min(sy, 2.25));
             const tw = ctx.measureText(text).width;
-            const th = Math.max(12, 14 * sy);
+            const th = Math.min(26, Math.max(12, fontPx * 1.15));
             ctx.fillStyle = 'rgba(6, 8, 11, 0.72)';
             ctx.strokeStyle = lab.active
               ? 'rgba(110, 180, 255, 0.9)'
@@ -2609,6 +2614,11 @@ async function reloadAfterUserModels(id, toast) {
 }
 
 function bindUserModelUi() {
+  // Idempotent: __labCapture is exposed at module load, but boot awaits loadIndex /
+  // primeHandModel before the previous call site — Playwright clicking #btn-user-model
+  // right after __labCapture races an unbound button (narrow miss=1 flake).
+  if (btnUserModel?.dataset.bound === '1') return;
+  if (btnUserModel) btnUserModel.dataset.bound = '1';
   btnUserModel?.addEventListener('click', () => {
     void ensureTopicRows();
     fillUserModelForm(null);

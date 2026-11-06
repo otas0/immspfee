@@ -2696,6 +2696,19 @@ function buildAllUserModels() {
 // js/models/assemble.js
 var handcrafted = [freeFall_default];
 var byId = { [freeFall_default.id]: freeFall_default };
+var handsPending = null;
+function ensureHandModels() {
+  if (handcrafted.length > 1) return Promise.resolve(handcrafted);
+  if (!handsPending) {
+    handsPending = import("./chunk-handModels-B4JQTOV6.js").then((mod) => {
+      const extras = mod.HANDS || [];
+      handcrafted = [freeFall_default, ...extras];
+      byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
+      return handcrafted;
+    });
+  }
+  return handsPending;
+}
 function ensureRefresh(model) {
   localizeModel(model);
   if (!model.formalism && !model.capabilities?.formalism && HAND_FORMALISM[model.id]) {
@@ -2918,7 +2931,7 @@ function loadDomain(domain) {
   if (!domain) return Promise.resolve(models);
   if (loaded.has(domain)) return Promise.resolve(models);
   if (inflight.has(domain)) return inflight.get(domain);
-  const task = Promise.resolve().then(async () => {
+  const task = Promise.resolve().then(() => ensureHandModels()).then(async () => {
     const warm = window.__preloadedDomain;
     if (warm && warm.domain === domain && warm.promise) {
       const specs = await warm.promise;
@@ -2941,6 +2954,7 @@ function loadDomain(domain) {
   return task;
 }
 async function primeHandModel(id) {
+  if (id !== "free-fall") await ensureHandModels();
   const impl = handcraftedList().find((model) => model.id === id);
   if (!impl) return false;
   if (!models.some((model) => model.id === id)) {
@@ -7588,6 +7602,7 @@ function mountShellSelect(el) {
   if (!getShell(current).exclusiveChrome) applyActiveShell(current);
 }
 async function boot() {
+  bindUserModelUi();
   if (localStorage.getItem("physics-lab-hc") === "1") {
     document.documentElement.classList.add("hc");
   }
@@ -7723,7 +7738,8 @@ async function boot() {
           ctx.drawImage(img, 0, 0);
           const sx = out.width / Math.max(view.width, 1);
           const sy = out.height / Math.max(view.height, 1);
-          ctx.font = `${Math.max(11, Math.round(12 * sx))}px "IBM Plex Mono", ui-monospace, monospace`;
+          const fontPx = Math.min(22, Math.max(11, Math.round(12 * Math.min(sx, 2.25))));
+          ctx.font = `${fontPx}px "IBM Plex Mono", ui-monospace, monospace`;
           ctx.textAlign = "center";
           ctx.textBaseline = "bottom";
           for (const lab of labels) {
@@ -7731,10 +7747,10 @@ async function boot() {
             const y = (lab.y || 0) * sy;
             const text = String(lab.text || "");
             if (!text) continue;
-            const padX = 6 * sx;
-            const padY = 4 * sy;
+            const padX = Math.min(14, 6 * Math.min(sx, 2.25));
+            const padY = Math.min(10, 4 * Math.min(sy, 2.25));
             const tw = ctx.measureText(text).width;
-            const th = Math.max(12, 14 * sy);
+            const th = Math.min(26, Math.max(12, fontPx * 1.15));
             ctx.fillStyle = "rgba(6, 8, 11, 0.72)";
             ctx.strokeStyle = lab.active ? "rgba(110, 180, 255, 0.9)" : lab.id === "L" ? "rgba(240, 213, 106, 0.7)" : "rgba(232, 238, 246, 0.28)";
             ctx.lineWidth = Math.max(1, sx);
@@ -7960,6 +7976,8 @@ async function reloadAfterUserModels(id, toast) {
   if (toast) showToast(toast);
 }
 function bindUserModelUi() {
+  if (btnUserModel?.dataset.bound === "1") return;
+  if (btnUserModel) btnUserModel.dataset.bound = "1";
   btnUserModel?.addEventListener("click", () => {
     void ensureTopicRows();
     fillUserModelForm(null);
