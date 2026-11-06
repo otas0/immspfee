@@ -1,0 +1,51 @@
+name: Contract soft-paint
+description: SOFT soft-paint triage (hist seed vs denser sample vs fam draw)
+title: "soft-paint: <model-id>"
+labels: ["soft-paint", "contract"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the triage fork in `docs/commit-notes.md` (soft-paint section).
+        Do **not** invent decorative ink to silence soft.
+  - type: input
+    id: model-id
+    attributes:
+      label: Model id
+      placeholder: open-channel-uniform / fam-sho-v01 / …
+    validations:
+      required: true
+  - type: dropdown
+    id: fork
+    attributes:
+      label: Triage fork
+      options:
+        - "shell() / flow ODE — hist.length < 2 (seed duplicate ordinate)"
+        - "Flaky soft — denser sample / step timing (keep contract retry; no fake ink)"
+        - "fam-* — hist.length === 0 (fix family draw, not hist seed)"
+        - "Soft + empty readouts (real empty canvas — hard fail / fix model)"
+        - "Unknown — need capture"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Paste soft line from contract-browser / shell-first-paint (painted, hist, readouts).
+      placeholder: |
+        SOFT  open-channel-uniform  painted=1 hist=1 readouts=3
+    validations:
+      required: true
+  - type: input
+    id: sha
+    attributes:
+      label: Commit / CI run
+      placeholder: sha or actions run URL
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before opening
+      options:
+        - label: Reproduced with `npm run test:shell-first-paint` or contract soft list
+        - label: Confirmed not a CDN / boot flake
+        - label: Will not paint assumption/caveat chrome on stage

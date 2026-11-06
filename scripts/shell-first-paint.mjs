@@ -34,6 +34,13 @@ const IDS = (process.env.SHELL_PAINT_IDS || [
   'fam-circular-v01',
   'fam-pendulum-chain-v01',
   'fam-interfere-v01',
+  // formalism representatives (catalog has no montecarlo/lattice factory names)
+  'fam-projectile-v01', // ode2d
+  'fam-noninertial-v01', // ode2d
+  'fam-ising-v01', // discrete lattice / Metropolis-style
+  'fam-ca-v01', // cellular automaton lattice
+  'fam-percolation-v01', // discrete lattice
+  'fam-pgm-v01', // probabilistic / sampling-adjacent stand-in for MC
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 
 const browser = await chromium.launch({ headless: true });

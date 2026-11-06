@@ -202,7 +202,6 @@ jobs:
         if: always() && hashFiles('artifacts/contract-browser.json') != ''
         run: |
           npm run gen:low-ink
-          node scripts/gen-low-ink.mjs --tighten --dry-run --assert-keep-logic-gates
           if git diff --quiet -- data/principle-low-ink.json js/lab/lowInkIds.js; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "low-ink table unchanged"
@@ -212,6 +211,10 @@ jobs:
             echo "low-ink table drifted — see artifacts/low-ink-table.diff"
           fi
         continue-on-error: true
+
+      - name: Assert keptLogicGates on tighten dry-run
+        if: always() && hashFiles('artifacts/contract-browser.json') != ''
+        run: npm run gen:low-ink:assert-keep
 
       - name: Upload contract-failed-ids on draw failure
         if: steps.contract_browser.outcome == 'failure'
@@ -383,30 +386,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TITLE='webkit: docs/assets safari-proxy drifted — commit sync (no bot push)'
-          BODY=$(cat <<EOF
-          WebKit job wrote a new \`shots/shell-projector-1000-safari-proxy.png\` and synced
-          \`docs/assets/shell-projector-1000-safari-proxy.png\` locally in CI, but the workflow
-          **cannot push** to \`main\`.
-
-          **Commit reminder (human / agent with push):**
-          \`\`\`bash
-          npm run sync:safari-proxy
-          git add docs/assets/shell-projector-1000-safari-proxy.png
-          git commit -m "chore(webkit): sync safari-proxy asset"
-          git push origin HEAD
-          \`\`\`
-
-          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SHA: \`${{ github.sha }}\`
-          Artifact: \`webkit-safari-proxy-${{ github.sha }}\`
-          EOF
-          )
-          EXISTING=$(gh issue list --state open --search "webkit: docs/assets safari-proxy drifted" --json number --jq '.[0].number' || true)
+          BODY_FILE="${RUNNER_TEMP}/webkit-safari-proxy-drift.md"
+          {
+            echo 'WebKit job wrote a new `shots/shell-projector-1000-safari-proxy.png` and synced'
+            echo '`docs/assets/shell-projector-1000-safari-proxy.png` locally in CI, but the workflow'
+            echo '**cannot push** to `main`.'
+            echo
+            echo '**Commit reminder (human / agent with push):**'
+            echo
+            echo '```bash'
+            echo 'npm run sync:safari-proxy'
+            echo 'git add docs/assets/shell-projector-1000-safari-proxy.png'
+            echo 'git commit -m "chore(webkit): sync safari-proxy asset"'
+            echo 'git push origin HEAD'
+            echo '```'
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "SHA: \`${{ github.sha }}\`"
+            echo "Artifact: \`webkit-safari-proxy-${{ github.sha }}\`"
+          } > "$BODY_FILE"
+          EXISTING=$(gh issue list --state open --search "webkit: docs/assets safari-proxy drifted in:title" --json number --jq '.[0].number' || true)
           if [ -n "$EXISTING" ]; then
-            gh issue comment "$EXISTING" --body "$BODY"
+            gh issue comment "$EXISTING" --body-file "$BODY_FILE"
             echo "Commented on #$EXISTING"
           else
-            gh issue create --title "$TITLE" --body "$BODY"
+            gh issue create --title "$TITLE" --body-file "$BODY_FILE"
           fi
       - uses: actions/upload-artifact@v6
         if: always()

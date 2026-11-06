@@ -166,7 +166,31 @@ spoof, warm TTI looks like another cold network fetch.
 
 CI runs `PAGES_TTI_HARD=1`: fail if the warm visit has no SW controller /
 `immspfee-hashed-*` cache. Wall-clock and `firstHandMs` p50/p95 stay advisory
-(`FIRST_HAND_SAMPLES`, default 5).
+(`FIRST_HAND_SAMPLES`, default 5). JSON includes `cdnJitter` when
+`warm.readyMs > cold.readyMs`, and logs advisory when `firstHandP95` >
+`FIRST_HAND_P95_WARN_MS` (default 10000).
+
+### Cold → warm SW controller timeline (Pages, webdriver spoofed)
+
+Measured against `otas0.github.io/immspfee` (Playwright Chromium + WebKit,
+`navigator.webdriver` spoofed so `entry.js` registers SW):
+
+| Visit | Typical | Notes |
+|-------|---------|--------|
+| Cold (first navigation) | cache `immspfee-hashed-v6` may appear while `controller` is still **false** | First document is not yet controlled |
+| Warm (reload / second hit) | `controller: true`, same cache name, `sw.js?v=<imm-js stamp>` within ~2–4 s | Hard gate uses this visit |
+| Microscope 390 | `html.shell-micro-active`, WebGL stage full viewport width, `#sidebar` `display:none` | Confirm after deploy + ⌘⇧R / private window |
+
+Incognito / private: same cold→warm pattern — confirm Application → Cache Storage
+name `immspfee-hashed-v6` on the warm load after ⌘⇧R.
+
+### safari-proxy shots vs docs/assets
+
+If local `shots/shell-projector-1000-safari-proxy.png` ≠ tracked
+`docs/assets/…`, **keep docs** when it already matches Pages. Do not
+`sync:safari-proxy` from an orphan local shot. Re-run
+`SHELL_WEBKIT_ONLY=1 npm run test:shell-chrome` then sync only when CI
+`DRIFTED=1` (or you intentionally refresh the manual figure).
 
 ### Pages cold TTI (entry / main)
 

@@ -33,6 +33,7 @@
     "gen:low-ink": "node scripts/gen-low-ink.mjs",
     "gen:low-ink:tighten": "node scripts/gen-low-ink.mjs --tighten",
     "gen:low-ink:assert-keep": "node scripts/gen-low-ink.mjs --tighten --dry-run --assert-keep-logic-gates",
+    "audit:locale-keys": "node scripts/audit-locale-keys.mjs",
     "test:visual": "node scripts/visual-baseline.mjs check",
     "baseline:update": "node scripts/visual-baseline.mjs update",
     "shots": "node scripts/capture-shots.mjs",

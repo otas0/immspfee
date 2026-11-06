@@ -99,13 +99,23 @@ Public Actions on this repo use **GitHub-hosted** labels only:
 
 **GHES / self-hosted matrix** (when mirroring this workflow behind Enterprise):
 
-| Label example | Use for | Node / browser |
-|---------------|---------|----------------|
-| `self-hosted` + `linux` + `x64` | contract, pages-tti-sw, pages-network | Node 22+; `npx playwright install chromium --with-deps` |
-| `self-hosted` + `macOS` + `arm64` | WebKit / safari-proxy only | Node 22+; `npx playwright install webkit` |
-| Avoid | Custom `macos-14-*` cloud labels unless your GHES fleet advertises them | Prefer `macos-latest` semantics or explicit fleet tags you control |
+| `runs-on` label set (concrete) | Use for | Node / browser |
+|--------------------------------|---------|----------------|
+| `[self-hosted, linux, x64, immspfee]` | contract, pages-tti-sw, pages-network, Pages prepare | Node **22+**; `npx playwright install chromium --with-deps` |
+| `[self-hosted, linux, x64, immspfee, ci]` | same, if you split “CI pool” from deploy | Node 22+ |
+| `[self-hosted, macOS, ARM64, immspfee-webkit]` | WebKit / safari-proxy only | Node 22+; `npx playwright install webkit` |
+| Avoid | `macos-14`, `macos-14-xl`, vendor cloud tags unless your GHES admin registered them | Prefer fleet tags you control (`immspfee*`) |
 
-Action major versions in-tree: `actions/checkout@v5`, `actions/setup-node@v5`, `actions/upload-artifact@v6`, `actions/cache@v5` (Node 24 runtime). Keep GHES runners on images that satisfy those action runtimes.
+Example job pin (GHES):
+
+```yaml
+webkit-projector:
+  runs-on: [self-hosted, macOS, ARM64, immspfee-webkit]
+test:
+  runs-on: [self-hosted, linux, x64, immspfee]
+```
+
+Action major versions in-tree: `actions/checkout@v5`, `actions/setup-node@v5`, `actions/upload-artifact@v6`, `actions/cache@v5` (Node 24 runtime — GHES Actions Runner **≥ 2.327.1**).
 
 ## Adding a factory family
 
