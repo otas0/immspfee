@@ -44,6 +44,12 @@ function stampedUrl(rel) {
     ? `${rel}&v=${encodeURIComponent(assetV)}`
     : `${rel}?v=${encodeURIComponent(assetV)}`;
 }
+/** Absolute href for link[rel=modulepreload] — document-relative `./bundle/` would miss `/js/`. */
+function stampedModuleHref(rel) {
+  const u = new URL(rel, import.meta.url);
+  if (assetV) u.searchParams.set('v', assetV);
+  return u.href;
+}
 
 function wantedModelId() {
   try {
@@ -102,10 +108,11 @@ async function preloadCatalog() {
 
 const labUrl = stampedUrl('./bundle/lab.js');
 // Kick lab.js fetch in parallel with catalog preload (CDN cold path — do not split entry further).
+// Use import.meta.url so preload hits /js/bundle/lab.js (not document-root /bundle/lab.js).
 {
   const link = document.createElement('link');
   link.rel = 'modulepreload';
-  link.href = labUrl;
+  link.href = stampedModuleHref('./bundle/lab.js');
   document.head.appendChild(link);
 }
 
