@@ -1,7 +1,18 @@
 import { STRINGS } from './strings.js';
-import { ensureGlyphRows, translateCatalogText, hydrateGlyphRows } from './catalogText.js';
-import { ROWS } from './glyphRows.js';
-hydrateGlyphRows(ROWS);
+import { ensureGlyphRows, translateCatalogText } from './catalogText.js';
+
+// Start lexicon fetch as soon as a non-zh URL is requested (avoids EN formula race
+// without statically pulling glyphRows into the lab.js entry chunk).
+if (typeof location !== 'undefined') {
+  try {
+    const lang = new URLSearchParams(location.search).get('lang')
+      || (typeof localStorage !== 'undefined' && localStorage.getItem('immspfee-lang'))
+      || '';
+    if (lang && lang !== 'zh') void ensureGlyphRows();
+  } catch {
+    /* ignore */
+  }
+}
 
 function lookup(locale, key, vars) {
   const table = STRINGS[locale] || STRINGS.en;
