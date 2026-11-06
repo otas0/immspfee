@@ -781,7 +781,7 @@ await compactProj.evaluate(() => {
   const btn = document.getElementById('btn-params');
   if (btn && !document.getElementById('bench')?.classList.contains('open')) btn.click();
 });
-await compactProj.waitForTimeout(300);
+await compactProj.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
 const benchOpenGeom = await stageGeom(compactProj);
 await compactProj.screenshot({ path: join(shotsDir, 'shell-projector-1000-bench.png') });
 if (!benchOpenGeom.benchOpen) fail('1000 projector could not open the param drawer');
@@ -812,7 +812,7 @@ if (focusGeom.colCount !== 2) fail(`1000 focus reserved extra columns (${focusGe
 if (focusGeom.stageRightGap > 48) fail(`1000 focus empty strip gap=${focusGeom.stageRightGap}`);
 if (focusGeom.stageW < 500) fail(`1000 focus stage too small ${focusGeom.stageW}`);
 await focusCompact.evaluate(() => document.getElementById('btn-params')?.click());
-await focusCompact.waitForTimeout(250);
+await focusCompact.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
 const focusBench = await stageGeom(focusCompact);
 await focusCompact.screenshot({ path: join(shotsDir, 'shell-focus-1000-bench.png') });
 if (!focusBench.benchOpen) fail('1000 focus could not open the param drawer');
@@ -821,7 +821,7 @@ await focusCompact.close();
 
 const classicCompact = await openPage({ width: 1000, height: 800 }, 2, 'lab-classic');
 await classicCompact.evaluate(() => document.getElementById('btn-params')?.click());
-await classicCompact.waitForTimeout(250);
+await classicCompact.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
 const classicBench = await stageGeom(classicCompact);
 await classicCompact.screenshot({ path: join(shotsDir, 'shell-classic-1000-bench.png') });
 if (!classicBench.benchOpen) fail('1000 classic could not open the param drawer');
@@ -929,7 +929,7 @@ await layoutProj.close();
 for (const shell of ['lab-focus', 'lab-classic']) {
   const page = await openPage({ width: 390, height: 844 }, 2, shell);
   await page.evaluate(() => document.getElementById('btn-params')?.click());
-  await page.waitForTimeout(250);
+  await page.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
   const geom = await stageGeom(page);
   const pad = Number.parseFloat(geom.formulaPadBottom) || 0;
   await page.screenshot({ path: join(shotsDir, `shell-${shell.replace('lab-', '')}-390-bench.png`) });
@@ -965,7 +965,7 @@ await narrow.evaluate(() => {
   localStorage.setItem('physics-lab-auto-open-bench', '1');
   document.getElementById('btn-params')?.click();
 });
-await narrow.waitForTimeout(300);
+await narrow.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
 const narrowBench = await stageGeom(narrow);
 await narrow.screenshot({ path: join(shotsDir, 'shell-projector-390-bench.png') });
 if (!narrowBench.benchOpen) fail('390 projector could not open the bottom param drawer');
