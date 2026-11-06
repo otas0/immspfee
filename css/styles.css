@@ -95,6 +95,8 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* Only #model-list scrolls — keep brand / filters / #micro3d-host pinned. */
+  overflow: hidden;
   z-index: 30; /* 高于 drawer-backdrop(24)，否则打开后被遮罩盖住看不见 */
 }
 .sidebar-drag {
@@ -412,7 +414,12 @@ html.hc .domain-group .domain-count {
   .user-model-grid { grid-template-columns: 1fr; }
   .user-model-grid .span-2 { grid-column: auto; }
 }
-/* Pinned host between filters and the scrolling catalog — does not move with list scroll. */
+/*
+ * Pinned host between filters and the scrolling catalog.
+ * Must stay outside #model-list overflow — and the sidebar itself must NOT be
+ * the scroll container (projector overlay previously used overflow:auto on
+ * .sidebar, which dragged this host away with the catalog).
+ */
 .micro3d-host {
   flex-shrink: 0;
   padding: 0.35rem 0.55rem 0.45rem;
@@ -423,9 +430,7 @@ html.hc .domain-group .domain-count {
 
 /* Isolated 3D stage entry — above every domain fold, never inside 物理/光学. */
 .micro3d-strip {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  position: static;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1673,10 +1678,14 @@ html.hc .pot-knob::after { background: #fff; }
   display: none !important;
   pointer-events: none;
 }
-/* Menu / params above backdrop (24) and projector overlay catalog (40). */
-body.drawer-open .toolbar,
-body.drawer-open #btn-menu,
-body.drawer-open #btn-params {
+/*
+ * Projector-only: keep menu/params above the overlay catalog.
+ * Do NOT lift the whole .toolbar on classic phone drawers — that stacked
+ * Play/Reset/Capture on top of the catalog (mobile “全叠在一起”).
+ */
+body.drawer-open.shell-lab-projector .toolbar,
+html.shell-lab-projector body.drawer-open .toolbar,
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .stage > .toolbar {
   position: relative;
   z-index: 50;
 }
@@ -1774,7 +1783,7 @@ body.drawer-open #btn-params {
     gap: 0.3rem;
     padding: 0.4rem 0.5rem;
     flex-wrap: nowrap;
-    /* 高于 drawer-backdrop(24)，菜单/参数钮在遮罩上仍可点关 */
+    /* Above backdrop (24); below open sidebar (45) so catalog is not buried. */
     position: relative;
     z-index: 32;
   }
@@ -1785,15 +1794,26 @@ body.drawer-open #btn-params {
   }
   .sidebar {
     position: fixed;
-    inset: 4px auto 4px 4px;
-    width: min(86vw, 300px);
+    /* Clear the stage toolbar band (same idea as projector overlay). */
+    top: calc(4px + var(--phone-drawer-top, 3.25rem));
+    left: 4px;
+    bottom: max(4px, env(safe-area-inset-bottom, 0px));
+    right: auto;
+    width: min(92vw, 320px);
+    max-width: calc(100vw - 8px);
     transform: translateX(-110%);
     transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     border-radius: 12px;
     box-shadow: var(--elev);
-    z-index: 30;
+    background: var(--panel);
+    /* Above model-shell (33) / toolbar (32) / backdrop (24); below fixed menu (70). */
+    z-index: 45;
   }
   .sidebar.open { transform: translateX(0); }
+  /* Stage chrome must not paint through the open catalog. */
+  body.drawer-open:not(.shell-lab-projector) .model-shell {
+    z-index: 1;
+  }
   .sidebar-drag { display: flex; cursor: grab; touch-action: none; }
   /* 宽屏三栏已有列表；仅窄屏显示汉堡 */
   .btn.ghost,
@@ -2059,13 +2079,24 @@ html.shell-lab-projector .icon-btn.ghost,
   bottom: 0;
   width: min(280px, 86vw);
   z-index: 40;
-  overflow: auto;
+  /* Flex column + hidden overflow: #micro3d-host stays pinned; list scrolls. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0.75rem;
   background: var(--panel);
   border-right: 1px solid var(--line);
   box-shadow: var(--elev);
   /* Beat the ≤900px drawer translate so overlay is on-screen when .open */
   transform: none;
+}
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar .model-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar .micro3d-host {
+  flex-shrink: 0;
 }
 /* Stage (not just the button) must beat the overlay catalog z-index:40, otherwise
    the sidebar logo wins elementFromPoint over #btn-menu. */
@@ -2163,16 +2194,22 @@ html.shell-lab-projector body.drawer-open #btn-menu,
   z-index: 50;
 }
 /*
- * Fixed lifts #btn-menu / #btn-params out of .stage so they stay hittable above
- * the overlay catalog even when the brand logo overlaps the toolbar band, and
- * so viewport scroll does not drag the controls.
+ * Projector only: fixed lifts #btn-menu / #btn-params out of .stage so they stay
+ * hittable above the overlay catalog. Classic phone drawers must NOT use this —
+ * fixed controls without insets stacked on top of filters / micro3d / domain list.
  */
 .chassis.shell-hide-sidebar.shell-sidebar-overlay #btn-menu,
-.chassis.shell-hide-sidebar.shell-sidebar-overlay #btn-params,
-body.drawer-open #btn-menu,
-body.drawer-open #btn-params {
+.chassis.shell-hide-sidebar.shell-sidebar-overlay #btn-params {
   position: fixed !important;
   z-index: 70 !important;
+}
+/* Classic phone: keep menu/params in the toolbar band above the cleared sidebar. */
+@media (max-width: 900px) {
+  body.drawer-open:not(.shell-lab-projector) #btn-menu,
+  body.drawer-open:not(.shell-lab-projector) #btn-params {
+    position: relative;
+    z-index: 50;
+  }
 }
 @media (max-width: 900px) {
   .chassis.bench-drawer-open .model-shell,
@@ -2180,7 +2217,8 @@ body.drawer-open #btn-params {
   .chassis.bench-drawer-open.shell-lab-classic .model-shell,
   .chassis.bench-drawer-open.shell-lab-projector .model-shell {
     padding-right: 0 !important;
-    padding-bottom: calc(min(58dvh, 480px) + 12px) !important;
+    /* Match the 42dvh bench cap (do not re-expand to 58dvh). */
+    padding-bottom: calc(min(42dvh, 360px, calc(100dvh - 14rem)) + 12px) !important;
   }
 }
 @media (max-width: 1100px) and (min-width: 901px) {
