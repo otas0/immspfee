@@ -1,7 +1,8 @@
 /**
  * Nuclear, electrochemistry, and biomembrane entries stay public definitions.
- * The line sits under the canvas title and in the shell; it does not wait for the assumptions disclosure.
- * Wording comes from the active locale so a language switch does not leave Chinese on an English or Japanese shell.
+ * Keep strings in catalog / i18n for audits only — do **not** paint them on the
+ * canvas or shell strip (AGENTS: no on-stage assumption / caveat chrome).
+ * Wording comes from the active locale for any non-stage consumer.
  */
 import { t } from '../i18n/index.js';
 

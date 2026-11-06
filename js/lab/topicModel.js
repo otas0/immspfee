@@ -5,8 +5,9 @@
  */
 import { overrideOptions } from './topicOverrides.js';
 import { drawTopicSketch } from './sketches.js';
-import { designCaveatText } from './designCaveat.js';
 import { formatNum } from '../utils/draw.js';
+// designCaveatText stays in designCaveat.js for audits — never paint on canvas
+// (AGENTS: no on-stage assumption / caveat chrome).
 import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
 
@@ -81,12 +82,6 @@ function shell(spec, o) {
       ctx.fillStyle = C.muted || '#888';
       ctx.font = '600 13px IBM Plex Mono, monospace';
       ctx.fillText(spec.name, 14, 22);
-      const caveat = designCaveatText({ ...spec, formula: equation });
-      if (caveat) {
-        ctx.fillStyle = C.muted;
-        ctx.font = '11px IBM Plex Sans, sans-serif';
-        ctx.fillText(caveat, 14, 40);
-      }
       if (drawTopicSketch(ctx, { ...spec, formula: equation }, state, view)) return;
       const hist = state.hist || [];
       if (hist.length < 2) return;

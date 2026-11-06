@@ -1,4 +1,4 @@
-/* inlined chunk-chunk-BOVICRI7.js */
+/* inlined chunk-chunk-4PMPDTZN.js */
 // js/utils/zhLabels.js
 var ZH_LABELS = {
   g: "\u91CD\u529B g",
@@ -377,6 +377,927 @@ function applyLowInkStrokeBoost(model) {
   };
   model._lowInkBoosted = true;
   return model;
+}
+
+
+/* inlined chunk-chunk-WM3LI2L6.js */
+// js/utils/integrator.js
+function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
+  let accumulator = 0;
+  let dt = fixedDt;
+  let maxSteps = maxSubSteps;
+  return {
+    get fixedDt() {
+      return dt;
+    },
+    get maxSubSteps() {
+      return maxSteps;
+    },
+    setFixedDt(next) {
+      const v = Number(next);
+      if (Number.isFinite(v) && v > 0) dt = v;
+    },
+    setMaxSubSteps(next) {
+      const v = Math.floor(Number(next));
+      if (Number.isFinite(v) && v >= 1) maxSteps = v;
+    },
+    reset() {
+      accumulator = 0;
+    },
+    advance(frameDt, stepFn) {
+      const clamped = Math.min(Math.max(frameDt, 0), 0.05);
+      accumulator += clamped;
+      let steps = 0;
+      while (accumulator >= dt && steps < maxSteps) {
+        stepFn(dt);
+        accumulator -= dt;
+        steps += 1;
+      }
+      if (steps === maxSteps) accumulator = 0;
+      return steps;
+    }
+  };
+}
+function velocityVerlet1D(x, v, a, aAt, dt) {
+  const xNext = x + v * dt + 0.5 * a * dt * dt;
+  const aNext = aAt(xNext);
+  const vNext = v + 0.5 * (a + aNext) * dt;
+  return { x: xNext, v: vNext, a: aNext };
+}
+
+// js/models/microscopeOptics.js
+var OBJECTIVES = [
+  { id: "4x", mag: 4, fMm: 40, na: 0.1, wdMm: 18, alphaDeg: 5.7 },
+  { id: "10x", mag: 10, fMm: 16, na: 0.25, wdMm: 6.5, alphaDeg: 14.5 },
+  { id: "40x", mag: 40, fMm: 4, na: 0.65, wdMm: 0.6, alphaDeg: 40.5 },
+  { id: "100x", mag: 100, fMm: 1.6, na: 1.25, wdMm: 0.15, alphaDeg: 55, immersion: true }
+];
+var EYEPIECES = [
+  { id: "5x", mag: 5, fMm: 50 },
+  { id: "10x", mag: 10, fMm: 25 },
+  { id: "15x", mag: 15, fMm: 16.7 }
+];
+var OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}\xD7` }));
+var EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}\xD7` }));
+function findObjective(id) {
+  return OBJECTIVES.find((o) => o.id === id) || OBJECTIVES[1];
+}
+function findEyepiece(id) {
+  return EYEPIECES.find((e) => e.id === id) || EYEPIECES[1];
+}
+function naCap(n, obj) {
+  const alpha = obj.alphaDeg * Math.PI / 180;
+  return Math.max(0.05, Math.min(n * Math.sin(alpha), n * 0.95));
+}
+function opticsFromParams(params) {
+  const obj = findObjective(params.objective || "10x");
+  const eye = findEyepiece(params.eyepiece || "10x");
+  const Lmm = Math.max(80, Number(params.tubeL_mm) || 160);
+  let n = Math.max(1, Number(params.n) || 1);
+  if (obj.immersion) n = Math.max(n, 1.515);
+  else n = Math.min(n, 1.33);
+  const cap = naCap(n, obj);
+  const NA = Math.max(0.05, Math.min(cap, Number(params.NA) || obj.na));
+  const WD = Math.max(0.05, Number(params.WD_mm) || obj.wdMm);
+  const lambdaNm = Math.max(380, Math.min(780, Number(params.lambda_nm) || 550));
+  const fObjM = (Number(params.fObj_mm) || obj.fMm) * 1e-3;
+  const fEyeM = (Number(params.fEye_mm) || eye.fMm) * 1e-3;
+  const L = Lmm * 1e-3;
+  const mObj = -(L / Math.max(fObjM, 1e-6));
+  const Meye = 0.25 / Math.max(fEyeM, 1e-6);
+  const M = mObj * Meye;
+  const dResM = 0.61 * (lambdaNm * 1e-9) / Math.max(NA, 1e-6);
+  const sObj = -fObjM;
+  const sImg = L;
+  return {
+    obj,
+    eye,
+    Lmm,
+    n,
+    NA,
+    NAcap: cap,
+    WD,
+    lambdaNm,
+    fObjM,
+    fEyeM,
+    L,
+    M,
+    mObj,
+    Meye,
+    dResM,
+    sObj,
+    sImg,
+    immersion: !!obj.immersion
+  };
+}
+function applyTurretDefaults(state, which = "all") {
+  const obj = findObjective(state.params.objective || "10x");
+  const eye = findEyepiece(state.params.eyepiece || "10x");
+  if (which === "obj" || which === "all") {
+    state.params.objective = obj.id;
+    state.params.fObj_mm = obj.fMm;
+    state.params.WD_mm = obj.wdMm;
+    if (obj.immersion) {
+      state.params.n = Math.max(Number(state.params.n) || 1, 1.515);
+    } else if (Number(state.params.n) > 1.33) {
+      state.params.n = 1;
+    }
+    state.params.NA = Math.min(obj.na, naCap(state.params.n, obj));
+  }
+  if (which === "eye" || which === "all") {
+    state.params.eyepiece = eye.id;
+    state.params.fEye_mm = eye.fMm;
+  }
+  const o = opticsFromParams(state.params);
+  state.params.n = o.n;
+  state.params.NA = Math.min(Number(state.params.NA) || o.NA, o.NAcap);
+}
+var DEFAULT_PARAMS = {
+  objective: "10x",
+  eyepiece: "10x",
+  tubeL_mm: 160,
+  fObj_mm: 16,
+  fEye_mm: 25,
+  NA: 0.25,
+  WD_mm: 6.5,
+  n: 1,
+  lambda_nm: 550,
+  showRays: 1
+};
+var PARAM_SCHEMA = {
+  objective: {
+    group: "dynamics",
+    unit: "",
+    label: "Objective",
+    options: OBJ_OPTIONS
+  },
+  eyepiece: {
+    group: "dynamics",
+    unit: "",
+    label: "Eyepiece",
+    options: EYE_OPTIONS
+  },
+  tubeL_mm: { group: "dynamics", unit: "mm", label: "Tube length L", min: 120, max: 200 },
+  fObj_mm: { group: "dynamics", unit: "mm", label: "f_obj", min: 1, max: 50 },
+  fEye_mm: { group: "dynamics", unit: "mm", label: "f_eye", min: 10, max: 60 },
+  NA: { group: "dynamics", unit: "\u2014", label: "NA", min: 0.05, max: 1.4 },
+  WD_mm: { group: "dynamics", unit: "mm", label: "Working distance", min: 0.05, max: 25 },
+  n: { group: "dynamics", unit: "\u2014", label: "n (medium)", min: 1, max: 1.6 },
+  lambda_nm: { group: "dynamics", unit: "nm", label: "\u03BB", min: 400, max: 700 },
+  showRays: {
+    group: "display",
+    unit: "",
+    label: "Ray diagram",
+    options: [{ value: 0, label: "Hide" }, { value: 1, label: "Show" }]
+  }
+};
+
+
+/* inlined chunk-chunk-NXEYOZOV.js */
+// js/utils/draw.js
+function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
+  const dx = tipX - x;
+  const dy = tipY - y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return;
+  const ux = dx / len;
+  const uy = dy / len;
+  const head = Math.min(10, len * 0.35);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tipX - ux * head - uy * head * 0.45, tipY - uy * head + ux * head * 0.45);
+  ctx.lineTo(tipX - ux * head + uy * head * 0.45, tipY - uy * head - ux * head * 0.45);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function drawZigZagSpring(ctx, x0, y, x1, coils = 12, amp = 10) {
+  const n = Math.max(4, coils * 2);
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  for (let i = 1; i < n; i += 1) {
+    const t = i / n;
+    const x = x0 + (x1 - x0) * t;
+    const sign = i % 2 === 0 ? 1 : -1;
+    ctx.lineTo(x, y + sign * amp);
+  }
+  ctx.lineTo(x1, y);
+  ctx.stroke();
+}
+function formatNum(v, digits = 3) {
+  if (!Number.isFinite(v)) return "\u2014";
+  const a = Math.abs(v);
+  if (a !== 0 && (a >= 1e4 || a < 1e-3)) return v.toExponential(2);
+  return v.toFixed(digits);
+}
+
+// js/utils/params.js
+function parseUserNumber(raw) {
+  const s = String(raw ?? "").trim().replace(/,/g, "");
+  if (s === "") return { ok: false, error: "empty" };
+  const frac = s.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+  if (frac) {
+    const a = Number(frac[1]);
+    const b = Number(frac[2]);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) {
+      return { ok: false, error: "invalid fraction" };
+    }
+    const v2 = a / b;
+    if (!Number.isFinite(v2)) return { ok: false, error: "invalid" };
+    return { ok: true, value: v2 };
+  }
+  const v = Number(s);
+  if (!Number.isFinite(v)) return { ok: false, error: "invalid" };
+  return { ok: true, value: v };
+}
+function formatDtFriendly(v, fallbackDigits = 6) {
+  if (!Number.isFinite(v) || v === 0) return formatParamNumber(v);
+  const inv = 1 / v;
+  if (Number.isFinite(inv) && Math.abs(inv - Math.round(inv)) < 1e-9 && Math.abs(inv) >= 2 && Math.abs(inv) <= 1e4) {
+    const n = Math.round(inv);
+    return v < 0 ? `-1/${Math.abs(n)}` : `1/${n}`;
+  }
+  return formatParamNumber(v);
+}
+function validateCustomParam(key, rawValue) {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+    return { ok: false, error: "bad key" };
+  }
+  if (key.startsWith("__") || key === "constructor" || key === "prototype") {
+    return { ok: false, error: "reserved key" };
+  }
+  if (key === "expr_a") {
+    const s = String(rawValue ?? "").trim();
+    if (!s) return { ok: false, error: "empty expr" };
+    if (!/^[0-9a-zA-Z_+\-*/%().\s]+$/.test(s)) return { ok: false, error: "unsafe expr" };
+    return { ok: true, value: s };
+  }
+  const parsed = parseUserNumber(rawValue);
+  if (!parsed.ok) return parsed;
+  if (!Number.isFinite(parsed.value)) return { ok: false, error: "non-finite" };
+  if (Math.abs(parsed.value) > 1e15) return { ok: false, error: "out of range" };
+  return { ok: true, value: parsed.value };
+}
+function P(params, key, fallback = 0) {
+  const v = Number(params?.[key]);
+  return Number.isFinite(v) ? v : fallback;
+}
+function accelExtras(params, locals = {}) {
+  let sum = 0;
+  for (const [k, val] of Object.entries(params || {})) {
+    if (k === "a_extra" || /^a_[a-zA-Z0-9_]+$/.test(k)) {
+      const n = Number(val);
+      if (Number.isFinite(n)) sum += n;
+    }
+  }
+  if (params?.expr_a) {
+    const ev = evalExpr(String(params.expr_a), { ...params, ...locals });
+    if (Number.isFinite(ev)) sum += ev;
+  }
+  return sum;
+}
+function springK(params) {
+  return P(params, "k", 0) + P(params, "k_extra", 0);
+}
+function evalExpr(expr, scope) {
+  const src = String(expr || "").trim();
+  if (!src) return 0;
+  if (!/^[0-9a-zA-Z_+\-*/%().\s]+$/.test(src)) return NaN;
+  const keys = Object.keys(scope).filter((k) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k));
+  const values = keys.map((k) => {
+    const n = Number(scope[k]);
+    return Number.isFinite(n) ? n : 0;
+  });
+  try {
+    const fn = new Function(...keys, `"use strict"; return (${src});`);
+    const r = fn(...values);
+    return Number.isFinite(r) ? r : NaN;
+  } catch {
+    return NaN;
+  }
+}
+function finiteOr(value, fallback = 0) {
+  return Number.isFinite(value) ? value : fallback;
+}
+function clampNumber(v, min, max) {
+  let n = Number(v);
+  if (!Number.isFinite(n)) n = Number.isFinite(min) ? min : 0;
+  if (Number.isFinite(min)) n = Math.max(min, n);
+  if (Number.isFinite(max)) n = Math.min(max, n);
+  return n;
+}
+function formatParamNumber(v) {
+  if (!Number.isFinite(v)) return "\u2014";
+  if (Object.is(v, -0)) return "0";
+  const a = Math.abs(v);
+  if (a === 0) return "0";
+  if (a >= 1e6 || a > 0 && a < 1e-4) {
+    return v.toExponential(3).replace(/\.?0+e/, "e").replace(/e\+/, "e");
+  }
+  if (Number.isInteger(v) || Math.abs(v - Math.round(v)) < 1e-9) {
+    return String(Math.round(v));
+  }
+  let s;
+  if (a >= 100) s = v.toFixed(1);
+  else if (a >= 10) s = v.toFixed(2);
+  else if (a >= 1) s = v.toFixed(3);
+  else if (a >= 0.01) s = v.toFixed(4);
+  else s = v.toFixed(6);
+  return String(Number(s));
+}
+function inferBounds(key, def, schema = {}) {
+  if (Number.isFinite(schema.min) && Number.isFinite(schema.max) && schema.max > schema.min) {
+    return { min: schema.min, max: schema.max };
+  }
+  const d = Number.isFinite(def) ? def : 1;
+  const known = {
+    e: { min: 0, max: 1 },
+    g: { min: 0, max: 40 },
+    m: { min: 0.01, max: 100 },
+    m1: { min: 0.01, max: 100 },
+    m2: { min: 0.01, max: 100 },
+    k: { min: 0, max: 200 },
+    c: { min: 0, max: 50 },
+    damp: { min: 0, max: 20 },
+    h: { min: 0, max: 100 },
+    L: { min: 0.05, max: 10 },
+    L1: { min: 0.05, max: 10 },
+    L2: { min: 0.05, max: 10 },
+    x0: { min: -5, max: 5 },
+    v0: { min: -50, max: 50 },
+    v1: { min: -50, max: 50 },
+    v2: { min: -50, max: 50 },
+    theta: { min: -180, max: 180 },
+    theta0: { min: -180, max: 180 },
+    theta1: { min: -180, max: 180 },
+    theta2: { min: -180, max: 180 },
+    alpha: { min: 0, max: 2 },
+    N: { min: 8, max: 256 },
+    A1: { min: 0, max: 2 },
+    A2: { min: 0, max: 2 },
+    A3: { min: 0, max: 2 },
+    Tleft: { min: -50, max: 200 },
+    Tright: { min: -50, max: 200 },
+    T0: { min: -50, max: 200 },
+    hotspot: { min: -50, max: 200 }
+  };
+  if (known[key]) return known[key];
+  if (key.startsWith("a_")) return { min: -50, max: 50 };
+  if (key.startsWith("k_")) return { min: 0, max: 200 };
+  const mag = Math.abs(d) || 1;
+  if (d >= 0) return { min: 0, max: Math.max(mag * 5, mag + 1) };
+  return { min: -Math.max(mag * 5, mag + 1), max: Math.max(mag * 5, mag + 1) };
+}
+function finiteOrDefault(v, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clampGlobal(v, min, max, fallback) {
+  if (v === Infinity) return max;
+  if (v === -Infinity) return min;
+  return clampNumber(finiteOrDefault(v, fallback), min, max);
+}
+function sanitizeGlobals(g) {
+  if (!g || typeof g !== "object") return g;
+  g.timeScale = clampGlobal(g.timeScale, 0.05, 8, 1);
+  g.fixedDt = clampGlobal(g.fixedDt > 0 ? g.fixedDt : 1 / 240, 1 / 2e3, 1 / 30, 1 / 240);
+  g.maxSubSteps = Math.round(clampGlobal(g.maxSubSteps, 1, 256, 48));
+  g.viewScale = clampGlobal(g.viewScale, 0.25, 4, 1);
+  g.readoutDigits = Math.round(clampGlobal(g.readoutDigits, 0, 8, 3));
+  return g;
+}
+function inferUnit(key) {
+  const map = {
+    g: "m/s\xB2",
+    m: "kg",
+    m1: "kg",
+    m2: "kg",
+    k: "N/m",
+    k_extra: "N/m",
+    c: "N\xB7s/m",
+    damp: "1/s",
+    h: "m",
+    L: "m",
+    L1: "m",
+    L2: "m",
+    x0: "m",
+    v0: "m/s",
+    v1: "m/s",
+    v2: "m/s",
+    theta: "\xB0",
+    theta0: "\xB0",
+    theta1: "\xB0",
+    theta2: "\xB0",
+    e: "\u2014",
+    N: "\u2014",
+    alpha: "m\xB2/s",
+    Tleft: "\xB0C",
+    Tright: "\xB0C",
+    T0: "\xB0C",
+    hotspot: "\xB0C",
+    A1: "m",
+    A2: "m",
+    A3: "m",
+    a_extra: "m/s\xB2",
+    expr_a: "expr"
+  };
+  if (map[key]) return map[key];
+  if (key.startsWith("a_")) return "m/s\xB2";
+  if (key.startsWith("T")) return "\xB0C";
+  return "";
+}
+function inferGroup(key, value) {
+  if (typeof value === "boolean" || key.startsWith("show")) return "display";
+  if (key === "expr_a" || key.endsWith("_extra") || key.startsWith("a_")) return "custom";
+  if (/^(v|x0|h|theta|T0|hotspot|A)/i.test(key)) return "initial";
+  if (/^(N|alpha|dt)/i.test(key)) return "numerics";
+  return "dynamics";
+}
+
+// palette-shell:../../data/palettes.json
+var doc = {
+  neutral: { axis: "#5c6570", ground: "#6b7280", muted: "#94a3b8", theory: "#64748b", text: "#94a3b8", bg: "#000000", flash: "rgba(255, 220, 100, 0.45)" },
+  models: {},
+  hc: { saturationScale: 0.42, lightnessBoost: 0.08 }
+};
+var palettes_default = doc;
+
+// js/utils/theme.js
+var activeModelId = "free-fall";
+var NEUTRAL = palettes_default.neutral;
+var MODEL = palettes_default.models;
+var HC = palettes_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
+var palettesSettled = typeof document === "undefined" || Object.keys(MODEL).length > 0;
+function applyPaletteDoc(full) {
+  if (!full?.models) return false;
+  if (full.neutral) Object.assign(NEUTRAL, full.neutral);
+  Object.assign(MODEL, full.models);
+  if (full.hc) Object.assign(HC, full.hc);
+  return true;
+}
+function palettesReadyNow() {
+  return palettesSettled;
+}
+var palettesReady = typeof document !== "undefined" && Object.keys(MODEL).length === 0 ? fetch(new URL("data/palettes.json", document.baseURI).href).then((res) => res.ok ? res.json() : null).then((full) => {
+  applyPaletteDoc(full);
+  palettesSettled = true;
+  if (full?.models) document.dispatchEvent(new Event("imm-palettes"));
+}).catch(() => {
+  palettesSettled = true;
+}) : Promise.resolve();
+function hashHue(id) {
+  let h = 0;
+  for (let i = 0; i < String(id).length; i += 1) h = h * 31 + String(id).charCodeAt(i) >>> 0;
+  return h % 360;
+}
+function synthPalette(modelId) {
+  const hue = hashHue(modelId);
+  const hex = (h, s, l) => {
+    const c = hslToRgb(h / 360, s, l);
+    return `#${((1 << 24) + (c.r << 16) + (c.g << 8) + c.b).toString(16).slice(1)}`;
+  };
+  return {
+    swatch: hex(hue, 0.72, 0.55),
+    body: hex(hue, 0.72, 0.55),
+    body2: hex((hue + 40) % 360, 0.65, 0.45),
+    accent: hex((hue + 180) % 360, 0.7, 0.55),
+    vector: hex((hue + 120) % 360, 0.55, 0.6),
+    trail: `hsla(${hue}, 70%, 55%, 0.4)`,
+    legend: ["\u4E3B\u4F53 body", "\u5F3A\u8C03 accent", "\u77E2\u91CF vector"]
+  };
+}
+function setModelPalette(modelId) {
+  activeModelId = modelId || "free-fall";
+}
+function getActiveModelId() {
+  return activeModelId;
+}
+function getModelLegend(modelId = activeModelId) {
+  const m = MODEL[modelId] || synthPalette(modelId);
+  const colors = getModelColors(modelId);
+  const entries = [];
+  for (const line of m.legend || []) {
+    const s = String(line);
+    if (/hue|色相/.test(s)) {
+      entries.push({ label: "\u8F68\u8FF9", kind: "hue" });
+    } else if (/冷|色标|heat/i.test(s)) {
+      entries.push({ label: "\u51B7\u2192\u70ED", kind: "heat" });
+    } else {
+      const parts = s.trim().split(/\s+/);
+      const key = parts[parts.length - 1];
+      const label = parts.slice(0, -1).join(" ") || key;
+      entries.push({ label, color: colors[key] || colors.body, kind: "swatch" });
+    }
+  }
+  return entries;
+}
+function parseHex(hex) {
+  if (!hex || hex[0] !== "#") return null;
+  const full = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+  if (full.length !== 7) return null;
+  const n = parseInt(full.slice(1), 16);
+  return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 };
+}
+function rgbToHsl(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  let s = 0;
+  if (d !== 0) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      default:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+  return { h, s, l };
+}
+function hslToRgb(h, s, l) {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return { r: v, g: v, b: v };
+  }
+  const hue2rgb = (p2, q2, t) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p2 + (q2 - p2) * 6 * tt;
+    if (tt < 1 / 2) return q2;
+    if (tt < 2 / 3) return p2 + (q2 - p2) * (2 / 3 - tt) * 6;
+    return p2;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return {
+    r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+    g: Math.round(hue2rgb(p, q, h) * 255),
+    b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255)
+  };
+}
+function desaturateHex(hex) {
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  hsl.s *= HC.saturationScale;
+  hsl.l = Math.min(0.92, hsl.l + HC.lightnessBoost);
+  const out = hslToRgb(hsl.h, hsl.s, hsl.l);
+  return `#${((1 << 24) + (out.r << 16) + (out.g << 8) + out.b).toString(16).slice(1)}`;
+}
+function desaturateCssColor(v) {
+  if (typeof v !== "string") return v;
+  if (v.startsWith("#")) return desaturateHex(v);
+  const rgba = v.match(/^rgba?\(([^)]+)\)$/i);
+  if (rgba) {
+    const parts = rgba[1].split(",").map((s) => s.trim());
+    const r = Number(parts[0]);
+    const g = Number(parts[1]);
+    const b = Number(parts[2]);
+    const a = parts[3] != null ? Number(parts[3]) : 1;
+    if (![r, g, b].every(Number.isFinite)) return v;
+    const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    const d = parseHex(desaturateHex(hex));
+    if (!d) return v;
+    return `rgba(${d.r}, ${d.g}, ${d.b}, ${a})`;
+  }
+  return v;
+}
+function getModelColors(modelId = activeModelId) {
+  const hc = typeof document !== "undefined" && document.documentElement.classList.contains("hc");
+  const base = { ...NEUTRAL, ...MODEL[modelId] || synthPalette(modelId) };
+  if (!hc) return base;
+  const out = {};
+  for (const [k, v] of Object.entries(base)) {
+    out[k] = typeof v === "string" ? desaturateCssColor(v) : v;
+  }
+  return out;
+}
+var C = new Proxy({}, {
+  get(_t, prop) {
+    return getModelColors(activeModelId)[prop];
+  }
+});
+function heatTempColor(t, tMin, tMax) {
+  const u = Math.max(0, Math.min(1, (t - tMin) / Math.max(1e-9, tMax - tMin)));
+  let r;
+  let g;
+  let b;
+  if (u < 0.33) {
+    const s = u / 0.33;
+    r = 30 + 20 * s;
+    g = 80 + 120 * s;
+    b = 200 - 40 * s;
+  } else if (u < 0.66) {
+    const s = (u - 0.33) / 0.33;
+    r = 50 + 180 * s;
+    g = 200 - 40 * s;
+    b = 160 - 140 * s;
+  } else {
+    const s = (u - 0.66) / 0.34;
+    r = 230 + 25 * s;
+    g = 160 - 120 * s;
+    b = 20 + 10 * s;
+  }
+  const hc = typeof document !== "undefined" && document.documentElement.classList.contains("hc");
+  if (hc) {
+    const hex = desaturateHex(`#${((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1)}`);
+    const p = parseHex(hex);
+    if (p) return `rgb(${p.r},${p.g},${p.b})`;
+  }
+  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
+function phaseHueColor(theta, omega, alpha = 0.7) {
+  const hue = (theta * 180 / Math.PI + omega * 40 + 3600) % 360;
+  let sat = 78;
+  let light = 48 + 22 * Math.tanh(Math.abs(omega) * 0.25);
+  const hc = typeof document !== "undefined" && document.documentElement.classList.contains("hc");
+  if (hc) {
+    sat *= HC.saturationScale;
+    light = Math.min(88, light + HC.lightnessBoost * 100);
+  }
+  return `hsla(${hue.toFixed(1)}, ${sat.toFixed(1)}%, ${light.toFixed(1)}%, ${alpha})`;
+}
+function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
+  const entries = getModelLegend(modelId);
+  if (!entries.length) return 0;
+  const rowH = 16;
+  let yy = y;
+  ctx.save();
+  ctx.font = "11px IBM Plex Mono, monospace";
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("palette", x, yy);
+  yy += 14;
+  for (const e of entries) {
+    if (e.kind === "hue") {
+      for (let i = 0; i < 48; i += 1) {
+        ctx.fillStyle = `hsl(${i / 47 * 360}, 70%, 55%)`;
+        ctx.fillRect(x + i * (Math.min(width, 160) / 48), yy - 8, Math.min(width, 160) / 48 + 1, 10);
+      }
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText(e.label, x + Math.min(width, 160) + 8, yy);
+    } else if (e.kind === "heat") {
+      for (let i = 0; i < 48; i += 1) {
+        ctx.fillStyle = heatTempColor(i, 0, 47);
+        ctx.fillRect(x + i * (Math.min(width, 160) / 48), yy - 8, Math.min(width, 160) / 48 + 1, 10);
+      }
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText("\u51B7\u2192\u70ED", x + Math.min(width, 160) + 8, yy);
+    } else {
+      ctx.fillStyle = e.color || "#fff";
+      ctx.beginPath();
+      ctx.arc(x + 5, yy - 3, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText(e.label, x + 16, yy);
+    }
+    yy += rowH;
+  }
+  ctx.restore();
+  return yy - y;
+}
+
+
+/* static chunk inlined: chunk-chunk-4PMPDTZN.js */
+/* static chunk inlined: chunk-chunk-WM3LI2L6.js */
+/* static chunk inlined: chunk-chunk-NXEYOZOV.js */
+// js/models/freeFall.js
+var freeFall_default = {
+  id: "free-fall",
+  name: "\u81EA\u7531\u843D\u4F53",
+  capabilities: {
+    pointer: true,
+    interaction: "canvas",
+    formalism: "ode",
+    viz: "phet-particle",
+    fidelity: "principle",
+    hint: "\u62D6\u52A8\u7403\u6539\u521D\u9AD8\u5EA6 h\u2080\uFF08\u7C7B PhET \u7EA6\u675F\u70B9\uFF09"
+  },
+  params: {
+    g: 9.81,
+    h: 10,
+    v0: 0,
+    k: 0,
+    m: 1,
+    e: 0.7,
+    dragExp: 1,
+    restVel: 0.05,
+    ground: 0
+  },
+  paramSchema: {
+    g: { group: "dynamics", unit: "m/s\xB2", label: "g", min: 0, max: 200 },
+    k: { group: "dynamics", unit: "kg/s", label: "\u963B\u529B k", min: 0, max: 5e3 },
+    m: { group: "dynamics", unit: "kg", label: "m", min: 1e-6, max: 1e6 },
+    e: { group: "dynamics", unit: "\u2014", label: "\u6062\u590D\u7CFB\u6570 e", min: 0, max: 1 },
+    dragExp: { group: "dynamics", unit: "\u2014", label: "\u963B\u529B\u6307\u6570", min: 0.5, max: 3 },
+    restVel: { group: "dynamics", unit: "m/s", label: "\u9759\u6B62\u9608\u503C", min: 0, max: 2 },
+    ground: { group: "dynamics", unit: "m", label: "\u5730\u9762\u9AD8\u5EA6", min: -50, max: 50 },
+    h: { group: "initial", unit: "m", label: "h\u2080", min: 0, max: 1e4 },
+    v0: { group: "initial", unit: "m/s", label: "v\u2080", min: -500, max: 500 }
+  },
+  init(state) {
+    const h = Math.max(P(state.params, "h", 10), 0);
+    const ground = P(state.params, "ground", 0);
+    state.t = 0;
+    state.y = h;
+    state.v = P(state.params, "v0", 0);
+    state.a = -P(state.params, "g", 9.81);
+    state.bounces = 0;
+    state.resting = false;
+    state.trail = [];
+    state.ground = ground;
+  },
+  step(state, dt) {
+    if (state.resting) return;
+    const g = P(state.params, "g", 9.81);
+    const k = P(state.params, "k", 0);
+    const m = Math.max(P(state.params, "m", 1), 1e-9);
+    const e = P(state.params, "e", 0);
+    const exp = Math.max(P(state.params, "dragExp", 1), 0.5);
+    const ground = P(state.params, "ground", 0);
+    const restVel = P(state.params, "restVel", 0.05);
+    const locals = { y: state.y, v: state.v, t: state.t, g, k, m, ground };
+    const drag = (v) => {
+      if (k === 0) return 0;
+      const mag = Math.abs(v) ** exp;
+      return -(k / m) * MagSign(v, mag);
+    };
+    if (k === 0) {
+      const aAt = (y) => -g + accelExtras(state.params, { ...locals, y });
+      const next = velocityVerlet1D(state.y, state.v, state.a, aAt, dt);
+      state.y = finiteOr(next.x, 0);
+      state.v = finiteOr(next.v, 0);
+      state.a = finiteOr(next.a, -g);
+    } else {
+      let a = -g + drag(state.v) + accelExtras(state.params, locals);
+      state.v = finiteOr(state.v + a * dt, 0);
+      state.y = finiteOr(state.y + state.v * dt, 0);
+      state.a = -g + drag(state.v) + accelExtras(state.params, { ...locals, v: state.v, y: state.y });
+    }
+    state.t += dt;
+    if (state.y <= ground && state.v < 0) {
+      state.y = ground;
+      state.v = -e * state.v;
+      state.bounces += 1;
+      state.a = -g;
+      if (Math.abs(state.v) < restVel || e <= 0) {
+        state.v = 0;
+        state.a = 0;
+        state.resting = true;
+      }
+    }
+    state.trail.push({ t: state.t, y: state.y, v: state.v });
+    if (state.trail.length > 600) state.trail.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const h0 = Math.max(P(state.params, "h", 10), 1e-6);
+    const margin = { l: 60, r: 40, t: 40, b: 50 };
+    const groundY = H - margin.b;
+    const scale = (H - margin.t - margin.b) / (h0 * 1.15);
+    const cx = W * 0.45;
+    const toY = (y) => groundY - y * scale;
+    ctx.strokeStyle = C.axis;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(margin.l, groundY);
+    ctx.lineTo(W - margin.r, groundY);
+    ctx.stroke();
+    if (view.showAxes !== false) {
+      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = C.axis;
+      ctx.beginPath();
+      ctx.moveTo(cx, toY(h0));
+      ctx.lineTo(cx, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (view.showTrail !== false) {
+      ctx.fillStyle = C.trail;
+      for (let i = 0; i < state.trail.length; i += 3) {
+        ctx.beginPath();
+        ctx.arc(cx, toY(state.trail[i].y), 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const sy = toY(state.y);
+    state._ball = { x: cx, y: sy, r: 16, groundY, scale, cx };
+    ctx.fillStyle = C.body;
+    ctx.beginPath();
+    ctx.arc(cx, sy, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = state._dragBall ? C.accent : C.vector;
+    ctx.lineWidth = state._dragBall ? 3 : 2;
+    ctx.stroke();
+    if (view.showVectors !== false) {
+      drawArrow(ctx, cx, sy, cx, sy - state.v * 8, C.vector, 2);
+    }
+    ctx.fillStyle = C.muted;
+    ctx.font = "12px IBM Plex Mono, monospace";
+    ctx.fillText(`h0=${formatNum(h0)}  e=${formatNum(P(state.params, "e", 0), 2)} \xB7 \u62D6\u7403`, margin.l, margin.t - 8);
+  },
+  onPointer(state, ev) {
+    const b = state._ball;
+    if (!b) return false;
+    if (ev.type === "down") {
+      if ((ev.x - b.x) ** 2 + (ev.y - b.y) ** 2 <= b.r * b.r) {
+        state._dragBall = true;
+        return true;
+      }
+      return false;
+    }
+    if (ev.type === "move" && state._dragBall) {
+      const y = (b.groundY - ev.y) / Math.max(b.scale, 1e-6);
+      const ground = P(state.params, "ground", 0);
+      const next = Math.max(ground, Math.min(200, y));
+      state.y = next;
+      state.params.h = next;
+      state.v = P(state.params, "v0", 0);
+      state.resting = false;
+      state.bounces = 0;
+      state.t = 0;
+      state.trail = [];
+      return true;
+    }
+    if (ev.type === "up") {
+      state._dragBall = false;
+      return true;
+    }
+    return false;
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "t", value: `${formatNum(state.t, d)} s` },
+      { label: "y", value: `${formatNum(state.y, d)} m` },
+      { label: "v", value: `${formatNum(state.v, d)} m/s` },
+      { label: "\u5F39\u8DF3", value: `${state.bounces}` }
+    ];
+  },
+  getEnergy(state) {
+    const m = P(state.params, "m", 1);
+    const g = P(state.params, "g", 9.81);
+    return { kinetic: 0.5 * m * state.v * state.v, potential: m * g * state.y };
+  },
+  getTrajectory(state) {
+    return state.trail;
+  }
+};
+function MagSign(v, mag) {
+  if (v === 0) return 0;
+  return Math.sign(v) * mag;
+}
+
+// js/models/factoryLoader.js
+var builder = null;
+var pending = null;
+function stampedChunk(rel) {
+  const url = new URL(rel, import.meta.url);
+  const version = globalThis.__LAB_ASSET_V || "";
+  if (version && !url.searchParams.has("v")) url.searchParams.set("v", version);
+  return url.href;
+}
+globalThis.__stampedChunk = stampedChunk;
+function factoryBuilder() {
+  if (!builder) throw new Error("factory builder is not loaded");
+  return builder;
+}
+function ensureFactory() {
+  if (builder) return Promise.resolve(builder);
+  if (!pending) {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-5H6RAJXE.js")).then((mod) => {
+      builder = mod.createFactoryModel;
+      const href = globalThis.__FACTORY_CHUNK;
+      const sw = globalThis.navigator?.serviceWorker?.controller;
+      if (href) {
+        try {
+          sessionStorage.setItem("immspfee-factory-chunk", href);
+        } catch {
+        }
+        if (sw) sw.postMessage({ type: "prime", urls: [href] });
+      }
+      return builder;
+    });
+  }
+  return pending;
 }
 
 // js/i18n/strings.js
@@ -1254,927 +2175,6 @@ if (typeof document !== "undefined") {
   document.documentElement.lang = htmlLang(locale);
 }
 
-
-/* inlined chunk-chunk-WM3LI2L6.js */
-// js/utils/integrator.js
-function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
-  let accumulator = 0;
-  let dt = fixedDt;
-  let maxSteps = maxSubSteps;
-  return {
-    get fixedDt() {
-      return dt;
-    },
-    get maxSubSteps() {
-      return maxSteps;
-    },
-    setFixedDt(next) {
-      const v = Number(next);
-      if (Number.isFinite(v) && v > 0) dt = v;
-    },
-    setMaxSubSteps(next) {
-      const v = Math.floor(Number(next));
-      if (Number.isFinite(v) && v >= 1) maxSteps = v;
-    },
-    reset() {
-      accumulator = 0;
-    },
-    advance(frameDt, stepFn) {
-      const clamped = Math.min(Math.max(frameDt, 0), 0.05);
-      accumulator += clamped;
-      let steps = 0;
-      while (accumulator >= dt && steps < maxSteps) {
-        stepFn(dt);
-        accumulator -= dt;
-        steps += 1;
-      }
-      if (steps === maxSteps) accumulator = 0;
-      return steps;
-    }
-  };
-}
-function velocityVerlet1D(x, v, a, aAt, dt) {
-  const xNext = x + v * dt + 0.5 * a * dt * dt;
-  const aNext = aAt(xNext);
-  const vNext = v + 0.5 * (a + aNext) * dt;
-  return { x: xNext, v: vNext, a: aNext };
-}
-
-// js/models/microscopeOptics.js
-var OBJECTIVES = [
-  { id: "4x", mag: 4, fMm: 40, na: 0.1, wdMm: 18, alphaDeg: 5.7 },
-  { id: "10x", mag: 10, fMm: 16, na: 0.25, wdMm: 6.5, alphaDeg: 14.5 },
-  { id: "40x", mag: 40, fMm: 4, na: 0.65, wdMm: 0.6, alphaDeg: 40.5 },
-  { id: "100x", mag: 100, fMm: 1.6, na: 1.25, wdMm: 0.15, alphaDeg: 55, immersion: true }
-];
-var EYEPIECES = [
-  { id: "5x", mag: 5, fMm: 50 },
-  { id: "10x", mag: 10, fMm: 25 },
-  { id: "15x", mag: 15, fMm: 16.7 }
-];
-var OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}\xD7` }));
-var EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}\xD7` }));
-function findObjective(id) {
-  return OBJECTIVES.find((o) => o.id === id) || OBJECTIVES[1];
-}
-function findEyepiece(id) {
-  return EYEPIECES.find((e) => e.id === id) || EYEPIECES[1];
-}
-function naCap(n, obj) {
-  const alpha = obj.alphaDeg * Math.PI / 180;
-  return Math.max(0.05, Math.min(n * Math.sin(alpha), n * 0.95));
-}
-function opticsFromParams(params) {
-  const obj = findObjective(params.objective || "10x");
-  const eye = findEyepiece(params.eyepiece || "10x");
-  const Lmm = Math.max(80, Number(params.tubeL_mm) || 160);
-  let n = Math.max(1, Number(params.n) || 1);
-  if (obj.immersion) n = Math.max(n, 1.515);
-  else n = Math.min(n, 1.33);
-  const cap = naCap(n, obj);
-  const NA = Math.max(0.05, Math.min(cap, Number(params.NA) || obj.na));
-  const WD = Math.max(0.05, Number(params.WD_mm) || obj.wdMm);
-  const lambdaNm = Math.max(380, Math.min(780, Number(params.lambda_nm) || 550));
-  const fObjM = (Number(params.fObj_mm) || obj.fMm) * 1e-3;
-  const fEyeM = (Number(params.fEye_mm) || eye.fMm) * 1e-3;
-  const L = Lmm * 1e-3;
-  const mObj = -(L / Math.max(fObjM, 1e-6));
-  const Meye = 0.25 / Math.max(fEyeM, 1e-6);
-  const M = mObj * Meye;
-  const dResM = 0.61 * (lambdaNm * 1e-9) / Math.max(NA, 1e-6);
-  const sObj = -fObjM;
-  const sImg = L;
-  return {
-    obj,
-    eye,
-    Lmm,
-    n,
-    NA,
-    NAcap: cap,
-    WD,
-    lambdaNm,
-    fObjM,
-    fEyeM,
-    L,
-    M,
-    mObj,
-    Meye,
-    dResM,
-    sObj,
-    sImg,
-    immersion: !!obj.immersion
-  };
-}
-function applyTurretDefaults(state, which = "all") {
-  const obj = findObjective(state.params.objective || "10x");
-  const eye = findEyepiece(state.params.eyepiece || "10x");
-  if (which === "obj" || which === "all") {
-    state.params.objective = obj.id;
-    state.params.fObj_mm = obj.fMm;
-    state.params.WD_mm = obj.wdMm;
-    if (obj.immersion) {
-      state.params.n = Math.max(Number(state.params.n) || 1, 1.515);
-    } else if (Number(state.params.n) > 1.33) {
-      state.params.n = 1;
-    }
-    state.params.NA = Math.min(obj.na, naCap(state.params.n, obj));
-  }
-  if (which === "eye" || which === "all") {
-    state.params.eyepiece = eye.id;
-    state.params.fEye_mm = eye.fMm;
-  }
-  const o = opticsFromParams(state.params);
-  state.params.n = o.n;
-  state.params.NA = Math.min(Number(state.params.NA) || o.NA, o.NAcap);
-}
-var DEFAULT_PARAMS = {
-  objective: "10x",
-  eyepiece: "10x",
-  tubeL_mm: 160,
-  fObj_mm: 16,
-  fEye_mm: 25,
-  NA: 0.25,
-  WD_mm: 6.5,
-  n: 1,
-  lambda_nm: 550,
-  showRays: 1
-};
-var PARAM_SCHEMA = {
-  objective: {
-    group: "dynamics",
-    unit: "",
-    label: "Objective",
-    options: OBJ_OPTIONS
-  },
-  eyepiece: {
-    group: "dynamics",
-    unit: "",
-    label: "Eyepiece",
-    options: EYE_OPTIONS
-  },
-  tubeL_mm: { group: "dynamics", unit: "mm", label: "Tube length L", min: 120, max: 200 },
-  fObj_mm: { group: "dynamics", unit: "mm", label: "f_obj", min: 1, max: 50 },
-  fEye_mm: { group: "dynamics", unit: "mm", label: "f_eye", min: 10, max: 60 },
-  NA: { group: "dynamics", unit: "\u2014", label: "NA", min: 0.05, max: 1.4 },
-  WD_mm: { group: "dynamics", unit: "mm", label: "Working distance", min: 0.05, max: 25 },
-  n: { group: "dynamics", unit: "\u2014", label: "n (medium)", min: 1, max: 1.6 },
-  lambda_nm: { group: "dynamics", unit: "nm", label: "\u03BB", min: 400, max: 700 },
-  showRays: {
-    group: "display",
-    unit: "",
-    label: "Ray diagram",
-    options: [{ value: 0, label: "Hide" }, { value: 1, label: "Show" }]
-  }
-};
-
-
-/* inlined chunk-chunk-NXEYOZOV.js */
-// js/utils/draw.js
-function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
-  const dx = tipX - x;
-  const dy = tipY - y;
-  const len = Math.hypot(dx, dy);
-  if (len < 1) return;
-  const ux = dx / len;
-  const uy = dy / len;
-  const head = Math.min(10, len * 0.35);
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineWidth = width;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(tipX, tipY);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(tipX, tipY);
-  ctx.lineTo(tipX - ux * head - uy * head * 0.45, tipY - uy * head + ux * head * 0.45);
-  ctx.lineTo(tipX - ux * head + uy * head * 0.45, tipY - uy * head - ux * head * 0.45);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-function drawZigZagSpring(ctx, x0, y, x1, coils = 12, amp = 10) {
-  const n = Math.max(4, coils * 2);
-  ctx.beginPath();
-  ctx.moveTo(x0, y);
-  for (let i = 1; i < n; i += 1) {
-    const t = i / n;
-    const x = x0 + (x1 - x0) * t;
-    const sign = i % 2 === 0 ? 1 : -1;
-    ctx.lineTo(x, y + sign * amp);
-  }
-  ctx.lineTo(x1, y);
-  ctx.stroke();
-}
-function formatNum(v, digits = 3) {
-  if (!Number.isFinite(v)) return "\u2014";
-  const a = Math.abs(v);
-  if (a !== 0 && (a >= 1e4 || a < 1e-3)) return v.toExponential(2);
-  return v.toFixed(digits);
-}
-
-// js/utils/params.js
-function parseUserNumber(raw) {
-  const s = String(raw ?? "").trim().replace(/,/g, "");
-  if (s === "") return { ok: false, error: "empty" };
-  const frac = s.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
-  if (frac) {
-    const a = Number(frac[1]);
-    const b = Number(frac[2]);
-    if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) {
-      return { ok: false, error: "invalid fraction" };
-    }
-    const v2 = a / b;
-    if (!Number.isFinite(v2)) return { ok: false, error: "invalid" };
-    return { ok: true, value: v2 };
-  }
-  const v = Number(s);
-  if (!Number.isFinite(v)) return { ok: false, error: "invalid" };
-  return { ok: true, value: v };
-}
-function formatDtFriendly(v, fallbackDigits = 6) {
-  if (!Number.isFinite(v) || v === 0) return formatParamNumber(v);
-  const inv = 1 / v;
-  if (Number.isFinite(inv) && Math.abs(inv - Math.round(inv)) < 1e-9 && Math.abs(inv) >= 2 && Math.abs(inv) <= 1e4) {
-    const n = Math.round(inv);
-    return v < 0 ? `-1/${Math.abs(n)}` : `1/${n}`;
-  }
-  return formatParamNumber(v);
-}
-function validateCustomParam(key, rawValue) {
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
-    return { ok: false, error: "bad key" };
-  }
-  if (key.startsWith("__") || key === "constructor" || key === "prototype") {
-    return { ok: false, error: "reserved key" };
-  }
-  if (key === "expr_a") {
-    const s = String(rawValue ?? "").trim();
-    if (!s) return { ok: false, error: "empty expr" };
-    if (!/^[0-9a-zA-Z_+\-*/%().\s]+$/.test(s)) return { ok: false, error: "unsafe expr" };
-    return { ok: true, value: s };
-  }
-  const parsed = parseUserNumber(rawValue);
-  if (!parsed.ok) return parsed;
-  if (!Number.isFinite(parsed.value)) return { ok: false, error: "non-finite" };
-  if (Math.abs(parsed.value) > 1e15) return { ok: false, error: "out of range" };
-  return { ok: true, value: parsed.value };
-}
-function P(params, key, fallback = 0) {
-  const v = Number(params?.[key]);
-  return Number.isFinite(v) ? v : fallback;
-}
-function accelExtras(params, locals = {}) {
-  let sum = 0;
-  for (const [k, val] of Object.entries(params || {})) {
-    if (k === "a_extra" || /^a_[a-zA-Z0-9_]+$/.test(k)) {
-      const n = Number(val);
-      if (Number.isFinite(n)) sum += n;
-    }
-  }
-  if (params?.expr_a) {
-    const ev = evalExpr(String(params.expr_a), { ...params, ...locals });
-    if (Number.isFinite(ev)) sum += ev;
-  }
-  return sum;
-}
-function springK(params) {
-  return P(params, "k", 0) + P(params, "k_extra", 0);
-}
-function evalExpr(expr, scope) {
-  const src = String(expr || "").trim();
-  if (!src) return 0;
-  if (!/^[0-9a-zA-Z_+\-*/%().\s]+$/.test(src)) return NaN;
-  const keys = Object.keys(scope).filter((k) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k));
-  const values = keys.map((k) => {
-    const n = Number(scope[k]);
-    return Number.isFinite(n) ? n : 0;
-  });
-  try {
-    const fn = new Function(...keys, `"use strict"; return (${src});`);
-    const r = fn(...values);
-    return Number.isFinite(r) ? r : NaN;
-  } catch {
-    return NaN;
-  }
-}
-function finiteOr(value, fallback = 0) {
-  return Number.isFinite(value) ? value : fallback;
-}
-function clampNumber(v, min, max) {
-  let n = Number(v);
-  if (!Number.isFinite(n)) n = Number.isFinite(min) ? min : 0;
-  if (Number.isFinite(min)) n = Math.max(min, n);
-  if (Number.isFinite(max)) n = Math.min(max, n);
-  return n;
-}
-function formatParamNumber(v) {
-  if (!Number.isFinite(v)) return "\u2014";
-  if (Object.is(v, -0)) return "0";
-  const a = Math.abs(v);
-  if (a === 0) return "0";
-  if (a >= 1e6 || a > 0 && a < 1e-4) {
-    return v.toExponential(3).replace(/\.?0+e/, "e").replace(/e\+/, "e");
-  }
-  if (Number.isInteger(v) || Math.abs(v - Math.round(v)) < 1e-9) {
-    return String(Math.round(v));
-  }
-  let s;
-  if (a >= 100) s = v.toFixed(1);
-  else if (a >= 10) s = v.toFixed(2);
-  else if (a >= 1) s = v.toFixed(3);
-  else if (a >= 0.01) s = v.toFixed(4);
-  else s = v.toFixed(6);
-  return String(Number(s));
-}
-function inferBounds(key, def, schema = {}) {
-  if (Number.isFinite(schema.min) && Number.isFinite(schema.max) && schema.max > schema.min) {
-    return { min: schema.min, max: schema.max };
-  }
-  const d = Number.isFinite(def) ? def : 1;
-  const known = {
-    e: { min: 0, max: 1 },
-    g: { min: 0, max: 40 },
-    m: { min: 0.01, max: 100 },
-    m1: { min: 0.01, max: 100 },
-    m2: { min: 0.01, max: 100 },
-    k: { min: 0, max: 200 },
-    c: { min: 0, max: 50 },
-    damp: { min: 0, max: 20 },
-    h: { min: 0, max: 100 },
-    L: { min: 0.05, max: 10 },
-    L1: { min: 0.05, max: 10 },
-    L2: { min: 0.05, max: 10 },
-    x0: { min: -5, max: 5 },
-    v0: { min: -50, max: 50 },
-    v1: { min: -50, max: 50 },
-    v2: { min: -50, max: 50 },
-    theta: { min: -180, max: 180 },
-    theta0: { min: -180, max: 180 },
-    theta1: { min: -180, max: 180 },
-    theta2: { min: -180, max: 180 },
-    alpha: { min: 0, max: 2 },
-    N: { min: 8, max: 256 },
-    A1: { min: 0, max: 2 },
-    A2: { min: 0, max: 2 },
-    A3: { min: 0, max: 2 },
-    Tleft: { min: -50, max: 200 },
-    Tright: { min: -50, max: 200 },
-    T0: { min: -50, max: 200 },
-    hotspot: { min: -50, max: 200 }
-  };
-  if (known[key]) return known[key];
-  if (key.startsWith("a_")) return { min: -50, max: 50 };
-  if (key.startsWith("k_")) return { min: 0, max: 200 };
-  const mag = Math.abs(d) || 1;
-  if (d >= 0) return { min: 0, max: Math.max(mag * 5, mag + 1) };
-  return { min: -Math.max(mag * 5, mag + 1), max: Math.max(mag * 5, mag + 1) };
-}
-function finiteOrDefault(v, fallback) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-function clampGlobal(v, min, max, fallback) {
-  if (v === Infinity) return max;
-  if (v === -Infinity) return min;
-  return clampNumber(finiteOrDefault(v, fallback), min, max);
-}
-function sanitizeGlobals(g) {
-  if (!g || typeof g !== "object") return g;
-  g.timeScale = clampGlobal(g.timeScale, 0.05, 8, 1);
-  g.fixedDt = clampGlobal(g.fixedDt > 0 ? g.fixedDt : 1 / 240, 1 / 2e3, 1 / 30, 1 / 240);
-  g.maxSubSteps = Math.round(clampGlobal(g.maxSubSteps, 1, 256, 48));
-  g.viewScale = clampGlobal(g.viewScale, 0.25, 4, 1);
-  g.readoutDigits = Math.round(clampGlobal(g.readoutDigits, 0, 8, 3));
-  return g;
-}
-function inferUnit(key) {
-  const map = {
-    g: "m/s\xB2",
-    m: "kg",
-    m1: "kg",
-    m2: "kg",
-    k: "N/m",
-    k_extra: "N/m",
-    c: "N\xB7s/m",
-    damp: "1/s",
-    h: "m",
-    L: "m",
-    L1: "m",
-    L2: "m",
-    x0: "m",
-    v0: "m/s",
-    v1: "m/s",
-    v2: "m/s",
-    theta: "\xB0",
-    theta0: "\xB0",
-    theta1: "\xB0",
-    theta2: "\xB0",
-    e: "\u2014",
-    N: "\u2014",
-    alpha: "m\xB2/s",
-    Tleft: "\xB0C",
-    Tright: "\xB0C",
-    T0: "\xB0C",
-    hotspot: "\xB0C",
-    A1: "m",
-    A2: "m",
-    A3: "m",
-    a_extra: "m/s\xB2",
-    expr_a: "expr"
-  };
-  if (map[key]) return map[key];
-  if (key.startsWith("a_")) return "m/s\xB2";
-  if (key.startsWith("T")) return "\xB0C";
-  return "";
-}
-function inferGroup(key, value) {
-  if (typeof value === "boolean" || key.startsWith("show")) return "display";
-  if (key === "expr_a" || key.endsWith("_extra") || key.startsWith("a_")) return "custom";
-  if (/^(v|x0|h|theta|T0|hotspot|A)/i.test(key)) return "initial";
-  if (/^(N|alpha|dt)/i.test(key)) return "numerics";
-  return "dynamics";
-}
-
-// palette-shell:../../data/palettes.json
-var doc = {
-  neutral: { axis: "#5c6570", ground: "#6b7280", muted: "#94a3b8", theory: "#64748b", text: "#94a3b8", bg: "#000000", flash: "rgba(255, 220, 100, 0.45)" },
-  models: {},
-  hc: { saturationScale: 0.42, lightnessBoost: 0.08 }
-};
-var palettes_default = doc;
-
-// js/utils/theme.js
-var activeModelId = "free-fall";
-var NEUTRAL = palettes_default.neutral;
-var MODEL = palettes_default.models;
-var HC = palettes_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
-var palettesSettled = typeof document === "undefined" || Object.keys(MODEL).length > 0;
-function applyPaletteDoc(full) {
-  if (!full?.models) return false;
-  if (full.neutral) Object.assign(NEUTRAL, full.neutral);
-  Object.assign(MODEL, full.models);
-  if (full.hc) Object.assign(HC, full.hc);
-  return true;
-}
-function palettesReadyNow() {
-  return palettesSettled;
-}
-var palettesReady = typeof document !== "undefined" && Object.keys(MODEL).length === 0 ? fetch(new URL("data/palettes.json", document.baseURI).href).then((res) => res.ok ? res.json() : null).then((full) => {
-  applyPaletteDoc(full);
-  palettesSettled = true;
-  if (full?.models) document.dispatchEvent(new Event("imm-palettes"));
-}).catch(() => {
-  palettesSettled = true;
-}) : Promise.resolve();
-function hashHue(id) {
-  let h = 0;
-  for (let i = 0; i < String(id).length; i += 1) h = h * 31 + String(id).charCodeAt(i) >>> 0;
-  return h % 360;
-}
-function synthPalette(modelId) {
-  const hue = hashHue(modelId);
-  const hex = (h, s, l) => {
-    const c = hslToRgb(h / 360, s, l);
-    return `#${((1 << 24) + (c.r << 16) + (c.g << 8) + c.b).toString(16).slice(1)}`;
-  };
-  return {
-    swatch: hex(hue, 0.72, 0.55),
-    body: hex(hue, 0.72, 0.55),
-    body2: hex((hue + 40) % 360, 0.65, 0.45),
-    accent: hex((hue + 180) % 360, 0.7, 0.55),
-    vector: hex((hue + 120) % 360, 0.55, 0.6),
-    trail: `hsla(${hue}, 70%, 55%, 0.4)`,
-    legend: ["\u4E3B\u4F53 body", "\u5F3A\u8C03 accent", "\u77E2\u91CF vector"]
-  };
-}
-function setModelPalette(modelId) {
-  activeModelId = modelId || "free-fall";
-}
-function getActiveModelId() {
-  return activeModelId;
-}
-function getModelLegend(modelId = activeModelId) {
-  const m = MODEL[modelId] || synthPalette(modelId);
-  const colors = getModelColors(modelId);
-  const entries = [];
-  for (const line of m.legend || []) {
-    const s = String(line);
-    if (/hue|色相/.test(s)) {
-      entries.push({ label: "\u8F68\u8FF9", kind: "hue" });
-    } else if (/冷|色标|heat/i.test(s)) {
-      entries.push({ label: "\u51B7\u2192\u70ED", kind: "heat" });
-    } else {
-      const parts = s.trim().split(/\s+/);
-      const key = parts[parts.length - 1];
-      const label = parts.slice(0, -1).join(" ") || key;
-      entries.push({ label, color: colors[key] || colors.body, kind: "swatch" });
-    }
-  }
-  return entries;
-}
-function parseHex(hex) {
-  if (!hex || hex[0] !== "#") return null;
-  const full = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
-  if (full.length !== 7) return null;
-  const n = parseInt(full.slice(1), 16);
-  return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 };
-}
-function rgbToHsl(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  const l = (max + min) / 2;
-  const d = max - min;
-  let s = 0;
-  if (d !== 0) {
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
-        break;
-      default:
-        h = ((r - g) / d + 4) / 6;
-        break;
-    }
-  }
-  return { h, s, l };
-}
-function hslToRgb(h, s, l) {
-  if (s === 0) {
-    const v = Math.round(l * 255);
-    return { r: v, g: v, b: v };
-  }
-  const hue2rgb = (p2, q2, t) => {
-    let tt = t;
-    if (tt < 0) tt += 1;
-    if (tt > 1) tt -= 1;
-    if (tt < 1 / 6) return p2 + (q2 - p2) * 6 * tt;
-    if (tt < 1 / 2) return q2;
-    if (tt < 2 / 3) return p2 + (q2 - p2) * (2 / 3 - tt) * 6;
-    return p2;
-  };
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  return {
-    r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
-    g: Math.round(hue2rgb(p, q, h) * 255),
-    b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255)
-  };
-}
-function desaturateHex(hex) {
-  const rgb = parseHex(hex);
-  if (!rgb) return hex;
-  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-  hsl.s *= HC.saturationScale;
-  hsl.l = Math.min(0.92, hsl.l + HC.lightnessBoost);
-  const out = hslToRgb(hsl.h, hsl.s, hsl.l);
-  return `#${((1 << 24) + (out.r << 16) + (out.g << 8) + out.b).toString(16).slice(1)}`;
-}
-function desaturateCssColor(v) {
-  if (typeof v !== "string") return v;
-  if (v.startsWith("#")) return desaturateHex(v);
-  const rgba = v.match(/^rgba?\(([^)]+)\)$/i);
-  if (rgba) {
-    const parts = rgba[1].split(",").map((s) => s.trim());
-    const r = Number(parts[0]);
-    const g = Number(parts[1]);
-    const b = Number(parts[2]);
-    const a = parts[3] != null ? Number(parts[3]) : 1;
-    if (![r, g, b].every(Number.isFinite)) return v;
-    const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-    const d = parseHex(desaturateHex(hex));
-    if (!d) return v;
-    return `rgba(${d.r}, ${d.g}, ${d.b}, ${a})`;
-  }
-  return v;
-}
-function getModelColors(modelId = activeModelId) {
-  const hc = typeof document !== "undefined" && document.documentElement.classList.contains("hc");
-  const base = { ...NEUTRAL, ...MODEL[modelId] || synthPalette(modelId) };
-  if (!hc) return base;
-  const out = {};
-  for (const [k, v] of Object.entries(base)) {
-    out[k] = typeof v === "string" ? desaturateCssColor(v) : v;
-  }
-  return out;
-}
-var C = new Proxy({}, {
-  get(_t, prop) {
-    return getModelColors(activeModelId)[prop];
-  }
-});
-function heatTempColor(t, tMin, tMax) {
-  const u = Math.max(0, Math.min(1, (t - tMin) / Math.max(1e-9, tMax - tMin)));
-  let r;
-  let g;
-  let b;
-  if (u < 0.33) {
-    const s = u / 0.33;
-    r = 30 + 20 * s;
-    g = 80 + 120 * s;
-    b = 200 - 40 * s;
-  } else if (u < 0.66) {
-    const s = (u - 0.33) / 0.33;
-    r = 50 + 180 * s;
-    g = 200 - 40 * s;
-    b = 160 - 140 * s;
-  } else {
-    const s = (u - 0.66) / 0.34;
-    r = 230 + 25 * s;
-    g = 160 - 120 * s;
-    b = 20 + 10 * s;
-  }
-  const hc = typeof document !== "undefined" && document.documentElement.classList.contains("hc");
-  if (hc) {
-    const hex = desaturateHex(`#${((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1)}`);
-    const p = parseHex(hex);
-    if (p) return `rgb(${p.r},${p.g},${p.b})`;
-  }
-  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
-}
-function phaseHueColor(theta, omega, alpha = 0.7) {
-  const hue = (theta * 180 / Math.PI + omega * 40 + 3600) % 360;
-  let sat = 78;
-  let light = 48 + 22 * Math.tanh(Math.abs(omega) * 0.25);
-  const hc = typeof document !== "undefined" && document.documentElement.classList.contains("hc");
-  if (hc) {
-    sat *= HC.saturationScale;
-    light = Math.min(88, light + HC.lightnessBoost * 100);
-  }
-  return `hsla(${hue.toFixed(1)}, ${sat.toFixed(1)}%, ${light.toFixed(1)}%, ${alpha})`;
-}
-function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
-  const entries = getModelLegend(modelId);
-  if (!entries.length) return 0;
-  const rowH = 16;
-  let yy = y;
-  ctx.save();
-  ctx.font = "11px IBM Plex Mono, monospace";
-  ctx.fillStyle = "#94a3b8";
-  ctx.fillText("palette", x, yy);
-  yy += 14;
-  for (const e of entries) {
-    if (e.kind === "hue") {
-      for (let i = 0; i < 48; i += 1) {
-        ctx.fillStyle = `hsl(${i / 47 * 360}, 70%, 55%)`;
-        ctx.fillRect(x + i * (Math.min(width, 160) / 48), yy - 8, Math.min(width, 160) / 48 + 1, 10);
-      }
-      ctx.fillStyle = "#94a3b8";
-      ctx.fillText(e.label, x + Math.min(width, 160) + 8, yy);
-    } else if (e.kind === "heat") {
-      for (let i = 0; i < 48; i += 1) {
-        ctx.fillStyle = heatTempColor(i, 0, 47);
-        ctx.fillRect(x + i * (Math.min(width, 160) / 48), yy - 8, Math.min(width, 160) / 48 + 1, 10);
-      }
-      ctx.fillStyle = "#94a3b8";
-      ctx.fillText("\u51B7\u2192\u70ED", x + Math.min(width, 160) + 8, yy);
-    } else {
-      ctx.fillStyle = e.color || "#fff";
-      ctx.beginPath();
-      ctx.arc(x + 5, yy - 3, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#94a3b8";
-      ctx.fillText(e.label, x + 16, yy);
-    }
-    yy += rowH;
-  }
-  ctx.restore();
-  return yy - y;
-}
-
-
-/* static chunk inlined: chunk-chunk-BOVICRI7.js */
-/* static chunk inlined: chunk-chunk-WM3LI2L6.js */
-/* static chunk inlined: chunk-chunk-NXEYOZOV.js */
-// js/models/freeFall.js
-var freeFall_default = {
-  id: "free-fall",
-  name: "\u81EA\u7531\u843D\u4F53",
-  capabilities: {
-    pointer: true,
-    interaction: "canvas",
-    formalism: "ode",
-    viz: "phet-particle",
-    fidelity: "principle",
-    hint: "\u62D6\u52A8\u7403\u6539\u521D\u9AD8\u5EA6 h\u2080\uFF08\u7C7B PhET \u7EA6\u675F\u70B9\uFF09"
-  },
-  params: {
-    g: 9.81,
-    h: 10,
-    v0: 0,
-    k: 0,
-    m: 1,
-    e: 0.7,
-    dragExp: 1,
-    restVel: 0.05,
-    ground: 0
-  },
-  paramSchema: {
-    g: { group: "dynamics", unit: "m/s\xB2", label: "g", min: 0, max: 200 },
-    k: { group: "dynamics", unit: "kg/s", label: "\u963B\u529B k", min: 0, max: 5e3 },
-    m: { group: "dynamics", unit: "kg", label: "m", min: 1e-6, max: 1e6 },
-    e: { group: "dynamics", unit: "\u2014", label: "\u6062\u590D\u7CFB\u6570 e", min: 0, max: 1 },
-    dragExp: { group: "dynamics", unit: "\u2014", label: "\u963B\u529B\u6307\u6570", min: 0.5, max: 3 },
-    restVel: { group: "dynamics", unit: "m/s", label: "\u9759\u6B62\u9608\u503C", min: 0, max: 2 },
-    ground: { group: "dynamics", unit: "m", label: "\u5730\u9762\u9AD8\u5EA6", min: -50, max: 50 },
-    h: { group: "initial", unit: "m", label: "h\u2080", min: 0, max: 1e4 },
-    v0: { group: "initial", unit: "m/s", label: "v\u2080", min: -500, max: 500 }
-  },
-  init(state) {
-    const h = Math.max(P(state.params, "h", 10), 0);
-    const ground = P(state.params, "ground", 0);
-    state.t = 0;
-    state.y = h;
-    state.v = P(state.params, "v0", 0);
-    state.a = -P(state.params, "g", 9.81);
-    state.bounces = 0;
-    state.resting = false;
-    state.trail = [];
-    state.ground = ground;
-  },
-  step(state, dt) {
-    if (state.resting) return;
-    const g = P(state.params, "g", 9.81);
-    const k = P(state.params, "k", 0);
-    const m = Math.max(P(state.params, "m", 1), 1e-9);
-    const e = P(state.params, "e", 0);
-    const exp = Math.max(P(state.params, "dragExp", 1), 0.5);
-    const ground = P(state.params, "ground", 0);
-    const restVel = P(state.params, "restVel", 0.05);
-    const locals = { y: state.y, v: state.v, t: state.t, g, k, m, ground };
-    const drag = (v) => {
-      if (k === 0) return 0;
-      const mag = Math.abs(v) ** exp;
-      return -(k / m) * MagSign(v, mag);
-    };
-    if (k === 0) {
-      const aAt = (y) => -g + accelExtras(state.params, { ...locals, y });
-      const next = velocityVerlet1D(state.y, state.v, state.a, aAt, dt);
-      state.y = finiteOr(next.x, 0);
-      state.v = finiteOr(next.v, 0);
-      state.a = finiteOr(next.a, -g);
-    } else {
-      let a = -g + drag(state.v) + accelExtras(state.params, locals);
-      state.v = finiteOr(state.v + a * dt, 0);
-      state.y = finiteOr(state.y + state.v * dt, 0);
-      state.a = -g + drag(state.v) + accelExtras(state.params, { ...locals, v: state.v, y: state.y });
-    }
-    state.t += dt;
-    if (state.y <= ground && state.v < 0) {
-      state.y = ground;
-      state.v = -e * state.v;
-      state.bounces += 1;
-      state.a = -g;
-      if (Math.abs(state.v) < restVel || e <= 0) {
-        state.v = 0;
-        state.a = 0;
-        state.resting = true;
-      }
-    }
-    state.trail.push({ t: state.t, y: state.y, v: state.v });
-    if (state.trail.length > 600) state.trail.shift();
-  },
-  draw(ctx, state, view) {
-    const { width: W, height: H } = view;
-    const h0 = Math.max(P(state.params, "h", 10), 1e-6);
-    const margin = { l: 60, r: 40, t: 40, b: 50 };
-    const groundY = H - margin.b;
-    const scale = (H - margin.t - margin.b) / (h0 * 1.15);
-    const cx = W * 0.45;
-    const toY = (y) => groundY - y * scale;
-    ctx.strokeStyle = C.axis;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(margin.l, groundY);
-    ctx.lineTo(W - margin.r, groundY);
-    ctx.stroke();
-    if (view.showAxes !== false) {
-      ctx.setLineDash([4, 5]);
-      ctx.strokeStyle = C.axis;
-      ctx.beginPath();
-      ctx.moveTo(cx, toY(h0));
-      ctx.lineTo(cx, groundY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    if (view.showTrail !== false) {
-      ctx.fillStyle = C.trail;
-      for (let i = 0; i < state.trail.length; i += 3) {
-        ctx.beginPath();
-        ctx.arc(cx, toY(state.trail[i].y), 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    const sy = toY(state.y);
-    state._ball = { x: cx, y: sy, r: 16, groundY, scale, cx };
-    ctx.fillStyle = C.body;
-    ctx.beginPath();
-    ctx.arc(cx, sy, 12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = state._dragBall ? C.accent : C.vector;
-    ctx.lineWidth = state._dragBall ? 3 : 2;
-    ctx.stroke();
-    if (view.showVectors !== false) {
-      drawArrow(ctx, cx, sy, cx, sy - state.v * 8, C.vector, 2);
-    }
-    ctx.fillStyle = C.muted;
-    ctx.font = "12px IBM Plex Mono, monospace";
-    ctx.fillText(`h0=${formatNum(h0)}  e=${formatNum(P(state.params, "e", 0), 2)} \xB7 \u62D6\u7403`, margin.l, margin.t - 8);
-  },
-  onPointer(state, ev) {
-    const b = state._ball;
-    if (!b) return false;
-    if (ev.type === "down") {
-      if ((ev.x - b.x) ** 2 + (ev.y - b.y) ** 2 <= b.r * b.r) {
-        state._dragBall = true;
-        return true;
-      }
-      return false;
-    }
-    if (ev.type === "move" && state._dragBall) {
-      const y = (b.groundY - ev.y) / Math.max(b.scale, 1e-6);
-      const ground = P(state.params, "ground", 0);
-      const next = Math.max(ground, Math.min(200, y));
-      state.y = next;
-      state.params.h = next;
-      state.v = P(state.params, "v0", 0);
-      state.resting = false;
-      state.bounces = 0;
-      state.t = 0;
-      state.trail = [];
-      return true;
-    }
-    if (ev.type === "up") {
-      state._dragBall = false;
-      return true;
-    }
-    return false;
-  },
-  getReadouts(state, opts = {}) {
-    const d = opts.digits ?? 3;
-    return [
-      { label: "t", value: `${formatNum(state.t, d)} s` },
-      { label: "y", value: `${formatNum(state.y, d)} m` },
-      { label: "v", value: `${formatNum(state.v, d)} m/s` },
-      { label: "\u5F39\u8DF3", value: `${state.bounces}` }
-    ];
-  },
-  getEnergy(state) {
-    const m = P(state.params, "m", 1);
-    const g = P(state.params, "g", 9.81);
-    return { kinetic: 0.5 * m * state.v * state.v, potential: m * g * state.y };
-  },
-  getTrajectory(state) {
-    return state.trail;
-  }
-};
-function MagSign(v, mag) {
-  if (v === 0) return 0;
-  return Math.sign(v) * mag;
-}
-
-// js/models/factoryLoader.js
-var builder = null;
-var pending = null;
-function stampedChunk(rel) {
-  const url = new URL(rel, import.meta.url);
-  const version = globalThis.__LAB_ASSET_V || "";
-  if (version && !url.searchParams.has("v")) url.searchParams.set("v", version);
-  return url.href;
-}
-globalThis.__stampedChunk = stampedChunk;
-function factoryBuilder() {
-  if (!builder) throw new Error("factory builder is not loaded");
-  return builder;
-}
-function ensureFactory() {
-  if (builder) return Promise.resolve(builder);
-  if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-NQSTWVPE.js")).then((mod) => {
-      builder = mod.createFactoryModel;
-      const href = globalThis.__FACTORY_CHUNK;
-      const sw = globalThis.navigator?.serviceWorker?.controller;
-      if (href) {
-        try {
-          sessionStorage.setItem("immspfee-factory-chunk", href);
-        } catch {
-        }
-        if (sw) sw.postMessage({ type: "prime", urls: [href] });
-      }
-      return builder;
-    });
-  }
-  return pending;
-}
-
 // data/authority-templates.json
 var authority_templates_default = {
   deprecatedFamilies: {},
@@ -2545,7 +2545,7 @@ function ensureTopicRows() {
     topicMissNote = mod.topicMissNote;
   });
 }
-var STORAGE_KEY = "immspfee-user-models-v1";
+var STORAGE_KEY2 = "immspfee-user-models-v1";
 var DEPRECATED_FAMILIES = new Set(Object.keys(authority_templates_default.deprecatedFamilies || {}));
 var USER_MODEL_FAMILIES = Object.keys(FAMILY_META).filter(
   (k) => !["variant", "hand"].includes(k) && !DEPRECATED_FAMILIES.has(k)
@@ -2553,7 +2553,7 @@ var USER_MODEL_FAMILIES = Object.keys(FAMILY_META).filter(
 function loadUserSpecs() {
   try {
     if (typeof localStorage === "undefined") return [];
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY2);
     if (!raw) return [];
     const list = JSON.parse(raw);
     return Array.isArray(list) ? list : [];
@@ -2563,7 +2563,7 @@ function loadUserSpecs() {
 }
 function saveUserSpecs(list) {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  localStorage.setItem(STORAGE_KEY2, JSON.stringify(list));
 }
 function validateUserModelDraft(draft, opts = {}) {
   const name = String(draft.name || "").trim();
@@ -4230,11 +4230,11 @@ function ensureGlyphRows() {
   }
   return rowsReady || Promise.resolve();
 }
-function translateCatalogText(locale, text) {
+function translateCatalogText(locale2, text) {
   const raw = String(text || "").replace(/\s+/g, " ").trim();
-  if (!raw || locale === "zh" || IDX[locale] == null) return raw;
+  if (!raw || locale2 === "zh" || IDX[locale2] == null) return raw;
   if (!buckets.size) return raw;
-  const idx = IDX[locale] + 1;
+  const idx = IDX[locale2] + 1;
   let out = "";
   for (let i = 0; i < raw.length; ) {
     const list = buckets.get(raw[i]);
@@ -4249,13 +4249,13 @@ function translateCatalogText(locale, text) {
     }
     if (hit) {
       const piece = String(hit[idx] || "");
-      if (locale !== "ja" && out && /[A-Za-z0-9)]$/.test(out) && /^[A-Za-z0-9(]/.test(piece)) {
+      if (locale2 !== "ja" && out && /[A-Za-z0-9)]$/.test(out) && /^[A-Za-z0-9(]/.test(piece)) {
         out += " ";
       }
       out += piece;
       i += hit[0].length;
     } else {
-      const punct = PUNCT[locale]?.[raw[i]];
+      const punct = PUNCT[locale2]?.[raw[i]];
       out += punct != null ? punct : raw[i];
       i += 1;
     }
@@ -4271,23 +4271,23 @@ if (typeof location !== "undefined") {
   } catch {
   }
 }
-function lookup(locale, key, vars) {
-  const table = STRINGS[locale] || STRINGS.en;
+function lookup(locale2, key, vars) {
+  const table = STRINGS[locale2] || STRINGS.en;
   let s = table[key] ?? STRINGS.en[key] ?? STRINGS.zh[key] ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   }
   return s;
 }
-async function ensureCatalogGloss(locale) {
-  if (!locale || locale === "zh") return;
+async function ensureCatalogGloss(locale2) {
+  if (!locale2 || locale2 === "zh") return;
   await ensureGlyphRows();
 }
-function formulaLine(locale, formula) {
+function formulaLine(locale2, formula) {
   const text = String(formula || "").replace(/\s+/g, " ").trim();
   if (!text) return "";
-  const body = locale === "zh" ? text : translateCatalogText(locale, text);
-  return `${lookup(locale, "ui.formulaPrefix")} ${body}`;
+  const body = locale2 === "zh" ? text : translateCatalogText(locale2, text);
+  return `${lookup(locale2, "ui.formulaPrefix")} ${body}`;
 }
 
 // js/shells/registry.js
@@ -8052,4 +8052,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-NQSTWVPE.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-5H6RAJXE.js");

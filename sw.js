@@ -1,7 +1,7 @@
 /**
  * Network-first HTML + asset-stamp; cache-first for fingerprinted js|css|domains.
  */
-const CACHE = 'immspfee-hashed-v5';
+const CACHE = 'immspfee-hashed-v6';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());

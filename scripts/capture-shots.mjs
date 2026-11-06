@@ -23,6 +23,7 @@ const MODELS = [
   ['heat', '08-heat.png'],
   ['pid-tune', '09-pid-tune.png'],
   ['root-locus', '10-root-locus.png'],
+  ['logic-gates', '11-logic-gates.png'],
 ];
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';

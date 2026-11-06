@@ -1,9 +1,8 @@
 import {
   applyLowInkStrokeBoost,
   familyCapabilities,
-  localizeSchema,
-  t
-} from "./chunk-chunk-BOVICRI7.js";
+  localizeSchema
+} from "./chunk-chunk-4PMPDTZN.js";
 import {
   overrideOptions
 } from "./chunk-chunk-54AD6SA2.js";
@@ -161,7 +160,7 @@ function drawWave(ctx, W, H, state, standing) {
   const A = P(state.params, "A", 1) || 1;
   const k = P(state.params, "k", P(state.params, "omega", 3)) || 3;
   const w = P(state.params, "w", P(state.params, "omega", 4)) || 4;
-  const t2 = state.t || 0;
+  const t = state.t || 0;
   const l = 36;
   const r = W - 20;
   const mid = H * 0.55;
@@ -177,7 +176,7 @@ function drawWave(ctx, W, H, state, standing) {
   const n = 120;
   for (let i = 0; i <= n; i += 1) {
     const x = i / n;
-    const phase = standing ? Math.sin(k * x * Math.PI) * Math.cos(w * t2) : Math.sin(k * x * Math.PI * 2 - w * t2);
+    const phase = standing ? Math.sin(k * x * Math.PI) * Math.cos(w * t) : Math.sin(k * x * Math.PI * 2 - w * t);
     const px = l + x * (r - l);
     const py = mid - phase * amp * Math.sign(A || 1);
     if (i) ctx.lineTo(px, py);
@@ -296,8 +295,8 @@ function drawNeutron(ctx, W, H) {
 function drawRiver(ctx, W, H, state) {
   const xi = P(state.params, "xi", 0);
   const Ed = Math.max(1e-3, P(state.params, "E", 5));
-  const t2 = Math.max(0.05, state.t || 0.05);
-  const sigma = Math.sqrt(2 * Ed * t2);
+  const t = Math.max(0.05, state.t || 0.05);
+  const sigma = Math.sqrt(2 * Ed * t);
   const l = 36;
   const r = W - 20;
   const base = H * 0.72;
@@ -313,7 +312,7 @@ function drawRiver(ctx, W, H, state) {
   const span = Math.max(4 * sigma, Math.abs(xi) + 2 * sigma, 1);
   for (let i = 0; i <= n; i += 1) {
     const x = -span + 2 * span * i / n;
-    const g = Math.exp(-(x * x) / (4 * Ed * t2));
+    const g = Math.exp(-(x * x) / (4 * Ed * t));
     const px = l + i / n * (r - l);
     const py = base - g * amp;
     if (i) ctx.lineTo(px, py);
@@ -333,7 +332,7 @@ function drawRiver(ctx, W, H, state) {
     ctx.strokeStyle = "#f88";
     ctx.beginPath();
     ctx.moveTo(probeX, base);
-    ctx.lineTo(probeX, base - amp * Math.exp(-(xi * xi) / (4 * Ed * t2)));
+    ctx.lineTo(probeX, base - amp * Math.exp(-(xi * xi) / (4 * Ed * t)));
     ctx.stroke();
     ctx.fillStyle = "#f88";
     ctx.fillText("\u63A2\u9488", probeX - 12, base + 16);
@@ -373,26 +372,6 @@ function drawTopicSketch(ctx, spec, state, view) {
   if (kind === "wave") return drawWave(ctx, W, H, state, /驻波|standing/.test(`${spec?.id || ""} ${spec?.name || ""} ${spec?.formula || ""}`));
   if (histFlat(state)) return drawBar(ctx, W, H, state, spec?.formula);
   return false;
-}
-
-// js/lab/designCaveat.js
-function designCaveatKey(model) {
-  if (!model) return "";
-  const blob = `${model.id || ""} ${model.name || ""} ${model.sub || ""} ${model.formula || ""} ${(model.tags || []).join(" ")}`;
-  if (/核工程|核物理|裂变|聚变|反应堆|中子|劳逊|剂量|屏蔽|链式反应|neutron|fission|fusion|reactor|lawson/i.test(blob)) {
-    return "caveat.nuclear";
-  }
-  if (/平衡与电化学|电解|电镀|燃料电池|能斯特|腐蚀|electrochem|electrolysis|fuel cell|nernst/i.test(blob)) {
-    return "caveat.electrochem";
-  }
-  if (/生物膜|Goldman|膜运输|膜电位|动作电位|Hodgkin|药代|membrane|action potential/i.test(blob)) {
-    return "caveat.membrane";
-  }
-  return "";
-}
-function designCaveatText(model) {
-  const key = designCaveatKey(model);
-  return key ? t(key) : "";
 }
 
 // js/lab/topicModel.js
@@ -456,17 +435,11 @@ function shell(spec, o) {
       const H = view?.height || 360;
       const l = 36;
       const r = W - 28;
-      const t2 = 46;
+      const t = 46;
       const b = H - 28;
       ctx.fillStyle = C.muted || "#888";
       ctx.font = "600 13px IBM Plex Mono, monospace";
       ctx.fillText(spec.name, 14, 22);
-      const caveat = designCaveatText({ ...spec, formula: equation });
-      if (caveat) {
-        ctx.fillStyle = C.muted;
-        ctx.font = "11px IBM Plex Sans, sans-serif";
-        ctx.fillText(caveat, 14, 40);
-      }
       if (drawTopicSketch(ctx, { ...spec, formula: equation }, state, view)) return;
       const hist = state.hist || [];
       if (hist.length < 2) return;
@@ -485,7 +458,7 @@ function shell(spec, o) {
       ctx.beginPath();
       hist.forEach((v, i) => {
         const x = l + i / (hist.length - 1) * (r - l);
-        const y = b - (v - lo) / (hi - lo) * (b - t2);
+        const y = b - (v - lo) / (hi - lo) * (b - t);
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       });
       ctx.stroke();
@@ -560,12 +533,12 @@ function kin(spec, topic) {
       a: S("a", "dynamics", "m/s\xB2", -20, 20)
     },
     tick(state) {
-      const t2 = state.t;
+      const t = state.t;
       const x0p = P(state.params, "x0", 0);
       const v0p = P(state.params, "v0", 0);
       const ap = P(state.params, "a", 0);
-      state.x = x0p + v0p * t2 + 0.5 * ap * t2 * t2;
-      state.v = v0p + ap * t2;
+      state.x = x0p + v0p * t + 0.5 * ap * t * t;
+      state.v = v0p + ap * t;
     },
     plot: (s) => s.x,
     rows: (s, d) => [["t", s.t, "s"], ["x", s.x, "m"], ["v", s.v, "m/s"], ["a", P(s.params, "a", 0), "m/s\xB2"]]
@@ -584,15 +557,15 @@ function projectile(spec, thetaDeg) {
       y0: S("y\u2080", "initial", "m", 0, 40)
     },
     tick(state) {
-      const t2 = state.t;
+      const t = state.t;
       const v0 = P(state.params, "v0", 16);
       const th = P(state.params, "theta", thetaDeg) * Math.PI / 180;
       const g = P(state.params, "g", 9.81);
       const y0 = P(state.params, "y0", 0);
-      state.x = v0 * Math.cos(th) * t2;
-      state.y = y0 + v0 * Math.sin(th) * t2 - 0.5 * g * t2 * t2;
+      state.x = v0 * Math.cos(th) * t;
+      state.y = y0 + v0 * Math.sin(th) * t - 0.5 * g * t * t;
       state.vx = v0 * Math.cos(th);
-      state.vy = v0 * Math.sin(th) - g * t2;
+      state.vy = v0 * Math.sin(th) - g * t;
     },
     plot: (s) => s.y,
     rows: (s) => [["t", s.t, "s"], ["x", s.x, "m"], ["y", s.y, "m"], ["vx", s.vx, "m/s"], ["vy", s.vy, "m/s"]]
@@ -834,16 +807,16 @@ function shmFamily(spec, topic) {
         const w = P(state.params, "omega", 2);
         const z = P(state.params, "zeta", 0.2);
         const x0 = P(state.params, "x0", 1);
-        const t2 = state.t;
+        const t = state.t;
         if (z < 1) {
           const wd = w * Math.sqrt(1 - z * z);
-          state.x = Math.exp(-z * w * t2) * x0 * Math.cos(wd * t2);
+          state.x = Math.exp(-z * w * t) * x0 * Math.cos(wd * t);
         } else if (Math.abs(z - 1) < 1e-3) {
-          state.x = x0 * (1 + w * t2) * Math.exp(-w * t2);
+          state.x = x0 * (1 + w * t) * Math.exp(-w * t);
         } else {
           const s1 = -z * w + w * Math.sqrt(z * z - 1);
           const s2 = -z * w - w * Math.sqrt(z * z - 1);
-          state.x = x0 * (s2 * Math.exp(s1 * t2) - s1 * Math.exp(s2 * t2)) / (s2 - s1);
+          state.x = x0 * (s2 * Math.exp(s1 * t) - s1 * Math.exp(s2 * t)) / (s2 - s1);
         }
       },
       plot: (s) => s.x,
@@ -1149,10 +1122,10 @@ function firstOrderReaction(spec, topic) {
     tick(state) {
       const c0 = P(state.params, "c0", 1);
       const k = P(state.params, "k", 0.3);
-      const t2 = state.t;
-      if (order === 0) state.c = Math.max(0, c0 - k * t2);
-      else if (order === 2) state.c = 1 / (1 / c0 + k * t2);
-      else state.c = c0 * Math.exp(-k * t2);
+      const t = state.t;
+      if (order === 0) state.c = Math.max(0, c0 - k * t);
+      else if (order === 2) state.c = 1 / (1 / c0 + k * t);
+      else state.c = c0 * Math.exp(-k * t);
     },
     plot: (s) => s.c,
     rows: (s) => [["c", s.c, "mol/L"]]
@@ -1939,12 +1912,12 @@ function secondOrderStep(spec) {
     tick(state) {
       const wn = P(state.params, "wn", 2);
       const z = P(state.params, "zeta", 0.3);
-      const t2 = state.t;
+      const t = state.t;
       if (z < 1) {
         const wd = wn * Math.sqrt(1 - z * z);
-        state.y = 1 - Math.exp(-z * wn * t2) * (Math.cos(wd * t2) + z * wn / wd * Math.sin(wd * t2));
+        state.y = 1 - Math.exp(-z * wn * t) * (Math.cos(wd * t) + z * wn / wd * Math.sin(wd * t));
       } else {
-        state.y = 1 - Math.exp(-wn * t2) * (1 + wn * t2);
+        state.y = 1 - Math.exp(-wn * t) * (1 + wn * t);
       }
     },
     plot: (s) => s.y,
@@ -3018,8 +2991,8 @@ function blackScholes(spec) {
 function erf(x) {
   const sign = x < 0 ? -1 : 1;
   const a = Math.abs(x);
-  const t2 = 1 / (1 + 0.3275911 * a);
-  const y = 1 - ((((1.061405429 * t2 - 1.453152027) * t2 + 1.421413741) * t2 - 0.284496736) * t2 + 0.254829592) * t2 * Math.exp(-a * a);
+  const t = 1 / (1 + 0.3275911 * a);
+  const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a);
   return sign * y;
 }
 function forwardKinematics(spec) {
@@ -4319,9 +4292,9 @@ function doBalance(spec) {
     tick(state) {
       const kd = P(state.params, "k1", 0.3);
       const ka = P(state.params, "k2", 0.5);
-      const t2 = state.t;
-      const L = P(state.params, "L0", 20) * Math.exp(-kd * t2);
-      state.D = Math.abs(ka - kd) < 1e-6 ? P(state.params, "D0", 1) * Math.exp(-ka * t2) + kd * P(state.params, "L0", 20) * t2 * Math.exp(-ka * t2) : P(state.params, "D0", 1) * Math.exp(-ka * t2) + kd * P(state.params, "L0", 20) / (ka - kd) * (Math.exp(-kd * t2) - Math.exp(-ka * t2));
+      const t = state.t;
+      const L = P(state.params, "L0", 20) * Math.exp(-kd * t);
+      state.D = Math.abs(ka - kd) < 1e-6 ? P(state.params, "D0", 1) * Math.exp(-ka * t) + kd * P(state.params, "L0", 20) * t * Math.exp(-ka * t) : P(state.params, "D0", 1) * Math.exp(-ka * t) + kd * P(state.params, "L0", 20) / (ka - kd) * (Math.exp(-kd * t) - Math.exp(-ka * t));
       state.L = L;
     },
     plot: (s) => s.D,
@@ -4360,12 +4333,12 @@ function riverDisp(spec) {
       xi: S("\u8DDD\u5CF0 \u03BE", "dynamics", "m", -30, 30)
     },
     tick(state) {
-      const t2 = Math.max(0.05, state.t);
+      const t = Math.max(0.05, state.t);
       const u = P(state.params, "u", 0.4);
       const E = Math.max(1e-3, P(state.params, "E", 5));
       const xi = P(state.params, "xi", 0);
-      state.xPeak = u * t2;
-      state.c = P(state.params, "M", 10) / Math.max(0.1, P(state.params, "A", 20)) / Math.sqrt(4 * Math.PI * E * t2) * Math.exp(-(xi * xi) / (4 * E * t2));
+      state.xPeak = u * t;
+      state.c = P(state.params, "M", 10) / Math.max(0.1, P(state.params, "A", 20)) / Math.sqrt(4 * Math.PI * E * t) * Math.exp(-(xi * xi) / (4 * E * t));
     },
     plot: (s) => s.c,
     rows: (s) => [["c", s.c, ""]]
@@ -4473,30 +4446,30 @@ function lyapunovNote(spec) {
   });
 }
 var PREFIX = {
-  \u8FD0\u52A8\u5B66: (s, t2) => kin(s, t2),
-  \u52A8\u529B\u5B66: (s, t2) => newton(s, t2),
-  \u78B0\u649E: (s, t2) => collision(s, t2),
-  \u521A\u4F53: (s, t2) => has(t2, /滚动/) ? rolling(s) : has(t2, /欧拉/) ? rigidEuler(s) : has(t2, /凸轮/) ? camHarmonic(s) : has(t2, /连杆|机构/) ? grashof(s) : rigidEuler(s),
-  \u632F\u52A8: (s, t2) => shmFamily(s, t2),
-  \u6CE2: (s, t2) => waveTravel(s),
-  \u58F0\u5B66: (s, t2) => has(t2, /声压/) ? spl(s) : has(t2, /拍/) ? beats(s) : has(t2, /声速|温度/) ? soundSpeed(s) : has(t2, /混响/) ? sabine(s) : has(t2, /声源|多普勒/) ? doppler(s) : spl(s),
-  \u70ED\u529B\u5B66: (s, t2) => has(t2, /卡诺|效率/) ? carnot(s, t2) : has(t2, /气体|状态/) ? gasLaw(s) : carnot(s, t2),
-  \u7EDF\u8BA1\u7269\u7406: (s, t2) => has(t2, /麦克斯韦/) ? maxwell(s) : has(t2, /伊辛/) ? isingEnergy(s) : has(t2, /游走|扩散/) ? brownian(s) : has(t2, /渗流/) ? percolation(s) : has(t2, /熵/) ? entropyMix(s) : maxwell(s),
-  \u6D41\u4F53: (s, t2) => has(t2, /雷诺/) ? reynolds(s) : has(t2, /泊|管/) ? poiseuille(s) : bernoulli(s),
-  \u6D41\u4F532: (s, t2) => has(t2, /边界/) ? blasius(s) : has(t2, /湍流|雷诺/) ? reynolds(s) : poiseuille(s),
-  \u9759\u7535: (s, t2) => has(t2, /偶极/) ? dipole(s) : has(t2, /电容/) ? capacitor(s) : has(t2, /高斯|库仑|电场/) ? coulomb(s) : gaussPoint(s),
-  \u7535\u8DEF: (s, t2) => has(t2, /欧姆|电阻/) ? ohm(s) : has(t2, /电容/) ? capacitor(s) : has(t2, /RL|电感|自感/) ? selfL(s) : rcCircuit(s),
-  \u78C1\u5B66: (s, t2) => has(t2, /霍尔/) ? hall(s) : has(t2, /安培/) ? ampere(s) : has(t2, /变压器/) ? transformer(s) : has(t2, /互感/) ? mutual(s) : has(t2, /自感/) ? selfL(s) : has(t2, /感应|楞次|法拉第/) ? faraday(s) : lorentzRadius(s),
-  \u7535\u78C1\u6CE2: (s, t2) => waveTravel(s),
-  \u5149\u5B66: (s, t2) => has(t2, /Malus|偏振/) ? malus(s) : has(t2, /透镜|成像/) ? lens(s) : has(t2, /折射|反射|斯涅尔/) ? snell(s) : has(t2, /光纤|全反射/) ? fiberNA(s) : snell(s),
-  \u6CE2\u52A8\u5149\u5B66: (s, t2) => has(t2, /双缝|杨氏|干涉/) ? doubleSlit(s) : doubleSlit(s),
-  \u8FD1\u4EE3: (s, t2) => has(t2, /光电/) ? photo(s) : has(t2, /康普顿/) ? compton(s) : has(t2, /德布罗意/) ? debroglie(s) : has(t2, /不确定/) ? uncertainty(s) : has(t2, /隧|势垒|阱/) ? has(t2, /阱/) ? well(s) : tunnel(s) : has(t2, /黑体/) ? stefan(s) : photo(s),
-  \u91CF\u5B50: (s, t2) => has(t2, /势阱|无限/) ? well(s) : has(t2, /隧|势垒/) ? tunnel(s) : has(t2, /谐振子/) ? qho(s) : has(t2, /贝尔/) ? bellCHSH(s) : has(t2, /自旋/) ? spinOrbit(s) : well(s),
-  \u76F8\u5BF9\u8BBA: (s, t2) => gamma(s, t2),
-  \u5929\u4F53: (s, t2) => has(t2, /开普勒|轨道/) ? kepler(s) : kepler(s),
-  \u5B87\u5B99: (s, t2) => has(t2, /红移|哈勃|膨胀/) ? hubble(s) : has(t2, /黑体|核合成|温度/) ? blackbodyPeak(s) : hubble(s),
-  \u7C92\u5B50: (s, t2) => debroglie(s),
-  \u6838\u7269\u7406: (s, t2) => has(t2, /屏蔽|衰减/) ? shieldLaw(s) : has(t2, /磁共振|拉莫/) ? larmor(s) : has(t2, /临界|裂变|链式|反应堆/) ? criticality(s) : has(t2, /剂量/) ? shell(s, {
+  \u8FD0\u52A8\u5B66: (s, t) => kin(s, t),
+  \u52A8\u529B\u5B66: (s, t) => newton(s, t),
+  \u78B0\u649E: (s, t) => collision(s, t),
+  \u521A\u4F53: (s, t) => has(t, /滚动/) ? rolling(s) : has(t, /欧拉/) ? rigidEuler(s) : has(t, /凸轮/) ? camHarmonic(s) : has(t, /连杆|机构/) ? grashof(s) : rigidEuler(s),
+  \u632F\u52A8: (s, t) => shmFamily(s, t),
+  \u6CE2: (s, t) => waveTravel(s),
+  \u58F0\u5B66: (s, t) => has(t, /声压/) ? spl(s) : has(t, /拍/) ? beats(s) : has(t, /声速|温度/) ? soundSpeed(s) : has(t, /混响/) ? sabine(s) : has(t, /声源|多普勒/) ? doppler(s) : spl(s),
+  \u70ED\u529B\u5B66: (s, t) => has(t, /卡诺|效率/) ? carnot(s, t) : has(t, /气体|状态/) ? gasLaw(s) : carnot(s, t),
+  \u7EDF\u8BA1\u7269\u7406: (s, t) => has(t, /麦克斯韦/) ? maxwell(s) : has(t, /伊辛/) ? isingEnergy(s) : has(t, /游走|扩散/) ? brownian(s) : has(t, /渗流/) ? percolation(s) : has(t, /熵/) ? entropyMix(s) : maxwell(s),
+  \u6D41\u4F53: (s, t) => has(t, /雷诺/) ? reynolds(s) : has(t, /泊|管/) ? poiseuille(s) : bernoulli(s),
+  \u6D41\u4F532: (s, t) => has(t, /边界/) ? blasius(s) : has(t, /湍流|雷诺/) ? reynolds(s) : poiseuille(s),
+  \u9759\u7535: (s, t) => has(t, /偶极/) ? dipole(s) : has(t, /电容/) ? capacitor(s) : has(t, /高斯|库仑|电场/) ? coulomb(s) : gaussPoint(s),
+  \u7535\u8DEF: (s, t) => has(t, /欧姆|电阻/) ? ohm(s) : has(t, /电容/) ? capacitor(s) : has(t, /RL|电感|自感/) ? selfL(s) : rcCircuit(s),
+  \u78C1\u5B66: (s, t) => has(t, /霍尔/) ? hall(s) : has(t, /安培/) ? ampere(s) : has(t, /变压器/) ? transformer(s) : has(t, /互感/) ? mutual(s) : has(t, /自感/) ? selfL(s) : has(t, /感应|楞次|法拉第/) ? faraday(s) : lorentzRadius(s),
+  \u7535\u78C1\u6CE2: (s, t) => waveTravel(s),
+  \u5149\u5B66: (s, t) => has(t, /Malus|偏振/) ? malus(s) : has(t, /透镜|成像/) ? lens(s) : has(t, /折射|反射|斯涅尔/) ? snell(s) : has(t, /光纤|全反射/) ? fiberNA(s) : snell(s),
+  \u6CE2\u52A8\u5149\u5B66: (s, t) => has(t, /双缝|杨氏|干涉/) ? doubleSlit(s) : doubleSlit(s),
+  \u8FD1\u4EE3: (s, t) => has(t, /光电/) ? photo(s) : has(t, /康普顿/) ? compton(s) : has(t, /德布罗意/) ? debroglie(s) : has(t, /不确定/) ? uncertainty(s) : has(t, /隧|势垒|阱/) ? has(t, /阱/) ? well(s) : tunnel(s) : has(t, /黑体/) ? stefan(s) : photo(s),
+  \u91CF\u5B50: (s, t) => has(t, /势阱|无限/) ? well(s) : has(t, /隧|势垒/) ? tunnel(s) : has(t, /谐振子/) ? qho(s) : has(t, /贝尔/) ? bellCHSH(s) : has(t, /自旋/) ? spinOrbit(s) : well(s),
+  \u76F8\u5BF9\u8BBA: (s, t) => gamma(s, t),
+  \u5929\u4F53: (s, t) => has(t, /开普勒|轨道/) ? kepler(s) : kepler(s),
+  \u5B87\u5B99: (s, t) => has(t, /红移|哈勃|膨胀/) ? hubble(s) : has(t, /黑体|核合成|温度/) ? blackbodyPeak(s) : hubble(s),
+  \u7C92\u5B50: (s, t) => debroglie(s),
+  \u6838\u7269\u7406: (s, t) => has(t, /屏蔽|衰减/) ? shieldLaw(s) : has(t, /磁共振|拉莫/) ? larmor(s) : has(t, /临界|裂变|链式|反应堆/) ? criticality(s) : has(t, /剂量/) ? shell(s, {
     equation: "H = w_R D\uFF0C\u9ED8\u8BA4\u5149\u5B50/\u7535\u5B50 w_R = 1\uFF0CH = 1 mSv",
     authority: "ICRP 103 \u516C\u5F00\u7684\u8F90\u5C04\u6743\u91CD\u56E0\u5B50\u4E0E\u5F53\u91CF\u5242\u91CF\u5B9A\u4E49\uFF08\u6559\u5B66\uFF09",
     assumptions: "\u5B9A\u4E49\u5F0F\u3002\u9ED8\u8BA4\u5149\u5B50\u548C\u7535\u5B50 w_R=1\uFF1B\u8D28\u5B50 w_R=2\uFF1B\u03B1 \u7C92\u5B50 w_R=20\u3002\u4E2D\u5B50\u7684 w_R \u968F\u80FD\u91CF\u53D8\u5316\uFF0C\u8FD9\u91CC\u4E0D\u662F\u5242\u91CF\u8BC4\u4F30",
@@ -4511,7 +4484,7 @@ var PREFIX = {
     plot: (st) => st.H,
     rows: (st) => [["H", st.H, "Sv"], ["\u8F90\u5C04", st.rad, ""]]
   }) : decay(s),
-  \u51DD\u805A\u6001: (s, t2) => has(t2, /半导体|PN|MOS/) ? pnBarrier(s) : has(t2, /量子霍尔|霍尔/) ? has(t2, /量子/) ? quantumHall(s) : hall(s) : has(t2, /超导/) ? shell(s, {
+  \u51DD\u805A\u6001: (s, t) => has(t, /半导体|PN|MOS/) ? pnBarrier(s) : has(t, /量子霍尔|霍尔/) ? has(t, /量子/) ? quantumHall(s) : hall(s) : has(t, /超导/) ? shell(s, {
     equation: "\u4F26\u6566\u7A7F\u900F\u6DF1\u5EA6\u5173\u7CFB\u7684\u6559\u5B66\u5F0F \u03BB_L = \u221A(m / (\u03BC\u2080 n_s e\xB2))",
     authority: "Tinkham, Introduction to Superconductivity, London \u6DF1\u5EA6",
     assumptions: "\u7ED9\u5B9A\u8D85\u6D41\u5BC6\u5EA6\uFF0C\u4E0D\u662F\u6750\u6599\u8BBE\u8BA1",
@@ -4527,19 +4500,19 @@ var PREFIX = {
     plot: (st) => st.lam * 1e9,
     rows: (st) => [["\u03BB_L", st.lam * 1e9, "nm"]]
   }) : isingEnergy(s),
-  \u975E\u7EBF\u6027: (s, t2) => has(t2, /同步/) ? lyapunovNote(s) : has(t2, /Duffing|达芬/) ? duffing(s) : has(t2, /范德波尔|极限/) ? vanderPol(s) : logisticMap(s),
-  \u8BA1\u7B97\u7269\u7406: (s, t2) => has(t2, /欧拉|数值/) ? eulerMethod(s) : heatMode(s),
-  \u751F\u7269\u7269\u7406: (s, t2) => has(t2, /膜|Goldman|神经/) ? membraneTransport(s) : has(t2, /折叠/) ? proteinFoldNote(s) : membraneHHNote(s),
-  \u7B49\u79BB\u5B50\u4F53: (s, t2) => lorentzRadius(s),
+  \u975E\u7EBF\u6027: (s, t) => has(t, /同步/) ? lyapunovNote(s) : has(t, /Duffing|达芬/) ? duffing(s) : has(t, /范德波尔|极限/) ? vanderPol(s) : logisticMap(s),
+  \u8BA1\u7B97\u7269\u7406: (s, t) => has(t, /欧拉|数值/) ? eulerMethod(s) : heatMode(s),
+  \u751F\u7269\u7269\u7406: (s, t) => has(t, /膜|Goldman|神经/) ? membraneTransport(s) : has(t, /折叠/) ? proteinFoldNote(s) : membraneHHNote(s),
+  \u7B49\u79BB\u5B50\u4F53: (s, t) => lorentzRadius(s),
   \u6392\u5E8F: (s) => binarySearchSteps(s),
   \u67E5\u627E: (s) => binarySearchSteps(s),
   \u56FE\u7B97\u6CD5: (s) => dijkstraBound(s),
   \u5B57\u7B26\u4E32: (s) => editDistance(s),
   \u52A8\u6001\u89C4\u5212: (s) => editDistance(s),
-  \u6570\u636E\u7ED3\u6784: (s, t2) => has(t2, /哈希|散列/) ? hashLoad(s) : binarySearchSteps(s),
+  \u6570\u636E\u7ED3\u6784: (s, t) => has(t, /哈希|散列/) ? hashLoad(s) : binarySearchSteps(s),
   \u8BA1\u7B97\u7406\u8BBA: (s) => binarySearchSteps(s),
-  \u5BC6\u7801\u5B66: (s, t2) => has(t2, /RSA|模/) ? rsaMod(s) : caesar(s),
-  \u4FE1\u606F\u8BBA: (s, t2) => has(t2, /容量|信道/) ? shell(s, {
+  \u5BC6\u7801\u5B66: (s, t) => has(t, /RSA|模/) ? rsaMod(s) : caesar(s),
+  \u4FE1\u606F\u8BBA: (s, t) => has(t, /容量|信道/) ? shell(s, {
     equation: "C = B log2(1+SNR)",
     authority: "Cover & Thomas, \u5E26\u9650 AWGN \u5BB9\u91CF",
     assumptions: "AWGN",
@@ -4552,7 +4525,7 @@ var PREFIX = {
     rows: (st) => [["C", st.C, "bit/s"]]
   }) : binaryEntropy(s),
   \u76D1\u7763\u5B66\u4E60: (s) => gdQuadratic(s),
-  \u65E0\u76D1\u7763: (s, t2) => has(t2, /K-means|聚类/) ? kmeans1d(s) : matrix2(s, "\u7279\u5F81"),
+  \u65E0\u76D1\u7763: (s, t) => has(t, /K-means|聚类/) ? kmeans1d(s) : matrix2(s, "\u7279\u5F81"),
   \u795E\u7ECF\u7F51\u7EDC: (s) => gdQuadratic(s),
   \u5F3A\u5316\u5B66\u4E60: (s) => shell(s, {
     equation: "\u8D1D\u5C14\u66FC\uFF1AV = r + \u03B3 V\u2032\uFF08\u5355\u72B6\u6001\u793A\u610F\uFF09",
@@ -4591,8 +4564,8 @@ var PREFIX = {
     plot: (st) => st.cost,
     rows: (st) => [["cost", st.cost, ""]]
   }),
-  \u7F51\u7EDC: (s, t2) => has(t2, /握手|TCP/) ? tcpStates(s) : littleLaw(s),
-  \u64CD\u4F5C\u7CFB\u7EDF: (s, t2) => has(t2, /银行/) ? bankerNeed(s) : has(t2, /LRU|页/) ? pageReplace(s) : rrWait(s),
+  \u7F51\u7EDC: (s, t) => has(t, /握手|TCP/) ? tcpStates(s) : littleLaw(s),
+  \u64CD\u4F5C\u7CFB\u7EDF: (s, t) => has(t, /银行/) ? bankerNeed(s) : has(t, /LRU|页/) ? pageReplace(s) : rrWait(s),
   \u7F16\u8BD1: (s) => binarySearchSteps(s),
   \u5206\u5E03\u5F0F\u4E0E\u5B89\u5168: (s) => shell(s, {
     equation: "\u591A\u6570\u6D3E\u6CD5\u5B9A\u4EBA\u6570 q = \u230An/2\u230B+1",
@@ -4606,8 +4579,8 @@ var PREFIX = {
     plot: (st) => st.q,
     rows: (st) => [["q", st.q, ""]]
   }),
-  \u6570\u5B57\u903B\u8F91: (s, t2) => boolGate(s, t2),
-  \u7EC4\u5408\u903B\u8F91: (s, t2) => boolGate(s, t2 || "\u4E0E"),
+  \u6570\u5B57\u903B\u8F91: (s, t) => boolGate(s, t),
+  \u7EC4\u5408\u903B\u8F91: (s, t) => boolGate(s, t || "\u4E0E"),
   \u65F6\u5E8F\u903B\u8F91: (s) => shell(s, {
     equation: "\u5206\u9891\uFF1Af_out = f_in / N",
     authority: "Mano, \u8BA1\u6570\u5668\u5206\u9891",
@@ -4621,8 +4594,8 @@ var PREFIX = {
     rows: (st) => [["f_out", st.fo, "Hz"]]
   }),
   \u8BA1\u7B97\u673A\u4F53\u7CFB: (s) => amdahl(s),
-  \u5B58\u50A8\u5C42\u6B21: (s, t2) => has(t2, /LRU/) ? pageReplace(s) : amdahl(s),
-  \u5D4C\u5165\u5F0F: (s, t2) => has(t2, /PWM|占空/) ? pwm(s) : nyquist(s),
+  \u5B58\u50A8\u5C42\u6B21: (s, t) => has(t, /LRU/) ? pageReplace(s) : amdahl(s),
+  \u5D4C\u5165\u5F0F: (s, t) => has(t, /PWM|占空/) ? pwm(s) : nyquist(s),
   \u901A\u4FE1\u7F16\u7801: (s) => binaryEntropy(s),
   \u8C03\u5236: (s) => shell(s, {
     equation: "AM\uFF1As(t)=(A+m cos \u03C9_m t) cos \u03C9_c t \u7684\u8C03\u5236\u5EA6 \u03BC",
@@ -4651,15 +4624,15 @@ var PREFIX = {
   }),
   \u7F51\u7EDC\u534F\u8BAE: (s) => tcpStates(s),
   "VLSI-FPGA": (s) => cmosDelay(s),
-  \u4FE1\u53F7\u5904\u7406: (s, t2) => has(t2, /采样|Nyquist/) ? nyquist(s) : fftBin(s),
-  \u63A7\u5236: (s, t2) => has(t2, /电机/) ? dcMotor(s) : has(t2, /PID|阶跃|二阶/) ? secondOrderStep(s) : secondOrderStep(s),
+  \u4FE1\u53F7\u5904\u7406: (s, t) => has(t, /采样|Nyquist/) ? nyquist(s) : fftBin(s),
+  \u63A7\u5236: (s, t) => has(t, /电机/) ? dcMotor(s) : has(t, /PID|阶跃|二阶/) ? secondOrderStep(s) : secondOrderStep(s),
   \u673A\u5668\u4EBA: (s) => forwardKinematics(s),
-  \u7535\u529B\u7535\u5B50\u4E0E\u7535\u673A: (s, t2) => has(t2, /感应|异步|转差/) ? slipMotor(s) : has(t2, /变压器/) ? transformer(s) : has(t2, /因数/) ? powerFactor(s) : dcMotor(s),
-  \u673A\u68B0\u673A\u6784: (s, t2) => has(t2, /凸轮/) ? camHarmonic(s) : has(t2, /齿轮/) ? gearOrBelt(s, "\u9F7F\u8F6E") : grashof(s),
-  \u4F20\u52A8: (s, t2) => gearOrBelt(s, t2),
-  \u673A\u68B0\u632F\u52A8: (s, t2) => has(t2, /隔振|传递/) ? isolation(s) : shmFamily(s, t2),
+  \u7535\u529B\u7535\u5B50\u4E0E\u7535\u673A: (s, t) => has(t, /感应|异步|转差/) ? slipMotor(s) : has(t, /变压器/) ? transformer(s) : has(t, /因数/) ? powerFactor(s) : dcMotor(s),
+  \u673A\u68B0\u673A\u6784: (s, t) => has(t, /凸轮/) ? camHarmonic(s) : has(t, /齿轮/) ? gearOrBelt(s, "\u9F7F\u8F6E") : grashof(s),
+  \u4F20\u52A8: (s, t) => gearOrBelt(s, t),
+  \u673A\u68B0\u632F\u52A8: (s, t) => has(t, /隔振|传递/) ? isolation(s) : shmFamily(s, t),
   \u75B2\u52B3\u65AD\u88C2: (s) => stress(s, "\u65AD\u88C2"),
-  \u6D41\u4F53\u673A\u68B0: (s, t2) => has(t2, /泵|功率|水轮机/) ? shell(s, {
+  \u6D41\u4F53\u673A\u68B0: (s, t) => has(t, /泵|功率|水轮机/) ? shell(s, {
     equation: "P = \u03C1 g Q H / \u03B7",
     authority: "White, \u6C34\u529B\u673A\u68B0\u529F\u7387",
     assumptions: "\u7ED9\u5B9A\u6548\u7387",
@@ -4671,8 +4644,8 @@ var PREFIX = {
     plot: (st) => st.P,
     rows: (st) => [["P", st.P, "W"]]
   }) : bernoulli(s),
-  \u6750\u6599\u529B\u5B66: (s, t2) => stress(s, t2),
-  \u6750\u6599\u79D1\u5B66: (s, t2) => has(t2, /相/) ? leverRule(s) : stress(s, t2),
+  \u6750\u6599\u529B\u5B66: (s, t) => stress(s, t),
+  \u6750\u6599\u79D1\u5B66: (s, t) => has(t, /相/) ? leverRule(s) : stress(s, t),
   \u76F8\u56FE: (s) => leverRule(s),
   \u6269\u6563: (s) => brownian(s),
   \u65AD\u88C2\u529B\u5B66: (s) => stress(s, "\u65AD\u88C2"),
@@ -4689,11 +4662,11 @@ var PREFIX = {
     plot: (st) => st.E,
     rows: (st) => [["E", st.E, "GPa"]]
   }),
-  \u7ED3\u6784\u5DE5\u7A0B: (s, t2) => stress(s, t2),
+  \u7ED3\u6784\u5DE5\u7A0B: (s, t) => stress(s, t),
   \u5CA9\u571F\u5DE5\u7A0B: (s) => rankineSoil(s),
   \u6865\u6881: (s) => stress(s, "\u5F2F\u66F2"),
   \u5730\u9707\u5DE5\u7A0B: (s) => secondOrderStep(s),
-  \u822A\u7A7A\u6C14\u52A8: (s, t2) => has(t2, /马赫/) ? shell(s, {
+  \u822A\u7A7A\u6C14\u52A8: (s, t) => has(t, /马赫/) ? shell(s, {
     equation: "M = v / a",
     authority: "Anderson, \u9A6C\u8D6B\u6570\u5B9A\u4E49",
     assumptions: "\u5F53\u5730\u58F0\u901F\u7ED9\u5B9A",
@@ -4705,10 +4678,10 @@ var PREFIX = {
     plot: (st) => st.M,
     rows: (st) => [["M", st.M, ""]]
   }) : clift(s),
-  \u98DE\u884C\u529B\u5B66: (s, t2) => has(t2, /浮沉|长周期/) ? phugoid(s) : phugoid(s),
+  \u98DE\u884C\u529B\u5B66: (s, t) => has(t, /浮沉|长周期/) ? phugoid(s) : phugoid(s),
   \u63A8\u8FDB: (s) => rocket(s),
-  \u8F68\u9053: (s, t2) => has(t2, /霍曼/) ? hohmann(s) : kepler(s),
-  \u660E\u6E20\u6C34\u529B\u5B66: (s, t2) => has(t2, /水跃|共轭/) ? hydraulicJump(s) : has(t2, /闸/) ? sluice(s) : manning(s),
+  \u8F68\u9053: (s, t) => has(t, /霍曼/) ? hohmann(s) : kepler(s),
+  \u660E\u6E20\u6C34\u529B\u5B66: (s, t) => has(t, /水跃|共轭/) ? hydraulicJump(s) : has(t, /闸/) ? sluice(s) : manning(s),
   \u6C34\u5DE5\u7ED3\u6784: (s) => shell(s, {
     equation: "\u9759\u6C34\u538B\u529B\u5408\u529B P = \xBD \u03C1 g h\xB2\uFF08\u5355\u4F4D\u5BBD\u5EA6\uFF09",
     authority: "\u9759\u6C34\u538B\u5F3A\u4E09\u89D2\u5F62",
@@ -4722,15 +4695,15 @@ var PREFIX = {
     rows: (st) => [["P", st.P / 1e3, "kN/m"]]
   }),
   \u4EA4\u901A\u6D41: (s) => naschFlow(s),
-  \u5316\u5DE5\u53CD\u5E94\u5668: (s, t2) => has(t2, /PFR|平推/) ? pfr(s) : has(t2, /当量/) ? equivalence(s) : cstr(s),
-  \u5316\u5DE5\u5206\u79BB: (s, t2) => has(t2, /精馏|操作线/) ? mccabe(s) : has(t2, /吸收/) ? absorptionLG(s) : has(t2, /干燥/) ? dryingPage(s) : has(t2, /萃取/) ? extractStages(s) : has(t2, /结晶|过饱和/) ? supersat(s) : has(t2, /流化/) ? fluidization(s) : mccabe(s),
-  \u5DE5\u4E1A\u5DE5\u7A0B: (s, t2) => has(t2, /EOQ|库存/) ? eoq(s) : has(t2, /排队|M\/M/) ? mm1(s) : has(t2, /可靠/) ? reliability(s) : littleLaw(s),
-  \u6838\u5DE5\u7A0B: (s, t2) => has(t2, /屏蔽/) ? shieldLaw(s) : has(t2, /衰变|链/) ? bateman(s) : has(t2, /扩散/) ? neutronDiffusion(s) : criticality(s),
-  \u751F\u7269\u533B\u5B66\u5DE5\u7A0B: (s, t2) => has(t2, /Hodgkin|膜|动作电位/) ? membraneHHNote(s) : has(t2, /ECG|心电/) ? ecgPeriod(s) : has(t2, /呼吸/) ? respiratory(s) : has(t2, /药/) ? pkOneCompartment(s) : ecgPeriod(s),
-  \u73AF\u5883\u5DE5\u7A0B: (s, t2) => has(t2, /氧|污泥|Monod/) ? asmSubstrate(s) : has(t2, /河|扩散/) ? riverDisp(s) : doBalance(s),
-  \u7535\u6C14\u7535\u673A: (s, t2) => has(t2, /异步|转差/) ? slipMotor(s) : has(t2, /变压器/) ? transformer(s) : dcMotor(s),
-  \u7535\u529B\u7CFB\u7EDF: (s, t2) => has(t2, /因数/) ? powerFactor(s) : has(t2, /MPPT|光伏/) ? mppt(s) : powerFactor(s),
-  \u80FD\u6E90: (s, t2) => has(t2, /电池/) ? batteryOcv(s) : has(t2, /燃料电池/) ? fuelCellV(s) : has(t2, /光伏|MPPT/) ? mppt(s) : stefan(s),
+  \u5316\u5DE5\u53CD\u5E94\u5668: (s, t) => has(t, /PFR|平推/) ? pfr(s) : has(t, /当量/) ? equivalence(s) : cstr(s),
+  \u5316\u5DE5\u5206\u79BB: (s, t) => has(t, /精馏|操作线/) ? mccabe(s) : has(t, /吸收/) ? absorptionLG(s) : has(t, /干燥/) ? dryingPage(s) : has(t, /萃取/) ? extractStages(s) : has(t, /结晶|过饱和/) ? supersat(s) : has(t, /流化/) ? fluidization(s) : mccabe(s),
+  \u5DE5\u4E1A\u5DE5\u7A0B: (s, t) => has(t, /EOQ|库存/) ? eoq(s) : has(t, /排队|M\/M/) ? mm1(s) : has(t, /可靠/) ? reliability(s) : littleLaw(s),
+  \u6838\u5DE5\u7A0B: (s, t) => has(t, /屏蔽/) ? shieldLaw(s) : has(t, /衰变|链/) ? bateman(s) : has(t, /扩散/) ? neutronDiffusion(s) : criticality(s),
+  \u751F\u7269\u533B\u5B66\u5DE5\u7A0B: (s, t) => has(t, /Hodgkin|膜|动作电位/) ? membraneHHNote(s) : has(t, /ECG|心电/) ? ecgPeriod(s) : has(t, /呼吸/) ? respiratory(s) : has(t, /药/) ? pkOneCompartment(s) : ecgPeriod(s),
+  \u73AF\u5883\u5DE5\u7A0B: (s, t) => has(t, /氧|污泥|Monod/) ? asmSubstrate(s) : has(t, /河|扩散/) ? riverDisp(s) : doBalance(s),
+  \u7535\u6C14\u7535\u673A: (s, t) => has(t, /异步|转差/) ? slipMotor(s) : has(t, /变压器/) ? transformer(s) : dcMotor(s),
+  \u7535\u529B\u7CFB\u7EDF: (s, t) => has(t, /因数/) ? powerFactor(s) : has(t, /MPPT|光伏/) ? mppt(s) : powerFactor(s),
+  \u80FD\u6E90: (s, t) => has(t, /电池/) ? batteryOcv(s) : has(t, /燃料电池/) ? fuelCellV(s) : has(t, /光伏|MPPT/) ? mppt(s) : stefan(s),
   \u77FF\u4E1A\u51B6\u91D1: (s) => shell(s, {
     equation: "\u90A6\u5FB7\u529F\u6307\u6570\u793A\u610F\uFF1AE = W_i (10/\u221AP \u2212 10/\u221AF)",
     authority: "Bond \u7C89\u788E\u529F\u6307\u6570\u516C\u5F0F\uFF08\u9009\u77FF\u6559\u6750\uFF09",
@@ -4744,8 +4717,8 @@ var PREFIX = {
     plot: (st) => st.E,
     rows: (st) => [["E", st.E, "kWh/t"]]
   }),
-  \u7EBA\u7EC7\u98DF\u54C1: (s, t2) => has(t2, /干燥/) ? dryingPage(s) : has(t2, /纺|牵伸/) ? draftRatio(s) : draftRatio(s),
-  \u519C\u4E1A\u8239\u8236\u6C7D\u8F66: (s, t2) => has(t2, /灌溉/) ? irrigation(s) : has(t2, /阻力/) ? shell(s, {
+  \u7EBA\u7EC7\u98DF\u54C1: (s, t) => has(t, /干燥/) ? dryingPage(s) : has(t, /纺|牵伸/) ? draftRatio(s) : draftRatio(s),
+  \u519C\u4E1A\u8239\u8236\u6C7D\u8F66: (s, t) => has(t, /灌溉/) ? irrigation(s) : has(t, /阻力/) ? shell(s, {
     equation: "\u6469\u64E6\u963B\u529B R = \xBD \u03C1 v\xB2 S C_f",
     authority: "\u8239\u8236\u963B\u529B\u7684\u4E8C\u6B21\u963B\u529B\u5B9A\u4E49",
     assumptions: "\u7ED9\u5B9A C_f",
@@ -4756,7 +4729,7 @@ var PREFIX = {
     },
     plot: (st) => st.R,
     rows: (st) => [["R", st.R, "N"]]
-  }) : has(t2, /悬架/) ? isolation(s) : irrigation(s),
+  }) : has(t, /悬架/) ? isolation(s) : irrigation(s),
   \u94C1\u8DEF\u5EFA\u7B51\u6D4B\u7ED8\u5B89\u5168: (s) => shell(s, {
     equation: "\u5236\u52A8\u8DDD\u79BB\u8FD1\u4F3C s = v\xB2 / (2 a)",
     authority: "\u5300\u51CF\u901F\u8FD0\u52A8\u5B66",
@@ -4769,9 +4742,9 @@ var PREFIX = {
     plot: (st) => st.s,
     rows: (st) => [["s", st.s, "m"]]
   }),
-  \u5FAE\u79EF\u5206: (s, t2) => derivativeLesson(s, t2),
-  \u7EBF\u6027\u4EE3\u6570: (s, t2) => matrix2(s, t2),
-  \u6982\u7387\u7EDF\u8BA1: (s, t2) => has(t2, /贝叶斯/) ? shell(s, {
+  \u5FAE\u79EF\u5206: (s, t) => derivativeLesson(s, t),
+  \u7EBF\u6027\u4EE3\u6570: (s, t) => matrix2(s, t),
+  \u6982\u7387\u7EDF\u8BA1: (s, t) => has(t, /贝叶斯/) ? shell(s, {
     equation: "P(A|B)= P(B|A)P(A)/P(B)",
     authority: "Ross, \u8D1D\u53F6\u65AF\u516C\u5F0F",
     assumptions: "P(B)>0",
@@ -4782,7 +4755,7 @@ var PREFIX = {
     },
     plot: (st) => st.p,
     rows: (st) => [["P(A|B)", st.p, ""]]
-  }) : has(t2, /中心极限|大数/) ? shell(s, {
+  }) : has(t, /中心极限|大数/) ? shell(s, {
     equation: "se = \u03C3 / \u221An",
     authority: "Ross, \u6837\u672C\u5747\u503C\u6807\u51C6\u8BEF",
     assumptions: "\u72EC\u7ACB\u540C\u5206\u5E03\u3001\u6709\u9650\u65B9\u5DEE",
@@ -4793,9 +4766,9 @@ var PREFIX = {
     },
     plot: (st) => st.se,
     rows: (st) => [["se", st.se, ""]]
-  }) : normalPdf(s, t2),
-  \u52A8\u529B\u7CFB\u7EDF: (s, t2) => has(t2, /极限/) ? vanderPol(s) : lyapunovNote(s),
-  \u4F18\u5316\u56FE\u8BBA: (s, t2) => has(t2, /线性规划/) ? shell(s, {
+  }) : normalPdf(s, t),
+  \u52A8\u529B\u7CFB\u7EDF: (s, t) => has(t, /极限/) ? vanderPol(s) : lyapunovNote(s),
+  \u4F18\u5316\u56FE\u8BBA: (s, t) => has(t, /线性规划/) ? shell(s, {
     equation: "\u5728 x+y\u22641, x,y\u22650 \u4E0A z=c\u2081x+c\u2082y\uFF0C\u9876\u70B9\u6700\u4F18 z*=max(c\u2081,c\u2082)\uFF08\u9ED8\u8BA4 c\u2081=3, c\u2082=2\uFF09",
     authority: "Dantzig \u5355\u7EAF\u5F62\u6240\u4F9D\u636E\u7684\u9876\u70B9\u6700\u4F18\uFF08\u7EBF\u6027\u89C4\u5212\u57FA\u672C\u5B9A\u7406\uFF09",
     assumptions: "\u8BE5\u53EF\u884C\u57DF\u7684\u6700\u4F18\u503C\u5728\u9876\u70B9 (1,0) \u6216 (0,1)",
@@ -4810,13 +4783,13 @@ var PREFIX = {
     plot: (st) => st.z,
     rows: (st) => [["z*", st.z, ""]]
   }) : dijkstraBound(s),
-  \u53CD\u5E94: (s, t2) => has(t2, /阿伦尼|活化/) ? arrhenius(s) : firstOrderReaction(s, t2),
-  \u5E73\u8861\u4E0E\u7535\u5316\u5B66: (s, t2) => has(t2, /缓冲|pH|滴定/) ? has(t2, /滴定/) ? titration(s) : hhBuffer(s) : has(t2, /能斯特|电池|氧化还原/) ? nernst(s) : has(t2, /腐蚀/) ? corrosionRate(s) : has(t2, /燃料/) ? fuelCellV(s) : hhBuffer(s),
+  \u53CD\u5E94: (s, t) => has(t, /阿伦尼|活化/) ? arrhenius(s) : firstOrderReaction(s, t),
+  \u5E73\u8861\u4E0E\u7535\u5316\u5B66: (s, t) => has(t, /缓冲|pH|滴定/) ? has(t, /滴定/) ? titration(s) : hhBuffer(s) : has(t, /能斯特|电池|氧化还原/) ? nernst(s) : has(t, /腐蚀/) ? corrosionRate(s) : has(t, /燃料/) ? fuelCellV(s) : hhBuffer(s),
   \u7ED3\u6784\u4E0E\u5149\u8C31: (s) => beerLambert(s),
-  \u751F\u6001\u751F\u7406: (s, t2) => has(t2, /Lotka|捕食/) ? lotka(s) : has(t2, /SIR|SEIR|传染/) ? sir(s, t2) : has(t2, /Logistic|种群/) ? logistic(s) : logistic(s),
-  \u6C14\u5019: (s, t2) => has(t2, /温室/) ? greenhouse(s) : radiationBalance(s),
-  \u5FAE\u89C2: (s, t2) => has(t2, /囚徒|博弈/) ? prisoner(s) : supplyDemand(s),
-  \u91D1\u878D: (s, t2) => has(t2, /期权|Black|BS/) ? blackScholes(s) : compound(s)
+  \u751F\u6001\u751F\u7406: (s, t) => has(t, /Lotka|捕食/) ? lotka(s) : has(t, /SIR|SEIR|传染/) ? sir(s, t) : has(t, /Logistic|种群/) ? logistic(s) : logistic(s),
+  \u6C14\u5019: (s, t) => has(t, /温室/) ? greenhouse(s) : radiationBalance(s),
+  \u5FAE\u89C2: (s, t) => has(t, /囚徒|博弈/) ? prisoner(s) : supplyDemand(s),
+  \u91D1\u878D: (s, t) => has(t, /期权|Black|BS/) ? blackScholes(s) : compound(s)
 };
 function singleSlitModel(spec) {
   return shell(spec, {

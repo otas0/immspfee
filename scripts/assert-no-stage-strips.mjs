@@ -33,6 +33,11 @@ if (!/getElementById\(\s*['"]shell-caveat['"]\s*\)\s*\?\.remove\(\)/.test(mainJs
   failures.push('js/main.js must remove #shell-caveat on strip update');
 }
 
+const topicModel = fs.readFileSync(path.join(root, 'js/lab/topicModel.js'), 'utf8');
+if (/designCaveatText\s*\(/.test(topicModel)) {
+  failures.push('js/lab/topicModel.js must not call designCaveatText (no canvas caveat chrome)');
+}
+
 const bundlePath = path.join(root, 'js/bundle/lab.js');
 if (fs.existsSync(bundlePath)) {
   const bundle = fs.readFileSync(bundlePath, 'utf8');
@@ -44,8 +49,18 @@ if (fs.existsSync(bundlePath)) {
   }
 }
 
+const factoryChunk = fs.readdirSync(path.join(root, 'js/bundle'))
+  .find((name) => name.startsWith('chunk-factory-') && name.endsWith('.js'));
+if (factoryChunk) {
+  const factory = fs.readFileSync(path.join(root, 'js/bundle', factoryChunk), 'utf8');
+  // Bundled draw must not fillText caveat strings onto the canvas.
+  if (/fillText\(\s*caveat\b/.test(factory) || /designCaveatText\([^)]*\)[\s\S]{0,120}fillText/.test(factory)) {
+    failures.push(`${factoryChunk} still paints designCaveatText — rebuild bundle`);
+  }
+}
+
 if (failures.length) {
   console.error(failures.join('\n'));
   process.exit(1);
 }
-console.log('stage strips gate ok (no #shell-assumptions / #shell-caveat)');
+console.log('stage strips gate ok (no #shell-assumptions / #shell-caveat / canvas caveat)');

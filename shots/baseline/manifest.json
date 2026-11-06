@@ -1,42 +1,46 @@
 {
   "01-free-fall.png": {
-    "sha256": "d5f0140601e7bf99de77df4d816b89e25f18954eee35b104c8283e07d672cb20",
-    "bytes": 58179
+    "sha256": "34b4222c9ff6bc98d86d420de4439fd24f2787e5d1f8d2d418793d3a57ebd91e",
+    "bytes": 60410
   },
   "02-projectile.png": {
-    "sha256": "cc38cd027d72c69a4cef391eef968be45961239caa0bed97f84485d916a891e2",
-    "bytes": 85023
+    "sha256": "dee80fc6721754e821ca2b821641191dcf1dc4b09d717d3ff61bb4062d2af10f",
+    "bytes": 78617
   },
   "03-spring.png": {
-    "sha256": "1351e355ae17e9ee251f574071f6ed270f742ef6cd12e43b32f3722bf392c15d",
-    "bytes": 54061
+    "sha256": "4576c31724fba496a009ed30b9a19a2737f54b706932fa9b0deb5e4a31f662fe",
+    "bytes": 52202
   },
   "04-pendulum.png": {
-    "sha256": "33b9919508c85999e435a6cf5aceb1536f93f39836e64ba51d95d22e997420f3",
-    "bytes": 55563
+    "sha256": "765a98dc736474e348f96ed05e24411b378978d40f5d1a384731f9089c3f695e",
+    "bytes": 53591
   },
   "05-collision.png": {
-    "sha256": "3695dd544beb0e1771cb910da1bc43e7dabacdba837a3d56b42e3b0245f35435",
-    "bytes": 54064
+    "sha256": "95f5723a4a5594e8c8289832b38b3e174823b4f53eed51266484f93252e7a35e",
+    "bytes": 52715
   },
   "06-double-pendulum.png": {
-    "sha256": "72a7f86e4cf8de03508594313595e1ce46b890f9d5dd5cc09f00fd19515b23de",
-    "bytes": 73531
+    "sha256": "73eacbe2f02f8656a01fa94600ec1f38390693885416615dec852e51a87aab35",
+    "bytes": 71275
   },
   "07-wave.png": {
-    "sha256": "a1ff752fe666f6accd5a515af0a3e7d88264dd766428535c8fd1ec66ec165372",
-    "bytes": 89585
+    "sha256": "bd506cd04ede3779f53adec578203f38bbad8ab3245474a0fa107bc18d9d7b09",
+    "bytes": 87836
   },
   "08-heat.png": {
-    "sha256": "92dcf82f3741bbbfc07dc64dd6ab3e4b698314359bdf482c423f366100e55512",
-    "bytes": 74490
+    "sha256": "25da1d8a282d1396b7f8f50124eb5b0884b2dc0a0f60bceddddcbaf7faa48c55",
+    "bytes": 72601
   },
   "09-pid-tune.png": {
-    "sha256": "6553ff3ab62e314a9d342d5603aa538a613f81edbc4eb1559a100c133bfbf6d7",
-    "bytes": 56877
+    "sha256": "f5c3a8436a85911307546b15dd27204b1c15657f8cff3f1a8d7d94a928add4f6",
+    "bytes": 58056
   },
   "10-root-locus.png": {
-    "sha256": "dd122fd58b4d5300d5143f153fde4a6cb01f1790696ad647630b996ab9578cd2",
-    "bytes": 46839
+    "sha256": "a461e1bddc6eeac1219713e3f7ff654b5ef37a25432307d6e5d6bc6457d00e36",
+    "bytes": 61682
+  },
+  "11-logic-gates.png": {
+    "sha256": "e950c3b95f54da501e77e41e844f49a8ae4a78a793a7c0f4879ec68667743a02",
+    "bytes": 61243
   }
 }

@@ -80,7 +80,32 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 factory `shell()` init stepped once (`hist.length === 1`) and `draw` returned
 before the stroke. Fix: duplicate the init ordinate so the first paint has a
 flat line; contract retries also `step` + denser sample (step 4). Soft remains
-a warn path for true empty canvases with readouts.
+a warn path for true empty canvases with readouts. Spot-check other steady
+`shell()` factory models with `node scripts/shell-first-paint.mjs`.
+
+### designCaveatText vs no-assumption-chrome
+
+**Verdict: painting caveat on the canvas violated AGENTS.** `#shell-caveat` was
+already stripped from the shell; `topicModel.shell().draw` still `fillText` the
+nuclear/electrochem/membrane caveat under the title. Removed — keep
+`designCaveat.js` / i18n keys for audits only. `assert-no-stage-strips` gates
+`designCaveatText(` in `topicModel.js` and factory-chunk `fillText(caveat)`.
+
+### macos-14 WebKit runner
+
+Do **not** set `runs-on: macos-14` for `webkit-projector` on this repo until
+GitHub supports the label again. Observed cancel with annotation
+`The configuration 'macos-14-arm64-us-default' is not supported` (zero steps).
+Use `macos-latest`. Re-try `macos-14` only after a workflow_dispatch probe
+shows the job actually starts (non-empty steps) without that annotation.
+
+### Node 20 action runtime warning / DEP0169
+
+`node-version: '22'` alone does not clear the warning — `actions/checkout@v4`
+and `actions/setup-node@v4` still run on the Node 20 *action* runtime.
+Bump both to `@v5` (Node 24 runtime). The `url.parse` DEP0169 in the WebKit
+job log came from **setup-node post**, not lab source (no `url.parse` in
+`js/` / `scripts/`).
 
 ### Pages cold TTI (entry / main)
 
@@ -90,6 +115,12 @@ Measured on `otas0.github.io/immspfee` with SW blocked: cold ready often
 Further cuts are mostly **network / SW**, not more splitting of `entry.js`.
 Prefer: keep factory off cold boot, keep handModels lazy, and avoid growing
 `lab.js` cold path. Do not chase sub-second cold TTI on cold Pages edges.
+
+2026-11-06 re-measure (SW blocked): cold ready **~4.8 s**,
+`entryMs≈3.7 s`, `mainMs≈1.1 s`, first handModels switch **~4.5 s**.
+`microCss` matched the commit; `bundleMeta` differed (Pages `build:bundle`
+before `prepare-site` — expected). SW cache bumped to `immspfee-hashed-v6`;
+`entry.js` adds `modulepreload` for `lab.js` (no further entry split).
 
 When a write fails with `Operation not permitted`:
 

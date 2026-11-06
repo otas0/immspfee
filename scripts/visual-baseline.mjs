@@ -27,6 +27,7 @@ const FILES = [
   '08-heat.png',
   '09-pid-tune.png',
   '10-root-locus.png',
+  '11-logic-gates.png',
 ];
 
 function sha256(buf) {

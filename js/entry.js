@@ -101,6 +101,13 @@ async function preloadCatalog() {
 }
 
 const labUrl = stampedUrl('./bundle/lab.js');
+// Kick lab.js fetch in parallel with catalog preload (CDN cold path — do not split entry further).
+{
+  const link = document.createElement('link');
+  link.rel = 'modulepreload';
+  link.href = labUrl;
+  document.head.appendChild(link);
+}
 
 mark('boot-main-start');
 await Promise.all([

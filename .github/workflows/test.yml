@@ -12,9 +12,9 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -335,8 +335,8 @@ jobs:
     runs-on: macos-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -353,13 +353,19 @@ jobs:
         env:
           SHELL_WEBKIT_ONLY: '1'
         run: node scripts/shell-chrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: webkit-safari-proxy-${{ github.sha }}
+          path: shots/shell-projector-1000-safari-proxy.png
+          if-no-files-found: warn
 
   shots-extra:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[shots]')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
