@@ -1,4 +1,4 @@
-/* inlined chunk-chunk-IALLJT72.js */
+/* inlined chunk-chunk-6D5NWBKA.js */
 // js/utils/zhLabels.js
 var ZH_LABELS = {
   g: "\u91CD\u529B g",
@@ -304,6 +304,7 @@ var LOW_INK_IDS = /* @__PURE__ */ new Set([
   "lens",
   "logistic-growth",
   "nasch-ca",
+  "neutron-diffusion",
   "opamp-configs",
   "phugoid-short",
   "pid-tune",
@@ -329,42 +330,48 @@ function applyLowInkStrokeBoost(model) {
   if (model._lowInkBoosted) return model;
   const draw0 = model.draw.bind(model);
   model.draw = (ctx, state, view) => {
-    const stroke0 = ctx.stroke.bind(ctx);
-    const strokeRect0 = ctx.strokeRect.bind(ctx);
-    const fillRect0 = ctx.fillRect.bind(ctx);
-    ctx.stroke = (...a) => {
-      const lw = Number(ctx.lineWidth) || 1;
-      const alpha = ctx.globalAlpha;
-      ctx.lineWidth = Math.max(lw * 4.2, 5);
-      ctx.globalAlpha = Math.min(1, alpha * 0.22);
-      stroke0(...a);
-      ctx.globalAlpha = alpha;
-      ctx.lineWidth = Math.max(lw * 2.8, 3.2);
-      stroke0(...a);
-      ctx.lineWidth = lw;
-    };
-    ctx.strokeRect = (...a) => {
-      const lw = Number(ctx.lineWidth) || 1;
-      const alpha = ctx.globalAlpha;
-      ctx.lineWidth = Math.max(lw * 3.5, 4);
-      ctx.globalAlpha = Math.min(1, alpha * 0.25);
-      strokeRect0(...a);
-      ctx.globalAlpha = alpha;
-      ctx.lineWidth = Math.max(lw * 2.4, 2.8);
-      strokeRect0(...a);
-      ctx.lineWidth = lw;
-    };
-    ctx.fillRect = (x, y, w, h) => {
-      if (Math.abs(w) < 3 && Math.abs(h) > 6) fillRect0(x - 1, y, w + (w >= 0 ? 2 : -2), h);
-      else if (Math.abs(h) < 3 && Math.abs(w) > 6) fillRect0(x, y - 1, w, h + (h >= 0 ? 2 : -2));
-      else fillRect0(x, y, w, h);
-    };
+    const stroke0 = typeof ctx.stroke === "function" ? ctx.stroke.bind(ctx) : null;
+    const strokeRect0 = typeof ctx.strokeRect === "function" ? ctx.strokeRect.bind(ctx) : null;
+    const fillRect0 = typeof ctx.fillRect === "function" ? ctx.fillRect.bind(ctx) : null;
+    if (stroke0) {
+      ctx.stroke = (...a) => {
+        const lw = Number(ctx.lineWidth) || 1;
+        const alpha = ctx.globalAlpha;
+        ctx.lineWidth = Math.max(lw * 4.2, 5);
+        ctx.globalAlpha = Math.min(1, alpha * 0.22);
+        stroke0(...a);
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = Math.max(lw * 2.8, 3.2);
+        stroke0(...a);
+        ctx.lineWidth = lw;
+      };
+    }
+    if (strokeRect0) {
+      ctx.strokeRect = (...a) => {
+        const lw = Number(ctx.lineWidth) || 1;
+        const alpha = ctx.globalAlpha;
+        ctx.lineWidth = Math.max(lw * 3.5, 4);
+        ctx.globalAlpha = Math.min(1, alpha * 0.25);
+        strokeRect0(...a);
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = Math.max(lw * 2.4, 2.8);
+        strokeRect0(...a);
+        ctx.lineWidth = lw;
+      };
+    }
+    if (fillRect0) {
+      ctx.fillRect = (x, y, w, h) => {
+        if (Math.abs(w) < 3 && Math.abs(h) > 6) fillRect0(x - 1, y, w + (w >= 0 ? 2 : -2), h);
+        else if (Math.abs(h) < 3 && Math.abs(w) > 6) fillRect0(x, y - 1, w, h + (h >= 0 ? 2 : -2));
+        else fillRect0(x, y, w, h);
+      };
+    }
     try {
       draw0(ctx, state, view);
     } finally {
-      ctx.stroke = stroke0;
-      ctx.strokeRect = strokeRect0;
-      ctx.fillRect = fillRect0;
+      if (stroke0) ctx.stroke = stroke0;
+      if (strokeRect0) ctx.strokeRect = strokeRect0;
+      if (fillRect0) ctx.fillRect = fillRect0;
     }
   };
   model._lowInkBoosted = true;
@@ -1943,7 +1950,7 @@ function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
 }
 
 
-/* static chunk inlined: chunk-chunk-IALLJT72.js */
+/* static chunk inlined: chunk-chunk-6D5NWBKA.js */
 /* static chunk inlined: chunk-chunk-WM3LI2L6.js */
 /* static chunk inlined: chunk-chunk-NXEYOZOV.js */
 // js/models/freeFall.js
@@ -2150,7 +2157,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-ZYY6ATZO.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-EZWFVI5Z.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -8044,4 +8051,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-ZYY6ATZO.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-EZWFVI5Z.js");
