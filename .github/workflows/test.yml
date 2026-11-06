@@ -330,7 +330,9 @@ jobs:
     name: webkit-projector (optional)
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[webkit]')
     # Ubuntu WebKit apt deps frequently fail (exit 100); macOS ships a usable WebKit binary.
-    runs-on: macos-14
+    # Prefer macos-latest: macos-14 can cancel instantly with
+    # "configuration 'macos-14-arm64-us-default' is not supported" on this repo.
+    runs-on: macos-latest
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
