@@ -80,7 +80,7 @@ jobs:
       - name: Bundle retains microscope enter wiring
         run: |
           mkdir -p artifacts
-          if rg -q 'focusCatalogModel' js/bundle/lab.js; then
+          if grep -q 'focusCatalogModel' js/bundle/lab.js; then
             echo "bundle focusCatalogModel ok" | tee -a artifacts/ci-summary.txt
           else
             echo "bundle missing focusCatalogModel" | tee -a artifacts/ci-summary.txt

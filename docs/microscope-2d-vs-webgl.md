@@ -19,9 +19,10 @@ Same optics engine (`js/models/microscopeOptics.js` · Hecht finite tube · Abbe
 │  IMMSPFEE brand row · Back to catalog only (no 1517 shell list)       │
 │  ┌──────────────────────────────────────────┬───────────────────────┐ │
 │  │  WebGL structure (orbit + turret hits)   │  Optical rail         │ │
-│  │  same onPointer semantics as 2D turret   │  objective / eyepiece │ │
-│  │  oil film iff optics.immersion           │  NA / λ / immersion   │ │
-│  │                                          │  (no catalog speed…)  │ │
+│  │  drag orbit · wheel zoom                 │  objective / eyepiece │ │
+│  │  click objectives · eyepiece chips       │  L / NA / λ / oil     │ │
+│  │  L dimension label · oil iff immersion   │  “edited” from optics │ │
+│  │                                          │  fingerprint (live)   │ │
 │  ├──────────────────────────────────────────┴───────────────────────┤ │
 │  │  Fixed readouts: M · f_obj · NA · d_Abbe  (not generic HUD)      │ │
 │  └──────────────────────────────────────────────────────────────────┘ │
@@ -39,3 +40,22 @@ Same optics engine (`js/models/microscopeOptics.js` · Hecht finite tube · Abbe
 | Entry | Sidebar domain row (stays Lab Classic) | Left-bar **3D stage** strip, or `?shell=lab-microscope3d` |
 
 Selecting the normal `r016-显微镜` catalog row must **not** auto-enter WebGL. See `docs/microscope-isolation.md`.
+
+## Interactions (WebGL shell)
+
+| Input | Effect | Optics source |
+| --- | --- | --- |
+| Drag on `#canvas-webgl` | Orbit yaw/pitch (pointer capture) | view only |
+| Wheel | Zoom radius | view only |
+| Click objective nose | Set `params.objective` + turret defaults | `opticsFromParams` → M/NA/d_Abbe |
+| Click eyepiece chip (5×/10×/15×) | Set `params.eyepiece` | same |
+| Rail sliders / chips | L, NA, λ, immersion | same; rail “edited” chip shows live M / d_Abbe delta vs baseline |
+| Esc | Close rail if open, else leave shell | — |
+| PNG shot | `preserveDrawingBuffer` + `capturePng` after `gl.finish` | framebuffer of current draw |
+
+2D catalog `r016` and 3D shell must agree on **M**, **NA**, and **d_Abbe** for the same `params` (same `opticsFromParams`). Compare readouts side-by-side when auditing; do not invent display numbers.
+
+## Narrow (≈390)
+
+- Rail starts **closed**; open via 「光学参数」 / Optical params.
+- Strip stays sticky above domains; opening the rail must keep λ / NA outputs linked to `#micro-metric` values.

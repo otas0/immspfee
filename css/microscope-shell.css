@@ -259,6 +259,57 @@ html.shell-lab-microscope3d .micro-rail-title {
   color: var(--micro-ink);
 }
 
+html.shell-lab-microscope3d .micro-rail-dirty {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.22rem 0.4rem;
+  border: 1px solid rgba(110, 180, 255, 0.35);
+  background: rgba(110, 180, 255, 0.08);
+  color: var(--micro-accent);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+}
+
+html.shell-lab-microscope3d .micro-rail-dirty[hidden] {
+  display: none !important;
+}
+
+html.shell-lab-microscope3d .micro-gl-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+html.shell-lab-microscope3d .micro-gl-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -100%;
+  padding: 0.18rem 0.35rem;
+  border: 1px solid rgba(232, 238, 246, 0.22);
+  background: rgba(6, 8, 11, 0.72);
+  color: var(--micro-ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-active {
+  border-color: var(--micro-accent);
+  color: var(--micro-accent);
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-dim {
+  color: #f0d56a;
+  border-color: rgba(240, 213, 106, 0.45);
+}
+
 html.shell-lab-microscope3d .micro-field {
   display: flex;
   flex-direction: column;

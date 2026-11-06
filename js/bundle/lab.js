@@ -44,7 +44,7 @@ import {
   t,
   topicMissNote,
   validateCustomParam
-} from "./chunk-chunk-VMVZZLIG.js";
+} from "./chunk-chunk-HHLDLSXD.js";
 
 // js/utils/integrator.js
 function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
@@ -5091,7 +5091,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import("./chunk-factory-PYERSNPD.js").then((mod) => {
+    pending = import("./chunk-factory-BTK4WHEY.js").then((mod) => {
       builder = mod.createFactoryModel;
       return builder;
     });
@@ -7341,11 +7341,13 @@ void main(){
   vec2 d = vUv - vec2(0.5);
   float r = length(d) * 2.0;
   if (r > 1.0) discard;
-  float pulse = 0.55 + 0.35 * sin(uTime * 3.1 + r * 4.0);
-  float edge = smoothstep(1.0, 0.55, r);
-  float sheen = smoothstep(0.15, 0.0, abs(r - 0.35 - 0.08 * sin(uTime * 2.2)));
-  vec3 col = mix(vec3(0.18, 0.42, 0.62), vec3(0.55, 0.82, 1.0), sheen);
-  float alpha = edge * pulse * 0.72;
+  float pulse = 0.62 + 0.38 * sin(uTime * 3.1 + r * 4.0);
+  float edge = smoothstep(1.0, 0.42, r);
+  float sheen = smoothstep(0.18, 0.0, abs(r - 0.32 - 0.1 * sin(uTime * 2.2)));
+  float rim = smoothstep(0.92, 0.72, r) * smoothstep(0.55, 0.82, r);
+  vec3 col = mix(vec3(0.22, 0.55, 0.78), vec3(0.72, 0.92, 1.0), sheen);
+  col = mix(col, vec3(0.95, 0.82, 0.35), rim * 0.55);
+  float alpha = edge * pulse * 0.88;
   gl_FragColor = vec4(col, alpha);
 }`;
 function perspective(fovy, aspect, near, far) {
@@ -7558,14 +7560,19 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   let hits = [];
   let lastView = { width: 1, height: 1 };
   let lastState = null;
-  let hoverIndex = -1;
+  let hoverHit = null;
   let oilStageY = 0.4;
   let oilActive = false;
+  let overlayLabels = [];
   function turretWorld(optics) {
     const mag = optics.obj.mag;
-    const tubeH = 1.35 + MagScale(mag) * 0.22;
+    const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
+    const tubeH = (1.35 + MagScale(mag) * 0.22) * Lscale;
     const headY = 1.55;
     const turY = headY - 0.28;
+    const tubeCenterY = headY + tubeH / 2 - 0.05;
+    const tubeTopY = tubeCenterY + tubeH / 2;
+    const tubeBotY = tubeCenterY - tubeH / 2;
     const pts = [];
     OBJECTIVES.forEach((obj, i) => {
       const ang = -Math.PI / 2 + i * (Math.PI / 2);
@@ -7578,29 +7585,54 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
         id: obj.id
       });
     });
-    return { turY, tubeH, headY, pts };
+    EYEPIECES.forEach((eye, i) => {
+      const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
+      pts.push({
+        kind: "eye",
+        index: i,
+        x,
+        y: tubeTopY + 0.42,
+        z: 0.22,
+        id: eye.id
+      });
+    });
+    return { turY, tubeH, headY, tubeCenterY, tubeTopY, tubeBotY, Lscale, pts };
   }
   function buildMesh(optics, hover) {
     const data = [];
     const mag = optics.obj.mag;
-    const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
-    const { turY, tubeH, headY } = turretWorld(optics);
+    const { turY, tubeH, headY, tubeCenterY, tubeTopY, tubeBotY } = turretWorld(optics);
     box(0, 0.04, 0.05, 1.55, 0.08, 0.95, 0.16, 0.18, 0.22, data);
     box(-0.55, 0.02, 0.28, 0.22, 0.04, 0.22, 0.12, 0.13, 0.15, data);
     box(0.55, 0.02, 0.28, 0.22, 0.04, 0.22, 0.12, 0.13, 0.15, data);
     box(0, 0.02, -0.35, 0.28, 0.04, 0.22, 0.12, 0.13, 0.15, data);
     cylinderY(0.52, 0.78, 0, 0.075, 1.45, 0.28, 0.32, 0.36, data, 12, 5);
     box(0.42, 1.35, 0, 0.35, 0.12, 0.18, 0.3, 0.34, 0.38, data);
-    const tubeCenterY = headY + tubeH * Lscale / 2 - 0.05;
-    cylinderY(0, tubeCenterY, 0, 0.11, tubeH * Lscale, 0.2, 0.48, 0.62, data, 14, 6);
-    cylinderY(0, tubeCenterY + tubeH * Lscale / 2 + 0.14, 0, 0.08, 0.28, 0.42, 0.7, 0.92, data, 12, 3);
-    box(0, tubeCenterY + tubeH * Lscale / 2 + 0.3, 0, 0.16, 0.06, 0.16, 0.55, 0.78, 0.95, data);
+    cylinderY(0, tubeCenterY, 0, 0.11, tubeH, 0.2, 0.48, 0.62, data, 14, 6);
+    cylinderY(0, tubeTopY + 0.14, 0, 0.08, 0.28, 0.42, 0.7, 0.92, data, 12, 3);
+    box(0, tubeTopY + 0.3, 0, 0.16, 0.06, 0.16, 0.55, 0.78, 0.95, data);
+    EYEPIECES.forEach((eye, i) => {
+      const active = eye.id === optics.eye.id;
+      const hovered = hover?.kind === "eye" && hover.index === i;
+      const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
+      const y = tubeTopY + 0.42;
+      const g = active ? 0.9 : hovered ? 0.75 : 0.45;
+      const rb = active ? 0.35 : hovered ? 0.28 : 0.18;
+      box(x, y, 0.22, 0.12, 0.06, 0.1, rb, g, 0.85, data);
+      if (active || hovered) {
+        ring(x, y + 0.04, 0.22, 0.08, 0.02, 0.015, 0.5, 0.9, 1, data, 12);
+      }
+    });
+    const dimX = -0.28;
+    box(dimX, tubeCenterY, 0, 0.012, tubeH, 0.012, 0.95, 0.85, 0.35, data);
+    box(dimX, tubeTopY, 0, 0.1, 0.012, 0.012, 0.95, 0.85, 0.35, data);
+    box(dimX, tubeBotY, 0, 0.1, 0.012, 0.012, 0.95, 0.85, 0.35, data);
     cylinderY(0, turY + 0.06, 0, 0.3, 0.1, 0.25, 0.55, 0.38, data, 16, 2);
     ring(0, turY + 0.12, 0, 0.3, 0.03, 0.025, 0.35, 0.7, 0.5, data);
     OBJECTIVES.forEach((obj, i) => {
       const ang = -Math.PI / 2 + i * (Math.PI / 2);
       const active = obj.id === optics.obj.id;
-      const hovered = i === hover;
+      const hovered = hover?.kind === "obj" && hover.index === i;
       const ox = Math.cos(ang) * 0.32;
       const oz = Math.sin(ang) * 0.32;
       const len = 0.2 + MagScale(obj.mag) * 0.045;
@@ -7674,6 +7706,14 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       opts.onPick?.(lastState);
       return true;
     }
+    if (hit.kind === "eye") {
+      lastState.params.eyepiece = EYEPIECES[hit.index].id;
+      applyTurretDefaults(lastState, "eye");
+      lastState._lastEye = lastState.params.eyepiece;
+      lastState.pick = `eye-${EYEPIECES[hit.index].mag}\xD7`;
+      opts.onPick?.(lastState);
+      return true;
+    }
     return false;
   }
   const onDown = (ev) => {
@@ -7701,11 +7741,12 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       return;
     }
     const hit = pickAt(ev.clientX, ev.clientY);
-    const next = hit ? hit.index : -1;
-    if (next !== hoverIndex) {
-      hoverIndex = next;
+    const nextKey = hit ? `${hit.kind}:${hit.index}` : "";
+    const prevKey = hoverHit ? `${hoverHit.kind}:${hoverHit.index}` : "";
+    if (nextKey !== prevKey) {
+      hoverHit = hit ? { kind: hit.kind, index: hit.index } : null;
       lastKey = "";
-      canvas2.style.cursor = next >= 0 ? "pointer" : "grab";
+      canvas2.style.cursor = hit ? "pointer" : "grab";
       opts.onViewChange?.();
     }
   };
@@ -7720,11 +7761,11 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       const hit = pickAt(ev.clientX, ev.clientY);
       if (hit) applyHit(hit);
     }
-    canvas2.style.cursor = hoverIndex >= 0 ? "pointer" : "grab";
+    canvas2.style.cursor = hoverHit ? "pointer" : "grab";
   };
   const onLeave = () => {
-    if (hoverIndex !== -1) {
-      hoverIndex = -1;
+    if (hoverHit) {
+      hoverHit = null;
       lastKey = "";
       canvas2.style.cursor = "grab";
       opts.onViewChange?.();
@@ -7748,7 +7789,8 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     lastView = { width: view.width, height: view.height };
     const optics = opticsFromParams(state.params || {});
     const tSec = performance.now() * 1e-3;
-    const key = `${optics.obj.id}:${optics.eye.id}:${optics.Lmm}:${optics.immersion}:${optics.lambdaNm}:${hoverIndex}:${view.width}x${view.height}`;
+    const hoverKey = hoverHit ? `${hoverHit.kind}:${hoverHit.index}` : "-";
+    const key = `${optics.obj.id}:${optics.eye.id}:${optics.Lmm}:${optics.immersion}:${optics.lambdaNm}:${hoverKey}:${view.width}x${view.height}`;
     const dpr = Math.min(window.devicePixelRatio || 1, Number(document.documentElement.dataset.dprCap) || 3);
     const bw = Math.max(1, Math.floor(view.width * dpr));
     const bh = Math.max(1, Math.floor(view.height * dpr));
@@ -7763,7 +7805,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     gl.clearColor(0.012, 0.016, 0.022, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     if (key !== lastKey) {
-      const mesh = buildMesh(optics, hoverIndex);
+      const mesh = buildMesh(optics, hoverHit);
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
       vertCount = mesh.length / 6;
@@ -7778,6 +7820,31 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     const viewM = lookAt(ex, ey, ez, 0, 0.85, 0, 0, 1, 0);
     const mvp = multiply(proj, viewM);
     rebuildHits(mvp, view.width, view.height, optics);
+    const tw = turretWorld(optics);
+    const mid = project(mvp, -0.28, tw.tubeCenterY, 0, view.width, view.height);
+    overlayLabels = [];
+    if (mid) {
+      overlayLabels.push({
+        id: "L",
+        text: `L = ${Math.round(optics.Lmm)} mm`,
+        x: mid.x,
+        y: mid.y
+      });
+    }
+    for (const eye of EYEPIECES) {
+      const i = EYEPIECES.indexOf(eye);
+      const p = tw.pts.find((row) => row.kind === "eye" && row.index === i);
+      if (!p) continue;
+      const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+      if (!s) continue;
+      overlayLabels.push({
+        id: `eye-${eye.id}`,
+        text: `${eye.mag}\xD7`,
+        x: s.x,
+        y: s.y - 14,
+        active: eye.id === optics.eye.id
+      });
+    }
     gl.useProgram(prog);
     gl.uniformMatrix4fv(uMVP, false, mvp);
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -7793,7 +7860,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       gl.useProgram(oilProg);
       gl.uniformMatrix4fv(oilUMVP, false, mvp);
       gl.uniform3f(oilUCenter, 0, oilStageY, 0);
-      gl.uniform1f(oilUScale, 0.36);
+      gl.uniform1f(oilUScale, 0.58);
       gl.uniform1f(oilUTime, tSec);
       gl.uniform1f(oilUImm, 1);
       gl.bindBuffer(gl.ARRAY_BUFFER, oilBuf);
@@ -7809,11 +7876,16 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     draw(state, view) {
       drawScene(state, view);
     },
+    getOverlayLabels() {
+      return overlayLabels.slice();
+    },
     capturePng(state, view) {
       drawScene(state, view);
       gl.finish();
       try {
-        return canvas2.toDataURL("image/png");
+        const href = canvas2.toDataURL("image/png");
+        if (!href || href === "data:," || href.length < 64) return "";
+        return href;
       } catch {
         return "";
       }
@@ -7847,10 +7919,22 @@ function fmtReadouts(o) {
     d_Abbe: `${formatNum(o.dResM * 1e6, 2)} \xB5m`
   };
 }
+function opticsFingerprint(params) {
+  const o = opticsFromParams(params || {});
+  return [
+    o.obj.id,
+    o.eye.id,
+    Math.round(o.Lmm),
+    o.NA.toFixed(3),
+    Math.round(o.lambdaNm),
+    o.immersion ? "oil" : "dry"
+  ].join("|");
+}
 function createMicroscopeStage(api) {
   const root = () => document.getElementById("micro-stage");
   const rail = () => document.getElementById("micro-rail");
   const readoutsEl2 = () => document.getElementById("micro-readouts");
+  let baselineFp = "";
   function ensureDom() {
     let stage = root();
     if (stage) return stage;
@@ -7861,11 +7945,13 @@ function createMicroscopeStage(api) {
     stage.className = "micro-stage";
     stage.hidden = true;
     stage.innerHTML = `
+      <div class="micro-gl-labels" id="micro-gl-labels" aria-hidden="true"></div>
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
           <span class="micro-rail-kicker">Optical rail</span>
           <strong class="micro-rail-title">Finite tube</strong>
+          <span class="micro-rail-dirty" id="micro-rail-dirty" hidden>params edited</span>
         </div>
         <div class="micro-field">
           <span class="micro-field-label">Objective</span>
@@ -8001,6 +8087,12 @@ function createMicroscopeStage(api) {
     });
     return stage;
   }
+  function captureBaseline(state = api.getState()) {
+    if (!state?.params) return;
+    baselineFp = opticsFingerprint(state.params);
+    const dirty = document.getElementById("micro-rail-dirty");
+    if (dirty) dirty.hidden = true;
+  }
   function paint() {
     const stage = ensureDom();
     if (!stage) return;
@@ -8008,6 +8100,13 @@ function createMicroscopeStage(api) {
     if (!state?.params) return;
     const o = opticsFromParams(state.params);
     const values = fmtReadouts(o);
+    if (!baselineFp) baselineFp = opticsFingerprint(state.params);
+    const dirty = stage.querySelector("#micro-rail-dirty");
+    if (dirty) {
+      const edited = opticsFingerprint(state.params) !== baselineFp;
+      dirty.hidden = !edited;
+      dirty.textContent = edited ? `edited \xB7 M ${formatNum(o.M, 1)}\xD7 \xB7 d_Abbe ${formatNum(o.dResM * 1e6, 2)} \xB5m` : "params edited";
+    }
     for (const row of READOUTS) {
       const el = stage.querySelector(`.micro-metric[data-key="${row.key}"] [data-v]`);
       if (el) el.textContent = values[row.key];
@@ -8047,6 +8146,29 @@ function createMicroscopeStage(api) {
   function setVisible(on) {
     const stage = ensureDom();
     if (stage) stage.hidden = !on;
+    if (on) captureBaseline();
+  }
+  function syncOverlayLabels(labels = []) {
+    const host = document.getElementById("micro-gl-labels");
+    if (!host) return;
+    const next = Array.isArray(labels) ? labels : [];
+    const kids = [...host.children];
+    while (kids.length > next.length) {
+      kids.pop()?.remove();
+    }
+    next.forEach((lab, i) => {
+      let el = kids[i];
+      if (!el) {
+        el = document.createElement("span");
+        el.className = "micro-gl-label";
+        host.appendChild(el);
+      }
+      el.dataset.id = lab.id || "";
+      el.textContent = lab.text || "";
+      el.classList.toggle("is-active", !!lab.active);
+      el.classList.toggle("is-dim", lab.id === "L");
+      el.style.transform = `translate(${Math.round(lab.x || 0)}px, ${Math.round(lab.y || 0)}px)`;
+    });
   }
   function setRailOpen(open) {
     const el = rail();
@@ -8065,6 +8187,8 @@ function createMicroscopeStage(api) {
     setVisible,
     setRailOpen,
     toggleRail,
+    captureBaseline,
+    syncOverlayLabels,
     READOUTS
   };
 }
@@ -8220,6 +8344,9 @@ function createMicroscopeChrome(api) {
   function refresh() {
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.paint();
   }
+  function syncOverlayLabels(labels) {
+    if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.syncOverlayLabels(labels);
+  }
   function onKeydown(e) {
     if (api.getActiveShellId() !== MICROSCOPE_SHELL_ID) return false;
     if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
@@ -8257,6 +8384,7 @@ function createMicroscopeChrome(api) {
     document.getElementById("btn-micro-reset")?.addEventListener("click", () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
       api.resetSim();
+      stage.captureBaseline();
       stage.paint();
     });
     document.getElementById("btn-micro-shot")?.addEventListener("click", () => {
@@ -8280,6 +8408,7 @@ function createMicroscopeChrome(api) {
     setTitle,
     bind,
     refresh,
+    syncOverlayLabels,
     onKeydown,
     isMicroscopeShell: () => api.getActiveShellId() === MICROSCOPE_SHELL_ID,
     getShell,
@@ -9595,8 +9724,12 @@ function paintFrame(opts = {}) {
       showAxes: app.globals.showAxes
     };
     const stage = ensureWebglStage();
-    if (stage) stage.draw(app.state, view2);
-    else {
+    if (stage) {
+      stage.draw(app.state, view2);
+      if (typeof stage.getOverlayLabels === "function") {
+        microUi?.syncOverlayLabels?.(stage.getOverlayLabels());
+      }
+    } else {
       if (canvas) canvas.hidden = false;
       if (canvasWebgl) canvasWebgl.hidden = true;
     }

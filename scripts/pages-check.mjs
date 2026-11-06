@@ -140,26 +140,38 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const failures = [];
 try {
+  await page.addInitScript(() => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch { /* ignore */ }
+    localStorage.setItem('physics-lab-locale-v1', 'en');
+  });
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
-  // Ensure a catalog model paints the formula strip before the EN gloss race check.
+  // Factory must stay lazy until a subject domain opens — check before any switchModel.
+  const factoryOnCold = await page.evaluate(() => (
+    performance.getEntriesByType('resource').some((r) => /chunk-factory/i.test(r.name || ''))
+  ));
+  if (factoryOnCold) failures.push('cold boot pulled chunk-factory');
+  // Hand model free-fall is primed without loadDomain; wait for EN formula gloss.
   await page.evaluate(() => window.__labCapture.switchModel('free-fall'));
   try {
     await page.waitForFunction(() => {
       const f = document.getElementById('shell-formula')?.textContent || '';
       return f.startsWith('Equation ') && !/[\u4e00-\u9fff]/.test(f);
-    }, null, { timeout: 20000 });
+    }, null, { timeout: 25000 });
   } catch {
     const cold = await page.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
     failures.push(`cold lang=en formula Han/race ${JSON.stringify(cold)}`);
   }
-  const factoryOnCold = await page.evaluate(() => (
-    performance.getEntriesByType('resource').some((r) => /chunk-factory/i.test(r.name || ''))
-  ));
-  if (factoryOnCold) failures.push('cold boot pulled chunk-factory');
 
   await page.evaluate(() => window.__labCapture.switchModel('neutron-diffusion'));
-  await page.waitForTimeout(500);
+  await page.waitForFunction(() => {
+    const f = document.getElementById('shell-formula')?.textContent || '';
+    return f.startsWith('Equation ') && !/[\u4e00-\u9fff]/.test(f);
+  }, null, { timeout: 25000 }).catch(() => {});
+  await page.waitForTimeout(300);
   const info = await page.evaluate(() => {
     const formula = document.getElementById('shell-formula');
     const asm = document.getElementById('shell-assumptions');

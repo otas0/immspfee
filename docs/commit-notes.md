@@ -28,6 +28,10 @@ assumption/caveat strips and undone cold-boot folded domains — rejected agains
 **Do not set `uchg` on any lab file from agents or shell helpers.** Prefer
 ordinary file locks / closing the second Agents Window over macOS flags.
 
+**Cancel the parallel Agents Window write-conflict drill.** Do not reopen a
+second Agents Window against this tree to “practice” races; one writer only.
+If a second window is already open, close it before editing lab files.
+
 When a write fails with `Operation not permitted`:
 
 ```bash

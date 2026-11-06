@@ -1407,8 +1407,12 @@ function paintFrame(opts = {}) {
       showAxes: app.globals.showAxes,
     };
     const stage = ensureWebglStage();
-    if (stage) stage.draw(app.state, view);
-    else {
+    if (stage) {
+      stage.draw(app.state, view);
+      if (typeof stage.getOverlayLabels === 'function') {
+        microUi?.syncOverlayLabels?.(stage.getOverlayLabels());
+      }
+    } else {
       // Fallback to 2D if WebGL unavailable
       if (canvas) canvas.hidden = false;
       if (canvasWebgl) canvasWebgl.hidden = true;

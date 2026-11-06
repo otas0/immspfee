@@ -122,6 +122,7 @@ const server = http.createServer(async (req, res) => {
     const body = JSON.stringify({
       js: entryStamp(stamp),
       css: stamp.css,
+      microCss: stamp.microCss,
       main: stamp.js,
       domainIndex: stamp.domainIndex,
       domains: stamp.domains,

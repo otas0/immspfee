@@ -186,6 +186,10 @@ export function createMicroscopeChrome(api) {
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.paint();
   }
 
+  function syncOverlayLabels(labels) {
+    if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.syncOverlayLabels(labels);
+  }
+
   function onKeydown(e) {
     if (api.getActiveShellId() !== MICROSCOPE_SHELL_ID) return false;
     // Block catalog undo / Esc drawer routing while microscope owns input.
@@ -231,6 +235,7 @@ export function createMicroscopeChrome(api) {
     document.getElementById('btn-micro-reset')?.addEventListener('click', () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
       api.resetSim();
+      stage.captureBaseline();
       stage.paint();
     });
     document.getElementById('btn-micro-shot')?.addEventListener('click', () => {
@@ -255,6 +260,7 @@ export function createMicroscopeChrome(api) {
     setTitle,
     bind,
     refresh,
+    syncOverlayLabels,
     onKeydown,
     isMicroscopeShell: () => api.getActiveShellId() === MICROSCOPE_SHELL_ID,
     getShell,

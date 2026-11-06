@@ -12,7 +12,7 @@ import {
   overrideOptions,
   paintGraph,
   t
-} from "./chunk-chunk-VMVZZLIG.js";
+} from "./chunk-chunk-HHLDLSXD.js";
 
 // js/lab/sketches.js
 function ink() {

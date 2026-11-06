@@ -477,28 +477,30 @@ await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab
 const leftMode = await desk.evaluate(() => document.documentElement.dataset.inputMode || 'lab');
 if (leftMode !== 'lab') fail(`inputMode after exit ${leftMode}`);
 
-// Shell cycle: microscope ↔ classic/focus/projector must not leave chrome/CSS leaks.
-for (const id of ['lab-focus', 'lab-projector', 'lab-microscope3d', 'lab-classic']) {
-  await setShell(desk, id);
-  await desk.waitForFunction((shellId) => document.documentElement.dataset.shell === shellId, id);
-}
-const cycleLeak = await desk.evaluate(() => ({
-  shell: document.documentElement.dataset.shell,
-  inputMode: document.documentElement.dataset.inputMode || 'lab',
-  microActive: document.documentElement.classList.contains('shell-micro-active'),
-  chromeHidden: !!document.getElementById('microscope-chrome')?.hidden,
-  stageHidden: document.getElementById('micro-stage') ? !!document.getElementById('micro-stage').hidden : true,
-  microRoot: document.documentElement.classList.contains('shell-lab-microscope3d'),
-}));
-if (
-  cycleLeak.shell !== 'lab-classic'
-  || cycleLeak.inputMode !== 'lab'
-  || cycleLeak.microActive
-  || !cycleLeak.chromeHidden
-  || !cycleLeak.stageHidden
-  || cycleLeak.microRoot
-) {
-  fail(`shell cycle leaked microscope chrome ${JSON.stringify(cycleLeak)}`);
+// Shell cycle (two passes): microscope ↔ classic/focus/projector must not leave chrome/CSS leaks.
+for (let pass = 0; pass < 2; pass += 1) {
+  for (const id of ['lab-focus', 'lab-projector', 'lab-microscope3d', 'lab-classic']) {
+    await setShell(desk, id);
+    await desk.waitForFunction((shellId) => document.documentElement.dataset.shell === shellId, id);
+  }
+  const cycleLeak = await desk.evaluate(() => ({
+    shell: document.documentElement.dataset.shell,
+    inputMode: document.documentElement.dataset.inputMode || 'lab',
+    microActive: document.documentElement.classList.contains('shell-micro-active'),
+    chromeHidden: !!document.getElementById('microscope-chrome')?.hidden,
+    stageHidden: document.getElementById('micro-stage') ? !!document.getElementById('micro-stage').hidden : true,
+    microRoot: document.documentElement.classList.contains('shell-lab-microscope3d'),
+  }));
+  if (
+    cycleLeak.shell !== 'lab-classic'
+    || cycleLeak.inputMode !== 'lab'
+    || cycleLeak.microActive
+    || !cycleLeak.chromeHidden
+    || !cycleLeak.stageHidden
+    || cycleLeak.microRoot
+  ) {
+    fail(`shell cycle pass ${pass + 1} leaked microscope chrome ${JSON.stringify(cycleLeak)}`);
+  }
 }
 
 await desk.click('#btn-user-model');

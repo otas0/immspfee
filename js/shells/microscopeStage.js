@@ -33,10 +33,24 @@ function fmtReadouts(o) {
  *   t: (key: string) => string,
  * }} api
  */
+function opticsFingerprint(params) {
+  const o = opticsFromParams(params || {});
+  return [
+    o.obj.id,
+    o.eye.id,
+    Math.round(o.Lmm),
+    o.NA.toFixed(3),
+    Math.round(o.lambdaNm),
+    o.immersion ? 'oil' : 'dry',
+  ].join('|');
+}
+
 export function createMicroscopeStage(api) {
   const root = () => document.getElementById('micro-stage');
   const rail = () => document.getElementById('micro-rail');
   const readoutsEl = () => document.getElementById('micro-readouts');
+  /** Baseline fingerprint of live optics (not decorative) — for rail “edited” chip. */
+  let baselineFp = '';
 
   function ensureDom() {
     let stage = root();
@@ -48,11 +62,13 @@ export function createMicroscopeStage(api) {
     stage.className = 'micro-stage';
     stage.hidden = true;
     stage.innerHTML = `
+      <div class="micro-gl-labels" id="micro-gl-labels" aria-hidden="true"></div>
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
           <span class="micro-rail-kicker">Optical rail</span>
           <strong class="micro-rail-title">Finite tube</strong>
+          <span class="micro-rail-dirty" id="micro-rail-dirty" hidden>params edited</span>
         </div>
         <div class="micro-field">
           <span class="micro-field-label">Objective</span>
@@ -192,6 +208,13 @@ export function createMicroscopeStage(api) {
     return stage;
   }
 
+  function captureBaseline(state = api.getState()) {
+    if (!state?.params) return;
+    baselineFp = opticsFingerprint(state.params);
+    const dirty = document.getElementById('micro-rail-dirty');
+    if (dirty) dirty.hidden = true;
+  }
+
   function paint() {
     const stage = ensureDom();
     if (!stage) return;
@@ -199,6 +222,15 @@ export function createMicroscopeStage(api) {
     if (!state?.params) return;
     const o = opticsFromParams(state.params);
     const values = fmtReadouts(o);
+    if (!baselineFp) baselineFp = opticsFingerprint(state.params);
+    const dirty = stage.querySelector('#micro-rail-dirty');
+    if (dirty) {
+      const edited = opticsFingerprint(state.params) !== baselineFp;
+      dirty.hidden = !edited;
+      dirty.textContent = edited
+        ? `edited · M ${formatNum(o.M, 1)}× · d_Abbe ${formatNum(o.dResM * 1e6, 2)} µm`
+        : 'params edited';
+    }
     for (const row of READOUTS) {
       const el = stage.querySelector(`.micro-metric[data-key="${row.key}"] [data-v]`);
       if (el) el.textContent = values[row.key];
@@ -241,6 +273,31 @@ export function createMicroscopeStage(api) {
   function setVisible(on) {
     const stage = ensureDom();
     if (stage) stage.hidden = !on;
+    if (on) captureBaseline();
+  }
+
+  /** Screen-space L / eyepiece labels from the WebGL stage (same optics as readouts). */
+  function syncOverlayLabels(labels = []) {
+    const host = document.getElementById('micro-gl-labels');
+    if (!host) return;
+    const next = Array.isArray(labels) ? labels : [];
+    const kids = [...host.children];
+    while (kids.length > next.length) {
+      kids.pop()?.remove();
+    }
+    next.forEach((lab, i) => {
+      let el = kids[i];
+      if (!el) {
+        el = document.createElement('span');
+        el.className = 'micro-gl-label';
+        host.appendChild(el);
+      }
+      el.dataset.id = lab.id || '';
+      el.textContent = lab.text || '';
+      el.classList.toggle('is-active', !!lab.active);
+      el.classList.toggle('is-dim', lab.id === 'L');
+      el.style.transform = `translate(${Math.round(lab.x || 0)}px, ${Math.round(lab.y || 0)}px)`;
+    });
   }
 
   function setRailOpen(open) {
@@ -262,6 +319,8 @@ export function createMicroscopeStage(api) {
     setVisible,
     setRailOpen,
     toggleRail,
+    captureBaseline,
+    syncOverlayLabels,
     READOUTS,
   };
 }

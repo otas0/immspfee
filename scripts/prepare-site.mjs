@@ -18,6 +18,7 @@ const stamp = fingerprint(root);
 const stamped = {
   js: entryStamp(stamp),
   css: stamp.css,
+  microCss: stamp.microCss,
   main: stamp.js,
   domainIndex: stamp.domainIndex,
   domains: stamp.domains,
