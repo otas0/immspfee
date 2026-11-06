@@ -121,10 +121,15 @@ async function liveStampCache(baseUrl) {
   const githubHost = /github\.io$/i.test(target.hostname) || /github/i.test(server);
   console.log('pages asset-stamp', target.href, 'cache-control', cc || '(none)', 'server', server.trim() || '(none)');
   if (expected && cc.toLowerCase().includes(expected.toLowerCase())) return [];
+  const githubPages = /github\.io$/i.test(target.hostname);
+  if (githubPages) {
+    console.log('pages asset-stamp: GitHub Pages ignores _headers; PAGES_HONORS_HEADERS stays armed for a host that reads them');
+    return [];
+  }
   if (process.env.PAGES_HONORS_HEADERS === '1' || !githubHost) {
     return [`asset-stamp.json Cache-Control ${cc || '(none)'} does not include ${expected || 'no-cache'}`];
   }
-  console.log('pages asset-stamp: GitHub Pages does not apply _headers; skipped hard fail');
+  console.log('pages asset-stamp: host does not apply _headers; skipped hard fail');
   return [];
 }
 
@@ -249,6 +254,43 @@ try {
     lambda: microLambda,
     railOpen: microRailOpen,
   });
+
+  // Bohr narrow deep-link smoke: EN title + formula, no PAGE CRASH, drawer closed.
+  const bohrId = 'r018-玻尔模型';
+  let bohrCrashed = false;
+  page.on('crash', () => { bohrCrashed = true; });
+  await page.goto(
+    `${base}?lang=en&narrow=${encodeURIComponent(bohrId)}&v=${hash}#m=${encodeURIComponent(bohrId)}`,
+    { waitUntil: 'domcontentloaded', timeout: 60000 },
+  );
+  await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, bohrId, { timeout: 45000 });
+  await page.evaluate(async (mid) => {
+    await window.__labCapture.switchModel(mid);
+    window.__labCapture.paintFrame?.();
+  }, bohrId);
+  await page.waitForTimeout(300);
+  const bohr = await page.evaluate(() => ({
+    id: window.__labCapture?.getModelId?.(),
+    title: document.getElementById('toolbar-title')?.textContent || '',
+    formula: document.getElementById('shell-formula')?.textContent || '',
+    drawer: !!document.getElementById('sidebar')?.classList.contains('open'),
+    switchErr: window.__labLastSwitchError || null,
+  }));
+  if (bohrCrashed) failures.push(`Pages Bohr narrow PAGE CRASH (${bohrId})`);
+  if (bohr.id !== bohrId) failures.push(`Pages Bohr id ${JSON.stringify(bohr.id)}`);
+  if (bohr.title !== 'Bohr Model') failures.push(`Pages Bohr EN title ${JSON.stringify(bohr.title)}`);
+  if (!bohr.formula.startsWith('Equation ') || /[\u4e00-\u9fff]/.test(bohr.formula)) {
+    failures.push(`Pages Bohr formula ${JSON.stringify(bohr.formula)}`);
+  }
+  if (bohr.drawer) failures.push('Pages Bohr narrow auto-opened drawer');
+  if (bohr.switchErr) failures.push(`Pages Bohr switchErr ${bohr.switchErr.message}`);
+  console.log('pages Bohr narrow smoke', hash, {
+    title: bohr.title,
+    formulaOk: bohr.formula.startsWith('Equation '),
+    drawer: bohr.drawer,
+  });
+
   try {
     const { mkdirSync, appendFileSync, writeFileSync, readFileSync, existsSync } = await import('node:fs');
     mkdirSync('artifacts', { recursive: true });

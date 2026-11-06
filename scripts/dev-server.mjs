@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  domainIndex, entryStamp, fingerprint, readCatalog, rewriteIndex, specsForDomain,
+  domainIndex, entryStamp, fingerprint, packDomainIndex, readCatalog, rewriteIndex, specsForDomain,
 } from './static-boot.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -136,7 +136,7 @@ const server = http.createServer(async (req, res) => {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     });
-    res.end(JSON.stringify(domainIndex(catalog)));
+    res.end(JSON.stringify(packDomainIndex(domainIndex(catalog))));
     return;
   }
   if (rel.startsWith('/data/domains/') && rel.endsWith('.json')) {

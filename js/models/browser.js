@@ -6,6 +6,7 @@ import { buildFromSpecs, ensureRefresh, handcraftedList } from './assemble.js';
 import { ensureFactory } from './factoryLoader.js';
 import { buildAllUserModels, loadUserSpecs } from '../lab/userModels.js';
 import { domainChunkUrl, domainIndexUrl, loadAssetStamp } from '../boot/catalogStamp.js';
+import { expandDomainIndex } from '../boot/domainPack.js';
 
 export const models = [];
 export const domainIndex = [];
@@ -31,13 +32,14 @@ export function loadIndex() {
     indexPromise = Promise.resolve(window.__preloadedIndex || null)
       .then(async (preloaded) => {
         if (Array.isArray(preloaded) && preloaded.length) return preloaded;
+        if (preloaded && Array.isArray(preloaded.rows)) return preloaded;
         const stamp = await loadAssetStamp();
         const res = await fetch(endpoint(domainIndexUrl(stamp)));
         if (!res.ok) throw new Error(String(res.status));
         return res.json();
       })
       .then((rows) => {
-        domainIndex.push(...rows);
+        domainIndex.push(...expandDomainIndex(rows));
         mark('boot-loadIndex-end');
         return domainIndex;
       });

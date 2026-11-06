@@ -42,9 +42,8 @@ import {
   setModelPalette,
   springK,
   t,
-  topicMissNote,
   validateCustomParam
-} from "./chunk-chunk-HHLDLSXD.js";
+} from "./chunk-chunk-NUKTR6YU.js";
 
 // js/utils/integrator.js
 function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
@@ -5084,6 +5083,13 @@ var compoundMicroscope_default = {
 // js/models/factoryLoader.js
 var builder = null;
 var pending = null;
+function stampedChunk(rel) {
+  const url = new URL(rel, import.meta.url);
+  const version = globalThis.__LAB_ASSET_V || "";
+  if (version && !url.searchParams.has("v")) url.searchParams.set("v", version);
+  return url.href;
+}
+globalThis.__stampedChunk = stampedChunk;
 function factoryBuilder() {
   if (!builder) throw new Error("factory builder is not loaded");
   return builder;
@@ -5091,7 +5097,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import("./chunk-factory-BTK4WHEY.js").then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-Z4UXPYU6.js")).then((mod) => {
       builder = mod.createFactoryModel;
       return builder;
     });
@@ -5459,6 +5465,16 @@ var authority_templates_default = {
 };
 
 // js/lab/userModels.js
+function emptyMiss() {
+  return "";
+}
+var topicMissNote = emptyMiss;
+function ensureTopicRows() {
+  if (topicMissNote !== emptyMiss) return Promise.resolve();
+  return import("./chunk-topicOverrides-SU674NSK.js").then((mod) => {
+    topicMissNote = mod.topicMissNote;
+  });
+}
 var STORAGE_KEY = "immspfee-user-models-v1";
 var DEPRECATED_FAMILIES = new Set(Object.keys(authority_templates_default.deprecatedFamilies || {}));
 var USER_MODEL_FAMILIES = Object.keys(FAMILY_META).filter(
@@ -5779,6 +5795,20 @@ function domainChunkUrl(domain, stamp) {
   return withStamp(file, stamp?.domains?.[domain]);
 }
 
+// js/boot/domainPack.js
+function expandDomainIndex(payload) {
+  if (Array.isArray(payload)) return payload;
+  const domains = payload?.domains || [];
+  return (payload?.rows || []).map((row) => ({
+    id: row.id,
+    domain: domains[row.d] || "\u5176\u4ED6",
+    sub: row.sub || "",
+    name: row.name || row.id,
+    family: row.family || "",
+    formula: row.formula || ""
+  }));
+}
+
 // js/models/browser.js
 var models = [];
 var domainIndex = [];
@@ -5801,12 +5831,13 @@ function loadIndex() {
     mark("boot-loadIndex-start");
     indexPromise = Promise.resolve(window.__preloadedIndex || null).then(async (preloaded) => {
       if (Array.isArray(preloaded) && preloaded.length) return preloaded;
+      if (preloaded && Array.isArray(preloaded.rows)) return preloaded;
       const stamp = await loadAssetStamp();
       const res = await fetch(endpoint(domainIndexUrl(stamp)));
       if (!res.ok) throw new Error(String(res.status));
       return res.json();
     }).then((rows) => {
-      domainIndex.push(...rows);
+      domainIndex.push(...expandDomainIndex(rows));
       mark("boot-loadIndex-end");
       return domainIndex;
     });
@@ -9597,7 +9628,7 @@ function switchModel(id, opts = {}) {
     switchModel.pending = id;
     return ensureId(id).then((ok) => {
       switchModel.pending = "";
-      return switchModel(ok ? id : DEFAULT_MODEL_ID);
+      return switchModel(ok ? id : DEFAULT_MODEL_ID, opts);
     });
   }
   const model = (id && models.some((m) => m.id === id) ? getModelById(id) : null) || getModelById(DEFAULT_MODEL_ID) || models[0];
@@ -10103,12 +10134,29 @@ function rowMatchesFilter(row) {
   const hay = `${row.name || ""} ${row.id || ""} ${row.sub || ""} ${row.domain || ""} ${row.family || ""} ${row.formula || ""}`.toLowerCase();
   return tokens.some((token) => hay.includes(token));
 }
+var FILTER_DOMAIN_CAP = 8;
 function domainsForFilter() {
-  const names = /* @__PURE__ */ new Set();
+  const counts = /* @__PURE__ */ new Map();
   for (const row of domainIndex) {
-    if (rowMatchesFilter(row)) names.add(row.domain || "\u5176\u4ED6");
+    if (!rowMatchesFilter(row)) continue;
+    const name = row.domain || "\u5176\u4ED6";
+    counts.set(name, (counts.get(name) || 0) + 1);
   }
-  return [...names];
+  const ranked = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
+  const active = app.model ? modelDomain(app.model) : "";
+  const ordered = [];
+  if (active && counts.has(active)) ordered.push(active);
+  for (const name of ranked) {
+    if (!ordered.includes(name)) ordered.push(name);
+  }
+  const loaded2 = ordered.slice(0, FILTER_DOMAIN_CAP);
+  window.__filterDomainStats = {
+    matched: ordered.length,
+    loaded: loaded2.length,
+    cap: FILTER_DOMAIN_CAP,
+    formalism: app.filter.formalism || ""
+  };
+  return loaded2;
 }
 async function refreshSidebar() {
   if (app.filter.q.trim() || app.filter.tag || app.filter.formalism) {
@@ -10275,7 +10323,14 @@ window.__labCapture = {
   },
   // Return the promise so Playwright can await ensureId + init; callers that only
   // care about the visible model should also wait on getModelId().
-  switchModel: (id) => Promise.resolve(switchModel(id)),
+  // Surface failures instead of letting an unhandled rejection / paint throw
+  // look like a silent page death in Playwright.
+  switchModel: (id) => Promise.resolve().then(() => switchModel(id)).catch((err) => {
+    const msg = err?.stack || err?.message || String(err);
+    window.__labLastSwitchError = { id, message: msg, at: Date.now() };
+    console.error("[lab] switchModel failed", id, err);
+    throw err;
+  }),
   enterMicroscope3d: () => {
     microUi?.enter?.();
   },
@@ -10496,7 +10551,7 @@ function mountShellSelect(el) {
       requestAnimationFrame(measureSysSticky);
     });
   }
-  applyActiveShell(current);
+  if (!getShell(current).exclusiveChrome) applyActiveShell(current);
 }
 async function boot() {
   if (localStorage.getItem("physics-lab-hc") === "1") {
@@ -10629,6 +10684,10 @@ async function boot() {
   mountShellSelect(document.getElementById("shell-select"));
   mountLocaleSelect(document.getElementById("locale-select"));
   await bootI18n();
+  try {
+    await ensureSidebarLocales();
+  } catch {
+  }
   syncChromeI18n();
   microUi.sync(microUi.isMicroscopeShell());
   onLocaleChange(() => {
@@ -10822,6 +10881,7 @@ async function reloadAfterUserModels(id, toast) {
 }
 function bindUserModelUi() {
   btnUserModel?.addEventListener("click", () => {
+    void ensureTopicRows();
     fillUserModelForm(null);
     renderUserModelList();
     userModelDialog?.showModal();
@@ -10829,6 +10889,7 @@ function bindUserModelUi() {
   document.getElementById("user-model-submit")?.addEventListener("click", async () => {
     if (!userModelForm) return;
     if (!userModelForm.reportValidity()) return;
+    await ensureTopicRows();
     const fd = new FormData(userModelForm);
     const draft = {
       name: fd.get("name"),
@@ -10884,3 +10945,5 @@ function bindUserModelUi() {
   });
 }
 boot();
+
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-Z4UXPYU6.js");

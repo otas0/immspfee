@@ -122,6 +122,7 @@ if ('serviceWorker' in navigator && navigator.webdriver !== true) {
     const urls = [...document.querySelectorAll('script[src], link[rel="stylesheet"][href]')]
       .map((el) => el.src || el.href);
     urls.push(new URL(labUrl, import.meta.url).href);
+    if (window.__FACTORY_CHUNK) urls.push(window.__FACTORY_CHUNK);
     const hashed = urls.filter((href) => {
       try { return !!new URL(href, location.href).searchParams.get('v'); } catch { return false; }
     });

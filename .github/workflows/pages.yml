@@ -93,6 +93,7 @@ jobs:
           PAGES_SKIP_WAIT: '1'
           PAGES_SHA: ${{ github.sha }}
           PAGES_URL: https://otas0.github.io/immspfee/
+          PAGES_HONORS_HEADERS: '1'
         run: |
           SHORT=$(echo "$PAGES_SHA" | cut -c1-7)
           export PAGES_SHA="$SHORT"

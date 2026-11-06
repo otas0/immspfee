@@ -406,6 +406,9 @@ export function runSuite() {
     }
     const bohrTopic = models.find((m) => m.id === 'r018-玻尔模型');
     {
+      assert('玻尔模型存在', !!bohrTopic, 'missing r018-玻尔模型');
+      assert('玻尔默认 n 可调', bohrTopic && Number(bohrTopic.params?.n) >= 1, JSON.stringify(bohrTopic?.params));
+      assert('玻尔方程非空', !!(bohrTopic?.equation || bohrTopic?.formula), bohrTopic?.equation || bohrTopic?.formula);
       const state = { params: { ...bohrTopic.params, n: 2, speed: 1 } };
       bohrTopic.init(state);
       const E = bohrTopic.getReadouts(state).find((r) => r.label === 'E');

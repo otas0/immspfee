@@ -74,7 +74,18 @@ async function sampleMedian(browser, url, init, runs) {
   }
   const ms = median(samples.map((row) => row.ms));
   const pick = samples.find((row) => row.ms === ms) || samples[0];
-  return { ms, marks: pick?.marks || null, samples: samples.map((row) => row.ms) };
+  return {
+    ms,
+    marks: pick?.marks || null,
+    samples: samples.map((row) => row.ms),
+    factorySamples: samples.map((row) => row.marks?.factoryBytes ?? null),
+  };
+}
+
+function medianNumber(values) {
+  const nums = values.filter((value) => typeof value === 'number').sort((a, b) => a - b);
+  if (!nums.length) return null;
+  return nums[Math.floor(nums.length / 2)];
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -121,6 +132,8 @@ const report = {
   cachedMarks: cached.marks,
   pagesDirectMs: pagesDirect?.ms ?? null,
   pagesDirectSamples: pagesDirect?.samples ?? null,
+  pagesFactoryBytes: pagesDirect ? medianNumber(pagesDirect.factorySamples || []) : null,
+  pagesFactorySamples: pagesDirect?.factorySamples ?? null,
   pagesMarks: pagesDirect?.marks ?? null,
   pagesCachedMs: pagesCached?.ms ?? null,
   pagesCachedSamples: pagesCached?.samples ?? null,
@@ -142,6 +155,7 @@ const pagesCachedMs = typeof pagesCached?.ms === 'number' ? pagesCached.ms : nul
 const bundleBytes = report.bundleBytes;
 const mainBytes = direct.marks?.mainBytes;
 const factoryBytes = direct.marks?.factoryBytes;
+const pagesFactoryBytes = report.pagesFactoryBytes;
 if (
   direct.ms > DIRECT_MAX
   || cached.ms > CACHED_MAX
@@ -150,7 +164,8 @@ if (
   || (typeof bundleBytes === 'number' && bundleBytes > MAIN_MAX_BYTES)
   || (typeof mainBytes === 'number' && mainBytes > MAIN_MAX_BYTES)
   || (typeof factoryBytes === 'number' && factoryBytes > 0)
+  || (typeof pagesFactoryBytes === 'number' && pagesFactoryBytes > 0)
 ) {
-  console.error(`boot timing over ceiling direct ${direct.ms} cached ${cached.ms} pages ${pagesMs} pagesCached ${pagesCachedMs} bundle ${bundleBytes} main ${mainBytes} factory ${factoryBytes}`);
+  console.error(`boot timing over ceiling direct ${direct.ms} cached ${cached.ms} pages ${pagesMs} pagesCached ${pagesCachedMs} bundle ${bundleBytes} main ${mainBytes} factory ${factoryBytes} pagesFactory ${pagesFactoryBytes}`);
   process.exit(1);
 }

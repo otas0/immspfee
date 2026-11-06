@@ -26,4 +26,9 @@ if (bad) {
   console.error(samples.join('\n'));
   process.exit(1);
 }
-console.log(`models-en Han gate ok (${Object.keys(pack).length} ids)`);
+const bohr = pack['r018-玻尔模型'];
+if (!bohr || bohr.name !== 'Bohr Model' || !String(bohr.description || '').trim()) {
+  console.error(`models-en Bohr entry missing/empty: ${JSON.stringify(bohr)}`);
+  process.exit(1);
+}
+console.log(`models-en Han gate ok (${Object.keys(pack).length} ids; Bohr=${bohr.name})`);

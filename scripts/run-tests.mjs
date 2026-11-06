@@ -44,9 +44,11 @@ assertDomainCoverage(catalog);
 const indexBytes = assertIndexBudget(catalog);
 assertStampIndependence(fingerprint(repo));
 const bareHands = catalog.filter((spec) => !spec.family || spec.family === 'hand');
-const missingForm = bareHands.filter((spec) => !HAND_FORMALISM[spec.id]);
-if (missingForm.length) {
-  console.error(`hand models missing formalism: ${missingForm.map((spec) => spec.id).join(', ')}`);
+const handIds = bareHands.map((spec) => spec.id);
+const missingForm = handIds.filter((id) => !HAND_FORMALISM[id]);
+const extraForm = Object.keys(HAND_FORMALISM).filter((id) => !handIds.includes(id));
+if (missingForm.length || extraForm.length) {
+  console.error(`HAND_FORMALISM drift missing=${missingForm.join(',') || '-'} extra=${extraForm.join(',') || '-'}`);
   process.exit(1);
 }
 console.log('domain chunks cover', catalog.length, 'index', indexBytes, 'bytes', 'hands', bareHands.length);

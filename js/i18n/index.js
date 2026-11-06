@@ -9,8 +9,9 @@ let locale = DEFAULT;
 const listeners = new Set();
 /** @type {Record<string, Record<string, {name?: string, description?: string}>>} */
 const modelPacks = {};
-/** @type {Set<string>} */
-const packLoading = new Set();
+/** In-flight pack fetches — callers must await the same promise, not bail with null. */
+/** @type {Record<string, Promise<Record<string, {name?: string, description?: string}>|null>>} */
+const packPromises = {};
 
 function readUrlLang() {
   try {
@@ -99,15 +100,24 @@ function htmlLang(id) {
 async function ensureModelPack(id) {
   if (id === 'zh') return null; // catalog source is Chinese
   if (modelPacks[id]) return modelPacks[id];
-  if (packLoading.has(id)) return null;
   if (id !== 'en' && id !== 'ja') return null;
-  packLoading.add(id);
-  try {
-    const res = await fetch(`./data/locales/models-${id}.json`);
-    if (res.ok) modelPacks[id] = await res.json();
-  } catch { /* ignore */ }
-  packLoading.delete(id);
-  return modelPacks[id] || null;
+  if (!packPromises[id]) {
+    packPromises[id] = (async () => {
+      try {
+        const stamp = (typeof window !== 'undefined' && window.__LAB_ASSET_V)
+          ? String(window.__LAB_ASSET_V)
+          : '';
+        const rel = `./data/locales/models-${id}.json`;
+        const url = stamp
+          ? `${rel}${rel.includes('?') ? '&' : '?'}v=${encodeURIComponent(stamp)}`
+          : rel;
+        const res = await fetch(url);
+        if (res.ok) modelPacks[id] = await res.json();
+      } catch { /* ignore */ }
+      return modelPacks[id] || null;
+    })();
+  }
+  return packPromises[id];
 }
 
 /** Localized catalog fields; falls back to source model. */
@@ -200,7 +210,10 @@ export function mountLocaleSelect(selectEl) {
   });
 }
 
-/** Call once at boot: URL wins. Model name packs load when the sidebar paints. */
+/**
+ * Call once at boot: URL wins. Await the en/ja catalog pack before the first
+ * switchModel so narrow deep-links do not flash source-language titles.
+ */
 export function bootI18n() {
   const fromUrl = readUrlLang();
   if (fromUrl && fromUrl !== locale) locale = fromUrl;
@@ -209,7 +222,7 @@ export function bootI18n() {
   try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
   writeUrlLang(locale);
   applyDomI18n();
-  return Promise.resolve();
+  return ensureModelPack(locale);
 }
 
 /** Load en/ja catalog names just before the sidebar needs them. */

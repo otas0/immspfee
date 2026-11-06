@@ -3,10 +3,23 @@
  * 硬规则：权威来源 + 控制方程 + 假设 + 伦理核对；拒绝空壳「教学动画」。
  */
 import { factoryBuilder } from '../models/factoryLoader.js';
-import { topicMissNote } from './topicOverrides.js';
 import { FAMILY_META } from './formalism.js';
 import { t } from '../i18n/index.js';
 import templates from '../../data/authority-templates.json' with { type: 'json' };
+
+function emptyMiss() {
+  return '';
+}
+
+let topicMissNote = emptyMiss;
+
+/** Topic tables stay out of the first paint. The dialog loads them before validate. */
+export function ensureTopicRows() {
+  if (topicMissNote !== emptyMiss) return Promise.resolve();
+  return import('./topicOverrides.js').then((mod) => {
+    topicMissNote = mod.topicMissNote;
+  });
+}
 
 const STORAGE_KEY = 'immspfee-user-models-v1';
 

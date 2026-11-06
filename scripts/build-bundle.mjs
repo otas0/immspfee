@@ -70,7 +70,42 @@ fs.writeFileSync(
   `${JSON.stringify({ at: new Date().toISOString(), outputs }, null, 2)}\n`,
 );
 const labFile = path.join(outdir, 'lab.js');
+const factoryFile = outputs.find((row) => row.file.startsWith('chunk-factory-'))?.file;
+if (!factoryFile) {
+  console.error('factory chunk missing');
+  process.exit(1);
+}
+const factoryImport = `import("./${factoryFile}")`;
+let stamped = false;
+for (const name of fs.readdirSync(outdir)) {
+  if (!name.endsWith('.js') || name.startsWith('chunk-factory-')) continue;
+  const file = path.join(outdir, name);
+  const src = fs.readFileSync(file, 'utf8');
+  if (!src.includes(factoryImport)) continue;
+  fs.writeFileSync(file, `${src.replace(
+    factoryImport,
+    `import(globalThis.__stampedChunk("./${factoryFile}"))`,
+  )}\nglobalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./${factoryFile}");\n`);
+  stamped = true;
+}
+if (!stamped) {
+  console.error('factory chunk import was not rewritten with a stamp');
+  process.exit(1);
+}
 const labSrc = fs.readFileSync(labFile, 'utf8');
+const staticNames = [...labSrc.matchAll(/from\s+"\.\/([^"]+\.js)"/g)].map((match) => match[1]);
+for (const name of staticNames) {
+  const shared = fs.readFileSync(path.join(outdir, name), 'utf8');
+  const nested = [...shared.matchAll(/from\s+"\.\/([^"]+\.js)"/g)].map((match) => match[1]);
+  const files = [name, ...nested];
+  for (const fileName of files) {
+    const body = fs.readFileSync(path.join(outdir, fileName), 'utf8');
+    if (body.includes('js/lab/rows/')) {
+      console.error(`${fileName} is a static dependency of lab.js and still carries topic rows`);
+      process.exit(1);
+    }
+  }
+}
 let initialBytes = fs.statSync(labFile).size;
 for (const match of labSrc.matchAll(/from\s+"\.\/([^"]+\.js)"/g)) {
   if (match[1].includes('chunk-factory')) continue;

@@ -9,10 +9,12 @@ import {
   heatTempColor,
   localizeSchema,
   mapNormToScreen,
-  overrideOptions,
   paintGraph,
   t
-} from "./chunk-chunk-HHLDLSXD.js";
+} from "./chunk-chunk-NUKTR6YU.js";
+import {
+  overrideOptions
+} from "./chunk-chunk-54AD6SA2.js";
 
 // js/lab/sketches.js
 function ink() {

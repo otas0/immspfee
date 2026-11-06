@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { STRINGS } from '../js/i18n/strings.js';
+import { expandDomainIndex, packDomainIndex } from '../js/boot/domainPack.js';
 
 export function readCatalog(root) {
   return JSON.parse(fs.readFileSync(path.join(root, 'data/catalog.json'), 'utf8'));
@@ -37,7 +38,7 @@ export function fingerprint(root) {
     return sha12(fs.readFileSync(file));
   };
   const catalog = readCatalog(root);
-  const indexBody = JSON.stringify(domainIndex(catalog));
+  const indexBody = JSON.stringify(packDomainIndex(domainIndex(catalog)));
   const domains = {};
   for (const domain of [...new Set(catalog.map((spec) => spec.domain || '其他'))]) {
     domains[domain] = sha12(JSON.stringify(specsForDomain(catalog, domain)));
@@ -122,11 +123,18 @@ export function assertStampIndependence(stamp) {
 
 /** First-screen index. Formula strings are short; this stops the file growing back into the bundle. */
 export function assertIndexBudget(catalog) {
-  const bytes = Buffer.byteLength(JSON.stringify(domainIndex(catalog)));
+  const packed = packDomainIndex(domainIndex(catalog));
+  const bytes = Buffer.byteLength(JSON.stringify(packed));
   const limit = 256 * 1024;
   if (bytes > limit) throw new Error(`domain index ${bytes} bytes exceeds ${limit}`);
+  const expanded = expandDomainIndex(packed);
+  if (expanded.length !== catalog.length) {
+    throw new Error(`packed domain index expanded to ${expanded.length}`);
+  }
   return bytes;
 }
+
+export { packDomainIndex };
 
 export function assertDomainCoverage(catalog) {
   const index = domainIndex(catalog);

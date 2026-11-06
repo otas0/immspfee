@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 /**
  * Narrow-screen regression: drawer stays closed, the formula stays on screen,
- * formula stays on screen, and assumption/caveat chrome stay off the stage.
+ * assumption/caveat chrome stay off the stage, and Bohr canvas labels stay painted.
  * Requires the lab server (npm start) and Playwright Chromium.
+ *
+ * fillText hook installs only after ensureId/getModelId settles, so boot paint
+ * races cannot couple with the hook. PAGE CRASH is a hard failure with model id.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,26 +24,48 @@ const layout = [
 ];
 
 const browser = await chromium.launch({ headless: true });
-// dsf 1 avoids agent/CI OOM (dsf 2 was SIGKILL'd). Boot pins via ?narrow= so switch is a no-op when already on id.
+// dsf 1 avoids agent/CI OOM (dsf 2 previously SIGKILL'd / PAGE CRASH'd under load).
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+
+let currentModelId = '';
+page.on('crash', () => {
+  const id = currentModelId || '(unknown)';
+  console.error(`PAGE CRASH during narrow regression model=${id}`);
+  process.exitCode = 1;
+  throw new Error(`PAGE CRASH model=${id}`);
+});
+page.on('pageerror', (err) => {
+  console.error(`pageerror model=${currentModelId || '(unknown)'}:`, err.message);
+});
+
 await page.addInitScript(() => {
   localStorage.setItem('physics-lab-locale-v1', 'en');
   localStorage.removeItem('physics-lab-auto-open-bench');
   localStorage.removeItem('physics-lab-folds-v1');
   localStorage.removeItem('physics-lab-folds');
-  const orig = CanvasRenderingContext2D.prototype.fillText;
-  window.__fillTexts = [];
-  CanvasRenderingContext2D.prototype.fillText = function fillTextHook(text, ...rest) {
-    if (window.__fillTexts.length < 400) window.__fillTexts.push(String(text));
-    return orig.call(this, text, ...rest);
+  window.__installFillHook = () => {
+    if (window.__fillHooked) return;
+    window.__fillHooked = true;
+    const orig = CanvasRenderingContext2D.prototype.fillText;
+    window.__fillTexts = [];
+    CanvasRenderingContext2D.prototype.fillText = function fillTextHook(text, ...rest) {
+      if (window.__fillTexts.length < 400) window.__fillTexts.push(String(text));
+      return orig.call(this, text, ...rest);
+    };
   };
 });
 
 const failures = [];
 async function openModel(id) {
-  await page.goto(`${base}?lang=en&narrow=${encodeURIComponent(id)}#m=${encodeURIComponent(id)}`, { waitUntil: 'domcontentloaded' });
+  currentModelId = id;
+  await page.goto(`${base}?lang=en&narrow=${encodeURIComponent(id)}#m=${encodeURIComponent(id)}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60000,
+  });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  // Wait for ensureId + first switchModel before instrumenting canvas text.
   await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, id, { timeout: 60000 });
+  await page.evaluate(() => window.__installFillHook?.());
   await page.evaluate(() => { window.__fillTexts = []; });
   await page.evaluate(async (mid) => {
     await window.__labCapture.switchModel(mid);
@@ -61,6 +86,12 @@ for (const [id, file] of layout) {
     const formula = await page.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
     if (!formula.startsWith('Equation ') || /[\u4e00-\u9fff]/.test(formula)) {
       failures.push(`lang=en formula Han/race on ${id}: ${JSON.stringify(formula)}`);
+    }
+  }
+  if (id === 'r018-玻尔模型') {
+    const title = await page.evaluate(() => document.getElementById('toolbar-title')?.textContent || '');
+    if (title !== 'Bohr Model') {
+      failures.push(`${id}: EN title race ${JSON.stringify(title)}`);
     }
   }
   const info = await page.evaluate(() => {
@@ -87,11 +118,17 @@ for (const [id, file] of layout) {
       caveatClipped: !!(caveat && !caveat.hidden && caveat.scrollHeight > caveat.clientHeight + 1),
       caveatOnScreen: !!(cr && cr.height > 8 && cr.top >= 0 && cr.bottom <= window.innerHeight + 1),
       texts: window.__fillTexts || [],
+      switchErr: window.__labLastSwitchError || null,
+      canvas: (() => {
+        const c = document.getElementById('canvas') || document.querySelector('canvas');
+        return c ? { w: c.width, h: c.height, cw: c.clientWidth, ch: c.clientHeight } : null;
+      })(),
     };
   });
   const png = path.join(shots, file);
   await page.screenshot({ path: png });
   const bytes = fs.statSync(png).size;
+  if (info.switchErr) failures.push(`${id}: switchModel error ${info.switchErr.message}`);
   if (info.open) failures.push(`${id}: drawer opened by default`);
   if (info.covered || info.off) failures.push(`${id}: formula covered or offscreen (${info.formula})`);
   if (!info.formula.startsWith('Equation ')) failures.push(`${id}: formula missing (${info.formula})`);
@@ -99,14 +136,19 @@ for (const [id, file] of layout) {
   if (info.formulaHan) failures.push(`${id}: formula still has Han (${info.formula})`);
   if (info.overflowY !== 'auto' || info.maxHeight === 'none') failures.push(`${id}: formula is not a scrolling strip (${info.overflowY} ${info.maxHeight})`);
   if (bytes < 8000) failures.push(`${id}: screenshot too small (${bytes})`);
+  if (info.canvas && (info.canvas.w > 2400 || info.canvas.h > 3200)) {
+    failures.push(`${id}: canvas oversized ${JSON.stringify(info.canvas)}`);
+  }
   if (id === 'r018-玻尔模型') {
     const blob = info.texts.join('\n');
     if (!info.texts.some((s) => s.includes('n=')) || !blob.includes('轨道 r∝n²')) {
-      failures.push(`${id}: canvas missing level labels (n=${info.texts.length} sample=${info.texts.slice(0,12).join(' | ')})`);
+      failures.push(`${id}: canvas missing level labels (n=${info.texts.length} sample=${info.texts.slice(0, 12).join(' | ')})`);
     }
   }
   if (id === 'neutron-diffusion') {
-    if (!info.texts.some((t) => /φ.*cos\(πx\/a\)/.test(t) || t.includes('φ = φ₀ cos(πx/a)'))) failures.push(`${id}: canvas missing the cosine label (${info.texts.slice(0,8).join(' | ')})`);
+    if (!info.texts.some((t) => /φ.*cos\(πx\/a\)/.test(t) || t.includes('φ = φ₀ cos(πx/a)'))) {
+      failures.push(`${id}: canvas missing the cosine label (${info.texts.slice(0, 8).join(' | ')})`);
+    }
     const layoutN = await page.evaluate(() => ({
       assumptions: !!document.getElementById('shell-assumptions'),
       assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
@@ -116,7 +158,6 @@ for (const [id, file] of layout) {
     if (layoutN.caveat) failures.push(`${id}: caveat strip still on the shell`);
   }
 }
-
 
 // Caveats stay in catalog metadata only — not asserted on the model-shell stage.
 
@@ -195,6 +236,7 @@ if (!benchCover.formula.startsWith('Equation ')) {
 }
 
 await page.setViewportSize({ width: 1280, height: 800 });
+currentModelId = 'user-model-miss';
 await page.goto(`${base}?miss=1&lang=en`, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
 await page.click('#btn-user-model');
@@ -233,8 +275,8 @@ if (!/碰撞\s*·\s*没有这条/.test(errBlob)) {
 }
 
 await browser.close();
-if (failures.length) {
-  console.error(failures.join('\n'));
+if (failures.length || process.exitCode) {
+  console.error(failures.join('\n') || 'PAGE CRASH');
   process.exit(1);
 }
 console.log('narrow regression ok', layout.length);

@@ -13,6 +13,7 @@ import { buildZipStore, readZipStore } from './utils/zipStore.js';
 import { FAMILY_META, formalismFor } from './lab/formalism.js';
 import {
   USER_MODEL_FAMILIES,
+  ensureTopicRows,
   validateUserModelDraft,
   persistUserSpec,
   loadUserSpecs,
@@ -1269,7 +1270,7 @@ function switchModel(id, opts = {}) {
     switchModel.pending = id;
     return ensureId(id).then((ok) => {
       switchModel.pending = '';
-      return switchModel(ok ? id : DEFAULT_MODEL_ID);
+      return switchModel(ok ? id : DEFAULT_MODEL_ID, opts);
     });
   }
   const model = (id && models.some((m) => m.id === id) ? getModelById(id) : null)
@@ -1805,12 +1806,30 @@ function rowMatchesFilter(row) {
   return tokens.some((token) => hay.includes(token));
 }
 
+const FILTER_DOMAIN_CAP = 8;
+
 function domainsForFilter() {
-  const names = new Set();
+  const counts = new Map();
   for (const row of domainIndex) {
-    if (rowMatchesFilter(row)) names.add(row.domain || '其他');
+    if (!rowMatchesFilter(row)) continue;
+    const name = row.domain || '其他';
+    counts.set(name, (counts.get(name) || 0) + 1);
   }
-  return [...names];
+  const ranked = [...counts.keys()].sort((a, b) => (counts.get(b) - counts.get(a)) || a.localeCompare(b));
+  const active = app.model ? modelDomain(app.model) : '';
+  const ordered = [];
+  if (active && counts.has(active)) ordered.push(active);
+  for (const name of ranked) {
+    if (!ordered.includes(name)) ordered.push(name);
+  }
+  const loaded = ordered.slice(0, FILTER_DOMAIN_CAP);
+  window.__filterDomainStats = {
+    matched: ordered.length,
+    loaded: loaded.length,
+    cap: FILTER_DOMAIN_CAP,
+    formalism: app.filter.formalism || '',
+  };
+  return loaded;
 }
 
 async function refreshSidebar() {
@@ -1992,7 +2011,16 @@ window.__labCapture = {
   },
   // Return the promise so Playwright can await ensureId + init; callers that only
   // care about the visible model should also wait on getModelId().
-  switchModel: (id) => Promise.resolve(switchModel(id)),
+  // Surface failures instead of letting an unhandled rejection / paint throw
+  // look like a silent page death in Playwright.
+  switchModel: (id) => Promise.resolve()
+    .then(() => switchModel(id))
+    .catch((err) => {
+      const msg = err?.stack || err?.message || String(err);
+      window.__labLastSwitchError = { id, message: msg, at: Date.now() };
+      console.error('[lab] switchModel failed', id, err);
+      throw err;
+    }),
   enterMicroscope3d: () => { microUi?.enter?.(); },
   getModelId: () => app.model?.id,
   paintFrame: () => { paintFrame(); },
@@ -2194,7 +2222,9 @@ function mountShellSelect(el) {
       requestAnimationFrame(measureSysSticky);
     });
   }
-  applyActiveShell(current);
+  // Exclusive shells enter after their model chunk loads. An early enter
+  // falls back to free-fall and leaves the shell on lab-classic.
+  if (!getShell(current).exclusiveChrome) applyActiveShell(current);
 }
 
 async function boot() {
@@ -2329,6 +2359,8 @@ async function boot() {
   mountShellSelect(document.getElementById('shell-select'));
   mountLocaleSelect(document.getElementById('locale-select'));
   await bootI18n();
+  // Belt-and-suspenders: pack must be ready before any catalog title paint.
+  try { await ensureSidebarLocales(); } catch { /* ignore */ }
   syncChromeI18n();
   microUi.sync(microUi.isMicroscopeShell());
   onLocaleChange(() => {
@@ -2525,6 +2557,7 @@ async function reloadAfterUserModels(id, toast) {
 
 function bindUserModelUi() {
   btnUserModel?.addEventListener('click', () => {
+    void ensureTopicRows();
     fillUserModelForm(null);
     renderUserModelList();
     userModelDialog?.showModal();
@@ -2532,6 +2565,7 @@ function bindUserModelUi() {
   document.getElementById('user-model-submit')?.addEventListener('click', async () => {
     if (!userModelForm) return;
     if (!userModelForm.reportValidity()) return;
+    await ensureTopicRows();
     const fd = new FormData(userModelForm);
     const draft = {
       name: fd.get('name'),

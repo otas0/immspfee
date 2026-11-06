@@ -5,6 +5,14 @@
 let builder = null;
 let pending = null;
 
+function stampedChunk(rel) {
+  const url = new URL(rel, import.meta.url);
+  const version = globalThis.__LAB_ASSET_V || '';
+  if (version && !url.searchParams.has('v')) url.searchParams.set('v', version);
+  return url.href;
+}
+globalThis.__stampedChunk = stampedChunk;
+
 export function setFactoryBuilder(fn) {
   builder = fn;
 }
