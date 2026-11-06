@@ -502,8 +502,10 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     if (canvas.width !== bw || canvas.height !== bh) {
       canvas.width = bw;
       canvas.height = bh;
-      canvas.style.width = `${view.width}px`;
-      canvas.style.height = `${view.height}px`;
+      // Keep CSS absolute inset:0 / width/height:100% — pixel style sizes fight the
+      // microscope shell and leave a letterboxed/offset stage on Safari.
+      canvas.style.width = '';
+      canvas.style.height = '';
     }
     gl.viewport(0, 0, bw, bh);
     gl.enable(gl.DEPTH_TEST);

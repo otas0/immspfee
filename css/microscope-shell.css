@@ -16,9 +16,26 @@ html.shell-lab-microscope3d body {
   color: var(--micro-ink);
 }
 
-html.shell-lab-microscope3d .chassis.shell-lab-microscope3d {
+/*
+ * Beat .chassis.shell-hide-sidebar(.bench-collapsed) (3 classes) which otherwise
+ * keeps a leading sidebar track + grid-column:2 on .stage — Safari/desktop then
+ * shows a black void on the left and the whole WebGL stage shoved right.
+ */
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d,
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar,
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar.bench-collapsed,
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar.shell-sidebar-overlay {
   grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
   background: var(--micro-stage);
+}
+
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d > .stage,
+html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar > .stage {
+  grid-column: 1 / -1;
+  border-radius: 0;
 }
 
 /* Kill every catalog panel — no reuse of bench / HUD / toolbar / shell strip */
@@ -369,6 +386,21 @@ html.shell-lab-microscope3d .micro-cap {
 /* Oil film is WebGL-only (optics.immersion shader). */
 
   50% { transform: translate(-50%, -52%) scale(1.06); filter: blur(1.1px); }
+}
+
+/* Compact chassis media also forces sidebar-w + stage@col2 — keep full-bleed. */
+@media (max-width: 1100px) {
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d,
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar,
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar.bench-collapsed,
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar.shell-sidebar-overlay {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d > .stage,
+  html.shell-lab-microscope3d .chassis.shell-lab-microscope3d.shell-hide-sidebar > .stage {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Narrow 390 — brand / WebGL / params drawer must not overlap */

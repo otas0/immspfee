@@ -4890,8 +4890,8 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     if (canvas2.width !== bw || canvas2.height !== bh) {
       canvas2.width = bw;
       canvas2.height = bh;
-      canvas2.style.width = `${view.width}px`;
-      canvas2.style.height = `${view.height}px`;
+      canvas2.style.width = "";
+      canvas2.style.height = "";
     }
     gl.viewport(0, 0, bw, bh);
     gl.enable(gl.DEPTH_TEST);
