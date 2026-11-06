@@ -9,6 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const swSrc = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const cacheName = swSrc.match(/const CACHE = '([^']+)'/)?.[1] || 'immspfee-hashed-v3';
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
 const failures = [];
@@ -45,12 +47,12 @@ await context.route('**/asset-stamp.json', async (route) => {
 const page = await context.newPage();
 await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
-await page.waitForFunction(async () => {
-  const keys = await caches.open('immspfee-hashed-v3').then((cache) => cache.keys()).catch(() => []);
+await page.waitForFunction(async (name) => {
+  const keys = await caches.open(name).then((cache) => cache.keys()).catch(() => []);
   const urls = keys.map((req) => req.url);
   const need = ['/js/entry.js', '/js/bundle/lab.js', '/css/styles.css', '/css/microscope-shell.css'];
-  return need.every((name) => urls.some((url) => url.includes(name) && url.includes('v=')));
-}, null, { timeout: 20000 });
+  return need.every((part) => urls.some((url) => url.includes(part) && url.includes('v=')));
+}, cacheName, { timeout: 20000 });
 
 const seen = [];
 page.on('response', async (res) => {
@@ -78,12 +80,33 @@ if (!hashed.length || hashed.some((row) => row.kind !== 'cache')) {
   fail(`fingerprinted js/css missed the cache (${JSON.stringify(hashed.map((row) => `${row.kind} ${row.url}`))})`);
 }
 
-const staleLab = await page.evaluate(async () => {
-  const cache = await caches.open('immspfee-hashed-v3');
-  const keys = await cache.keys();
-  return keys.map((req) => req.url).filter((url) => url.includes('/js/bundle/lab.js') && url.includes('v='));
+await page.evaluate(() => window.__labCapture.loadDomain('核工程'));
+await page.waitForFunction(async (name) => {
+  const keys = await caches.open(name).then((cache) => cache.keys()).catch(() => []);
+  return keys.some((req) => req.url.includes('chunk-factory') && req.url.includes('v='));
+}, cacheName, { timeout: 20000 });
+const subjectPage = await context.newPage();
+const factoryHits = [];
+subjectPage.on('response', (res) => {
+  if (res.url().includes('chunk-factory')) factoryHits.push(res.headers()['x-imm-sw'] || 'miss');
 });
-if (!staleLab.length) fail('lab.js was not cached before the hash change');
+await subjectPage.goto(base, { waitUntil: 'domcontentloaded', timeout: 60000 });
+await subjectPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+await subjectPage.evaluate(() => window.__labCapture.loadDomain('核工程'));
+await subjectPage.waitForTimeout(500);
+if (!factoryHits.length || factoryHits.some((kind) => kind !== 'cache')) {
+  fail(`second subject open missed the factory cache (${JSON.stringify(factoryHits)})`);
+}
+
+const cachedUrls = await page.evaluate(async (name) => {
+  const cache = await caches.open(name);
+  const keys = await cache.keys();
+  return keys.map((req) => req.url);
+}, cacheName);
+const staleLab = cachedUrls.filter((url) => url.includes('/js/bundle/lab.js') && url.includes('v='));
+if (!staleLab.length) {
+  fail(`lab.js was not cached before the hash change (${cachedUrls.filter((url) => url.includes('lab.js') || url.includes('chunk-factory')).join(' | ') || 'no lab or factory keys'})`);
+}
 swRev = 2;
 dropHashes = true;
 await page.evaluate(async () => {
@@ -91,11 +114,11 @@ await page.evaluate(async () => {
   if (reg) await reg.update();
 });
 try {
-  await page.waitForFunction(async (oldUrl) => {
-    const cache = await caches.open('immspfee-hashed-v3');
+  await page.waitForFunction(async ({ name, oldUrl }) => {
+    const cache = await caches.open(name);
     const keys = await cache.keys();
     return !keys.some((req) => req.url === oldUrl);
-  }, staleLab[0], { timeout: 15000 });
+  }, { name: cacheName, oldUrl: staleLab[0] }, { timeout: 15000 });
 } catch {
   fail(`stale lab.js stayed in Cache Storage (${staleLab[0]})`);
 }

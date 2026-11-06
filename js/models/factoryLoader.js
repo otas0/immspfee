@@ -27,6 +27,12 @@ export function ensureFactory() {
   if (!pending) {
     pending = import('./factory.js').then((mod) => {
       builder = mod.createFactoryModel;
+      const href = globalThis.__FACTORY_CHUNK;
+      const sw = globalThis.navigator?.serviceWorker?.controller;
+      if (href) {
+        try { sessionStorage.setItem('immspfee-factory-chunk', href); } catch { /* storage blocked */ }
+        if (sw) sw.postMessage({ type: 'prime', urls: [href] });
+      }
       return builder;
     });
   }

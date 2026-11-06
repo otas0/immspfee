@@ -10,6 +10,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { PNG } from 'pngjs';
+import pixelmatch from 'pixelmatch';
+import { expandDomainIndex } from '../js/boot/domainPack.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
@@ -42,7 +45,7 @@ if (!expectedCc || !stampCc.toLowerCase().includes(expectedCc.toLowerCase())) {
 }
 const indexRes = await fetch(new URL('data/domain-index.json', base));
 const indexText = await indexRes.text();
-const indexRows = JSON.parse(indexText);
+const indexRows = expandDomainIndex(JSON.parse(indexText));
 const indexBytes = Buffer.byteLength(indexText);
 console.log('domain index', indexBytes, 'bytes', indexRows.length, 'rows');
 if (indexBytes > 256 * 1024) fail(`domain index ${indexBytes} bytes is a first-screen file again`);
@@ -79,11 +82,24 @@ await searchCtx.close();
 
 const formCtx = await browser.newContext({ serviceWorkers: 'block' });
 const formPage = await formCtx.newPage();
+const formReqs = [];
+formPage.on('request', (req) => {
+  if (req.url().includes('/data/domains/')) formReqs.push(decodeURIComponent(new URL(req.url()).pathname));
+});
 await formPage.goto(base, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await formPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
 await formPage.selectOption('#filter-formalism', 'ode');
 await formPage.waitForSelector('#model-list button.model-item[data-id="pendulum"]', { timeout: 30000 });
 await formPage.waitForSelector('#model-list button.model-item[data-id="free-fall"]', { timeout: 10000 });
+await formPage.waitForTimeout(400);
+const formStats = await formPage.evaluate(() => window.__filterDomainStats || null);
+const formDomains = [...new Set(formReqs.map((pathname) => pathname.split('/').pop().replace(/\.json.*/, '')))];
+console.log('ode domains', formStats, formDomains.join(','));
+if (!formStats || formStats.loaded > formStats.cap || formStats.loaded > 8) {
+  fail(`ode filter loaded ${formStats?.loaded} subjects over the cap`);
+}
+if (formStats.loaded >= allDomains.length) fail(`ode filter opened most of the catalog (${formStats.loaded})`);
+if (formDomains.length > 8) fail(`ode filter fetched ${formDomains.length} subject files`);
 await formCtx.close();
 
 const paletteCtx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
@@ -130,52 +146,114 @@ try {
   fail('free-fall frame never picked up the palette body color');
 }
 fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
-await palettePage.locator('#canvas').screenshot({ path: path.join(root, 'artifacts/palette-free-fall.png') });
+await palettePage.evaluate(() => {
+  window.__labCapture.pause();
+  document.getElementById('btn-reset')?.click();
+  window.__labCapture.pause();
+  window.__labCapture.paintFrame();
+});
+const shot = await palettePage.locator('#canvas').screenshot();
+fs.writeFileSync(path.join(root, 'artifacts/palette-free-fall.png'), shot);
+const baselinePath = path.join(root, 'tests/baselines/palette-free-fall.png');
+if (process.env.UPDATE_PALETTE_BASELINE === '1') {
+  fs.mkdirSync(path.dirname(baselinePath), { recursive: true });
+  fs.writeFileSync(baselinePath, shot);
+}
+if (!fs.existsSync(baselinePath)) {
+  // Seed once so CI / fresh clones do not hard-fail before a reviewed baseline lands.
+  fs.mkdirSync(path.dirname(baselinePath), { recursive: true });
+  fs.writeFileSync(baselinePath, shot);
+  console.log('palette baseline seeded at tests/baselines/palette-free-fall.png');
+} else {
+  const current = PNG.sync.read(shot);
+  const baseline = PNG.sync.read(fs.readFileSync(baselinePath));
+  if (current.width !== baseline.width || current.height !== baseline.height) {
+    fail(`palette frame ${current.width}x${current.height} != baseline ${baseline.width}x${baseline.height}`);
+  } else {
+    const mismatched = pixelmatch(current.data, baseline.data, null, current.width, current.height, {
+      threshold: 0.1,
+      includeAA: true,
+    });
+    console.log('palette pixel mismatch', mismatched);
+    if (mismatched > 250) fail(`palette frame differs from the baseline by ${mismatched} pixels`);
+  }
+}
 await paletteCtx.close();
 
-const narrowCtx = await browser.newContext({
+async function measureDeepLink(width, height) {
+  const ctx = await browser.newContext({
+    viewport: { width, height },
+    serviceWorkers: 'block',
+  });
+  const page = await ctx.newPage();
+  await page.goto(`${base}#m=neutron-diffusion`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await page.waitForSelector('#model-list button.model-item[data-id="neutron-diffusion"]', { timeout: 20000 });
+  await page.waitForTimeout(400);
+  const coldClosed = await page.evaluate(() => (
+    document.querySelector('.sidebar')?.classList.contains('open') || false
+  ));
+  if (coldClosed) fail(`deep link auto-opened the ${width}px drawer (menu should be the only opener)`);
+  const sample = () => page.evaluate(() => {
+    const btn = document.querySelector('[data-id="neutron-diffusion"]');
+    const toolbar = document.querySelector('.toolbar');
+    const list = document.querySelector('.model-list');
+    const br = btn.getBoundingClientRect();
+    const tr = toolbar.getBoundingClientRect();
+    const lr = list.getBoundingClientRect();
+    const overlapsToolbar = br.top < tr.bottom - 1 && br.bottom > tr.top + 1
+      && br.left < tr.right && br.right > tr.left;
+    const inList = br.bottom > lr.top + 4 && br.top < lr.bottom - 4 && br.height > 8;
+    return {
+      overlapsToolbar,
+      inList,
+      open: document.querySelector('.sidebar')?.classList.contains('open') || false,
+      top: Math.round(br.top),
+      toolbarBottom: Math.round(tr.bottom),
+      listTop: Math.round(lr.top),
+      listBottom: Math.round(lr.bottom),
+    };
+  });
+  await page.click('#btn-menu');
+  await page.waitForFunction(() => (
+    document.querySelector('.sidebar')?.classList.contains('open') || false
+  ), null, { timeout: 10000 });
+  await page.waitForTimeout(80);
+  const during = await sample();
+  if (during.overlapsToolbar) fail(`deep link covered during the ${width}px drawer transition ${JSON.stringify(during)}`);
+  await page.waitForTimeout(320);
+  const placed = await sample();
+  if (!placed.open) fail(`drawer stayed closed after menu at ${width}px ${JSON.stringify(placed)}`);
+  if (!placed.inList || placed.overlapsToolbar) fail(`deep link covered at ${width}px ${JSON.stringify(placed)}`);
+  await page.screenshot({ path: path.join(root, 'artifacts', `drawer-${width}-neutron.png`) });
+  await ctx.close();
+}
+
+await measureDeepLink(390, 844);
+await measureDeepLink(768, 1024);
+
+const microCtx = await browser.newContext({
   viewport: { width: 390, height: 844 },
   serviceWorkers: 'block',
 });
-const narrowPage = await narrowCtx.newPage();
-await narrowPage.goto(`${base}#m=neutron-diffusion`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-await narrowPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
-await narrowPage.waitForSelector('#model-list button.model-item[data-id="neutron-diffusion"]', { timeout: 20000 });
-await narrowPage.waitForTimeout(400);
-// Deep link focuses the row without auto-opening the mobile drawer (menu is the opener).
-const coldClosed = await narrowPage.evaluate(() => (
-  document.querySelector('.sidebar')?.classList.contains('open') || false
-));
-if (coldClosed) fail('deep link auto-opened the 390 drawer (menu should be the only opener)');
-await narrowPage.click('#btn-menu');
-await narrowPage.waitForFunction(() => (
-  document.querySelector('.sidebar')?.classList.contains('open') || false
-), null, { timeout: 10000 });
-await narrowPage.waitForTimeout(400);
-const placed = await narrowPage.evaluate(() => {
-  const btn = document.querySelector('[data-id="neutron-diffusion"]');
-  const toolbar = document.querySelector('.toolbar');
-  const list = document.querySelector('.model-list');
-  const br = btn.getBoundingClientRect();
-  const tr = toolbar.getBoundingClientRect();
-  const lr = list.getBoundingClientRect();
-  const overlapsToolbar = br.top < tr.bottom - 1 && br.bottom > tr.top + 1
-    && br.left < tr.right && br.right > tr.left;
-  const inList = br.bottom > lr.top + 4 && br.top < lr.bottom - 4 && br.height > 8;
-  return {
-    overlapsToolbar,
-    inList,
-    open: document.querySelector('.sidebar')?.classList.contains('open') || false,
-    top: Math.round(br.top),
-    toolbarBottom: Math.round(tr.bottom),
-    listTop: Math.round(lr.top),
-    listBottom: Math.round(lr.bottom),
-  };
-});
-if (!placed.open) fail(`drawer stayed closed after menu ${JSON.stringify(placed)}`);
-if (!placed.inList || placed.overlapsToolbar) fail(`deep link covered at 390px ${JSON.stringify(placed)}`);
-await narrowPage.screenshot({ path: path.join(root, 'artifacts/drawer-390-neutron.png') });
-await narrowCtx.close();
+const microPage = await microCtx.newPage();
+await microPage.goto(`${base}?shell=lab-microscope3d&lang=en`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+await microPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+await microPage.waitForFunction(
+  () => document.documentElement.dataset.shell === 'lab-microscope3d',
+  null,
+  { timeout: 30000 },
+);
+await microPage.waitForTimeout(800);
+const microShell = await microPage.evaluate(() => ({
+  shell: document.documentElement.dataset.shell || '',
+  stage: document.documentElement.dataset.stageMode || '',
+  chrome: document.getElementById('microscope-chrome')?.hidden === false,
+}));
+if (microShell.shell !== 'lab-microscope3d' || microShell.stage !== 'webgl3d' || !microShell.chrome) {
+  fail(`microscope left lab-classic ${JSON.stringify(microShell)}`);
+}
+await microCtx.close();
 
 await browser.close();
 if (failures.length) {

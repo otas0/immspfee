@@ -134,6 +134,12 @@ export async function primeHandModel(id) {
 
 export async function ensureId(id) {
   mark('boot-ensureId-start');
+  const hand = handcraftedList().find((model) => model.id === id);
+  if (hand) {
+    const ok = await primeHandModel(id);
+    mark('boot-ensureId-end');
+    return ok;
+  }
   const index = await loadIndex();
   const row = index.find((entry) => entry.id === id);
   if (!row) {
