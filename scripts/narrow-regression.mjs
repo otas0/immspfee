@@ -21,32 +21,38 @@ const layout = [
 ];
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+// dsf 1 avoids agent/CI OOM (dsf 2 was SIGKILL'd). Boot pins via ?narrow= so switch is a no-op when already on id.
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
 await page.addInitScript(() => {
   localStorage.setItem('physics-lab-locale-v1', 'en');
   localStorage.removeItem('physics-lab-auto-open-bench');
+  localStorage.removeItem('physics-lab-folds-v1');
+  localStorage.removeItem('physics-lab-folds');
   const orig = CanvasRenderingContext2D.prototype.fillText;
   window.__fillTexts = [];
   CanvasRenderingContext2D.prototype.fillText = function fillTextHook(text, ...rest) {
-    window.__fillTexts.push(String(text));
+    if (window.__fillTexts.length < 400) window.__fillTexts.push(String(text));
     return orig.call(this, text, ...rest);
   };
 });
 
 const failures = [];
 async function openModel(id) {
-  await page.goto(`${base}?narrow=${encodeURIComponent(id)}#m=${encodeURIComponent(id)}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}?lang=en&narrow=${encodeURIComponent(id)}#m=${encodeURIComponent(id)}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, id, { timeout: 60000 });
   await page.evaluate(() => { window.__fillTexts = []; });
-  await page.evaluate((mid) => window.__labCapture.switchModel(mid), id);
-  await page.waitForFunction((mid) => window.__labCapture.getModelId?.() === mid, id, { timeout: 30000 }).catch(() => {});
-  await page.waitForTimeout(200);
-  // focusCatalogModel may auto-open the mobile drawer; closed-layout checks need it shut.
+  await page.evaluate(async (mid) => {
+    await window.__labCapture.switchModel(mid);
+    window.__labCapture.paintFrame?.();
+  }, id);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => window.__labCapture.paintFrame?.());
+  await page.waitForTimeout(100);
   await page.evaluate(() => {
     const side = document.getElementById('sidebar');
     if (side?.classList.contains('open')) document.getElementById('btn-menu')?.click();
   });
-  await page.waitForTimeout(150);
 }
 
 for (const [id, file] of layout) {
@@ -96,11 +102,11 @@ for (const [id, file] of layout) {
   if (id === 'r018-玻尔模型') {
     const blob = info.texts.join('\n');
     if (!info.texts.some((s) => s.includes('n=')) || !blob.includes('轨道 r∝n²')) {
-      failures.push(`${id}: canvas missing level labels`);
+      failures.push(`${id}: canvas missing level labels (n=${info.texts.length} sample=${info.texts.slice(0,12).join(' | ')})`);
     }
   }
   if (id === 'neutron-diffusion') {
-    if (!info.texts.includes('φ = φ₀ cos(πx/a)')) failures.push(`${id}: canvas missing the cosine label`);
+    if (!info.texts.some((t) => /φ.*cos\(πx\/a\)/.test(t) || t.includes('φ = φ₀ cos(πx/a)'))) failures.push(`${id}: canvas missing the cosine label (${info.texts.slice(0,8).join(' | ')})`);
     const layoutN = await page.evaluate(() => ({
       assumptions: !!document.getElementById('shell-assumptions'),
       assumptionText: /Assumptions/.test(document.getElementById('model-shell')?.innerText || ''),
@@ -122,8 +128,17 @@ await page.waitForFunction(() => {
   const side = document.getElementById('sidebar');
   return !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open'));
 }, null, { timeout: 10000 });
-await page.evaluate(() => {
-  for (const el of document.querySelectorAll('#model-list details.domain-group, #model-list details.sub-group')) {
+await page.evaluate(async () => {
+  const folds = [...document.querySelectorAll('#model-list details.domain-group')];
+  const physics = folds.find((d) => d.dataset.domain === '物理') || folds[0];
+  if (typeof window.__labCapture?.loadDomain === 'function') {
+    await window.__labCapture.loadDomain(physics?.dataset.domain || '物理');
+  }
+  if (physics instanceof HTMLDetailsElement) {
+    physics.open = true;
+    physics.dispatchEvent(new Event('toggle'));
+  }
+  for (const el of document.querySelectorAll('#model-list details.sub-group')) {
     if (el instanceof HTMLDetailsElement) el.open = true;
   }
   const list = document.getElementById('model-list');

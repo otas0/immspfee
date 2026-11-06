@@ -10074,15 +10074,16 @@ window.__labCapture = {
     paintFrame();
     return url;
   },
-  // Fire-and-forget: Playwright page.evaluate awaits thenables; a hung ensureId
-  // must not pin the test runner forever — callers wait on UI / getModelId.
-  switchModel: (id) => {
-    void Promise.resolve(switchModel(id));
-  },
+  // Return the promise so Playwright can await ensureId + init; callers that only
+  // care about the visible model should also wait on getModelId().
+  switchModel: (id) => Promise.resolve(switchModel(id)),
   enterMicroscope3d: () => {
     microUi?.enter?.();
   },
   getModelId: () => app.model?.id,
+  paintFrame: () => {
+    paintFrame();
+  },
   loadDomain: (domain) => loadDomain(domain),
   pause: () => {
     if (!app.paused) {
