@@ -5,6 +5,8 @@
 import {
   OBJECTIVES,
   EYEPIECES,
+  OBJECTIVE_RING_LEGEND,
+  objectiveRingColor,
   opticsFromParams,
   applyTurretDefaults,
 } from '../models/microscopeOptics.js';
@@ -73,6 +75,7 @@ export function createMicroscopeStage(api) {
         <div class="micro-field">
           <span class="micro-field-label">Objective</span>
           <div class="micro-chips" id="micro-obj" role="group"></div>
+          <div class="micro-ring-legend" id="micro-ring-legend" aria-label="DIN objective rings"></div>
         </div>
         <div class="micro-field">
           <span class="micro-field-label">Eyepiece</span>
@@ -114,13 +117,26 @@ export function createMicroscopeStage(api) {
 
     const objHost = stage.querySelector('#micro-obj');
     for (const obj of OBJECTIVES) {
+      const ring = objectiveRingColor(obj.mag);
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'micro-chip';
       b.dataset.obj = obj.id;
       b.textContent = `${obj.mag}×`;
-      b.title = obj.immersion ? `${obj.mag}× oil` : `${obj.mag}×`;
+      b.title = obj.immersion ? `${obj.mag}× oil · ${ring.name}` : `${obj.mag}× · ${ring.name}`;
+      b.style.setProperty('--micro-ring', ring.hex);
       objHost.appendChild(b);
+    }
+    const legend = stage.querySelector('#micro-ring-legend');
+    for (const row of OBJECTIVE_RING_LEGEND) {
+      const sw = document.createElement('span');
+      sw.className = 'micro-ring-swatch';
+      sw.style.setProperty('--micro-ring', row.hex);
+      const dot = document.createElement('i');
+      dot.setAttribute('aria-hidden', 'true');
+      sw.appendChild(dot);
+      sw.appendChild(document.createTextNode(`${row.mag}× ${row.name}`));
+      legend?.appendChild(sw);
     }
     const eyeHost = stage.querySelector('#micro-eye');
     for (const eye of EYEPIECES) {
@@ -240,6 +256,8 @@ export function createMicroscopeStage(api) {
     }
     for (const btn of stage.querySelectorAll('#micro-obj .micro-chip')) {
       btn.classList.toggle('is-active', btn.dataset.obj === o.obj.id);
+      const mag = OBJECTIVES.find((obj) => obj.id === btn.dataset.obj)?.mag;
+      if (mag != null) btn.style.setProperty('--micro-ring', objectiveRingColor(mag).hex);
     }
     for (const btn of stage.querySelectorAll('#micro-eye .micro-chip')) {
       btn.classList.toggle('is-active', btn.dataset.eye === o.eye.id);

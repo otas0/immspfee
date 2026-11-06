@@ -22,3 +22,4 @@ data/domain-index.json
 docs/assets/*
 !docs/assets/shell-micro-390.png
 !docs/assets/shell-projector-1000-safari-proxy.png
+!docs/assets/ghes-runner-labels.png

@@ -19,6 +19,20 @@ export const EYEPIECES = [
 export const OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}×` }));
 export const EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}×` }));
 
+/** DIN / ISO objective identification ring (teaching colors on the barrel). */
+export function objectiveRingColor(mag) {
+  if (mag <= 4) return { rgb: [0.92, 0.18, 0.16], hex: '#eb2e29', name: 'red' };
+  if (mag <= 10) return { rgb: [0.95, 0.82, 0.12], hex: '#f2d11f', name: 'yellow' };
+  if (mag <= 40) return { rgb: [0.25, 0.62, 0.95], hex: '#3f9ef2', name: 'light blue' };
+  return { rgb: [0.94, 0.94, 0.96], hex: '#f0f0f5', name: 'white' };
+}
+
+export const OBJECTIVE_RING_LEGEND = OBJECTIVES.map((o) => ({
+  mag: o.mag,
+  id: o.id,
+  ...objectiveRingColor(o.mag),
+}));
+
 export function findObjective(id) {
   return OBJECTIVES.find((o) => o.id === id) || OBJECTIVES[1];
 }

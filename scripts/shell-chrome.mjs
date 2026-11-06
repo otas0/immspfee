@@ -402,6 +402,43 @@ if (focused.domainOpen === false) {
   fail(`exit did not expand domain for ${beforeMicroId} ${JSON.stringify(focused)}`);
 }
 
+// sessionStorage resume survives a mid-3D reload, then exit restores the pinned id.
+await desk.evaluate(async () => {
+  await window.__labCapture.switchModel('projectile');
+});
+await desk.waitForFunction(() => window.__labCapture?.getModelId?.() === 'projectile');
+await setShell(desk, 'lab-microscope3d');
+await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
+const storedResume = await desk.evaluate(() => sessionStorage.getItem('immspfee-micro-resume-v1'));
+if (!storedResume || !storedResume.includes('projectile')) {
+  fail(`sessionStorage resume missing projectile ${storedResume}`);
+}
+await desk.reload({ waitUntil: 'domcontentloaded' });
+await desk.waitForFunction(() => window.__labCapture?.getModelId);
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d'
+  || document.documentElement.dataset.stageMode === 'webgl3d', null, { timeout: 20000 });
+// If hash/shell restore landed on classic, re-enter — sessionStorage must still hold projectile.
+const midShell = await desk.evaluate(() => document.documentElement.dataset.shell);
+if (midShell !== 'lab-microscope3d') {
+  await setShell(desk, 'lab-microscope3d');
+  await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
+}
+const afterReloadResume = await desk.evaluate(() => sessionStorage.getItem('immspfee-micro-resume-v1'));
+if (!afterReloadResume || !afterReloadResume.includes('projectile')) {
+  fail(`sessionStorage resume lost after reload ${afterReloadResume}`);
+}
+await desk.click('#btn-micro-exit');
+await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-classic');
+await desk.waitForFunction(
+  (id) => window.__labCapture?.getModelId?.() === id,
+  'projectile',
+  { timeout: 20000 },
+);
+const afterReloadExit = await desk.evaluate(() => window.__labCapture.getModelId());
+if (afterReloadExit !== 'projectile') {
+  fail(`reload-mid-3D exit restored ${afterReloadExit} not projectile`);
+}
+
 // After exit-restore the open domain may be Mechanics (free-fall), not Optics —
  // expand Physics before asserting EN labels on r016.
 await desk.evaluate(() => {
@@ -468,18 +505,23 @@ const strip = await desk.evaluate(() => {
   if (list) list.scrollTop = 0;
   const btnTop = btn?.getBoundingClientRect().top ?? 0;
   const domainTop = domains?.getBoundingClientRect().top ?? 0;
+  const host = document.getElementById('micro3d-host');
   const sticky = stripEl ? getComputedStyle(stripEl).position === 'sticky' : false;
+  const hostSticky = host ? /sticky|fixed/.test(getComputedStyle(host).position) : false;
   return {
     hasBtn: !!btn,
     hasStrip: !!stripEl,
     aboveDomains: !!(btn && domains && btnTop < domainTop - 4),
-    sticky,
+    sticky: sticky || hostSticky,
+    hostPinned: !!host && host.contains(stripEl),
     label: btn?.querySelector('.name')?.textContent?.trim() || '',
   };
 });
 if (!strip.hasBtn || !strip.hasStrip) fail(`3D strip missing ${JSON.stringify(strip)}`);
 if (!strip.aboveDomains) fail(`3D strip must sit above domain folds ${JSON.stringify(strip)}`);
-if (!strip.sticky) fail(`3D strip should stay sticky on scroll ${JSON.stringify(strip)}`);
+if (!strip.sticky && !strip.hostPinned) {
+  fail(`3D strip should stay sticky on scroll ${JSON.stringify(strip)}`);
+}
 await desk.evaluate(() => window.__labCapture.enterMicroscope3d());
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');

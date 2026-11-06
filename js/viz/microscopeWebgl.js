@@ -3,15 +3,18 @@
  * Reuses js/models/microscopeOptics.js params — no parallel physics.
  * Drag orbit · wheel zoom · click objectives / eyepieces (same semantics as 2D).
  *
- * Mesh aims at NOBOOK-class teaching fidelity: lit cylinders / tori, horseshoe
- * base, focus knobs, stage clips, condenser, illuminator — still one WebGL path.
+ * The solid lives in microscopeMeshBuild.js (enamel + chrome, horseshoe,
+ * 16-segment C-arm, Siedentopf head, DIN rings) — above a typical NOBOOK
+ * teaching mesh. turretWorld stays here for picks; eye height is tubeTopY+0.52.
  */
 import {
   OBJECTIVES,
   EYEPIECES,
   opticsFromParams,
   applyTurretDefaults,
+  objectiveRingColor,
 } from '../models/microscopeOptics.js';
+import { buildMicroscopeSolid } from './microscopeMeshBuild.js';
 
 function compile(gl, type, src) {
   const sh = gl.createShader(type);
@@ -128,163 +131,6 @@ function lookAt(ex, ey, ez, cx, cy, cz, ux, uy, uz) {
   ]);
 }
 
-/** Bake a soft key+fill light into vertex RGB (no extra attributes). */
-function shade(nx, ny, nz, r, g, b, gloss = 0.12) {
-  const lx = 0.42; const ly = 0.82; const lz = 0.38;
-  const len = Math.hypot(lx, ly, lz) || 1;
-  const ndl = Math.max(0, (nx * lx + ny * ly + nz * lz) / len);
-  const fill = Math.max(0, -nx * 0.25 + ny * 0.15 + nz * 0.1);
-  const amb = 0.32;
-  const spec = gloss * (ndl ** 12);
-  const f = Math.min(1.15, amb + 0.58 * ndl + 0.18 * fill + spec);
-  return [Math.min(1, r * f), Math.min(1, g * f), Math.min(1, b * f)];
-}
-
-function pushV(out, x, y, z, nx, ny, nz, r, g, b, gloss) {
-  const [cr, cg, cb] = shade(nx, ny, nz, r, g, b, gloss);
-  out.push(x, y, z, cr, cg, cb);
-}
-
-function tri(out, ax, ay, az, bx, by, bz, cx, cy, cz, nx, ny, nz, r, g, b, gloss = 0.1) {
-  pushV(out, ax, ay, az, nx, ny, nz, r, g, b, gloss);
-  pushV(out, bx, by, bz, nx, ny, nz, r, g, b, gloss);
-  pushV(out, cx, cy, cz, nx, ny, nz, r, g, b, gloss);
-}
-
-function box(cx, cy, cz, sx, sy, sz, r, g, b, out, gloss = 0.08) {
-  const hx = sx / 2; const hy = sy / 2; const hz = sz / 2;
-  const faces = [
-    // +Z -Z +Y -Y +X -X
-    [[-hx, -hy, hz], [hx, -hy, hz], [hx, hy, hz], [-hx, hy, hz], 0, 0, 1],
-    [[-hx, -hy, -hz], [-hx, hy, -hz], [hx, hy, -hz], [hx, -hy, -hz], 0, 0, -1],
-    [[-hx, hy, -hz], [-hx, hy, hz], [hx, hy, hz], [hx, hy, -hz], 0, 1, 0],
-    [[-hx, -hy, -hz], [hx, -hy, -hz], [hx, -hy, hz], [-hx, -hy, hz], 0, -1, 0],
-    [[hx, -hy, -hz], [hx, hy, -hz], [hx, hy, hz], [hx, -hy, hz], 1, 0, 0],
-    [[-hx, -hy, -hz], [-hx, -hy, hz], [-hx, hy, hz], [-hx, hy, -hz], -1, 0, 0],
-  ];
-  for (const [a, b2, c, d, nx, ny, nz] of faces) {
-    tri(out,
-      cx + a[0], cy + a[1], cz + a[2],
-      cx + b2[0], cy + b2[1], cz + b2[2],
-      cx + c[0], cy + c[1], cz + c[2],
-      nx, ny, nz, r, g, b, gloss);
-    tri(out,
-      cx + a[0], cy + a[1], cz + a[2],
-      cx + c[0], cy + c[1], cz + c[2],
-      cx + d[0], cy + d[1], cz + d[2],
-      nx, ny, nz, r, g, b, gloss);
-  }
-}
-
-/** Smooth Y-axis cylinder (triangle strip sides + optional caps). */
-function cylinderY(cx, cy0, cz, radius, height, r, g, b, out, slices = 28, caps = true, gloss = 0.14) {
-  const y0 = cy0 - height / 2;
-  const y1 = cy0 + height / 2;
-  for (let i = 0; i < slices; i += 1) {
-    const a0 = (i / slices) * Math.PI * 2;
-    const a1 = ((i + 1) / slices) * Math.PI * 2;
-    const c0 = Math.cos(a0); const s0 = Math.sin(a0);
-    const c1 = Math.cos(a1); const s1 = Math.sin(a1);
-    const x0 = cx + c0 * radius; const z0 = cz + s0 * radius;
-    const x1 = cx + c1 * radius; const z1 = cz + s1 * radius;
-    // two triangles; average normal per corner uses radial dir
-    pushV(out, x0, y0, z0, c0, 0, s0, r, g, b, gloss);
-    pushV(out, x1, y0, z1, c1, 0, s1, r, g, b, gloss);
-    pushV(out, x1, y1, z1, c1, 0, s1, r, g, b, gloss);
-    pushV(out, x0, y0, z0, c0, 0, s0, r, g, b, gloss);
-    pushV(out, x1, y1, z1, c1, 0, s1, r, g, b, gloss);
-    pushV(out, x0, y1, z0, c0, 0, s0, r, g, b, gloss);
-    if (caps) {
-      tri(out, cx, y1, cz, x0, y1, z0, x1, y1, z1, 0, 1, 0, r, g, b, gloss * 0.6);
-      tri(out, cx, y0, cz, x1, y0, z1, x0, y0, z0, 0, -1, 0, r, g, b, gloss * 0.6);
-    }
-  }
-}
-
-/** Truncated cone along +Y (objective barrels). */
-function frustumY(cx, cy0, cz, rBot, rTop, height, r, g, b, out, slices = 24, gloss = 0.16) {
-  const y0 = cy0 - height / 2;
-  const y1 = cy0 + height / 2;
-  for (let i = 0; i < slices; i += 1) {
-    const a0 = (i / slices) * Math.PI * 2;
-    const a1 = ((i + 1) / slices) * Math.PI * 2;
-    const c0 = Math.cos(a0); const s0 = Math.sin(a0);
-    const c1 = Math.cos(a1); const s1 = Math.sin(a1);
-    const x0b = cx + c0 * rBot; const z0b = cz + s0 * rBot;
-    const x1b = cx + c1 * rBot; const z1b = cz + s1 * rBot;
-    const x0t = cx + c0 * rTop; const z0t = cz + s0 * rTop;
-    const x1t = cx + c1 * rTop; const z1t = cz + s1 * rTop;
-    // approximate outward normal from radius slope
-    const slope = (rBot - rTop) / Math.max(height, 1e-4);
-    const nx0 = c0; const ny = slope; const nz0 = s0;
-    const n0l = Math.hypot(nx0, ny, nz0) || 1;
-    const nx1 = c1; const nz1 = s1;
-    const n1l = Math.hypot(nx1, ny, nz1) || 1;
-    pushV(out, x0b, y0, z0b, nx0 / n0l, ny / n0l, nz0 / n0l, r, g, b, gloss);
-    pushV(out, x1b, y0, z1b, nx1 / n1l, ny / n1l, nz1 / n1l, r, g, b, gloss);
-    pushV(out, x1t, y1, z1t, nx1 / n1l, ny / n1l, nz1 / n1l, r, g, b, gloss);
-    pushV(out, x0b, y0, z0b, nx0 / n0l, ny / n0l, nz0 / n0l, r, g, b, gloss);
-    pushV(out, x1t, y1, z1t, nx1 / n1l, ny / n1l, nz1 / n1l, r, g, b, gloss);
-    pushV(out, x0t, y1, z0t, nx0 / n0l, ny / n0l, nz0 / n0l, r, g, b, gloss);
-  }
-}
-
-/** Torus in XZ plane (nosepiece / focus dial rim). */
-function torusY(cx, cy, cz, R, tube, r, g, b, out, segR = 28, segT = 12, gloss = 0.2) {
-  for (let i = 0; i < segR; i += 1) {
-    const a0 = (i / segR) * Math.PI * 2;
-    const a1 = ((i + 1) / segR) * Math.PI * 2;
-    for (let j = 0; j < segT; j += 1) {
-      const b0 = (j / segT) * Math.PI * 2;
-      const b1 = ((j + 1) / segT) * Math.PI * 2;
-      const ring = (a, bAng) => {
-        const cosA = Math.cos(a); const sinA = Math.sin(a);
-        const cosB = Math.cos(bAng); const sinB = Math.sin(bAng);
-        const x = cx + (R + tube * cosB) * cosA;
-        const y = cy + tube * sinB;
-        const z = cz + (R + tube * cosB) * sinA;
-        const nx = cosA * cosB;
-        const ny = sinB;
-        const nz = sinA * cosB;
-        return [x, y, z, nx, ny, nz];
-      };
-      const p00 = ring(a0, b0); const p10 = ring(a1, b0);
-      const p11 = ring(a1, b1); const p01 = ring(a0, b1);
-      pushV(out, p00[0], p00[1], p00[2], p00[3], p00[4], p00[5], r, g, b, gloss);
-      pushV(out, p10[0], p10[1], p10[2], p10[3], p10[4], p10[5], r, g, b, gloss);
-      pushV(out, p11[0], p11[1], p11[2], p11[3], p11[4], p11[5], r, g, b, gloss);
-      pushV(out, p00[0], p00[1], p00[2], p00[3], p00[4], p00[5], r, g, b, gloss);
-      pushV(out, p11[0], p11[1], p11[2], p11[3], p11[4], p11[5], r, g, b, gloss);
-      pushV(out, p01[0], p01[1], p01[2], p01[3], p01[4], p01[5], r, g, b, gloss);
-    }
-  }
-}
-
-/** Cylinder along +X (focus knobs on the arm). */
-function cylinderX(cx0, cy, cz, radius, length, r, g, b, out, slices = 20, gloss = 0.18) {
-  const x0 = cx0 - length / 2;
-  const x1 = cx0 + length / 2;
-  for (let i = 0; i < slices; i += 1) {
-    const a0 = (i / slices) * Math.PI * 2;
-    const a1 = ((i + 1) / slices) * Math.PI * 2;
-    const c0 = Math.cos(a0); const s0 = Math.sin(a0);
-    const c1 = Math.cos(a1); const s1 = Math.sin(a1);
-    const y0 = cy + c0 * radius; const z0 = cz + s0 * radius;
-    const y1 = cy + c1 * radius; const z1 = cz + s1 * radius;
-    pushV(out, x0, y0, z0, 0, c0, s0, r, g, b, gloss);
-    pushV(out, x1, y0, z0, 0, c0, s0, r, g, b, gloss);
-    pushV(out, x1, y1, z1, 0, c1, s1, r, g, b, gloss);
-    pushV(out, x0, y0, z0, 0, c0, s0, r, g, b, gloss);
-    pushV(out, x1, y1, z1, 0, c1, s1, r, g, b, gloss);
-    pushV(out, x0, y1, z1, 0, c1, s1, r, g, b, gloss);
-  }
-}
-
-function ring(cx, cy, cz, radius, thick, height, r, g, b, out, segs = 28) {
-  torusY(cx, cy, cz, radius, Math.max(thick * 0.55, 0.012), r, g, b, out, segs, 10);
-  // thin washer for flat-looking bands
-  cylinderY(cx, cy, cz, radius + thick * 0.15, height, r * 0.92, g * 0.92, b * 0.92, out, segs, false, 0.1);
-}
 
 function project(mvp, x, y, z, width, height) {
   const clipX = mvp[0] * x + mvp[4] * y + mvp[8] * z + mvp[12];
@@ -299,13 +145,6 @@ function project(mvp, x, y, z, width, height) {
   };
 }
 
-/** DIN / ISO objective identification rings (teaching colors). */
-function ObjRingRgb(mag) {
-  if (mag <= 4) return [0.92, 0.18, 0.16]; // red — 4×
-  if (mag <= 10) return [0.95, 0.82, 0.12]; // yellow — 10×
-  if (mag <= 40) return [0.25, 0.62, 0.95]; // light blue — 40×
-  return [0.94, 0.94, 0.96]; // white — 100×
-}
 
 function MagScale(m) {
   return Math.log10(Math.max(4, m));
@@ -380,7 +219,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         id: obj.id,
       });
     });
-      EYEPIECES.forEach((eye, i) => {
+    EYEPIECES.forEach((eye, i) => {
       const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
       pts.push({
         kind: 'eye',
@@ -394,149 +233,6 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     return { turY, tubeH, headY, tubeCenterY, tubeTopY, tubeBotY, Lscale, pts };
   }
 
-  function buildMesh(optics, hover) {
-    const data = [];
-    const mag = optics.obj.mag;
-    const { turY, tubeH, headY, tubeCenterY, tubeTopY, tubeBotY } = turretWorld(optics);
-
-    // —— Horseshoe base (NOBOOK-style cast iron silhouette) ——
-    const metal = [0.42, 0.45, 0.5];
-    const metalDark = [0.22, 0.24, 0.28];
-    box(0, 0.05, 0.08, 1.62, 0.1, 1.05, ...metalDark, data, 0.06);
-    // rear heel
-    box(0, 0.08, -0.42, 0.95, 0.12, 0.38, ...metal, data, 0.08);
-    // front forks
-    box(-0.48, 0.07, 0.38, 0.42, 0.1, 0.48, ...metal, data, 0.08);
-    box(0.48, 0.07, 0.38, 0.42, 0.1, 0.48, ...metal, data, 0.08);
-    cylinderY(0, 0.12, 0.05, 0.22, 0.06, 0.18, 0.2, 0.23, data, 24, true, 0.05);
-
-    // —— Pillar + curved arm ——
-    cylinderY(0.55, 0.55, 0, 0.09, 0.95, ...metal, data, 28, true, 0.15);
-    // arm sweep (stacked offset cylinders ≈ C-arm)
-    for (let i = 0; i < 7; i += 1) {
-      const t = i / 6;
-      const ax = 0.55 - t * 0.48;
-      const ay = 1.05 + t * 0.42;
-      const az = 0;
-      cylinderY(ax, ay, az, 0.08 - t * 0.01, 0.16, ...metal, data, 20, true, 0.14);
-    }
-    box(0.18, 1.42, 0, 0.42, 0.14, 0.2, ...metal, data, 0.1);
-
-    // —— Coarse + fine focus knobs (side of pillar) ——
-    cylinderX(0.72, 0.72, 0, 0.11, 0.14, 0.55, 0.58, 0.62, data, 22, 0.22);
-    cylinderX(0.78, 0.72, 0, 0.06, 0.08, 0.7, 0.72, 0.75, data, 18, 0.25);
-    torusY(0.72, 0.72, 0, 0.095, 0.018, 0.35, 0.38, 0.42, data, 20, 8, 0.2);
-    // opposite side twin
-    cylinderX(0.38, 0.72, 0, 0.11, 0.14, 0.55, 0.58, 0.62, data, 22, 0.22);
-
-    // —— Body tube (finite L) ——
-    const tubeR = 0.115;
-    cylinderY(0, tubeCenterY, 0, tubeR, tubeH, 0.55, 0.72, 0.88, data, 32, true, 0.2);
-    // decorative rings on tube
-    torusY(0, tubeCenterY + tubeH * 0.22, 0, tubeR + 0.005, 0.014, 0.75, 0.82, 0.9, data, 28, 8, 0.25);
-    torusY(0, tubeCenterY - tubeH * 0.18, 0, tubeR + 0.005, 0.014, 0.75, 0.82, 0.9, data, 28, 8, 0.25);
-
-    // —— Binocular Siedentopf head (paired ocular tubes) ——
-    box(0, tubeTopY + 0.06, 0.02, 0.42, 0.1, 0.28, 0.48, 0.52, 0.58, data, 0.14);
-    // prism housing
-    box(0, tubeTopY + 0.14, 0.04, 0.28, 0.12, 0.22, 0.55, 0.58, 0.64, data, 0.16);
-    // left / right ocular tubes (fixed 30° interpupillary look)
-    const eyeTubeY = tubeTopY + 0.28;
-    for (const side of [-1, 1]) {
-      const ex = side * 0.11;
-      const ez = 0.14;
-      cylinderY(ex, eyeTubeY, ez, 0.048, 0.22, 0.62, 0.78, 0.95, data, 22, true, 0.22);
-      frustumY(ex, eyeTubeY + 0.14, ez, 0.055, 0.042, 0.08, 0.12, 0.12, 0.14, data, 18, 0.05);
-      cylinderY(ex, eyeTubeY + 0.2, ez, 0.038, 0.04, 0.08, 0.1, 0.14, data, 16, true, 0.08);
-    }
-
-    // Eyepiece pick chips (clickable 5× / 10× / 15×) — sit above binocular head
-    EYEPIECES.forEach((eye, i) => {
-      const active = eye.id === optics.eye.id;
-      const hovered = hover?.kind === 'eye' && hover.index === i;
-      const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
-      const y = tubeTopY + 0.52;
-      const g = active ? 0.92 : hovered ? 0.78 : 0.48;
-      const rb = active ? 0.38 : hovered ? 0.3 : 0.2;
-      cylinderY(x, y, 0.22, 0.055, 0.07, rb, g, 0.88, data, 16, true, 0.18);
-      if (active || hovered) {
-        torusY(x, y + 0.04, 0.22, 0.07, 0.012, 0.55, 0.92, 1.0, data, 16, 8, 0.3);
-      }
-    });
-
-    // Tube-length dimension line (mechanical L along the body tube)
-    const dimX = -0.28;
-    box(dimX, tubeCenterY, 0, 0.01, tubeH, 0.01, 0.95, 0.85, 0.35, data, 0.05);
-    box(dimX, tubeTopY, 0, 0.1, 0.01, 0.01, 0.95, 0.85, 0.35, data, 0.05);
-    box(dimX, tubeBotY, 0, 0.1, 0.01, 0.01, 0.95, 0.85, 0.35, data, 0.05);
-
-    // —— Revolving nosepiece ——
-    cylinderY(0, turY + 0.05, 0, 0.34, 0.12, 0.28, 0.62, 0.42, data, 36, true, 0.16);
-    torusY(0, turY + 0.11, 0, 0.34, 0.025, 0.4, 0.78, 0.55, data, 36, 10, 0.22);
-    torusY(0, turY + 0.02, 0, 0.28, 0.02, 0.22, 0.5, 0.35, data, 32, 8, 0.15);
-
-    // Objective barrels (tapered, immersion gold band)
-    OBJECTIVES.forEach((obj, i) => {
-      const ang = -Math.PI / 2 + i * (Math.PI / 2);
-      const active = obj.id === optics.obj.id;
-      const hovered = hover?.kind === 'obj' && hover.index === i;
-      const ox = Math.cos(ang) * 0.32;
-      const oz = Math.sin(ang) * 0.32;
-      const len = 0.22 + MagScale(obj.mag) * 0.05;
-      const rTop = active ? 0.048 : 0.042;
-      const rBot = active ? 0.038 : 0.032;
-      const g = active ? 0.88 : hovered ? 0.72 : 0.48;
-      const rb = active ? 0.35 : hovered ? 0.28 : 0.2;
-      frustumY(ox, turY - len / 2 - 0.02, oz, rTop, rBot, len, rb, g, 0.42, data, 22, 0.2);
-      // chrome collar
-      cylinderY(ox, turY - 0.02, oz, rTop + 0.008, 0.04, 0.7, 0.74, 0.78, data, 18, true, 0.25);
-      // DIN mag color ring (4 red / 10 yellow / 40 light-blue / 100 white)
-      const [rr, rg, rbRing] = ObjRingRgb(obj.mag);
-      torusY(ox, turY - len * 0.55, oz, rTop + 0.01, 0.014, rr, rg, rbRing, data, 18, 8, 0.28);
-      if (obj.immersion) {
-        // immersion oil band below the white ID ring
-        torusY(ox, turY - len - 0.01, oz, 0.05, 0.012, 0.92, 0.78, 0.22, data, 16, 8, 0.3);
-      }
-      if (active) {
-        torusY(ox, turY + 0.04, oz, 0.11, 0.016, 0.5, 0.9, 1.0, data, 20, 8, 0.35);
-      } else if (hovered) {
-        torusY(ox, turY + 0.04, oz, 0.105, 0.014, 0.72, 0.92, 1.0, data, 18, 8, 0.3);
-      }
-    });
-
-    // —— Stage + glass slide + clips + aperture ——
-    const objLen = 0.26 + MagScale(mag) * 0.055;
-    const stageY = turY - objLen - 0.18;
-    box(0, stageY, 0, 1.12, 0.055, 0.78, 0.32, 0.34, 0.38, data, 0.1);
-    // stage plate polish ring
-    torusY(0, stageY + 0.03, 0, 0.18, 0.02, 0.18, 0.18, 0.2, data, 28, 8, 0.08);
-    cylinderY(0, stageY + 0.02, 0, 0.14, 0.02, 0.06, 0.06, 0.07, data, 24, true, 0.04);
-    // rectangular glass slide (≈75×25 mm silhouette) + frosted label end
-    box(0, stageY + 0.045, 0.02, 0.72, 0.012, 0.24, 0.72, 0.86, 0.92, data, 0.35);
-    box(-0.28, stageY + 0.05, 0.02, 0.16, 0.014, 0.24, 0.88, 0.86, 0.78, data, 0.12);
-    // cover slip disc over aperture
-    cylinderY(0.06, stageY + 0.055, 0.02, 0.09, 0.006, 0.85, 0.92, 0.95, data, 20, true, 0.4);
-    // specimen clips (spring fingers over slide edges)
-    box(-0.28, stageY + 0.065, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
-    box(0.28, stageY + 0.065, 0.12, 0.22, 0.02, 0.04, 0.75, 0.78, 0.82, data, 0.2);
-    cylinderY(-0.18, stageY + 0.07, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
-    cylinderY(0.18, stageY + 0.07, 0.12, 0.025, 0.04, 0.55, 0.58, 0.62, data, 12, true, 0.15);
-
-    // —— Condenser stack + iris ——
-    frustumY(0, stageY - 0.14, 0, 0.14, 0.1, 0.18, 0.4, 0.43, 0.48, data, 24, 0.14);
-    torusY(0, stageY - 0.2, 0, 0.12, 0.018, 0.55, 0.58, 0.62, data, 24, 8, 0.2);
-    cylinderY(0, stageY - 0.28, 0, 0.08, 0.1, 0.35, 0.38, 0.42, data, 20, true, 0.12);
-
-    // —— Lamp house + collector ——
-    box(0, stageY - 0.42, 0, 0.32, 0.16, 0.32, 0.58, 0.5, 0.28, data, 0.12);
-    cylinderY(0, stageY - 0.34, 0, 0.1, 0.06, 0.95, 0.9, 0.55, data, 20, true, 0.35);
-    // soft glow disc under stage (baked bright)
-    cylinderY(0, stageY - 0.48, 0, 0.2, 0.04, 0.35, 0.32, 0.2, data, 20, true, 0.05);
-
-    oilStageY = stageY + 0.05;
-    oilActive = !!optics.immersion;
-    return new Float32Array(data);
-  }
 
   function hitRadiusPx(mvp, p, width, height) {
     const c = project(mvp, p.x, p.y, p.z, width, height);
@@ -687,10 +383,12 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     if (key !== lastKey) {
-      const mesh = buildMesh(optics, hoverHit);
+      const built = buildMicroscopeSolid(optics, hoverHit, OBJECTIVES, EYEPIECES, objectiveRingColor);
+      oilStageY = built.oilStageY;
+      oilActive = built.oilActive;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
-      vertCount = mesh.length / 6;
+      gl.bufferData(gl.ARRAY_BUFFER, built.data, gl.STATIC_DRAW);
+      vertCount = built.data.length / 6;
       lastKey = key;
     }
 

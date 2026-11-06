@@ -49,3 +49,4 @@ body:
         - label: Reproduced with `npm run test:shell-first-paint` or contract soft list
         - label: Confirmed not a CDN / boot flake
         - label: Will not paint assumption/caveat chrome on stage
+        - label: Before closing — confirm labels soft-paint + contract + bug are still bound

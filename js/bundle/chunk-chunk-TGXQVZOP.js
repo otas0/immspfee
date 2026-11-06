@@ -185,6 +185,8 @@ export {
   velocityVerlet1D,
   OBJECTIVES,
   EYEPIECES,
+  objectiveRingColor,
+  OBJECTIVE_RING_LEGEND,
   opticsFromParams,
   applyTurretDefaults,
   DEFAULT_PARAMS,

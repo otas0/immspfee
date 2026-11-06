@@ -118,7 +118,7 @@ Do **not** invent parallel names (`immspfee-lab`, `webkit-mac`, …) — workflo
 
 **Registration checklist (GHES admin):** Settings → Actions → Runners → each machine must show exactly the label set above (case-sensitive `macOS` / `ARM64` / `x64`). Mirrors of this repo should keep the same tokens so `runs-on` diffs stay empty.
 
-**Screenshot alignment (paste into the mirror’s ops ticket):** open **Settings → Actions → Runners → \<machine\>** and confirm the label chips match one row below before enabling the workflow. Keep a PNG of that runner detail page next to the mirror README (do not invent labels in the screenshot).
+**Screenshot alignment (paste into the mirror’s ops ticket):** open **Settings → Actions → Runners → \<machine\>** and confirm the label chips match [docs/assets/ghes-runner-labels.png](./docs/assets/ghes-runner-labels.png) (canonical chip layout for this tree). Replace that asset with a real GHES runner detail screenshot when available — do not invent extra labels.
 
 ```
 Linux CI box — expected chips:
@@ -129,6 +129,8 @@ Apple Silicon WebKit — expected chips:
 ```
 
 Reject registration if the UI shows `macos-14`, `X64` (wrong case), or a custom `immspfee-lab` token — those will never match `runs-on` in this tree.
+
+Pages Actions (Node 24 runtime): `actions/configure-pages@v6`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v5`.
 
 Example job pin (GHES):
 

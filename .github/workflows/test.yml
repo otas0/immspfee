@@ -171,6 +171,7 @@ jobs:
 
       - name: Comment locale unused keys on PR
         # Always post on PRs so the path is exercised even when unusedCount=0.
+        # Upsert: edit the prior bot comment with the marker instead of stacking.
         if: always() && github.event_name == 'pull_request' && steps.locale_audit.outputs.unused != ''
         continue-on-error: true
         env:
@@ -180,12 +181,23 @@ jobs:
             const j=require('./artifacts/locale-key-audit.json');
             const n=j.unusedCount||0;
             const sample=(j.unused||[]).slice(0,24).map(k=>'- \`'+k+'\`').join('\\n');
+            const marker='<!-- immspfee-locale-audit -->';
             const body = n
-              ? ('### Locale key audit (advisory)\\n\\n\`unusedCount='+n+'\` — not a hard fail.\\n\\n'+sample+'\\n\\n_See \`artifacts/locale-key-audit.json\`._')
-              : ('### Locale key audit (advisory)\\n\\n\`unusedCount=0\` — no static unused candidates.\\n\\n_See \`artifacts/locale-key-audit.json\`._');
+              ? (marker+'\\n### Locale key audit (advisory)\\n\\n\`unusedCount='+n+'\` — not a hard fail.\\n\\n'+sample+'\\n\\n_See \`artifacts/locale-key-audit.json\`._')
+              : (marker+'\\n### Locale key audit (advisory)\\n\\n\`unusedCount=0\` — no static unused candidates.\\n\\n_See \`artifacts/locale-key-audit.json\`._');
             console.log(body);
           ")
-          gh pr comment "${{ github.event.pull_request.number }}" --body "$BODY"
+          PR="${{ github.event.pull_request.number }}"
+          EXISTING=$(gh api "repos/${{ github.repository }}/issues/${PR}/comments" --paginate \
+            --jq '.[]|select(.user.login=="github-actions[bot]" and (.body|contains("immspfee-locale-audit")))|.id' \
+            | head -n1 || true)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/${EXISTING}" -f body="$BODY"
+            echo "Updated locale audit comment $EXISTING"
+          else
+            gh pr comment "$PR" --body "$BODY"
+            echo "Created locale audit comment"
+          fi
 
       - name: Pages network cold-start budget
         if: always()

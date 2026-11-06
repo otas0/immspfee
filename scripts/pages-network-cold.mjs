@@ -99,6 +99,12 @@ const verdict = jsCount >= 20
   ? 'module-waterfall'
   : (json.some((r) => r.size > 400_000) ? 'large-json' : 'bundled-or-cached');
 
+const maxJs = Number(process.env.PAGES_NETWORK_MAX_JS || 5);
+/** Advisory only — compare p95 across BOOT_SAMPLES, not a single cold hit. */
+const advisoryBootMs = Number(process.env.PAGES_NETWORK_ADVISORY_BOOT_MS || 12000);
+const spikeIdx = bootMsList.findIndex((ms) => ms === bootMsP95 || ms > advisoryBootMs);
+const spikeEdge = spikeIdx >= 0 ? (bootEdgeRegions[spikeIdx] || null) : null;
+
 const summary = {
   at: new Date().toISOString(),
   url,
@@ -108,6 +114,8 @@ const summary = {
   bootMsP50,
   bootMsP95,
   bootSamples,
+  advisoryBootMs,
+  spikeEdge: spikeEdge || null,
   marks: lastMarks,
   requestCount: requests.length,
   jsCount,
@@ -122,15 +130,10 @@ fs.writeFileSync(path.join(outDir, 'pages-network-cold.json'), `${JSON.stringify
 fs.writeFileSync(path.join(outDir, 'pages-network-summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
 console.log(JSON.stringify(summary, null, 2));
 
-const maxJs = Number(process.env.PAGES_NETWORK_MAX_JS || 5);
-/** Advisory only — compare p95 across BOOT_SAMPLES, not a single cold hit. */
-const advisoryBootMs = Number(process.env.PAGES_NETWORK_ADVISORY_BOOT_MS || 12000);
 const fail = process.env.PAGES_NETWORK_ASSERT === '1' || process.env.CI === 'true';
 const coldChunks = js.filter((r) => /chunk-(?!factory)/i.test(r.short) && !/glyphRows/i.test(r.short));
 const factoryCold = js.some((r) => /chunk-factory/i.test(r.short));
 if ((bootMsP95 || bootMs) > advisoryBootMs) {
-  const spikeIdx = bootMsList.findIndex((ms) => ms === bootMsP95 || ms > advisoryBootMs);
-  const spikeEdge = spikeIdx >= 0 ? bootEdgeRegions[spikeIdx] : null;
   console.warn(
     `pages-network advisory: bootMsP95 ${bootMsP95} (samples=${bootMsList.join(',')}) > ${advisoryBootMs}`
     + (spikeEdge ? ` edge=${spikeEdge}` : '')
