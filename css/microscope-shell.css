@@ -144,11 +144,23 @@ html.shell-lab-microscope3d .canvas-wrap {
   overflow: hidden;
 }
 
+/* Never let the 2D structure canvas steal hits or paint over WebGL. */
+html.shell-lab-microscope3d #canvas {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 html.shell-lab-microscope3d .canvas-webgl {
   cursor: grab;
   width: 100%;
   height: 100%;
-  display: block;
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  touch-action: none;
+  pointer-events: auto;
 }
 
 html.shell-lab-microscope3d .canvas-webgl:active {

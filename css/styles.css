@@ -414,6 +414,9 @@ html.hc .domain-group .domain-count {
 }
 /* Isolated 3D stage entry — above every domain fold, never inside 物理/光学. */
 .micro3d-strip {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -423,6 +426,7 @@ html.hc .domain-group .domain-count {
   border-radius: var(--radius-sm);
   background:
     linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
 }
 .micro3d-kicker {
   font-family: var(--font-mono);

@@ -19,7 +19,7 @@ already on `main`. Remaining stash hunks would have reintroduced on-stage
 assumption/caveat strips and undone cold-boot folded domains — rejected against
 `AGENTS.md` and `b13c1f5` / `fd779ba`.
 
-## Parallel agent file locks
+## Parallel agent file locks (onboarding)
 
 `uchg` (user immutable) on `index.html` / related files caused
 `Operation not permitted` on unlink/write while two Cursor hosts ran
@@ -38,5 +38,17 @@ chflags nouchg path/to/file
 chflags -R nouchg .
 ```
 
-Also stop a stale lab server via `.lab-server.pid` before starting another
-(`scripts/dev-server.mjs` refuses a second bind on the same PORT).
+### Lab server single-instance
+
+`scripts/dev-server.mjs` writes `.lab-server.pid` (`pid port`). A second
+bind on the same `PORT` exits. Before starting Playwright locally:
+
+```bash
+# if the pid file is stale after a crash
+rm -f .lab-server.pid
+# or stop the live process
+kill "$(awk '{print $1}' .lab-server.pid)"
+```
+
+Do not trap `SIGHUP` to exit the server — agent / nohup launchers send it
+when the parent shell closes and would kill mid-suite.

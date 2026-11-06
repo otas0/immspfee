@@ -86,14 +86,16 @@ export function createMicroscopeChrome(api) {
     if (params) params.textContent = api.t('ui.microBench');
     syncShellPicker(on);
     if (on) {
+      // Keep the rAF paint loop alive for orbit/zoom; sim clock stays paused.
       api.setPaused(true);
       api.syncPauseUi();
       api.setSidebarOpen(false);
       api.setBenchOpen(false);
       stage.ensureDom();
       stage.setVisible(true);
-      // Cold enter keeps the optical rail closed (esp. 390); open via Params.
-      stage.setRailOpen(false);
+      // Narrow: rail closed. Desktop: open so optics knobs are discoverable.
+      const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 720px)').matches;
+      stage.setRailOpen(!narrow);
       stage.paint();
     } else {
       stage.setRailOpen(false);

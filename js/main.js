@@ -1367,8 +1367,13 @@ function ensureWebglStage() {
   if (!webglStage) {
     webglStage = createMicroscopeWebgl(canvasWebgl, {
       onPick: () => {
+        paintFrame({ skipMicroRefresh: true });
         microUi?.refresh();
         updateHud({ flash: true });
+        paramBench.refresh?.();
+      },
+      onViewChange: () => {
+        paintFrame({ skipMicroRefresh: true });
       },
     });
   }

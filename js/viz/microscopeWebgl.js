@@ -1,7 +1,7 @@
 /**
  * Single WebGL stage for the compound microscope (AGENTS: one 3D experience).
  * Reuses js/models/microscopeOptics.js params — no parallel physics.
- * Turret picks share onPointer semantics with the 2D structure sketch.
+ * Drag orbit · wheel zoom · click turret nose-pieces (same semantics as 2D).
  */
 import {
   OBJECTIVES,
@@ -47,7 +47,6 @@ precision mediump float;
 varying vec3 vCol;
 void main(){ gl_FragColor = vec4(vCol, 1.0); }`;
 
-/** Immersion oil disc — pulse driven only by uImmersion + uTime (optics.immersion). */
 const OIL_VS = `
 attribute vec2 aUv;
 uniform mat4 uMVP;
@@ -138,8 +137,32 @@ function box(cx, cy, cz, sx, sy, sz, r, g, b, out) {
   }
 }
 
-/** Flat ring around an objective (hover / selected). */
-function ring(cx, cy, cz, radius, thick, height, r, g, b, out, segs = 20) {
+/** Stacked discs ≈ cylinder along +Y. */
+function cylinderY(cx, cy0, cz, radius, height, r, g, b, out, slices = 10, stacks = 4) {
+  const hy = height / 2;
+  for (let s = 0; s < stacks; s += 1) {
+    const t0 = s / stacks;
+    const t1 = (s + 1) / stacks;
+    const y0 = cy0 - hy + t0 * height;
+    const y1 = cy0 - hy + t1 * height;
+    const midY = (y0 + y1) / 2;
+    const segH = Math.max(height / stacks, 0.01);
+    for (let i = 0; i < slices; i += 1) {
+      const a0 = (i / slices) * Math.PI * 2;
+      const a1 = ((i + 1) / slices) * Math.PI * 2;
+      const x0 = cx + Math.cos(a0) * radius;
+      const z0 = cz + Math.sin(a0) * radius;
+      const x1 = cx + Math.cos(a1) * radius;
+      const z1 = cz + Math.sin(a1) * radius;
+      const mx = (x0 + x1) / 2;
+      const mz = (z0 + z1) / 2;
+      const chord = Math.hypot(x1 - x0, z1 - z0) || radius * 0.4;
+      box(mx, midY, mz, chord, segH, radius * 0.55, r, g, b, out);
+    }
+  }
+}
+
+function ring(cx, cy, cz, radius, thick, height, r, g, b, out, segs = 22) {
   for (let i = 0; i < segs; i += 1) {
     const a0 = (i / segs) * Math.PI * 2;
     const a1 = ((i + 1) / segs) * Math.PI * 2;
@@ -173,7 +196,7 @@ function MagScale(m) {
 
 /**
  * @param {HTMLCanvasElement} canvas
- * @param {{ onPick?: (state: object) => void }} [opts]
+ * @param {{ onPick?: (state: object) => void, onViewChange?: () => void }} [opts]
  */
 export function createMicroscopeWebgl(canvas, opts = {}) {
   const gl = canvas.getContext('webgl', { antialias: true, alpha: false, preserveDrawingBuffer: true });
@@ -200,13 +223,14 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
 
   let lastKey = '';
   let vertCount = 0;
-  let yaw = 0.55;
-  let pitch = 0.42;
+  let yaw = 0.72;
+  let pitch = 0.38;
+  let radius = 3.35;
   let dragging = false;
   let moved = false;
   let lastX = 0;
   let lastY = 0;
-  let autoSpin = 0.12;
+  let autoSpin = 0.08;
   let hits = [];
   let lastView = { width: 1, height: 1 };
   let lastState = null;
@@ -216,62 +240,93 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
 
   function turretWorld(optics) {
     const mag = optics.obj.mag;
-    const tubeH = 1.6 + MagScale(mag) * 0.15;
-    const turY = 0.95 - tubeH / 2 - 0.15;
+    const tubeH = 1.35 + MagScale(mag) * 0.22;
+    const headY = 1.55;
+    const turY = headY - 0.28;
     const pts = [];
     OBJECTIVES.forEach((obj, i) => {
       const ang = -Math.PI / 2 + i * (Math.PI / 2);
       pts.push({
         kind: 'obj',
         index: i,
-        x: Math.cos(ang) * 0.28,
-        y: turY,
-        z: Math.sin(ang) * 0.28,
+        x: Math.cos(ang) * 0.32,
+        y: turY - 0.08,
+        z: Math.sin(ang) * 0.32,
         id: obj.id,
       });
     });
-    return { turY, tubeH, pts };
+    return { turY, tubeH, headY, pts };
   }
 
   function buildMesh(optics, hover) {
     const data = [];
     const mag = optics.obj.mag;
-    const { turY, tubeH } = turretWorld(optics);
-    box(0, 0.05, 0, 1.4, 0.08, 0.8, 0.22, 0.24, 0.28, data);
-    box(0.45, 0.7, 0, 0.12, 1.3, 0.12, 0.32, 0.36, 0.4, data);
-    box(0, 0.95, 0, 0.22, tubeH, 0.22, 0.18, 0.42, 0.58, data);
-    box(0, 0.95 + tubeH / 2 + 0.12, 0, 0.28, 0.18, 0.28, 0.45, 0.72, 0.95, data);
-    box(0, turY, 0, 0.55, 0.12, 0.55, 0.28, 0.62, 0.4, data);
+    const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
+    const { turY, tubeH, headY } = turretWorld(optics);
+
+    // Base plate + feet
+    box(0, 0.04, 0.05, 1.55, 0.08, 0.95, 0.16, 0.18, 0.22, data);
+    box(-0.55, 0.02, 0.28, 0.22, 0.04, 0.22, 0.12, 0.13, 0.15, data);
+    box(0.55, 0.02, 0.28, 0.22, 0.04, 0.22, 0.12, 0.13, 0.15, data);
+    box(0, 0.02, -0.35, 0.28, 0.04, 0.22, 0.12, 0.13, 0.15, data);
+
+    // Arm / pillar
+    cylinderY(0.52, 0.78, 0, 0.075, 1.45, 0.28, 0.32, 0.36, data, 12, 5);
+    box(0.42, 1.35, 0, 0.35, 0.12, 0.18, 0.3, 0.34, 0.38, data);
+
+    // Body tube (finite L scales height)
+    const tubeCenterY = headY + (tubeH * Lscale) / 2 - 0.05;
+    cylinderY(0, tubeCenterY, 0, 0.11, tubeH * Lscale, 0.2, 0.48, 0.62, data, 14, 6);
+    // Eyepiece tube + ocular
+    cylinderY(0, tubeCenterY + tubeH * Lscale / 2 + 0.14, 0, 0.08, 0.28, 0.42, 0.7, 0.92, data, 12, 3);
+    box(0, tubeCenterY + tubeH * Lscale / 2 + 0.3, 0, 0.16, 0.06, 0.16, 0.55, 0.78, 0.95, data);
+
+    // Head / turret disk
+    cylinderY(0, turY + 0.06, 0, 0.3, 0.1, 0.25, 0.55, 0.38, data, 16, 2);
+    ring(0, turY + 0.12, 0, 0.3, 0.03, 0.025, 0.35, 0.7, 0.5, data);
+
+    // Objective nose-pieces
     OBJECTIVES.forEach((obj, i) => {
       const ang = -Math.PI / 2 + i * (Math.PI / 2);
       const active = obj.id === optics.obj.id;
       const hovered = i === hover;
-      const ox = Math.cos(ang) * 0.28;
-      const oz = Math.sin(ang) * 0.28;
-      const len = 0.18 + MagScale(obj.mag) * 0.03;
-      const g = active ? 0.9 : hovered ? 0.75 : 0.55;
-      const rb = active ? 0.35 : hovered ? 0.28 : 0.2;
-      box(ox, turY - len / 2 - 0.02, oz, 0.08, len, 0.08, rb, g, 0.42, data);
+      const ox = Math.cos(ang) * 0.32;
+      const oz = Math.sin(ang) * 0.32;
+      const len = 0.2 + MagScale(obj.mag) * 0.045;
+      const taper = active ? 0.055 : 0.045;
+      const g = active ? 0.92 : hovered ? 0.78 : 0.5;
+      const rb = active ? 0.4 : hovered ? 0.3 : 0.18;
+      cylinderY(ox, turY - len / 2 - 0.02, oz, taper, len, rb, g, 0.45, data, 10, 3);
+      if (obj.immersion) {
+        ring(ox, turY - len - 0.02, oz, 0.06, 0.02, 0.015, 0.9, 0.75, 0.2, data, 12);
+      }
       if (active) {
-        ring(ox, turY + 0.02, oz, 0.11, 0.025, 0.02, 0.45, 0.85, 1.0, data);
+        ring(ox, turY + 0.03, oz, 0.12, 0.028, 0.022, 0.45, 0.88, 1.0, data);
       } else if (hovered) {
-        ring(ox, turY + 0.02, oz, 0.105, 0.02, 0.016, 0.7, 0.88, 1.0, data);
+        ring(ox, turY + 0.03, oz, 0.115, 0.022, 0.018, 0.72, 0.9, 1.0, data);
       }
     });
-    const objLen = 0.22 + MagScale(mag) * 0.04;
-    const stageY = turY - objLen - 0.16;
-    box(0, stageY, 0, 0.95, 0.05, 0.62, 0.3, 0.32, 0.36, data);
-    oilStageY = stageY + 0.045;
+
+    // Stage + aperture
+    const objLen = 0.24 + MagScale(mag) * 0.05;
+    const stageY = turY - objLen - 0.2;
+    box(0, stageY, 0, 1.05, 0.06, 0.72, 0.26, 0.28, 0.32, data);
+    ring(0, stageY + 0.04, 0, 0.16, 0.03, 0.02, 0.12, 0.12, 0.14, data, 16);
+    // Condenser + lamp house
+    cylinderY(0, stageY - 0.18, 0, 0.12, 0.22, 0.35, 0.38, 0.42, data, 10, 3);
+    box(0, stageY - 0.38, 0, 0.28, 0.14, 0.28, 0.55, 0.48, 0.22, data);
+
+    oilStageY = stageY + 0.05;
     oilActive = !!optics.immersion;
     return new Float32Array(data);
   }
 
   function hitRadiusPx(mvp, p, width, height) {
     const c = project(mvp, p.x, p.y, p.z, width, height);
-    const e = project(mvp, p.x + 0.12, p.y, p.z, width, height);
-    if (!c || !e) return 32;
+    const e = project(mvp, p.x + 0.14, p.y, p.z, width, height);
+    if (!c || !e) return 36;
     const r = Math.hypot(e.x - c.x, e.y - c.y);
-    return Math.max(26, Math.min(52, r * 1.35));
+    return Math.max(30, Math.min(58, r * 1.45));
   }
 
   function rebuildHits(mvp, width, height, optics) {
@@ -320,21 +375,24 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   }
 
   const onDown = (ev) => {
+    ev.preventDefault();
     dragging = true;
     moved = false;
     autoSpin = 0;
     lastX = ev.clientX;
     lastY = ev.clientY;
+    try { canvas.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
   };
   const onMove = (ev) => {
     if (dragging) {
       const dx = ev.clientX - lastX;
       const dy = ev.clientY - lastY;
-      if (Math.hypot(dx, dy) > 4) moved = true;
+      if (Math.hypot(dx, dy) > 3) moved = true;
       lastX = ev.clientX;
       lastY = ev.clientY;
-      yaw += dx * 0.005;
-      pitch = Math.max(0.12, Math.min(1.15, pitch + dy * 0.004));
+      yaw += dx * 0.006;
+      pitch = Math.max(0.08, Math.min(1.25, pitch + dy * 0.005));
+      opts.onViewChange?.();
       return;
     }
     const hit = pickAt(ev.clientX, ev.clientY);
@@ -343,11 +401,13 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       hoverIndex = next;
       lastKey = '';
       canvas.style.cursor = next >= 0 ? 'pointer' : 'grab';
+      opts.onViewChange?.();
     }
   };
   const onUp = (ev) => {
     if (!dragging) return;
     dragging = false;
+    try { canvas.releasePointerCapture(ev.pointerId); } catch { /* ignore */ }
     if (!moved) {
       const hit = pickAt(ev.clientX, ev.clientY);
       if (hit) applyHit(hit);
@@ -359,19 +419,30 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       hoverIndex = -1;
       lastKey = '';
       canvas.style.cursor = 'grab';
+      opts.onViewChange?.();
     }
   };
+  const onWheel = (ev) => {
+    ev.preventDefault();
+    autoSpin = 0;
+    const next = radius + Math.sign(ev.deltaY) * 0.18;
+    radius = Math.max(1.8, Math.min(5.5, next));
+    opts.onViewChange?.();
+  };
+
+  canvas.style.touchAction = 'none';
   canvas.addEventListener('pointerdown', onDown);
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointerleave', onLeave);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
 
   function drawScene(state, view) {
     lastState = state;
     lastView = { width: view.width, height: view.height };
     const optics = opticsFromParams(state.params || {});
     const tSec = performance.now() * 0.001;
-    const key = `${optics.obj.id}:${optics.eye.id}:${optics.immersion}:${hoverIndex}:${view.width}x${view.height}`;
+    const key = `${optics.obj.id}:${optics.eye.id}:${optics.Lmm}:${optics.immersion}:${optics.lambdaNm}:${hoverIndex}:${view.width}x${view.height}`;
     const dpr = Math.min(window.devicePixelRatio || 1, Number(document.documentElement.dataset.dprCap) || 3);
     const bw = Math.max(1, Math.floor(view.width * dpr));
     const bh = Math.max(1, Math.floor(view.height * dpr));
@@ -396,13 +467,12 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
 
     if (!dragging && autoSpin) yaw += autoSpin * 0.016;
 
-    const radius = 3.05;
     const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
-    const ey = Math.sin(pitch) * radius + 0.35;
+    const ey = Math.sin(pitch) * radius + 0.4;
     const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
     const aspect = view.width / Math.max(view.height, 1);
-    const proj = perspective(38, aspect, 0.1, 20);
-    const viewM = lookAt(ex, ey, ez, 0, 0.72, 0, 0, 1, 0);
+    const proj = perspective(36, aspect, 0.1, 24);
+    const viewM = lookAt(ex, ey, ez, 0, 0.85, 0, 0, 1, 0);
     const mvp = multiply(proj, viewM);
     rebuildHits(mvp, view.width, view.height, optics);
 
@@ -422,7 +492,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       gl.useProgram(oilProg);
       gl.uniformMatrix4fv(oilUMVP, false, mvp);
       gl.uniform3f(oilUCenter, 0, oilStageY, 0);
-      gl.uniform1f(oilUScale, 0.34);
+      gl.uniform1f(oilUScale, 0.36);
       gl.uniform1f(oilUTime, tSec);
       gl.uniform1f(oilUImm, 1);
       gl.bindBuffer(gl.ARRAY_BUFFER, oilBuf);
@@ -439,7 +509,6 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     draw(state, view) {
       drawScene(state, view);
     },
-    /** Force one preserved frame then return a PNG data URL (no black exports). */
     capturePng(state, view) {
       drawScene(state, view);
       gl.finish();
@@ -454,6 +523,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onLeave);
+      canvas.removeEventListener('wheel', onWheel);
       gl.deleteBuffer(buf);
       gl.deleteBuffer(oilBuf);
       gl.deleteProgram(prog);

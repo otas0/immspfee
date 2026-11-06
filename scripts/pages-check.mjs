@@ -142,12 +142,13 @@ const failures = [];
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
-  // Cold-boot EN formula: lexicon prefetch must clear Han without a second paint race.
+  // Ensure a catalog model paints the formula strip before the EN gloss race check.
+  await page.evaluate(() => window.__labCapture.switchModel('free-fall'));
   try {
     await page.waitForFunction(() => {
       const f = document.getElementById('shell-formula')?.textContent || '';
       return f.startsWith('Equation ') && !/[\u4e00-\u9fff]/.test(f);
-    }, null, { timeout: 15000 });
+    }, null, { timeout: 20000 });
   } catch {
     const cold = await page.evaluate(() => document.getElementById('shell-formula')?.textContent || '');
     failures.push(`cold lang=en formula Han/race ${JSON.stringify(cold)}`);

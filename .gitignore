@@ -14,3 +14,8 @@ js/bundle/*
 .lab-server.pid
 scripts/.narrow-regression.mjs.*
 scripts/narrow-batch.mjs
+
+# prepare-site local scratch (Pages regenerates into _site)
+data/domains/
+data/domain-index.json
+docs/assets/
