@@ -391,7 +391,34 @@ function sanitizeSimState(state) {
   return { ok: !bad.length, bad };
 }
 
-function applyParamChange(key) {
+let lastAppliedParam = { key: '', value: undefined, at: 0 };
+let paramApplyRaf = 0;
+let paramApplyPendingKey = null;
+
+function applyParamChange(key, opts = {}) {
+  const immediate = !!opts.immediate;
+  const nextVal = app.state?.params?.[key];
+  const scrubbingLive = scrubResume === null && !shouldReinitModel(key);
+  if (
+    key
+    && lastAppliedParam.key === key
+    && Object.is(lastAppliedParam.value, nextVal)
+    && (performance.now() - lastAppliedParam.at) < 32
+  ) {
+    return;
+  }
+  if (!immediate && !shouldReinitModel(key)) {
+    paramApplyPendingKey = key;
+    if (paramApplyRaf) return;
+    paramApplyRaf = requestAnimationFrame(() => {
+      paramApplyRaf = 0;
+      const k = paramApplyPendingKey;
+      paramApplyPendingKey = null;
+      if (k) applyParamChange(k, { immediate: true });
+    });
+    return;
+  }
+  lastAppliedParam = { key, value: nextVal, at: performance.now() };
   const reinit = shouldReinitModel(key);
   if (reinit) {
     stepper.reset();
@@ -401,11 +428,11 @@ function applyParamChange(key) {
     if (key === 'layoutSteps') showToast(t('toast.layoutRelayout'));
     else toastReinitThrottled();
   }
-  // 死规则：改参后立即 refresh，保证 HUD/图在暂停时也立刻响应
+  // Live: refresh/recompute. Avoid step(dt=0) spam — the integrator applies dynamics while scrubbing live.
   try {
     if (typeof app.model.refresh === 'function') app.model.refresh(app.state);
     else if (typeof app.model.recompute === 'function') app.model.recompute(app.state);
-    else if (typeof app.model.step === 'function') app.model.step(app.state, 0);
+    else if (reinit && typeof app.model.step === 'function') app.model.step(app.state, 0);
   } catch (err) {
     console.warn('refresh after param', err);
     showToast(t('toast.paramFail', { key }));
@@ -426,7 +453,7 @@ function applyParamChange(key) {
   }
   syncModelClockPause();
   paintFrame();
-  updateHud({ flash: true });
+  updateHud({ flash: !scrubbingLive });
 }
 
 function setSafeRestoreVisible(on) {
@@ -756,7 +783,9 @@ const paramBench = createParamBench(paramRoot, {
   onGlobalsChange: () => applyGlobals(),
   onLayoutChange: () => measureSysSticky(),
   onToast: showToast,
-  onScrubStart: () => {
+  onScrubStart: (opts = {}) => {
+    // Live dynamics/display keep integrating while dragging; globals + reinit still pause.
+    if (opts.pause === false) return;
     if (scrubResume !== null) return;
     scrubResume = app.paused;
     if (!app.paused) {
@@ -2025,33 +2054,46 @@ function setNamesLoading(on) {
   }
 }
 
-async function refreshSidebar() {
+async function refreshSidebar(signal) {
   const q = app.filter.q.trim();
+  if (signal?.aborted) return;
   if (q) {
     setNamesLoading(true);
-    try { await ensureDomainNames(); } catch { /* ignore */ }
+    try {
+      await ensureDomainNames(signal);
+    } catch (err) {
+      if (err?.name === 'AbortError' || signal?.aborted) return;
+    }
   }
+  if (signal?.aborted) return;
   try {
     if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
       await loadIndex();
+      if (signal?.aborted) return;
       const domains = domainsForFilter();
       await Promise.all(domains.map((domain) => loadDomain(domain)));
     }
   } finally {
-    setNamesLoading(false);
+    if (!signal?.aborted) setNamesLoading(false);
   }
+  if (signal?.aborted) return;
   buildSidebar();
 }
 
 /** Debounce catalog search so domain-names / domain loads are not fired per keystroke. */
 let sidebarRefreshTimer = 0;
-const SIDEBAR_SEARCH_DEBOUNCE_MS = 160;
+/** @type {AbortController|null} */
+let sidebarSearchAbort = null;
+const SIDEBAR_SEARCH_DEBOUNCE_MS = 200;
 filterQ.addEventListener('input', () => {
   app.filter.q = filterQ.value;
   if (app.filter.q.trim()) setNamesLoading(true);
   else setNamesLoading(false);
   clearTimeout(sidebarRefreshTimer);
-  sidebarRefreshTimer = setTimeout(() => { void refreshSidebar(); }, SIDEBAR_SEARCH_DEBOUNCE_MS);
+  sidebarSearchAbort?.abort();
+  const ac = new AbortController();
+  sidebarSearchAbort = ac;
+  sidebarRefreshTimer = setTimeout(() => { void refreshSidebar(ac.signal); }, SIDEBAR_SEARCH_DEBOUNCE_MS);
 });
 filterTag.addEventListener('change', () => {
   app.filter.tag = filterTag.value;

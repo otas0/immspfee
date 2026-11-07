@@ -645,9 +645,11 @@ if (escLeft.inputMode !== 'lab') fail(`inputMode after Esc exit ${escLeft.inputM
 // re-enter for remaining tests
 await desk.evaluate(() => window.__labCapture.enterMicroscope3d());
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
+const meshKeyApi = await desk.evaluate(() => typeof window.__labCapture.getWebglStage?.()?.getMeshDynamicKey);
+if (meshKeyApi !== 'function') fail(`getMeshDynamicKey runtime ${meshKeyApi}`);
+console.log('getMeshDynamicKey ok');
 
-await desk.keyboard.press('Meta+z');
-await desk.keyboard.press('Control+z');
+await desk.keyboard.press('Meta+z');await desk.keyboard.press('Control+z');
 const afterUndo = await desk.evaluate(() => ({
   toast: document.getElementById('lab-toast')?.textContent || '',
   sideOpen: document.getElementById('sidebar')?.classList.contains('open') || false,

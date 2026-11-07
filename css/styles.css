@@ -1082,6 +1082,13 @@ html.hc .btn.primary {
   border-color: rgba(255, 255, 255, 0.5);
   color: var(--phosphor);
 }
+/* After .btn.quiet so OLED shell actions keep phosphor on the black strip. */
+.shell-actions .btn,
+.shell-actions .btn.quiet {
+  color: var(--phosphor);
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+}
 .btn.ghost { display: none; }
 .btn.ghost-always {
   display: inline-flex;
@@ -1906,7 +1913,23 @@ html.shell-lab-projector body.drawer-open .toolbar,
     position: relative;
     z-index: 32;
   }
-  .toolbar-title-block { min-width: 0; }
+  .toolbar-title-block {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .toolbar-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .toolbar-actions {
+    flex-shrink: 0;
+  }
+  .toolbar .btn .lbl { display: none; }
+  .filters .field-shell,
+  .filters .field-locale {
+    display: none;
+  }
   .baseline-tools {
     flex-wrap: wrap;
     max-width: 100%;
@@ -2034,8 +2057,9 @@ body.drawer-open {
 
 @media (max-width: 560px) {
   :root { --tb-icon-box: 44px; }
-  .btn .lbl { display: none; }
-  .btn {
+  /* Icon-box only for the stage toolbar — never crush bench / shell / preset labels. */
+  .toolbar .btn .lbl { display: none; }
+  .toolbar .btn {
     padding: 0;
     width: var(--tb-icon-box);
     height: var(--tb-icon-box);
@@ -2044,8 +2068,9 @@ body.drawer-open {
     align-items: center;
     justify-content: center;
     line-height: 0;
+    border-color: var(--ink);
   }
-  .btn.ghost-always {
+  .toolbar .btn.ghost-always {
     width: var(--tb-icon-box);
     height: var(--tb-icon-box);
     min-width: var(--tb-icon-box);
@@ -2055,10 +2080,10 @@ body.drawer-open {
     justify-content: center;
     line-height: 0;
   }
-  .btn.ghost-always .lbl { display: none; }
+  .toolbar .btn.ghost-always .lbl { display: none; }
   .speed-control span:first-child { display: none; }
-  .icon-btn,
-  .icon-btn.ghost {
+  .toolbar .icon-btn,
+  .toolbar .icon-btn.ghost {
     display: inline-flex;
     width: var(--tb-icon-box);
     height: var(--tb-icon-box);
@@ -2066,6 +2091,7 @@ body.drawer-open {
     min-height: var(--tb-icon-box);
     align-items: center;
     justify-content: center;
+    border-color: var(--ink);
   }
   .hud {
     max-height: none;

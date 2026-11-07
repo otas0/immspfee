@@ -3458,17 +3458,24 @@ function loadIndex() {
   }
   return indexPromise;
 }
-function ensureDomainNames() {
+function ensureDomainNames(signal) {
   if (domainNames) {
     applyNames(domainNames);
     return Promise.resolve(domainNames);
   }
+  if (signal?.aborted) {
+    const err = new Error("Aborted");
+    err.name = "AbortError";
+    return Promise.reject(err);
+  }
   if (!namesPromise) {
-    namesPromise = fetch(endpoint("data/domain-names.json")).then((res) => res.ok ? res.json() : []).then((names) => {
+    namesPromise = fetch(endpoint("data/domain-names.json"), signal ? { signal } : void 0).then((res) => res.ok ? res.json() : []).then((names) => {
       domainNames = Array.isArray(names) ? names : [];
       applyNames(domainNames);
       return domainNames;
-    }).catch(() => {
+    }).catch((err) => {
+      namesPromise = null;
+      if (err?.name === "AbortError") throw err;
       domainNames = domainNames || [];
       return domainNames;
     });
@@ -4069,6 +4076,7 @@ function createParamBench(root, hooks = {}) {
               item.value = clamped;
             }
           }
+          const liveScrub = applyGroup === "dynamics" || applyGroup === "display" || applyGroup === "custom";
           const row = numberRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             unit: item.schema?.unit || inferUnit(item.key),
@@ -4079,6 +4087,7 @@ function createParamBench(root, hooks = {}) {
             commitMin,
             commitMax,
             wide,
+            integer: !!item.schema?.integer,
             onCommit: (v) => {
               const next = clampNumber(v, commitMin, commitMax);
               if (next !== v) toastClamp(item.key, v, next);
@@ -4086,7 +4095,7 @@ function createParamBench(root, hooks = {}) {
             },
             removable: !builtins.has(item.key),
             onRemove: () => removeParam(item.key),
-            onScrubStart,
+            onScrubStart: liveScrub ? () => onScrubStart?.({ pause: false }) : onScrubStart,
             onScrubEnd
           });
           markApplyMode(row, applyGroup);
@@ -4496,7 +4505,12 @@ function createPot({
     max
   );
   const span = Math.max(max - min, Number.EPSILON);
+  const dragStep = integer ? 1 : Math.max(span / 200, 1e-9);
   let scrubbing = false;
+  let rangeActive = false;
+  let lastSent = value;
+  let changeRaf = 0;
+  let pendingAnnounce = null;
   const beginScrub = () => {
     if (scrubbing) return;
     scrubbing = true;
@@ -4505,6 +4519,15 @@ function createPot({
   const endScrub = () => {
     if (!scrubbing) return;
     scrubbing = false;
+    if (changeRaf) {
+      cancelAnimationFrame(changeRaf);
+      changeRaf = 0;
+      if (pendingAnnounce != null) {
+        lastSent = pendingAnnounce;
+        onChange?.(pendingAnnounce);
+        pendingAnnounce = null;
+      }
+    }
     onScrubEnd?.();
   };
   const angFromVal = (v) => {
@@ -4519,18 +4542,34 @@ function createPot({
     dial.style.setProperty("--fill", fillFromVal(value));
     knob.style.setProperty("--ang", `${angFromVal(value)}deg`);
     dial.setAttribute("aria-valuenow", String(value));
-    range.value = String(value);
-    const step = niceStep(value, false);
-    stepHint.textContent = `\xB1${formatParamNumber(step)}`;
+    if (!rangeActive) range.value = String(value);
+    stepHint.textContent = `\xB1${formatParamNumber(dragStep)}`;
+  };
+  const flushAnnounce = (v) => {
+    if (Object.is(v, lastSent)) return;
+    lastSent = v;
+    onChange?.(v);
   };
   const applyValue = (raw, announce = true) => {
     let v = clampNumber(raw, min, max);
     if (integer) v = Math.round(v);
-    else v = roundToStep(v, niceStep(v, false));
+    else v = roundToStep(v, dragStep);
     v = clampNumber(v, min, max);
     value = v;
     paint();
-    if (announce) onChange?.(value);
+    if (!announce) return;
+    if (!scrubbing) {
+      flushAnnounce(v);
+      return;
+    }
+    pendingAnnounce = v;
+    if (changeRaf) return;
+    changeRaf = requestAnimationFrame(() => {
+      changeRaf = 0;
+      const next = pendingAnnounce;
+      pendingAnnounce = null;
+      if (next != null) flushAnnounce(next);
+    });
   };
   const flashReset = () => {
     dial.classList.remove("pot-reset-flash");
@@ -4578,11 +4617,24 @@ function createPot({
     applyValue(resetTo);
     flashReset();
   });
-  range.addEventListener("pointerdown", beginScrub);
-  range.addEventListener("pointerup", endScrub);
-  range.addEventListener("pointercancel", endScrub);
-  range.addEventListener("change", endScrub);
+  range.addEventListener("pointerdown", () => {
+    rangeActive = true;
+    beginScrub();
+  });
+  range.addEventListener("pointerup", () => {
+    rangeActive = false;
+    endScrub();
+  });
+  range.addEventListener("pointercancel", () => {
+    rangeActive = false;
+    endScrub();
+  });
+  range.addEventListener("change", () => {
+    rangeActive = false;
+    endScrub();
+  });
   range.addEventListener("input", () => {
+    rangeActive = true;
     beginScrub();
     applyValue(Number(range.value));
   });
@@ -6130,7 +6182,28 @@ function sanitizeSimState(state) {
   walk(state, "");
   return { ok: !bad.length, bad };
 }
-function applyParamChange(key) {
+var lastAppliedParam = { key: "", value: void 0, at: 0 };
+var paramApplyRaf = 0;
+var paramApplyPendingKey = null;
+function applyParamChange(key, opts = {}) {
+  const immediate = !!opts.immediate;
+  const nextVal = app.state?.params?.[key];
+  const scrubbingLive = scrubResume === null && !shouldReinitModel(key);
+  if (key && lastAppliedParam.key === key && Object.is(lastAppliedParam.value, nextVal) && performance.now() - lastAppliedParam.at < 32) {
+    return;
+  }
+  if (!immediate && !shouldReinitModel(key)) {
+    paramApplyPendingKey = key;
+    if (paramApplyRaf) return;
+    paramApplyRaf = requestAnimationFrame(() => {
+      paramApplyRaf = 0;
+      const k = paramApplyPendingKey;
+      paramApplyPendingKey = null;
+      if (k) applyParamChange(k, { immediate: true });
+    });
+    return;
+  }
+  lastAppliedParam = { key, value: nextVal, at: performance.now() };
   const reinit = shouldReinitModel(key);
   if (reinit) {
     stepper.reset();
@@ -6143,7 +6216,7 @@ function applyParamChange(key) {
   try {
     if (typeof app.model.refresh === "function") app.model.refresh(app.state);
     else if (typeof app.model.recompute === "function") app.model.recompute(app.state);
-    else if (typeof app.model.step === "function") app.model.step(app.state, 0);
+    else if (reinit && typeof app.model.step === "function") app.model.step(app.state, 0);
   } catch (err) {
     console.warn("refresh after param", err);
     showToast(t("toast.paramFail", { key }));
@@ -6164,7 +6237,7 @@ function applyParamChange(key) {
   }
   syncModelClockPause();
   paintFrame();
-  updateHud({ flash: true });
+  updateHud({ flash: !scrubbingLive });
 }
 function setSafeRestoreVisible(on) {
   if (!btnSafeRestore) return;
@@ -6482,7 +6555,8 @@ var paramBench = createParamBench(paramRoot, {
   onGlobalsChange: () => applyGlobals(),
   onLayoutChange: () => measureSysSticky(),
   onToast: showToast,
-  onScrubStart: () => {
+  onScrubStart: (opts = {}) => {
+    if (opts.pause === false) return;
     if (scrubResume !== null) return;
     scrubResume = app.paused;
     if (!app.paused) {
@@ -7673,35 +7747,44 @@ function setNamesLoading(on) {
     if (filters) delete filters.dataset.namesLoading;
   }
 }
-async function refreshSidebar() {
+async function refreshSidebar(signal) {
   const q = app.filter.q.trim();
+  if (signal?.aborted) return;
   if (q) {
     setNamesLoading(true);
     try {
-      await ensureDomainNames();
-    } catch {
+      await ensureDomainNames(signal);
+    } catch (err) {
+      if (err?.name === "AbortError" || signal?.aborted) return;
     }
   }
+  if (signal?.aborted) return;
   try {
     if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
       await loadIndex();
+      if (signal?.aborted) return;
       const domains = domainsForFilter();
       await Promise.all(domains.map((domain) => loadDomain(domain)));
     }
   } finally {
-    setNamesLoading(false);
+    if (!signal?.aborted) setNamesLoading(false);
   }
+  if (signal?.aborted) return;
   buildSidebar();
 }
 var sidebarRefreshTimer = 0;
-var SIDEBAR_SEARCH_DEBOUNCE_MS = 160;
+var sidebarSearchAbort = null;
+var SIDEBAR_SEARCH_DEBOUNCE_MS = 200;
 filterQ.addEventListener("input", () => {
   app.filter.q = filterQ.value;
   if (app.filter.q.trim()) setNamesLoading(true);
   else setNamesLoading(false);
   clearTimeout(sidebarRefreshTimer);
+  sidebarSearchAbort?.abort();
+  const ac = new AbortController();
+  sidebarSearchAbort = ac;
   sidebarRefreshTimer = setTimeout(() => {
-    void refreshSidebar();
+    void refreshSidebar(ac.signal);
   }, SIDEBAR_SEARCH_DEBOUNCE_MS);
 });
 filterTag.addEventListener("change", () => {

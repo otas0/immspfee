@@ -54,19 +54,19 @@ async function measure(label, url, viewport = { width: 1280, height: 800 }) {
 }
 
 try {
-  const root = base.replace(/\/?$/, '/');
+  const origin = base.replace(/\/?$/, '/');
   const micro = await measure(
     'microscope3d',
-    `${root}?shell=lab-microscope3d&lang=en&_=${Date.now()}`,
+    `${origin}?shell=lab-microscope3d&lang=en&_=${Date.now()}`,
   );
   const projectorR016 = await measure(
     'projector-r016',
-    `${root}?shell=lab-projector&lang=en&m=${encodeURIComponent('r016-显微镜')}&_=${Date.now()}`,
+    `${origin}?shell=lab-projector&lang=en&m=${encodeURIComponent('r016-显微镜')}&_=${Date.now()}`,
   );
   // Same WebGL mesh under a classroom projector viewport (1920×1080).
   const microProjectorViewport = await measure(
     'microscope3d-projector-viewport',
-    `${root}?shell=lab-microscope3d&lang=en&_=${Date.now()}`,
+    `${origin}?shell=lab-microscope3d&lang=en&_=${Date.now()}`,
     { width: 1920, height: 1080 },
   );
   console.log('FPS advisory tess: phone microTess 0.55 / tablet 0.72 (contract: test:micro-camera @390)');
@@ -79,10 +79,13 @@ try {
     microProjectorViewportFps: Number(microProjectorViewport.fps.toFixed(1)),
     belowGate: !(micro.fps > minFps) || !(microProjectorViewport.fps > minFps),
   };
-  const dir = path.join(root, 'artifacts');
+  // Always write under repo `artifacts/` (cwd), never under a URL-shaped path.
+  const dir = path.join(process.cwd(), 'artifacts');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, 'micro-fps-advisory.json'), `${JSON.stringify(advisory, null, 2)}\n`);
+  const outFile = path.join(dir, 'micro-fps-advisory.json');
+  writeFileSync(outFile, `${JSON.stringify(advisory, null, 2)}\n`);
   console.log('micro-fps-advisory', JSON.stringify(advisory));
+  console.log('micro-fps-advisory-path', outFile);
   if (advisory.belowGate) {
     console.warn('ADVISORY microscope 1280 FPS below soft gate (does not fail CI)', {
       fps: micro.fps,

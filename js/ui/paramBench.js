@@ -251,6 +251,7 @@ export function createParamBench(root, hooks = {}) {
               item.value = clamped;
             }
           }
+          const liveScrub = applyGroup === 'dynamics' || applyGroup === 'display' || applyGroup === 'custom';
           const row = numberRow(item.key, item.value, {
             label: item.schema?.label || item.key,
             unit: item.schema?.unit || inferUnit(item.key),
@@ -261,6 +262,7 @@ export function createParamBench(root, hooks = {}) {
             commitMin,
             commitMax,
             wide,
+            integer: !!item.schema?.integer,
             onCommit: (v) => {
               const next = clampNumber(v, commitMin, commitMax);
               if (next !== v) toastClamp(item.key, v, next);
@@ -268,7 +270,7 @@ export function createParamBench(root, hooks = {}) {
             },
             removable: !builtins.has(item.key),
             onRemove: () => removeParam(item.key),
-            onScrubStart,
+            onScrubStart: liveScrub ? () => onScrubStart?.({ pause: false }) : onScrubStart,
             onScrubEnd,
           });
           markApplyMode(row, applyGroup);
@@ -688,7 +690,12 @@ function createPot({
     max,
   );
   const span = Math.max(max - min, Number.EPSILON);
+  const dragStep = integer ? 1 : Math.max(span / 200, 1e-9);
   let scrubbing = false;
+  let rangeActive = false;
+  let lastSent = value;
+  let changeRaf = 0;
+  let pendingAnnounce = null;
 
   const beginScrub = () => {
     if (scrubbing) return;
@@ -698,6 +705,16 @@ function createPot({
   const endScrub = () => {
     if (!scrubbing) return;
     scrubbing = false;
+    // Flush coalesced change before resume so the last sample sticks.
+    if (changeRaf) {
+      cancelAnimationFrame(changeRaf);
+      changeRaf = 0;
+      if (pendingAnnounce != null) {
+        lastSent = pendingAnnounce;
+        onChange?.(pendingAnnounce);
+        pendingAnnounce = null;
+      }
+    }
     onScrubEnd?.();
   };
 
@@ -714,19 +731,36 @@ function createPot({
     dial.style.setProperty('--fill', fillFromVal(value));
     knob.style.setProperty('--ang', `${angFromVal(value)}deg`);
     dial.setAttribute('aria-valuenow', String(value));
-    range.value = String(value);
-    const step = niceStep(value, false);
-    stepHint.textContent = `±${formatParamNumber(step)}`;
+    if (!rangeActive) range.value = String(value);
+    stepHint.textContent = `±${formatParamNumber(dragStep)}`;
+  };
+
+  const flushAnnounce = (v) => {
+    if (Object.is(v, lastSent)) return;
+    lastSent = v;
+    onChange?.(v);
   };
 
   const applyValue = (raw, announce = true) => {
     let v = clampNumber(raw, min, max);
     if (integer) v = Math.round(v);
-    else v = roundToStep(v, niceStep(v, false));
+    else v = roundToStep(v, dragStep);
     v = clampNumber(v, min, max);
     value = v;
     paint();
-    if (announce) onChange?.(value);
+    if (!announce) return;
+    if (!scrubbing) {
+      flushAnnounce(v);
+      return;
+    }
+    pendingAnnounce = v;
+    if (changeRaf) return;
+    changeRaf = requestAnimationFrame(() => {
+      changeRaf = 0;
+      const next = pendingAnnounce;
+      pendingAnnounce = null;
+      if (next != null) flushAnnounce(next);
+    });
   };
 
   const flashReset = () => {
@@ -781,11 +815,12 @@ function createPot({
     flashReset();
   });
 
-  range.addEventListener('pointerdown', beginScrub);
-  range.addEventListener('pointerup', endScrub);
-  range.addEventListener('pointercancel', endScrub);
-  range.addEventListener('change', endScrub);
+  range.addEventListener('pointerdown', () => { rangeActive = true; beginScrub(); });
+  range.addEventListener('pointerup', () => { rangeActive = false; endScrub(); });
+  range.addEventListener('pointercancel', () => { rangeActive = false; endScrub(); });
+  range.addEventListener('change', () => { rangeActive = false; endScrub(); });
   range.addEventListener('input', () => {
+    rangeActive = true;
     beginScrub();
     applyValue(Number(range.value));
   });
