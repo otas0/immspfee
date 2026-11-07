@@ -3454,8 +3454,14 @@ function mark(name) {
   } catch {
   }
 }
-function loadIndex() {
+function abortError() {
+  const err = new Error("Aborted");
+  err.name = "AbortError";
+  return err;
+}
+function loadIndex(signal) {
   if (domainIndex.length) return Promise.resolve(domainIndex);
+  if (signal?.aborted) return Promise.reject(abortError());
   if (!indexPromise) {
     mark("boot-loadIndex-start");
     indexPromise = Promise.resolve(window.__preloadedIndex || null).then(async (preloaded) => {
@@ -3471,7 +3477,11 @@ function loadIndex() {
       return domainIndex;
     });
   }
-  return indexPromise;
+  if (!signal) return indexPromise;
+  return indexPromise.then((rows) => {
+    if (signal.aborted) throw abortError();
+    return rows;
+  });
 }
 function ensureDomainNames(signal) {
   if (domainNames) {
@@ -3541,11 +3551,6 @@ async function mergeSpecs(domain, specs) {
   }
   appendOrphans();
   await appendUsers();
-}
-function abortError() {
-  const err = new Error("Aborted");
-  err.name = "AbortError";
-  return err;
 }
 function loadDomain(domain, signal) {
   if (!domain) return Promise.resolve(models);
@@ -4996,7 +5001,61 @@ var PHRASE_TABLE = [
   ["\u903B\u8F91", "logic", "\u8AD6\u7406", "\uB17C\uB9AC", "l\xF3gica", "logique", "Logik"],
   ["\u5361\u8BFA", "Carnot", "\u30AB\u30EB\u30CE\u30FC", "\uCE74\uB974\uB178", "Carnot", "Carnot", "Carnot"],
   ["\u5965\u6258", "Otto", "\u30AA\u30C3\u30C8\u30FC", "\uC624\uD1A0", "Otto", "Otto", "Otto"],
-  ["\u7EB3\u4EC0", "Nash", "\u30CA\u30C3\u30B7\u30E5", "\uB0B4\uC2DC", "Nash", "Nash", "Nash"]
+  ["\u7EB3\u4EC0", "Nash", "\u30CA\u30C3\u30B7\u30E5", "\uB0B4\uC2DC", "Nash", "Nash", "Nash"],
+  ["\u6DB2\u6EF4\u649E\u51FB", "droplet impact", "\u6DB2\u6EF4\u885D\u7A81", "\uC561\uC801 \uCDA9\uB3CC", "impacto de gota", "impact de goutte", "Tropfenaufprall"],
+  ["CP\u7834\u574F", "CP violation", "CP\u5BFE\u79F0\u6027\u306E\u7834\u308C", "CP \uC704\uBC18", "violaci\xF3n CP", "violation de CP", "CP-Verletzung"],
+  ["\u6676\u4F53\u7ED3\u6784", "crystal structure", "\u7D50\u6676\u69CB\u9020", "\uACB0\uC815 \uAD6C\uC870", "estructura cristalina", "structure cristalline", "Kristallstruktur"],
+  ["\u6676\u4F53\u7F3A\u9677", "crystal defect", "\u7D50\u6676\u6B20\u9665", "\uACB0\uC815 \uACB0\uD568", "defecto cristalino", "d\xE9faut cristallin", "Kristalldefekt"],
+  ["\u5206\u5B50\u52A8\u529B\u5B66", "molecular dynamics", "\u5206\u5B50\u52D5\u529B\u5B66", "\uBD84\uC790\uB3D9\uC5ED\uD559", "din\xE1mica molecular", "dynamique mol\xE9culaire", "Molekulardynamik"],
+  ["\u795E\u7ECF\u52A8\u4F5C\u7535\u4F4D", "neuronal action potential", "\u795E\u7D4C\u6D3B\u52D5\u96FB\u4F4D", "\uC2E0\uACBD \uD65C\uB3D9\uC804\uC704", "potencial de acci\xF3n neuronal", "potentiel d'action neuronal", "neuronales Aktionspotential"],
+  ["\u795E\u7ECF\u653E\u7535", "neuronal firing", "\u795E\u7D4C\u767A\u706B", "\uC2E0\uACBD \uBC1C\uD654", "disparo neuronal", "d\xE9charge neuronale", "neuronale Entladung"],
+  ["DNA\u62C9\u4F38", "DNA stretching", "DNA\u4F38\u9577", "DNA \uC2E0\uC7A5", "estiramiento de ADN", "\xE9tirement de l'ADN", "DNA-Dehnung"],
+  ["\u540E\u7F00\u6570\u7EC4", "suffix array", "\u63A5\u5C3E\u8F9E\u914D\u5217", "\uC811\uBBF8\uC0AC \uBC30\uC5F4", "arreglo de sufijos", "tableau de suffixes", "Suffixarray"],
+  ["\u540E\u7F00\u6811", "suffix tree", "\u63A5\u5C3E\u8F9E\u6728", "\uC811\uBBF8\uC0AC \uD2B8\uB9AC", "\xE1rbol de sufijos", "arbre de suffixes", "Suffixbaum"],
+  ["\u96F6\u77E5\u8BC6", "zero-knowledge", "\u30BC\u30ED\u77E5\u8B58", "\uC601\uC9C0\uC2DD", "conocimiento cero", "connaissance nulle", "Zero-Knowledge"],
+  ["\u7B56\u7565\u68AF\u5EA6", "policy gradient", "\u65B9\u7B56\u52FE\u914D", "\uC815\uCC45 \uACBD\uC0AC", "gradiente de pol\xEDtica", "gradient de politique", "Policy-Gradient"],
+  ["\u5171\u8F6D\u68AF\u5EA6", "conjugate gradient", "\u5171\u5F79\u52FE\u914D\u6CD5", "\uCF24\uB808\uAE30\uC6B8\uAE30\uBC95", "gradiente conjugado", "gradient conjugu\xE9", "konjugierte Gradienten"],
+  ["\u751F\u4EA7\u8005\u6D88\u8D39\u8005", "producer\u2013consumer", "\u751F\u7523\u8005\u30FB\u6D88\u8CBB\u8005", "\uC0DD\uC0B0\uC790-\uC18C\uBE44\uC790", "productor\u2013consumidor", "producteur\u2013consommateur", "Erzeuger\u2013Verbraucher"],
+  ["\u9875\u7F6E\u6362", "page replacement", "\u30DA\u30FC\u30B8\u7F6E\u63DB", "\uD398\uC774\uC9C0 \uAD50\uCCB4", "reemplazo de p\xE1ginas", "remplacement de pages", "Seitenersetzung"],
+  ["\u903B\u8F91\u5316\u7B80", "logic minimization", "\u8AD6\u7406\u7C21\u5358\u5316", "\uB17C\uB9AC \uAC04\uC18C\uD654", "minimizaci\xF3n l\xF3gica", "minimisation logique", "Logikminimierung"],
+  ["\u6570\u636E\u901A\u8DEF", "datapath", "\u30C7\u30FC\u30BF\u30D1\u30B9", "\uB370\uC774\uD130 \uACBD\uB85C", "ruta de datos", "chemin de donn\xE9es", "Datenpfad"],
+  ["\u5185\u5B58\u4E00\u81F4\u6027", "memory consistency", "\u30E1\u30E2\u30EA\u4E00\u8CAB\u6027", "\uBA54\uBAA8\uB9AC \uC77C\uAD00\uC131", "coherencia de memoria", "coh\xE9rence m\xE9moire", "Speicherkonsistenz"],
+  ["\u7EC4\u5408\u903B\u8F91\u95E8", "combinational logic gate", "\u7D44\u307F\u5408\u308F\u305B\u8AD6\u7406\u30B2\u30FC\u30C8", "\uC870\uD569 \uB17C\uB9AC \uAC8C\uC774\uD2B8", "puerta l\xF3gica combinacional", "porte logique combinatoire", "kombinatorisches Logikgatter"],
+  ["\u53EF\u914D\u7F6E\u903B\u8F91\u5757", "configurable logic block", "\u69CB\u6210\u53EF\u80FD\u8AD6\u7406\u30D6\u30ED\u30C3\u30AF", "\uAD6C\uC131 \uAC00\uB2A5 \uB17C\uB9AC \uBE14\uB85D", "bloque l\xF3gico configurable", "bloc logique configurable", "konfigurierbarer Logikblock"],
+  ["\u81EA\u9002\u5E94\u6EE4\u6CE2", "adaptive filtering", "\u9069\u5FDC\u30D5\u30A3\u30EB\u30BF", "\uC801\uC751 \uD544\uD130", "filtrado adaptativo", "filtrage adaptatif", "adaptive Filterung"],
+  ["\u538B\u7F29\u611F\u77E5", "compressed sensing", "\u5727\u7E2E\u30BB\u30F3\u30B7\u30F3\u30B0", "\uC555\uCD95 \uC13C\uC2F1", "sensado comprimido", "acquisition comprim\xE9e", "komprimierte Abtastung"],
+  ["\u611F\u5E94\u7535\u673A", "induction motor", "\u8A98\u5C0E\u96FB\u52D5\u6A5F", "\uC720\uB3C4 \uC804\uB3D9\uAE30", "motor de inducci\xF3n", "moteur \xE0 induction", "Induktionsmotor"],
+  ["\u540C\u6B65\u7535\u673A", "synchronous motor", "\u540C\u671F\u96FB\u52D5\u6A5F", "\uB3D9\uAE30 \uC804\uB3D9\uAE30", "motor s\xEDncrono", "moteur synchrone", "Synchronmotor"],
+  ["\u5F02\u6B65\u7535\u673A", "asynchronous motor", "\u975E\u540C\u671F\u96FB\u52D5\u6A5F", "\uBE44\uB3D9\uAE30 \uC804\uB3D9\uAE30", "motor as\xEDncrono", "moteur asynchrone", "Asynchronmotor"],
+  ["\u529F\u7387\u56E0\u6570", "power factor", "\u529B\u7387", "\uC5ED\uB960", "factor de potencia", "facteur de puissance", "Leistungsfaktor"],
+  ["\u635F\u4F24\u529B\u5B66", "damage mechanics", "\u640D\u50B7\u529B\u5B66", "\uC190\uC0C1 \uC5ED\uD559", "mec\xE1nica del da\xF1o", "m\xE9canique de l'endommagement", "Sch\xE4digungsmechanik"],
+  ["\u51B2\u51FB\u635F\u4F24", "impact damage", "\u885D\u6483\u640D\u50B7", "\uCDA9\uACA9 \uC190\uC0C1", "da\xF1o por impacto", "endommagement par impact", "Schlagschaden"],
+  ["\u6321\u571F\u5899", "retaining wall", "\u64C1\u58C1", "\uC639\uBCBD", "muro de contenci\xF3n", "mur de sout\xE8nement", "St\xFCtzmauer"],
+  ["\u8F66\u8F86\u8377\u8F7D", "vehicle load", "\u8ECA\u4E21\u8377\u91CD", "\uCC28\uB7C9 \uD558\uC911", "carga de veh\xEDculos", "charge de v\xE9hicules", "Fahrzeuglast"],
+  ["\u98CE\u81F4\u632F\u52A8", "wind-induced vibration", "\u98A8\u306B\u3088\u308B\u632F\u52D5", "\uD48D\uC720\uBC1C \uC9C4\uB3D9", "vibraci\xF3n inducida por el viento", "vibration induite par le vent", "windinduzierte Schwingung"],
+  ["\u8DDF\u9A70\u6A21\u578B", "car-following model", "\u8FFD\u5F93\u30E2\u30C7\u30EB", "\uCC28\uB7C9 \uCD94\uC885 \uBAA8\uD615", "modelo de seguimiento", "mod\xE8le de poursuite", "Fahrzeugfolgemodell"],
+  ["\u6EF4\u6D41\u5E8A", "trickle-bed reactor", "\u30C8\u30EA\u30AF\u30EB\u30D9\u30C3\u30C9", "\uD2B8\uB9AC\uD074 \uBCA0\uB4DC", "lecho de goteo", "lit ruisselant", "Rieselbetreaktor"],
+  ["\u8D77\u640F\u5668", "pacemaker", "\u30DA\u30FC\u30B9\u30E1\u30FC\u30AB\u30FC", "\uC2EC\uBC15\uC870\uC728\uAE30", "marcapasos", "stimulateur cardiaque", "Herzschrittmacher"],
+  ["\u547C\u5438\u529B\u5B66", "respiratory mechanics", "\u547C\u5438\u529B\u5B66", "\uD638\uD761 \uC5ED\uD559", "mec\xE1nica respiratoria", "m\xE9canique respiratoire", "Atemmechanik"],
+  ["\u836F\u4EE3\u52A8\u529B\u5B66", "pharmacokinetics", "\u85AC\u7269\u52D5\u614B", "\uC57D\uB3D9\uD559", "farmacocin\xE9tica", "pharmacocin\xE9tique", "Pharmakokinetik"],
+  ["\u533B\u5B66\u6210\u50CF", "medical imaging", "\u533B\u7528\u753B\u50CF", "\uC758\uD559 \uC601\uC0C1", "imagen m\xE9dica", "imagerie m\xE9dicale", "medizinische Bildgebung"],
+  ["\u65E0\u529F\u8865\u507F", "reactive-power compensation", "\u7121\u52B9\u96FB\u529B\u88DC\u511F", "\uBB34\uD6A8\uC804\uB825 \uBCF4\uC0C1", "compensaci\xF3n de potencia reactiva", "compensation de puissance r\xE9active", "Blindleistungskompensation"],
+  ["\u6C7D\u8F66\u60AC\u67B6", "vehicle suspension", "\u81EA\u52D5\u8ECA\u30B5\u30B9\u30DA\u30F3\u30B7\u30E7\u30F3", "\uC790\uB3D9\uCC28 \uD604\uAC00\uC7A5\uCE58", "suspensi\xF3n de autom\xF3vil", "suspension automobile", "Fahrzeugfederung"],
+  ["\u5047\u8BBE\u68C0\u9A8C", "hypothesis test", "\u4EEE\u8AAC\u691C\u5B9A", "\uAC00\uC124 \uAC80\uC815", "contraste de hip\xF3tesis", "test d'hypoth\xE8se", "Hypothesentest"],
+  ["\u9178\u78B1\u6EF4\u5B9A", "acid\u2013base titration", "\u9178\u5869\u57FA\u6EF4\u5B9A", "\uC0B0\uC5FC\uAE30 \uC801\uC815", "valoraci\xF3n \xE1cido-base", "titrage acido-basique", "S\xE4ure-Base-Titration"],
+  ["\u89E3\u91CA\u5668", "interpreter", "\u30A4\u30F3\u30BF\u30D7\u30EA\u30BF", "\uC778\uD130\uD504\uB9AC\uD130", "int\xE9rprete", "interpr\xE9teur", "Interpreter"],
+  ["\u5F52\u5E76", "merge sort", "\u30DE\u30FC\u30B8\u30BD\u30FC\u30C8", "\uBCD1\uD569 \uC815\uB82C", "ordenaci\xF3n por mezcla", "tri par fusion", "Mergesort"],
+  ["\u5F52\u7EA6", "reduction", "\u5E30\u7740", "\uD658\uC6D0", "reducci\xF3n", "r\xE9duction", "Reduktion"],
+  ["\u6EE4\u6CE2", "filtering", "\u30D5\u30A3\u30EB\u30BF\u30EA\u30F3\u30B0", "\uD544\uD130\uB9C1", "filtrado", "filtrage", "Filterung"],
+  ["\u6574\u6D41", "rectification", "\u6574\u6D41", "\uC815\uB958", "rectificaci\xF3n", "redressement", "Gleichrichtung"],
+  ["\u65A9\u6CE2", "chopper", "\u30C1\u30E7\u30C3\u30D1", "\uCD08\uD37C", "troceador", "hacheur", "Gleichstromsteller"],
+  ["\u62C9\u4F38", "uniaxial tension", "\u5F15\u5F35", "\uC778\uC7A5", "tracci\xF3n", "traction", "Zugversuch"],
+  ["\u6841\u67B6", "truss", "\u30C8\u30E9\u30B9", "\uD2B8\uB7EC\uC2A4", "celos\xEDa", "treillis", "Fachwerk"],
+  ["\u6846\u67B6", "structural frame", "\u30E9\u30FC\u30E1\u30F3", "\uACE8\uC870", "p\xF3rtico", "portique", "Rahmen"],
+  ["\u529F\u8017", "power consumption", "\u6D88\u8CBB\u96FB\u529B", "\uC18C\uBE44 \uC804\uB825", "consumo de potencia", "consommation", "Leistungsaufnahme"],
+  ["\u53D1\u7535\u673A", "electric generator", "\u767A\u96FB\u6A5F", "\uBC1C\uC804\uAE30", "generador el\xE9ctrico", "g\xE9n\xE9rateur \xE9lectrique", "Generator"],
+  ["\u7535\u9540", "electroplating", "\u96FB\u6C17\u3081\u3063\u304D", "\uC804\uAE30\uB3C4\uAE08", "electrodeposici\xF3n", "\xE9lectrod\xE9position", "Galvanisieren"],
+  ["\u81A8\u80C0", "expansion", "\u81A8\u5F35", "\uD33D\uCC3D", "expansi\xF3n", "expansion", "Expansion"]
 ];
 var phraseBuckets = /* @__PURE__ */ new Map();
 var phraseRows = PHRASE_TABLE.filter((row) => row && row[0]).slice().sort((a, b) => b[0].length - a[0].length);
@@ -7932,7 +7991,12 @@ async function refreshSidebar(signal) {
     }
     if (signal?.aborted) return;
     if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
-      await loadIndex();
+      try {
+        await loadIndex(signal);
+      } catch (err) {
+        if (err?.name === "AbortError" || signal?.aborted) return;
+        throw err;
+      }
       if (signal?.aborted) return;
       const domains = domainsForFilter();
       try {

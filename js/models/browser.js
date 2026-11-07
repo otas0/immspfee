@@ -29,8 +29,19 @@ function mark(name) {
   try { performance.mark(name); } catch { /* ignore */ }
 }
 
-export function loadIndex() {
+function abortError() {
+  const err = new Error('Aborted');
+  err.name = 'AbortError';
+  return err;
+}
+
+/**
+ * Cold catalog index. Shared `indexPromise` is not aborted (other callers need it);
+ * optional signal only rejects waiters that were superseded after the fetch settles.
+ */
+export function loadIndex(signal) {
   if (domainIndex.length) return Promise.resolve(domainIndex);
+  if (signal?.aborted) return Promise.reject(abortError());
   if (!indexPromise) {
     mark('boot-loadIndex-start');
     indexPromise = Promise.resolve(window.__preloadedIndex || null)
@@ -48,7 +59,11 @@ export function loadIndex() {
         return domainIndex;
       });
   }
-  return indexPromise;
+  if (!signal) return indexPromise;
+  return indexPromise.then((rows) => {
+    if (signal.aborted) throw abortError();
+    return rows;
+  });
 }
 
 /** Lazy name pack for search / sidebar labels (not on cold index). */
@@ -128,12 +143,6 @@ async function mergeSpecs(domain, specs) {
   }
   appendOrphans();
   await appendUsers();
-}
-
-function abortError() {
-  const err = new Error('Aborted');
-  err.name = 'AbortError';
-  return err;
 }
 
 /** Load one subject domain; optional AbortSignal cancels an in-flight fetch (search debounce). */

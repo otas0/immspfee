@@ -1,4 +1,5 @@
 node_modules/
+.venv-fonts/
 .DS_Store
 shots/export-framed-readouts.png
 shots/narrow-*.png

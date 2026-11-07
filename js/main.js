@@ -2072,7 +2072,12 @@ async function refreshSidebar(signal) {
     }
     if (signal?.aborted) return;
     if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
-      await loadIndex();
+      try {
+        await loadIndex(signal);
+      } catch (err) {
+        if (err?.name === 'AbortError' || signal?.aborted) return;
+        throw err;
+      }
       if (signal?.aborted) return;
       const domains = domainsForFilter();
       try {

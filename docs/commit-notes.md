@@ -245,8 +245,10 @@ Trend pair (same shape, different metrics):
 | `npm run test:pages-tti-trend` | `artifacts/pages-tti-trend.json` (+ `warmStreak`) | `pages-tti-prev-*` → `pages-tti-sw.prev.json` | warm `firstHandP95` >250ms for **2** consecutive runs (`WARM_FIRST_HAND_SOFT_FAIL`) |
 | `npm run test:micro-fps-trend` | `artifacts/micro-fps-trend.json` | `micro-fps-prev-*` → `micro-fps-advisory.prev.json` | advisory only |
 
-**warmStreak cross-run (confirmed):** `5f86997` and again `ce008af` lab-artifacts:
-`previous: true`, `warmStreak.over: 0` (P95 ≈ 49–51). Cache restore works.
+**warmStreak cross-run (confirmed):** `5f86997` → `ce008af` → `cf018b7` lab-artifacts:
+`previous: true`, `warmStreak.over: 0` (P95 ≈ 49–64). `cf018b7` also has
+`micro-fps advisory + trend ok` with `previous` on the FPS trend artifact
+(`belowGate: true` on ubuntu software-GL — advisory only).
 
 **CDN jitter (cold `firstHandP95`):** a single cold hit can spike to ~8–11s when the edge is cold;
 `pages-tti-sw` retries once under `PAGES_TTI_HARD`. Do **not** treat a one-shot cold P95 spike as a
@@ -262,6 +264,10 @@ do **not** mix with the free-fall gold-frame TTI table above.
 | 2026-11-07 ~09:35Z | (iad-ish) | ≈ 11536 | re-sample; wall ≈ 11.9s |
 | 2026-11-07 ~10:14Z | (iad-ish) | ≈ 12036 | 3rd sample; wall ≈ 12.3s |
 | 2026-11-07 ~11:00Z | **japaneast** | ≈ 2902 | warm-ish edge; wall ≈ 3.2s |
+| 2026-11-07 ~11:56Z | **japaneast** | ≈ 2851 | cache-bust re-sample; wall ≈ 3.2s |
+
+Pages abort-search check (2026-11-07): rapid type→clear leaves `is-names-loading` off;
+typing `玻尔` clears loading after domain hydrate (~0.6–0.9s) — not stuck.
 
 **narrow soft-fail → hard after 2:** first fail is isolated (`continue-on-error`); streak cache
 `narrow-streak-*` hard-fails on the **second consecutive** failure. `ce008af` logged
@@ -273,7 +279,10 @@ Write path: `process.cwd()/artifacts` (do not shadow repo `root` with the site U
 
 Search debounce is **200ms** (leave for real-device feel; do not chase without hand timing).
 In-flight `ensureDomainNames` **and** `loadDomain` accept `AbortSignal` so a newer keystroke
-cancels stale names/domain fetches.
+cancels stale names/domain fetches. `loadIndex(signal)` only rejects superseded **waiters**
+(shared index fetch is not aborted — other boot paths need it).
+
+GitHub About: use “IMMSPFEE Lab — browser simulation workbench…”, not “Physics lab demo”.
 
 **Palette shard watch:** `物理__光学` ≈ 5984 B (single sub `光学`, 26 models). Re-split only if a
 shard exceeds **~7.5KB** *and* a finer catalog sub exists — do not invent fake subs.
