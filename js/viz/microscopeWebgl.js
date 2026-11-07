@@ -362,8 +362,14 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     }
     const action = CAMERA_HOLD[e.code];
     if (!action) return false;
-    if (down) heldKeys.add(action);
-    else heldKeys.delete(action);
+    if (down) {
+      heldKeys.add(action);
+      // One-shot so a tap still moves before the next rAF/draw.
+      applyHeldCamera(1 / 45);
+      opts.onViewChange?.();
+    } else {
+      heldKeys.delete(action);
+    }
     e.preventDefault();
     return true;
   }

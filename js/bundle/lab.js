@@ -6310,8 +6310,13 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     }
     const action = CAMERA_HOLD[e.code];
     if (!action) return false;
-    if (down) heldKeys.add(action);
-    else heldKeys.delete(action);
+    if (down) {
+      heldKeys.add(action);
+      applyHeldCamera(1 / 45);
+      opts.onViewChange?.();
+    } else {
+      heldKeys.delete(action);
+    }
     e.preventDefault();
     return true;
   }
