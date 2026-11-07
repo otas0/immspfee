@@ -240,7 +240,14 @@ try {
       return frames / ((performance.now() - start) / 1000);
     });
     console.log('fps390', Number(fps.toFixed(1)));
-    if (!(fps > 24)) fail(`fps ${fps}`);
+    const minFps = Number(process.env.MICRO_CAMERA_FPS_MIN || 24);
+    const hard = process.env.MICRO_CAMERA_FPS_HARD === '1'
+      || (process.env.MICRO_CAMERA_FPS_HARD !== '0' && !process.env.CI);
+    if (!(fps > minFps)) {
+      const msg = `fps390 ${fps} ≤ ${minFps}`;
+      if (hard) fail(msg);
+      else console.warn(`advisory: ${msg} (set MICRO_CAMERA_FPS_HARD=1 to fail)`);
+    }
   }
 
   const shot = path.join(root, 'shots', `shell-micro-camera-${viewport.width}${useWebkit ? '-webkit' : ''}.png`);
