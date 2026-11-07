@@ -68,6 +68,9 @@ jobs:
       - name: models-en zero Han leakage
         run: node scripts/assert-models-en.mjs
 
+      - name: Lab poster — no sibling TE markers
+        run: npm run sync:poster && npm run assert:poster
+
       - name: Schema coverage report
         run: npm run report:schema
 
@@ -82,6 +85,9 @@ jobs:
         run: |
           node scripts/dev-server.mjs &
           sleep 2
+
+      - name: Lab poster A4 print smoke
+        run: npm run test:poster
 
       - name: Pot regression
         run: npm run test:pot

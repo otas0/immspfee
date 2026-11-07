@@ -157,7 +157,7 @@ Hand models (`family: "hand"`): **[docs/hand-models.md](./docs/hand-models.md)**
 
 Brand mark: [`assets/immspfee-logo.png`](./assets/immspfee-logo.png) · favicon [`assets/favicon.svg`](./assets/favicon.svg).
 
-Instructor briefing poster (local): [`docs/promo/poster.html`](./docs/promo/poster.html) or root [`poster.html`](./poster.html).
+Instructor A4 poster (Lab chassis): root [`poster.html`](./poster.html) · [`docs/promo/poster.html`](./docs/promo/poster.html) · `?lang=en|zh|both` · `npm run test:poster` / `npm run poster:pdf`.
 
 ## Params & compact UI
 

@@ -25,3 +25,9 @@ docs/assets/*
 !docs/assets/ghes-runner-labels.png
 !docs/assets/narrow-params-closed-390.png
 !docs/assets/narrow-params-open-390.png
+!docs/assets/shell-projector-1000-menu.png
+!docs/assets/shell-micro-menu-390-webkit.png
+
+# Poster print smoke / PDF (regenerate locally)
+docs/promo/poster-a4-*.png
+docs/promo/immspfee-lab-a4.pdf
