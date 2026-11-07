@@ -227,6 +227,53 @@ export function runSuite() {
     assert('弦振动两端固定边界', almostEqual(y[0], 0) && almostEqual(y[N + 1], 0), `y0=${y[0]} yN=${y[N + 1]}`);
   }
 
+  // Full-frame substeps: Fourier limit for heat, CFL for the wave.
+  {
+    const hs = {
+      params: {
+        ...heat.params, N: 41, L: 1, alpha: 0.25, T0: 20, hotspot: 90, Tleft: 100, Tright: 0,
+      },
+    };
+    heat.init(hs);
+    const dt = 1 / 60;
+    const dtMax = (hs.dx * hs.dx) / (2 * hs.params.alpha);
+    assert('热传导该帧超过一次 Fourier 上限', dt > dtMax, `dt=${dt} dtMax=${dtMax}`);
+    heat.step(hs, dt);
+    assert('热传导 step 推进完整 dt', Math.abs(hs.t - dt) < 1e-8, `t=${hs.t}`);
+    let finite = hs.T[0] === 100 && hs.T[hs.N - 1] === 0;
+    for (let i = 0; i < hs.N; i += 1) if (!Number.isFinite(hs.T[i])) finite = false;
+    assert('热传导子步后端点与温度有限', finite, `T0=${hs.T[0]} TN=${hs.T[hs.N - 1]}`);
+    const t1 = hs.t;
+    heat.step(hs, dt);
+    assert('热传导第二帧仍走完整 dt', Math.abs(hs.t - t1 - dt) < 1e-8, `t=${hs.t}`);
+  }
+
+  {
+    const ws = {
+      params: { ...wave.params, N: 32, L: 0.2, c: 6, damp: 0, A1: 0.04, A2: 0, A3: 0 },
+    };
+    wave.init(ws);
+    const dt = 1 / 60;
+    const cfl = ws.dx / ws.params.c;
+    assert('短弦该帧超过一阶 CFL', dt > cfl, `dt=${dt} cfl=${cfl}`);
+    let yMax = 0;
+    let finite = true;
+    const frames = 90;
+    for (let n = 0; n < frames; n += 1) {
+      wave.step(ws, dt);
+      for (let i = 0; i < ws.y.length; i += 1) {
+        if (!Number.isFinite(ws.y[i]) || !Number.isFinite(ws.v[i])) finite = false;
+        yMax = Math.max(yMax, Math.abs(ws.y[i]));
+      }
+    }
+    assert(
+      '短弦中等波速 CFL 子步保持稳定',
+      finite && yMax > 0.02 && yMax < 0.5 && ws.y[0] === 0 && ws.y[ws.N + 1] === 0,
+      `ymax=${yMax} t=${ws.t} y0=${ws.y[0]} yN=${ws.y[ws.N + 1]}`,
+    );
+    assert('弦振动 step 累计完整 dt', Math.abs(ws.t - frames * dt) < 1e-6, `t=${ws.t}`);
+  }
+
   // 参数显示 / 钳制工具
   {
     assert('formatParamNumber 截断长小数', formatParamNumber(1 / 240) === '0.004167', formatParamNumber(1 / 240));
@@ -766,6 +813,48 @@ export function runSuite() {
       st.params.hf = 1;
       pe.step(st, 0);
       assert('光电阈值以下产额为 0', Math.abs(kOf()) < 1e-9 && Math.abs(rOf()) < 1e-9, `K=${kOf()} R=${rOf()}`);
+    }
+    {
+      const peVar = models.find((m) => m.id === 'fam-photoelectric-v01');
+      const st = { params: { ...peVar.params, nu: 4, W: 1, I: 2, h: 1 } };
+      peVar.init(st);
+      assert(
+        'fam-photoelectric K_max=hν−W',
+        Math.abs(st.K - 3) < 1e-12 && Math.abs(st.rate - 2) < 1e-12,
+        `K=${st.K} R=${st.rate}`,
+      );
+      st.params.I = 7;
+      peVar.step(st, 0.2);
+      assert('fam-photoelectric 光强只改产额', Math.abs(st.K - 3) < 1e-12 && Math.abs(st.rate - 7) < 1e-12, `K=${st.K} R=${st.rate}`);
+      const kBefore = st.K;
+      peVar.step(st, 0.5);
+      assert('fam-photoelectric 时间不改 K_max', st.K === kBefore, `K=${st.K}`);
+      st.params.nu = 0.4;
+      peVar.step(st, 0);
+      assert('fam-photoelectric 阈值下产额为 0', Math.abs(st.K) < 1e-12 && Math.abs(st.rate) < 1e-12, `K=${st.K} R=${st.rate}`);
+      assert(
+        'fam-photoelectric 权威为 Einstein',
+        /Einstein/.test(peVar.authority) && !/Griffiths/.test(peVar.authority),
+        peVar.authority,
+      );
+    }
+    {
+      const hc = models.find((m) => m.id === 'fam-heat-cond-v01');
+      assert(
+        'fam-heat-cond 权威为 Incropera/Fourier',
+        hc && /Incropera/.test(hc.authority) && /Fourier/.test(hc.authority) && !/Griffiths/.test(hc.authority),
+        hc && hc.authority,
+      );
+      const st = { params: { ...hc.params, k: 4, L: 0.2, Th: 100, Tb: 20 } };
+      hc.init(st);
+      const qExpect = -4 * (20 - 100) / 0.2;
+      assert('fam-heat-cond q=−κΔT/L', Math.abs(st.q - qExpect) < 1e-9, `q=${st.q} expect=${qExpect}`);
+      const q0 = st.q;
+      hc.step(st, 0.5);
+      assert('fam-heat-cond 稳态热流不随时间漂移', st.q === q0 && Math.abs(st.t - 0.5) < 1e-12, `q=${st.q} t=${st.t}`);
+      st.params.k = 8;
+      hc.step(st, 0);
+      assert('fam-heat-cond κ 线性进入热流', Math.abs(st.q - 2 * q0) < 1e-9, `q=${st.q}`);
     }
     assert('catalog has beam-sfd-bmd', ids.has('beam-sfd-bmd'));
     assert('catalog has pid-tune', ids.has('pid-tune'));

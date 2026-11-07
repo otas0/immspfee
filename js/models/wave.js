@@ -57,23 +57,42 @@ export default {
   },
 
   step(state, dt) {
-    const { c, damp } = state.params;
+    const c = Math.abs(Number(state.params?.c) || 0);
+    const damp = Number(state.params?.damp) || 0;
     const { N, dx, y, v } = state;
+    const frame = Number(dt);
+    const pinEnds = () => {
+      y[0] = 0;
+      y[N + 1] = 0;
+      v[0] = 0;
+      v[N + 1] = 0;
+    };
+    // Semi-implicit step on ÿ = c² y_xx − d ẏ. The second-difference
+    // operator needs dt < dx/c (Pain, Vibrations and Waves). Use
+    // dtMax = dx/(c+ε) and consume the whole frame. Ends stay fixed.
+    if (!(frame > 0) || !(dx > 0) || !(N >= 1)) {
+      pinEnds();
+      return;
+    }
+    const dtMax = dx / (c + 1e-6);
+    const hCap = dtMax * 0.9;
+    const nSub = Math.max(1, Math.ceil(frame / hCap));
     const c2 = c * c;
     const inv = 1 / (dx * dx);
-    // 半隐式：先加速度再速度再位移；两端固定
-    for (let i = 1; i <= N; i += 1) {
-      const a = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv - damp * v[i];
-      v[i] += a * dt;
+    let left = frame;
+    for (let s = 0; s < nSub && left > 0; s += 1) {
+      const h = s === nSub - 1 ? left : Math.min(left, frame / nSub);
+      for (let i = 1; i <= N; i += 1) {
+        const a = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv - damp * v[i];
+        v[i] += a * h;
+      }
+      for (let i = 1; i <= N; i += 1) {
+        y[i] += v[i] * h;
+      }
+      pinEnds();
+      left -= h;
     }
-    for (let i = 1; i <= N; i += 1) {
-      y[i] += v[i] * dt;
-    }
-    y[0] = 0;
-    y[N + 1] = 0;
-    v[0] = 0;
-    v[N + 1] = 0;
-    state.t += dt;
+    state.t += frame - left;
   },
 
   draw(ctx, state, view) {

@@ -92,8 +92,18 @@ jobs:
       - name: Pot regression
         run: npm run test:pot
 
+      - name: Restore narrow-fail streak
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/restore@v5
+        with:
+          path: artifacts/narrow-streak-cache
+          key: narrow-streak-${{ github.run_id }}
+          restore-keys: |
+            narrow-streak-
+
       - name: Narrow-screen formula regression
-        # Isolated from micro contracts — boot/perf flakes must not block magenta/camera.
+        # Soft-fail once so micro contracts still run; two consecutive fails → hard fail below.
         id: narrow_regression
         continue-on-error: true
         timeout-minutes: 4
@@ -103,10 +113,34 @@ jobs:
           npm run test:narrow 2>&1 | tee artifacts/narrow-regression.log
           echo "narrow-regression ok" >> artifacts/ci-summary.txt
 
-      - name: Narrow regression soft-fail note
-        if: always() && steps.narrow_regression.outcome == 'failure'
+      - name: Narrow regression streak / hard gate
+        if: always()
         run: |
-          echo "narrow-regression FAILED (isolated; micro contracts still run) — see artifacts/narrow-regression.log" | tee -a artifacts/ci-summary.txt
+          mkdir -p artifacts artifacts/narrow-streak-cache
+          STREAK=0
+          if [ -f artifacts/narrow-streak-cache/narrow-fail-streak.json ]; then
+            STREAK=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('artifacts/narrow-streak-cache/narrow-fail-streak.json','utf8')).over||0)}catch{console.log(0)}")
+          fi
+          if [ "${{ steps.narrow_regression.outcome }}" = "failure" ]; then
+            STREAK=$((STREAK + 1))
+            echo "narrow-regression FAILED (isolated; streak ${STREAK}/2) — see artifacts/narrow-regression.log" | tee -a artifacts/ci-summary.txt
+          else
+            STREAK=0
+          fi
+          node -e "require('fs').writeFileSync('artifacts/narrow-streak-cache/narrow-fail-streak.json', JSON.stringify({over:Number(process.argv[1]),at:new Date().toISOString()},null,2)+'\n')" "$STREAK"
+          cp -f artifacts/narrow-streak-cache/narrow-fail-streak.json artifacts/narrow-fail-streak.json
+          if [ "$STREAK" -ge 2 ]; then
+            echo "narrow-regression hard-fail: failed ${STREAK} consecutive CI runs" | tee -a artifacts/ci-summary.txt
+            exit 1
+          fi
+
+      - name: Save narrow-fail streak
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v5
+        with:
+          path: artifacts/narrow-streak-cache
+          key: narrow-streak-${{ github.run_id }}
 
       - name: Bundle retains microscope enter wiring
         run: |
@@ -120,7 +154,8 @@ jobs:
 
       - name: No browser monolith palettes.json
         run: |
-          npm run assert:no-monolith-palette | tee -a artifacts/ci-summary.txt
+          mkdir -p artifacts
+          node scripts/assert-no-monolith-palette.mjs | tee -a artifacts/ci-summary.txt
 
       - name: Shell first-paint (factory steady models)
         timeout-minutes: 3
@@ -178,13 +213,14 @@ jobs:
             cp -f artifacts/micro-fps-cache/micro-fps-advisory.json artifacts/micro-fps-advisory.prev.json
           fi
           MICRO_FPS_MIN=25 npm run test:micro-fps 2>&1 | tee artifacts/micro-fps.log
+          ls -la artifacts/micro-fps-advisory.json 2>&1 | tee -a artifacts/micro-fps.log || true
           if [[ -f artifacts/micro-fps-advisory.json ]]; then
             npm run test:micro-fps-trend 2>&1 | tee artifacts/micro-fps-trend.log
             mkdir -p artifacts/micro-fps-cache
             cp -f artifacts/micro-fps-advisory.json artifacts/micro-fps-cache/micro-fps-advisory.json
             echo "micro-fps advisory + trend ok" >> artifacts/ci-summary.txt
           else
-            echo "micro-fps advisory missing json (probe older?)" >> artifacts/ci-summary.txt
+            echo "micro-fps advisory missing json (check probe path shadow)" >> artifacts/ci-summary.txt
           fi
 
       - name: Save micro-fps cache (next run trend)

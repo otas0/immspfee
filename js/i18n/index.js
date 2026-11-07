@@ -100,7 +100,7 @@ function htmlLang(id) {
 async function ensureModelPack(id) {
   if (id === 'zh') return null; // catalog source is Chinese
   if (modelPacks[id]) return modelPacks[id];
-  if (id !== 'en' && id !== 'ja') return null;
+  if (id !== 'en' && id !== 'ja' && id !== 'ko') return null;
   if (!packPromises[id]) {
     packPromises[id] = (async () => {
       try {

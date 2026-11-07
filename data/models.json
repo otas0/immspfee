@@ -16837,8 +16837,8 @@
       "k": 1,
       "Tb": 0
     },
-    "authority": "Griffiths, Introduction to Electrodynamics, Ch. 2–3（静场）",
-    "assumptions": "二维静场或势的示意网格；非有限元电磁求解器",
+    "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Fourier's law q=−κ ΔT/L (plane wall)",
+    "assumptions": "Steady plane wall, constant thermal conductivity, no generation; ΔT = T(L) - T(0) and q = -κ ΔT/L.",
     "fidelity": "principle"
   },
   {
@@ -21361,8 +21361,8 @@
       "k": 0.5,
       "thk": 0.01
     },
-    "authority": "Griffiths, Introduction to Electrodynamics, Ch. 2–3（静场）",
-    "assumptions": "二维静场或势的示意网格；非有限元电磁求解器",
+    "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Fourier's law for a single plane wall",
+    "assumptions": "Single plane wall; thickness is thk; constant conductivity; steady; no generation; q = -κ ΔT/L.",
     "fidelity": "principle"
   },
   {
@@ -21721,8 +21721,8 @@
       "I": 0.5,
       "W": 1
     },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
+    "authority": "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield ∝ I above threshold)",
+    "assumptions": "h*nu and W share one energy unit (h = 1 when the frequency knob is already an energy); no space charge; R is a relative yield and does not change K_max.",
     "fidelity": "engineering"
   },
   {

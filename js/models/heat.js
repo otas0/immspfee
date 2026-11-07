@@ -66,23 +66,41 @@ export default {
   },
 
   step(state, dt) {
-    const { alpha } = state.params;
-    const { N, dx, T } = state;
-    // 稳定性：dt ≤ dx²/(2α)
-    const dtMax = (dx * dx) / (2 * Math.max(alpha, 1e-9));
-    const h = Math.min(dt, dtMax * 0.9);
-    const r = (alpha * h) / (dx * dx);
-    if (!state._next || state._next.length !== N) state._next = new Float64Array(N);
-    const next = state._next;
-    next[0] = state.params.Tleft;
-    next[N - 1] = state.params.Tright;
-    for (let i = 1; i < N - 1; i += 1) {
-      next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
+    const alpha = Math.max(0, Number(state.params?.alpha) || 0);
+    const N = state.N | 0;
+    const dx = Number(state.dx);
+    const frame = Number(dt);
+    if (!(N >= 2) || !state.T) return;
+    const pinEnds = () => {
+      state.T[0] = state.params.Tleft;
+      state.T[N - 1] = state.params.Tright;
+    };
+    // Explicit FTCS (Incropera, transient conduction): r = α h / dx² ≤ 1/2,
+    // so h ≤ dx² / (2α). Substep the whole frame; do not drop the remainder.
+    if (!(frame > 0) || !(dx > 0)) {
+      pinEnds();
+      return;
     }
-    const swap = state.T;
-    state.T = next;
-    state._next = swap;
-    state.t += h;
+    const dtMax = (dx * dx) / (2 * Math.max(alpha, 1e-9));
+    const hCap = dtMax * 0.9;
+    const nSub = Math.max(1, Math.ceil(frame / hCap));
+    if (!state._next || state._next.length !== N) state._next = new Float64Array(N);
+    let left = frame;
+    for (let s = 0; s < nSub && left > 0; s += 1) {
+      const h = s === nSub - 1 ? left : Math.min(left, frame / nSub);
+      const r = (alpha * h) / (dx * dx);
+      const T = state.T;
+      const next = state._next;
+      next[0] = state.params.Tleft;
+      next[N - 1] = state.params.Tright;
+      for (let i = 1; i < N - 1; i += 1) {
+        next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
+      }
+      state.T = next;
+      state._next = T;
+      left -= h;
+    }
+    state.t += frame - left;
   },
 
   draw(ctx, state, view) {

@@ -352,6 +352,21 @@
       "fidelity": "engineering",
       "authority": "Silberschatz, Operating System Concepts, 有界缓冲",
       "assumptions": "互斥与空/满条件按经典问题；非真实内核"
+    },
+    "fam-heat-cond-v01": {
+      "fidelity": "principle",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Fourier's law q=−κ ΔT/L (plane wall)",
+      "assumptions": "Steady plane wall, constant thermal conductivity, no generation; ΔT = T(L) - T(0) and q = -κ ΔT/L."
+    },
+    "fam-cond-eng-v01": {
+      "fidelity": "principle",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Fourier's law for a single plane wall",
+      "assumptions": "Single plane wall; thickness is thk; constant conductivity; steady; no generation; q = -κ ΔT/L."
+    },
+    "fam-photoelectric-v01": {
+      "fidelity": "engineering",
+      "authority": "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield ∝ I above threshold)",
+      "assumptions": "h*nu and W share one energy unit (h = 1 when the frequency knob is already an energy); no space charge; R is a relative yield and does not change K_max."
     }
   }
 }

@@ -1552,7 +1552,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-IR2EAFK5.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-F6SEDR2D.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -2579,7 +2579,7 @@ function htmlLang(id) {
 async function ensureModelPack(id) {
   if (id === "zh") return null;
   if (modelPacks[id]) return modelPacks[id];
-  if (id !== "en" && id !== "ja") return null;
+  if (id !== "en" && id !== "ja" && id !== "ko") return null;
   if (!packPromises[id]) {
     packPromises[id] = (async () => {
       try {
@@ -3063,6 +3063,21 @@ var authority_templates_default = {
       fidelity: "engineering",
       authority: "Silberschatz, Operating System Concepts, \u6709\u754C\u7F13\u51B2",
       assumptions: "\u4E92\u65A5\u4E0E\u7A7A/\u6EE1\u6761\u4EF6\u6309\u7ECF\u5178\u95EE\u9898\uFF1B\u975E\u771F\u5B9E\u5185\u6838"
+    },
+    "fam-heat-cond-v01": {
+      fidelity: "principle",
+      authority: "Incropera, Fundamentals of Heat and Mass Transfer, Fourier's law q=\u2212\u03BA \u0394T/L (plane wall)",
+      assumptions: "Steady plane wall, constant thermal conductivity, no generation; \u0394T = T(L) - T(0) and q = -\u03BA \u0394T/L."
+    },
+    "fam-cond-eng-v01": {
+      fidelity: "principle",
+      authority: "Incropera, Fundamentals of Heat and Mass Transfer, Fourier's law for a single plane wall",
+      assumptions: "Single plane wall; thickness is thk; constant conductivity; steady; no generation; q = -\u03BA \u0394T/L."
+    },
+    "fam-photoelectric-v01": {
+      fidelity: "engineering",
+      authority: "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield \u221D I above threshold)",
+      assumptions: "h*nu and W share one energy unit (h = 1 when the frequency knob is already an energy); no space charge; R is a relative yield and does not change K_max."
     }
   }
 };
@@ -3241,7 +3256,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-5S25EF34.js").then((mod) => {
+    handsPending = import("./chunk-handModels-N7ZWXPSA.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -4848,6 +4863,134 @@ var PUNCT = {
   fr: { "\u3001": " ; ", "\uFF1B": " ; ", "\uFF0C": ", ", "\u3002": ". " },
   de: { "\u3001": "; ", "\uFF1B": "; ", "\uFF0C": ", ", "\u3002": ". " }
 };
+var PHRASE_TABLE = [
+  ["\u683C\u5B50\u73BB\u5C14\u5179\u66FC", "lattice Boltzmann", "\u683C\u5B50\u30DC\u30EB\u30C4\u30DE\u30F3", "\uACA9\uC790 \uBCFC\uCE20\uB9CC", "Boltzmann en red", "Boltzmann sur r\xE9seau", "Lattice-Boltzmann"],
+  ["\u9EA6\u514B\u65AF\u97E6\u901F\u7387\u5206\u5E03", "Maxwell speed distribution", "\u30DE\u30AF\u30B9\u30A6\u30A7\u30EB\u306E\u901F\u3055\u5206\u5E03", "\uB9E5\uC2A4\uC6F0 \uC18D\uB825 \uBD84\uD3EC", "distribuci\xF3n de rapidez de Maxwell", "distribution des vitesses de Maxwell", "Maxwell-Geschwindigkeitsverteilung"],
+  ["\u4E00\u81F4\u6027\u54C8\u5E0C", "consistent hashing", "\u30B3\u30F3\u30B7\u30B9\u30C6\u30F3\u30C8\u30CF\u30C3\u30B7\u30E5", "\uC77C\uAD00\uB41C \uD574\uC2F1", "hash consistente", "hachage coh\xE9rent", "konsistentes Hashing"],
+  ["\u4E8C\u53C9\u641C\u7D22\u6811", "binary search tree", "\u4E8C\u5206\u63A2\u7D22\u6728", "\uC774\uC9C4 \uD0D0\uC0C9 \uD2B8\uB9AC", "\xE1rbol binario de b\xFAsqueda", "arbre binaire de recherche", "bin\xE4rer Suchbaum"],
+  ["\u5E03\u9686\u8FC7\u6EE4\u5668", "Bloom filter", "\u30D6\u30EB\u30FC\u30E0\u30D5\u30A3\u30EB\u30BF", "\uBE14\uB8F8 \uD544\uD130", "filtro de Bloom", "filtre de Bloom", "Bloom-Filter"],
+  ["\u86CB\u767D\u8D28\u6298\u53E0", "protein folding", "\u30BF\u30F3\u30D1\u30AF\u8CEA\u306E\u6298\u308A\u305F\u305F\u307F", "\uB2E8\uBC31\uC9C8 \uC811\uD798", "plegamiento de prote\xEDnas", "repliement des prot\xE9ines", "Proteinfaltung"],
+  ["\u5355\u6446\u5927\u89D2\u5EA6", "large-angle pendulum", "\u5927\u632F\u5E45\u306E\u5358\u632F\u308A\u5B50", "\uD070 \uC9C4\uD3ED \uB2E8\uC9C4\uC790", "p\xE9ndulo de gran \xE1ngulo", "pendule \xE0 grand angle", "Pendel bei gro\xDFem Winkel"],
+  ["\u8584\u819C\u5E72\u6D89", "thin-film interference", "\u8584\u819C\u5E72\u6E09", "\uBC15\uB9C9 \uAC04\uC12D", "interferencia de pel\xEDcula delgada", "interf\xE9rence en lame mince", "D\xFCnnschichtinterferenz"],
+  ["\u60E0\u65AF\u901A\u7535\u6865", "Wheatstone bridge", "\u30DB\u30A4\u30FC\u30C8\u30B9\u30C8\u30F3\u30D6\u30EA\u30C3\u30B8", "\uD718\uD2B8\uC2A4\uD1A4 \uBE0C\uB9AC\uC9C0", "puente de Wheatstone", "pont de Wheatstone", "Wheatstone-Br\xFCcke"],
+  ["\u6BD5\u5965-\u8428\u4F10\u5C14", "Biot\u2013Savart", "\u30D3\u30AA\u30FB\u30B5\u30D0\u30FC\u30EB", "\uBE44\uC624-\uC0AC\uBC14\uB974", "Biot\u2013Savart", "Biot\u2013Savart", "Biot\u2013Savart"],
+  ["\u6279\u5F52\u4E00\u5316", "batch normalization", "\u30D0\u30C3\u30C1\u6B63\u898F\u5316", "\uBC30\uCE58 \uC815\uADDC\uD654", "normalizaci\xF3n por lotes", "normalisation par lots", "Batch-Normalisierung"],
+  ["\u7EBF\u6027\u56DE\u5F52", "linear regression", "\u7DDA\u5F62\u56DE\u5E30", "\uC120\uD615 \uD68C\uADC0", "regresi\xF3n lineal", "r\xE9gression lin\xE9aire", "lineare Regression"],
+  ["\u903B\u8F91\u56DE\u5F52", "logistic regression", "\u30ED\u30B8\u30B9\u30C6\u30A3\u30C3\u30AF\u56DE\u5E30", "\uB85C\uC9C0\uC2A4\uD2F1 \uD68C\uADC0", "regresi\xF3n log\xEDstica", "r\xE9gression logistique", "logistische Regression"],
+  ["\u68AF\u5EA6\u4E0B\u964D", "gradient descent", "\u52FE\u914D\u964D\u4E0B", "\uACBD\uC0AC \uD558\uAC15", "descenso de gradiente", "descente de gradient", "Gradientenabstieg"],
+  ["\u859B\u5B9A\u8C14\u65B9\u7A0B", "Schr\xF6dinger equation", "\u30B7\u30E5\u30EC\u30FC\u30C7\u30A3\u30F3\u30AC\u30FC\u65B9\u7A0B\u5F0F", "\uC288\uB8B0\uB529\uAC70 \uBC29\uC815\uC2DD", "ecuaci\xF3n de Schr\xF6dinger", "\xE9quation de Schr\xF6dinger", "Schr\xF6dinger-Gleichung"],
+  ["\u5361\u8BFA\u5FAA\u73AF", "Carnot cycle", "\u30AB\u30EB\u30CE\u30FC\u30B5\u30A4\u30AF\u30EB", "\uCE74\uB974\uB178 \uC0AC\uC774\uD074", "ciclo de Carnot", "cycle de Carnot", "Carnot-Kreisprozess"],
+  ["\u5361\u8BFA\u56FE", "Karnaugh map", "\u30AB\u30EB\u30CE\u30FC\u56F3", "\uCE74\uB974\uB178 \uB9F5", "mapa de Karnaugh", "tableau de Karnaugh", "Karnaugh-Diagramm"],
+  ["\u5F00\u666E\u52D2\u8F68\u9053", "Kepler orbit", "\u30B1\u30D7\u30E9\u30FC\u8ECC\u9053", "\uCF00\uD50C\uB7EC \uADA4\uB3C4", "\xF3rbita de Kepler", "orbite de Kepler", "Kepler-Bahn"],
+  ["\u6D1B\u4F26\u5179\u53D8\u6362", "Lorentz transformation", "\u30ED\u30FC\u30EC\u30F3\u30C4\u5909\u63DB", "\uB85C\uB7F0\uCE20 \uBCC0\uD658", "transformaci\xF3n de Lorentz", "transformation de Lorentz", "Lorentz-Transformation"],
+  ["\u6D1B\u4F26\u5179\u529B", "Lorentz force", "\u30ED\u30FC\u30EC\u30F3\u30C4\u529B", "\uB85C\uB7F0\uCE20 \uD798", "fuerza de Lorentz", "force de Lorentz", "Lorentzkraft"],
+  ["\u5149\u7535\u6548\u5E94", "photoelectric effect", "\u5149\u96FB\u52B9\u679C", "\uAD11\uC804 \uD6A8\uACFC", "efecto fotoel\xE9ctrico", "effet photo\xE9lectrique", "Photoeffekt"],
+  ["\u9ED1\u4F53\u8F90\u5C04", "blackbody radiation", "\u9ED2\u4F53\u653E\u5C04", "\uD751\uCCB4 \uBCF5\uC0AC", "radiaci\xF3n de cuerpo negro", "rayonnement du corps noir", "Hohlraumstrahlung"],
+  ["\u70ED\u4F20\u5BFC", "heat conduction", "\u71B1\u4F1D\u5C0E", "\uC5F4\uC804\uB3C4", "conducci\xF3n t\xE9rmica", "conduction thermique", "W\xE4rmeleitung"],
+  ["\u81EA\u7531\u843D\u4F53", "free fall", "\u81EA\u7531\u843D\u4E0B", "\uC790\uC720\uB099\uD558", "ca\xEDda libre", "chute libre", "freier Fall"],
+  ["\u6B27\u59C6\u5B9A\u5F8B", "Ohm\u2019s law", "\u30AA\u30FC\u30E0\u306E\u6CD5\u5247", "\uC634\uC758 \uBC95\uCE59", "ley de Ohm", "loi d\u2019Ohm", "ohmsches Gesetz"],
+  ["\u4EA4\u6D41\u7535\u8DEF", "AC circuit", "\u4EA4\u6D41\u56DE\u8DEF", "\uAD50\uB958 \uD68C\uB85C", "circuito de CA", "circuit alternatif", "Wechselstromkreis"],
+  ["\u65F6\u5E8F\u7535\u8DEF", "sequential circuit", "\u9806\u5E8F\u56DE\u8DEF", "\uC21C\uCC28 \uD68C\uB85C", "circuito secuencial", "circuit s\xE9quentiel", "Schaltwerk"],
+  ["\u8521\u6C0F\u7535\u8DEF", "Chua circuit", "\u30C1\u30E5\u30A2\u56DE\u8DEF", "\uCD94\uC544 \uD68C\uB85C", "circuito de Chua", "circuit de Chua", "Chua-Schaltkreis"],
+  ["\u900F\u955C\u6210\u50CF", "lens imaging", "\u30EC\u30F3\u30BA\u7D50\u50CF", "\uB80C\uC988 \uACB0\uC0C1", "formaci\xF3n de imagen por lente", "imagerie par lentille", "Linsenabbildung"],
+  ["\u884D\u5C04\u6781\u9650", "diffraction limit", "\u56DE\u6298\u9650\u754C", "\uD68C\uC808 \uD55C\uACC4", "l\xEDmite de difracci\xF3n", "limite de diffraction", "Beugungsgrenze"],
+  ["\u5F15\u529B\u900F\u955C", "gravitational lens", "\u91CD\u529B\u30EC\u30F3\u30BA", "\uC911\uB825 \uB80C\uC988", "lente gravitatoria", "lentille gravitationnelle", "Gravitationslinse"],
+  ["\u65F6\u95F4\u81A8\u80C0", "time dilation", "\u6642\u9593\u306E\u9045\u308C", "\uC2DC\uAC04 \uC9C0\uC5F0", "dilataci\xF3n temporal", "dilatation du temps", "Zeitdilatation"],
+  ["\u6CE2\u7684\u53E0\u52A0", "wave superposition", "\u6CE2\u306E\u91CD\u306D\u5408\u308F\u305B", "\uD30C\uB3D9\uC758 \uC911\uCCA9", "superposici\xF3n de ondas", "superposition d\u2019ondes", "Wellen\xFCberlagerung"],
+  ["\u566A\u58F0\u62B5\u6D88", "noise cancellation", "\u9A12\u97F3\u30AD\u30E3\u30F3\u30BB\u30EA\u30F3\u30B0", "\uC18C\uC74C \uC0C1\uC1C4", "cancelaci\xF3n de ruido", "annulation de bruit", "Ger\xE4uschunterdr\xFCckung"],
+  ["\u8FFD\u53CA\u76F8\u9047", "pursuit and meeting", "\u8FFD\u53CA\u3068\u4F1A\u5408", "\uCD94\uACA9\uACFC \uB9CC\uB0A8", "persecuci\xF3n y encuentro", "poursuite et rencontre", "Einholen und Treffen"],
+  ["\u659C\u9762\u6ED1\u5757", "block on an incline", "\u659C\u9762\u4E0A\u306E\u30D6\u30ED\u30C3\u30AF", "\uBE57\uBA74 \uC704 \uBB3C\uCCB4", "bloque en un plano inclinado", "bloc sur un plan inclin\xE9", "Klotz auf der schiefen Ebene"],
+  ["\u535A\u5F08\u56DA\u5F92", "prisoner\u2019s dilemma", "\u56DA\u4EBA\u306E\u30B8\u30EC\u30F3\u30DE", "\uC8C4\uC218\uC758 \uB51C\uB808\uB9C8", "dilema del prisionero", "dilemme du prisonnier", "Gefangenendilemma"],
+  ["\u6676\u4F53\u884D\u5C04", "crystal diffraction", "\u7D50\u6676\u56DE\u6298", "\uACB0\uC815 \uD68C\uC808", "difracci\xF3n cristalina", "diffraction cristalline", "Kristallbeugung"],
+  ["\u76F4\u6D41\u7535\u673A", "DC motor", "\u76F4\u6D41\u30E2\u30FC\u30BF", "\uC9C1\uB958 \uC804\uB3D9\uAE30", "motor de CC", "moteur \xE0 courant continu", "Gleichstrommotor"],
+  ["\u67E5\u627E\u7B97\u6CD5", "search algorithm", "\u63A2\u7D22\u30A2\u30EB\u30B4\u30EA\u30BA\u30E0", "\uAC80\uC0C9 \uC54C\uACE0\uB9AC\uC998", "algoritmo de b\xFAsqueda", "algorithme de recherche", "Suchalgorithmus"],
+  ["\u67E5\u627E\u8868", "lookup table", "\u30EB\u30C3\u30AF\u30A2\u30C3\u30D7\u30C6\u30FC\u30D6\u30EB", "\uB8E9\uC5C5 \uD14C\uC774\uBE14", "tabla de consulta", "table de correspondance", "Nachschlagetabelle"],
+  ["\u54C8\u5E0C\u7D22\u5F15", "hash index", "\u30CF\u30C3\u30B7\u30E5\u7D22\u5F15", "\uD574\uC2DC \uC0C9\uC778", "\xEDndice hash", "index de hachage", "Hashindex"],
+  ["\u5F00\u653E\u5BFB\u5740", "open addressing", "\u30AA\u30FC\u30D7\u30F3\u30A2\u30C9\u30EC\u30B9\u6CD5", "\uAC1C\uBC29 \uC8FC\uC18C\uBC95", "direccionamiento abierto", "adressage ouvert", "offene Adressierung"],
+  ["\u4F20\u9012\u51FD\u6570", "transfer function", "\u4F1D\u9054\u95A2\u6570", "\uC804\uB2EC \uD568\uC218", "funci\xF3n de transferencia", "fonction de transfert", "\xDCbertragungsfunktion"],
+  ["\u8C10\u632F\u5B50", "harmonic oscillator", "\u8ABF\u548C\u632F\u52D5\u5B50", "\uC870\uD654 \uC9C4\uB3D9\uC790", "oscilador arm\xF3nico", "oscillateur harmonique", "harmonischer Oszillator"],
+  ["\u592B\u7405\u79BE\u8D39", "Fraunhofer", "\u30D5\u30E9\u30A6\u30F3\u30DB\u30FC\u30D5\u30A1\u30FC", "\uD504\uB77C\uC6B4\uD638\uD37C", "Fraunhofer", "Fraunhofer", "Fraunhofer"],
+  ["\u83F2\u6D85\u8033", "Fresnel", "\u30D5\u30EC\u30CD\u30EB", "\uD504\uB808\uB12C", "Fresnel", "Fresnel", "Fresnel"],
+  ["\u6590\u6CE2\u90A3\u5951", "Fibonacci", "\u30D5\u30A3\u30DC\u30CA\u30C3\u30C1", "\uD53C\uBCF4\uB098\uCE58", "Fibonacci", "Fibonacci", "Fibonacci"],
+  ["\u611F\u77E5\u673A", "perceptron", "\u30D1\u30FC\u30BB\u30D7\u30C8\u30ED\u30F3", "\uD37C\uC149\uD2B8\uB860", "perceptr\xF3n", "perceptron", "Perzeptron"],
+  ["\u5F52\u4E00\u5316", "normalization", "\u6B63\u898F\u5316", "\uC815\uADDC\uD654", "normalizaci\xF3n", "normalisation", "Normierung"],
+  ["\u94FE\u5730\u5740", "separate chaining", "\u30C1\u30A7\u30A4\u30F3\u6CD5", "\uCCB4\uC774\uB2DD", "encadenamiento", "cha\xEEnage", "Verkettung"],
+  ["\u5E73\u9762\u6CE2", "plane wave", "\u5E73\u9762\u6CE2", "\uD3C9\uBA74\uD30C", "onda plana", "onde plane", "ebene Welle"],
+  ["\u4E32\u5E76\u8054", "series-parallel", "\u76F4\u4E26\u5217", "\uC9C1\uBCD1\uB82C", "serie-paralelo", "s\xE9rie-parall\xE8le", "Reihen-Parallel"],
+  ["\u57FA\u5C14\u970D\u592B", "Kirchhoff", "\u30AD\u30EB\u30D2\u30DB\u30C3\u30D5", "\uD0A4\uB974\uD788\uD638\uD504", "Kirchhoff", "Kirchhoff", "Kirchhoff"],
+  ["\u5FB7\u5E03\u7F57\u610F", "de Broglie", "\u30C9\u30FB\u30D6\u30ED\u30A4", "\uB4DC\uBE0C\uB85C\uC774", "de Broglie", "de Broglie", "de Broglie"],
+  ["\u73BB\u5C14\u5179\u66FC", "Boltzmann", "\u30DC\u30EB\u30C4\u30DE\u30F3", "\uBCFC\uCE20\uB9CC", "Boltzmann", "Boltzmann", "Boltzmann"],
+  ["\u859B\u5B9A\u8C14", "Schr\xF6dinger", "\u30B7\u30E5\u30EC\u30FC\u30C7\u30A3\u30F3\u30AC\u30FC", "\uC288\uB8B0\uB529\uAC70", "Schr\xF6dinger", "Schr\xF6dinger", "Schr\xF6dinger"],
+  ["\u9EA6\u514B\u65AF\u97E6", "Maxwell", "\u30DE\u30AF\u30B9\u30A6\u30A7\u30EB", "\uB9E5\uC2A4\uC6F0", "Maxwell", "Maxwell", "Maxwell"],
+  ["\u5F00\u666E\u52D2", "Kepler", "\u30B1\u30D7\u30E9\u30FC", "\uCF00\uD50C\uB7EC", "Kepler", "Kepler", "Kepler"],
+  ["\u5EB7\u666E\u987F", "Compton", "\u30B3\u30F3\u30D7\u30C8\u30F3", "\uCF64\uD504\uD134", "Compton", "Compton", "Compton"],
+  ["\u6D1B\u4F26\u5179", "Lorentz", "\u30ED\u30FC\u30EC\u30F3\u30C4", "\uB85C\uB7F0\uCE20", "Lorentz", "Lorentz", "Lorentz"],
+  ["\u6D1B\u4F26\u8328", "Lorentz", "\u30ED\u30FC\u30EC\u30F3\u30C4", "\uB85C\uB7F0\uCE20", "Lorentz", "Lorentz", "Lorentz"],
+  ["\u5361\u5C14\u66FC\u6EE4\u6CE2", "Kalman filter", "\u30AB\u30EB\u30DE\u30F3\u30D5\u30A3\u30EB\u30BF", "\uCE7C\uB9CC \uD544\uD130", "filtro de Kalman", "filtre de Kalman", "Kalman-Filter"],
+  ["\u5361\u5C14\u66FC", "Kalman", "\u30AB\u30EB\u30DE\u30F3", "\uCE7C\uB9CC", "Kalman", "Kalman", "Kalman"],
+  ["\u8499\u7279\u5361\u6D1B", "Monte Carlo", "\u30E2\u30F3\u30C6\u30AB\u30EB\u30ED", "\uBAAC\uD14C\uCE74\uB97C\uB85C", "Monte Carlo", "Monte Carlo", "Monte Carlo"],
+  ["\u7EA2\u9ED1\u6811", "red-black tree", "\u8D64\u9ED2\u6728", "\uB808\uB4DC-\uBE14\uB799 \uD2B8\uB9AC", "\xE1rbol rojinegro", "arbre rouge-noir", "Rot-Schwarz-Baum"],
+  ["\u5F15\u529B\u6CE2", "gravitational wave", "\u91CD\u529B\u6CE2", "\uC911\uB825\uD30C", "onda gravitatoria", "onde gravitationnelle", "Gravitationswelle"],
+  ["\u72C4\u585E\u5C14", "Diesel", "\u30C7\u30A3\u30FC\u30BC\u30EB", "\uB514\uC824", "Diesel", "Diesel", "Diesel"],
+  ["\u6EE4\u6CE2\u5668", "filter", "\u30D5\u30A3\u30EB\u30BF", "\uD544\uD130", "filtro", "filtre", "Filter"],
+  ["\u9ED1\u4F53", "blackbody", "\u30D6\u30E9\u30C3\u30AF\u30DC\u30C7\u30A3", "\uD751\uCCB4", "cuerpo negro", "corps noir", "Schwarzer K\xF6rper"],
+  ["\u590D\u6446", "physical pendulum", "\u7269\u7406\u632F\u308A\u5B50", "\uBB3C\uB9AC \uC9C4\uC790", "p\xE9ndulo f\xEDsico", "pendule physique", "physikalisches Pendel"],
+  ["\u5355\u6446", "simple pendulum", "\u5358\u632F\u308A\u5B50", "\uB2E8\uC9C4\uC790", "p\xE9ndulo simple", "pendule simple", "Fadenpendel"],
+  ["\u6A2A\u6CE2", "transverse wave", "\u6A2A\u6CE2", "\uD6A1\uD30C", "onda transversal", "onde transversale", "Transversalwelle"],
+  ["\u659C\u9762", "inclined plane", "\u659C\u9762", "\uBE57\uBA74", "plano inclinado", "plan inclin\xE9", "schiefe Ebene"],
+  ["\u884D\u5C04", "diffraction", "\u56DE\u6298", "\uD68C\uC808", "difracci\xF3n", "diffraction", "Beugung"],
+  ["\u5E72\u6D89", "interference", "\u5E72\u6E09", "\uAC04\uC12D", "interferencia", "interf\xE9rence", "Interferenz"],
+  ["\u7535\u8DEF", "circuit", "\u56DE\u8DEF", "\uD68C\uB85C", "circuito", "circuit", "Stromkreis"],
+  ["\u70ED\u673A", "heat engine", "\u71B1\u6A5F\u95A2", "\uC5F4\uAE30\uAD00", "m\xE1quina t\xE9rmica", "machine thermique", "W\xE4rmekraftmaschine"],
+  ["\u6F6E\u6C50", "tide", "\u6F6E\u6C50", "\uC870\uC11D", "marea", "mar\xE9e", "Gezeiten"],
+  ["\u9ED1\u6D1E", "black hole", "\u30D6\u30E9\u30C3\u30AF\u30DB\u30FC\u30EB", "\uBE14\uB799\uD640", "agujero negro", "trou noir", "Schwarzes Loch"],
+  ["\u50CF\u5DEE", "aberration", "\u53CE\u5DEE", "\uC218\uCC28", "aberraci\xF3n", "aberration", "Aberration"],
+  ["\u8C10\u632F", "resonance", "\u5171\u632F", "\uACF5\uC9C4", "resonancia", "r\xE9sonance", "Resonanz"],
+  ["\u7535\u6865", "bridge circuit", "\u30D6\u30EA\u30C3\u30B8\u56DE\u8DEF", "\uBE0C\uB9AC\uC9C0 \uD68C\uB85C", "circuito puente", "circuit en pont", "Br\xFCckenschaltung"],
+  ["\u54C8\u5E0C", "hash", "\u30CF\u30C3\u30B7\u30E5", "\uD574\uC2DC", "hash", "hachage", "Hash"],
+  ["\u8DF3\u8868", "skip list", "\u30B9\u30AD\u30C3\u30D7\u30EA\u30B9\u30C8", "\uC2A4\uD0B5 \uB9AC\uC2A4\uD2B8", "lista de saltos", "liste \xE0 saut", "Skip-Liste"],
+  ["\u67E5\u627E", "search", "\u63A2\u7D22", "\uAC80\uC0C9", "b\xFAsqueda", "recherche", "Suche"],
+  ["\u53E0\u52A0", "superposition", "\u91CD\u306D\u5408\u308F\u305B", "\uC911\uCCA9", "superposici\xF3n", "superposition", "\xDCberlagerung"],
+  ["\u566A\u58F0", "noise", "\u9A12\u97F3", "\uC18C\uC74C", "ruido", "bruit", "Rauschen"],
+  ["\u6563\u5C04", "scattering", "\u6563\u4E71", "\uC0B0\uB780", "dispersi\xF3n", "diffusion", "Streuung"],
+  ["\u8F90\u5C04", "radiation", "\u653E\u5C04", "\uBCF5\uC0AC", "radiaci\xF3n", "rayonnement", "Strahlung"],
+  ["\u5FAA\u73AF", "cycle", "\u30B5\u30A4\u30AF\u30EB", "\uC21C\uD658", "ciclo", "cycle", "Zyklus"],
+  ["\u5206\u5E03", "distribution", "\u5206\u5E03", "\uBD84\uD3EC", "distribuci\xF3n", "distribution", "Verteilung"],
+  ["\u65B9\u7A0B", "equation", "\u65B9\u7A0B\u5F0F", "\uBC29\uC815\uC2DD", "ecuaci\xF3n", "\xE9quation", "Gleichung"],
+  ["\u5B9A\u5F8B", "law", "\u6CD5\u5247", "\uBC95\uCE59", "ley", "loi", "Gesetz"],
+  ["\u8F68\u9053", "orbit", "\u8ECC\u9053", "\uADA4\uB3C4", "\xF3rbita", "orbite", "Bahn"],
+  ["\u900F\u955C", "lens", "\u30EC\u30F3\u30BA", "\uB80C\uC988", "lente", "lentille", "Linse"],
+  ["\u6210\u50CF", "imaging", "\u7D50\u50CF", "\uACB0\uC0C1", "formaci\xF3n de imagen", "imagerie", "Abbildung"],
+  ["\u56DE\u5F52", "regression", "\u56DE\u5E30", "\uD68C\uADC0", "regresi\xF3n", "r\xE9gression", "Regression"],
+  ["\u7D22\u5F15", "index", "\u7D22\u5F15", "\uC0C9\uC778", "\xEDndice", "index", "Index"],
+  ["\u632F\u52A8", "oscillation", "\u632F\u52D5", "\uC9C4\uB3D9", "oscilaci\xF3n", "oscillation", "Schwingung"],
+  ["\u7B80\u8C10", "simple harmonic", "\u5358\u632F\u52D5\u306E", "\uB2E8\uC21C \uC870\uD654", "arm\xF3nico simple", "harmonique simple", "einfach harmonisch"],
+  ["\u4F20\u64AD", "propagation", "\u4F1D\u64AD", "\uC804\uD30C", "propagaci\xF3n", "propagation", "Ausbreitung"],
+  ["\u53CC\u6E90", "double source", "\u4E8C\u5149\u6E90", "\uC774\uC911 \uAD11\uC6D0", "doble fuente", "double source", "Doppelquelle"],
+  ["\u5355\u7F1D", "single slit", "\u5358\u30B9\u30EA\u30C3\u30C8", "\uB2E8\uC77C \uC2AC\uB9BF", "rendija \xFAnica", "fente unique", "Einzelspalt"],
+  ["\u5706\u5B54", "circular aperture", "\u5186\u5B54", "\uC6D0\uD615 \uAC1C\uAD6C", "abertura circular", "ouverture circulaire", "Kreisblende"],
+  ["\u5305\u7EDC", "envelope", "\u5305\u7D61\u7DDA", "\uD3EC\uB77D\uC120", "envolvente", "enveloppe", "Einh\xFCllende"],
+  ["\u4E00\u9636", "first-order", "1\u6B21\uFF08\u3044\u3061\u3058\uFF09", "1\uCC28", "primer orden", "premier ordre", "erste Ordnung"],
+  ["\u4E8C\u9636", "second-order", "2\u6B21\uFF08\u306B\u3058\uFF09", "2\uCC28", "segundo orden", "second ordre", "zweite Ordnung"],
+  ["\u8154\u6A21", "cavity mode", "\u5171\u632F\u5668\u30E2\u30FC\u30C9", "\uACF5\uC9C4 \uBAA8\uB4DC", "modo de cavidad", "mode de cavit\xE9", "Hohlraummode"],
+  ["\u663E\u5FAE\u955C", "microscope", "\u9855\u5FAE\u93E1", "\uD604\uBBF8\uACBD", "microscopio", "microscope", "Mikroskop"],
+  ["\u86CB\u767D\u8D28", "protein", "\u30BF\u30F3\u30D1\u30AF\u8CEA", "\uB2E8\uBC31\uC9C8", "prote\xEDna", "prot\xE9ine", "Protein"],
+  ["\u6298\u53E0", "folding", "\u6298\u308A\u305F\u305F\u307F", "\uC811\uD798", "plegamiento", "repliement", "Faltung"],
+  ["\u6676\u4F53", "crystal", "\u7D50\u6676", "\uACB0\uC815", "cristal", "cristal", "Kristall"],
+  ["\u76F4\u6D41", "direct current", "\u76F4\u6D41", "\uC9C1\uB958", "corriente continua", "courant continu", "Gleichstrom"],
+  ["\u7535\u673A", "motor", "\u30E2\u30FC\u30BF", "\uC804\uB3D9\uAE30", "motor", "moteur", "Motor"],
+  ["\u903B\u8F91", "logic", "\u8AD6\u7406", "\uB17C\uB9AC", "l\xF3gica", "logique", "Logik"],
+  ["\u5361\u8BFA", "Carnot", "\u30AB\u30EB\u30CE\u30FC", "\uCE74\uB974\uB178", "Carnot", "Carnot", "Carnot"],
+  ["\u5965\u6258", "Otto", "\u30AA\u30C3\u30C8\u30FC", "\uC624\uD1A0", "Otto", "Otto", "Otto"],
+  ["\u7EB3\u4EC0", "Nash", "\u30CA\u30C3\u30B7\u30E5", "\uB0B4\uC2DC", "Nash", "Nash", "Nash"]
+];
+var phraseBuckets = /* @__PURE__ */ new Map();
+var phraseRows = PHRASE_TABLE.filter((row) => row && row[0]).slice().sort((a, b) => b[0].length - a[0].length);
+for (const row of phraseRows) {
+  const ch = row[0][0];
+  if (!phraseBuckets.has(ch)) phraseBuckets.set(ch, []);
+  phraseBuckets.get(ch).push(row);
+}
 var buckets = /* @__PURE__ */ new Map();
 var rowsReady = null;
 function rebuildBuckets(rows) {
@@ -4878,17 +5021,27 @@ function ensureGlyphRows() {
 function translateCatalogText(locale2, text) {
   const raw = String(text || "").replace(/\s+/g, " ").trim();
   if (!raw || locale2 === "zh" || IDX[locale2] == null) return raw;
-  if (!buckets.size) return raw;
   const idx = IDX[locale2] + 1;
   let out = "";
   for (let i = 0; i < raw.length; ) {
-    const list = buckets.get(raw[i]);
+    const phrases = phraseBuckets.get(raw[i]);
     let hit = null;
-    if (list) {
-      for (const row of list) {
+    if (phrases) {
+      for (const row of phrases) {
         if (raw.startsWith(row[0], i) && row[idx]) {
           hit = row;
           break;
+        }
+      }
+    }
+    if (!hit && buckets.size) {
+      const list = buckets.get(raw[i]);
+      if (list) {
+        for (const row of list) {
+          if (raw.startsWith(row[0], i) && row[idx]) {
+            hit = row;
+            break;
+          }
         }
       }
     }
@@ -7749,28 +7902,32 @@ function setNamesLoading(on) {
 }
 async function refreshSidebar(signal) {
   const q = app.filter.q.trim();
-  if (signal?.aborted) return;
-  if (q) {
-    setNamesLoading(true);
-    try {
-      await ensureDomainNames(signal);
-    } catch (err) {
-      if (err?.name === "AbortError" || signal?.aborted) return;
-    }
+  const stillMine = () => !signal || sidebarSearchAbort?.signal === signal;
+  if (signal?.aborted) {
+    if (stillMine()) setNamesLoading(false);
+    return;
   }
-  if (signal?.aborted) return;
   try {
+    if (q) {
+      setNamesLoading(true);
+      try {
+        await ensureDomainNames(signal);
+      } catch (err) {
+        if (err?.name === "AbortError" || signal?.aborted) return;
+      }
+    }
+    if (signal?.aborted) return;
     if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
       await loadIndex();
       if (signal?.aborted) return;
       const domains = domainsForFilter();
       await Promise.all(domains.map((domain) => loadDomain(domain)));
     }
+    if (signal?.aborted) return;
+    buildSidebar();
   } finally {
-    if (!signal?.aborted) setNamesLoading(false);
+    if (stillMine()) setNamesLoading(false);
   }
-  if (signal?.aborted) return;
-  buildSidebar();
 }
 var sidebarRefreshTimer = 0;
 var sidebarSearchAbort = null;
@@ -8666,4 +8823,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-IR2EAFK5.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-F6SEDR2D.js");

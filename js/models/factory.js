@@ -218,11 +218,312 @@ export function createFactoryModel(spec) {
   return enrich(build(spec), spec);
 }
 
+function variantKnobs(spec) {
+  const dimList = Array.isArray(spec.dims) ? spec.dims : [];
+  const defaults = spec.defaults && typeof spec.defaults === 'object' ? spec.defaults : {};
+  const params = { ...defaults };
+  const paramSchema = {};
+  for (const d of dimList) {
+    if (!d?.key) continue;
+    if (params[d.key] === undefined) params[d.key] = d.value ?? d.min ?? 1;
+    paramSchema[d.key] = schemaNum(
+      d.label || d.key,
+      'dynamics',
+      d.unit || '—',
+      Number.isFinite(d.min) ? d.min : 0,
+      Number.isFinite(d.max) ? d.max : 100,
+    );
+  }
+  return { params, paramSchema };
+}
+
+function isPhotoelectricSpec(spec) {
+  const id = String(spec?.id || '');
+  const of = String(spec?.variantOf || '');
+  return id === 'photoelectric'
+    || of === 'photoelectric'
+    || /^fam-photoelectric/i.test(id)
+    || /photoelectric/i.test(id)
+    || /photoelectric/i.test(of);
+}
+
+function isHeatConductionSpec(spec) {
+  const id = String(spec?.id || '');
+  const of = String(spec?.variantOf || '');
+  const formula = String(spec?.formula || '');
+  return id === 'heat'
+    || of === 'heat'
+    || of === 'heat-cond'
+    || of === 'cond-eng'
+    || /^fam-heat-cond/i.test(id)
+    || /^fam-cond-eng/i.test(id)
+    || /conduction/i.test(id)
+    || /conduction/i.test(of)
+    || formula === '傅里叶律'
+    || formula === '多层壁';
+}
+
+/**
+ * Einstein photoelectric equation (1905). Halliday: K_max does not scale with intensity.
+ * K_max = max(0, h ν − W). Catalog ν and W share one energy unit, so h defaults to 1
+ * (ν is already an energy, matching the eV form K_max = max(0, hf − W)).
+ * Relative yield R = I above threshold and 0 below. Intensity does not enter K_max.
+ */
+function buildPhotoelectricVariant(spec) {
+  const { params, paramSchema } = variantKnobs(spec);
+  if (params.nu === undefined && params.freq === undefined && params.hf === undefined) {
+    params.nu = 3;
+    paramSchema.nu = schemaNum('ν', 'dynamics', 'eV', 0, 12);
+  }
+  if (params.W === undefined && params.workFunc === undefined) {
+    params.W = 2;
+    paramSchema.W = schemaNum('W', 'dynamics', 'eV', 0, 10);
+  }
+  if (params.I === undefined && params.intensity === undefined) {
+    params.I = 1;
+    paramSchema.I = schemaNum('I', 'dynamics', '—', 0, 10);
+  }
+  if (paramSchema.nu) paramSchema.nu = { ...paramSchema.nu, unit: paramSchema.nu.unit === '—' ? 'eV' : paramSchema.nu.unit };
+  if (paramSchema.W) paramSchema.W = { ...paramSchema.W, unit: paramSchema.W.unit === '—' ? 'eV' : paramSchema.W.unit };
+  params.h = params.h ?? 1;
+  paramSchema.h = schemaNum('h', 'dynamics', '—', 0, 10);
+
+  const photonEnergy = (p) => {
+    if (p.hf !== undefined && p.nu === undefined && p.freq === undefined) return P(p, 'hf', 0);
+    const h = P(p, 'h', 1);
+    const nu = p.nu !== undefined ? P(p, 'nu', 0) : p.freq !== undefined ? P(p, 'freq', 0) : P(p, 'hf', 0);
+    return h * nu;
+  };
+
+  return {
+    ...baseMeta(spec),
+    equation: 'K_max = max(0, hν − W); R ∝ I only if K_max>0',
+    authority: 'Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield ∝ I above threshold)',
+    assumptions: 'hν and W share one energy unit (h=1 when the frequency knob is already an energy); no space charge; R is a relative yield',
+    params,
+    paramSchema,
+    init(state) {
+      state.t = 0;
+      state.hist = [];
+      this.step(state, 0);
+      state.hist.length = 0;
+      state.t = 0;
+    },
+    step(state, dt) {
+      const p = state.params || {};
+      const hf = photonEnergy(p);
+      const W = p.W !== undefined ? P(p, 'W', 0) : P(p, 'workFunc', 0);
+      const I = Math.max(0, p.I !== undefined ? P(p, 'I', 0) : P(p, 'intensity', 0));
+      const K = Math.max(0, hf - W);
+      state.hf = hf;
+      state.W = W;
+      state.K = K;
+      state.val = K;
+      state.rate = K > 0 ? I : 0;
+      const frame = Number(dt);
+      if (frame > 0) state.t += frame;
+      if (!state.hist) state.hist = [];
+      state.hist.push(K);
+      if (state.hist.length > 160) state.hist.shift();
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      const box = padBox(W, H, 40);
+      title(ctx, spec.name);
+      const mid = box.t + box.h * 0.62;
+      const span = Math.max(state.hf, state.W, 0.5);
+      const xOf = (e) => box.l + (Math.max(0, e) / span) * box.w;
+      ctx.strokeStyle = C.axis;
+      ctx.beginPath();
+      ctx.moveTo(box.l, mid);
+      ctx.lineTo(box.r, mid);
+      ctx.stroke();
+      ctx.strokeStyle = C.muted;
+      ctx.beginPath();
+      ctx.moveTo(xOf(state.W), mid - 28);
+      ctx.lineTo(xOf(state.W), mid + 18);
+      ctx.stroke();
+      ctx.strokeStyle = C.body;
+      ctx.beginPath();
+      ctx.moveTo(xOf(state.hf), mid - 46);
+      ctx.lineTo(xOf(state.hf), mid + 10);
+      ctx.stroke();
+      const kW = Math.max(0, xOf(state.hf) - xOf(state.W));
+      ctx.fillStyle = C.accent;
+      ctx.fillRect(xOf(state.W), mid - 16, kW, 10);
+      const yieldH = Math.min(box.h * 0.28, state.rate * 14);
+      ctx.fillStyle = C.vector || C.body;
+      ctx.fillRect(box.l, box.b - yieldH, 18, yieldH);
+      ctx.fillStyle = C.muted;
+      ctx.font = '11px IBM Plex Mono, monospace';
+      ctx.fillText('W', xOf(state.W) + 4, mid + 32);
+      ctx.fillText('hν', xOf(state.hf) + 4, mid - 52);
+      ctx.fillStyle = C.accent;
+      ctx.font = '13px IBM Plex Mono, monospace';
+      ctx.fillText(`K_max=${formatNum(state.K, 3)}`, box.l, box.t + 18);
+      ctx.fillText(`R=${formatNum(state.rate, 3)}`, box.l + 28, box.b - 4);
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return [
+        { label: 'K_max', value: `${formatNum(state.K, d)} eV` },
+        { label: 'R', value: formatNum(state.rate, d) },
+        { label: 'hν', value: `${formatNum(state.hf, d)} eV` },
+        { label: 'W', value: `${formatNum(state.W, d)} eV` },
+      ];
+    },
+    getEnergy(state) {
+      return { kinetic: state.K || 0, potential: 0 };
+    },
+    getTrajectory(state) {
+      return (state.hist || []).map((v, i) => ({ i, K: v }));
+    },
+  };
+}
+
+/**
+ * Steady plane-wall conduction. Fourier's law (Incropera, Fundamentals of
+ * Heat and Mass Transfer, Ch. 2): q_x = −κ (T(L) − T(0)) / L.
+ * Constant κ, no generation. The straight T(x) is the exact steady solution
+ * of d²T/dx² = 0. This is not an electrodynamics solve.
+ * κ ← k. L ← thk when the catalog gives a wall thickness, otherwise L.
+ */
+function buildHeatConductionVariant(spec) {
+  const { params, paramSchema } = variantKnobs(spec);
+  if (params.k === undefined) params.k = 1;
+  const kPrev = paramSchema.k;
+  paramSchema.k = schemaNum('κ', 'dynamics', 'W/(m·K)', kPrev?.min ?? 0.02, kPrev?.max ?? 400);
+  if (params.thk === undefined) {
+    params.L = params.L ?? 0.1;
+    paramSchema.L = schemaNum('L', 'dynamics', 'm', 0.001, 5);
+  } else if (paramSchema.thk) {
+    paramSchema.thk = { ...paramSchema.thk, label: paramSchema.thk.label || 'L', unit: 'm' };
+  }
+  params.Th = params.Th ?? params.T0 ?? 100;
+  paramSchema.Th = schemaNum('T(0)', 'dynamics', '°C', -50, 800);
+  if (params.Tb === undefined && params.Tc === undefined) params.Tb = 0;
+  if (!paramSchema.Tb && params.Tc === undefined) {
+    paramSchema.Tb = schemaNum('T(L)', 'dynamics', '°C', -50, 800);
+  } else if (paramSchema.Tb) {
+    paramSchema.Tb = { ...paramSchema.Tb, label: 'T(L)' };
+  }
+
+  const wallLength = (p) => (
+    p.thk !== undefined
+      ? Math.max(P(p, 'thk', 0.01), 1e-9)
+      : Math.max(P(p, 'L', 0.1), 1e-9)
+  );
+
+  return {
+    ...baseMeta(spec),
+    equation: 'q = −κ (T(L) − T(0)) / L',
+    authority: 'Incropera, Fundamentals of Heat and Mass Transfer, Fourier law q=−κ ΔT/L (plane wall)',
+    assumptions: 'Steady plane wall, constant κ, no generation; ΔT = T(L)−T(0). Single layer when only one thickness is set.',
+    params,
+    paramSchema,
+    init(state) {
+      state.t = 0;
+      state.hist = [];
+      this.step(state, 0);
+      state.hist.length = 0;
+      state.t = 0;
+    },
+    step(state, dt) {
+      const p = state.params || {};
+      const kappa = P(p, 'k', P(p, 'kappa', 1));
+      const L = wallLength(p);
+      const T0 = P(p, 'Th', P(p, 'T0', 100));
+      const TL = p.Tc !== undefined ? P(p, 'Tc', 0) : P(p, 'Tb', 0);
+      const dT = TL - T0;
+      state.kappa = kappa;
+      state.Lwall = L;
+      state.T0 = T0;
+      state.TL = TL;
+      state.dT = dT;
+      state.q = -kappa * dT / L;
+      state.val = state.q;
+      const frame = Number(dt);
+      if (frame > 0) state.t += frame;
+      if (!state.hist) state.hist = [];
+      state.hist.push(state.q);
+      if (state.hist.length > 160) state.hist.shift();
+    },
+    draw(ctx, state, view) {
+      const { width: W, height: H } = view;
+      const box = padBox(W, H, 36);
+      title(ctx, spec.name);
+      const plotTop = box.t + 28;
+      const plotH = Math.max(20, box.h - 56);
+      const tLo = Math.min(state.T0, state.TL);
+      const tHi = Math.max(state.T0, state.TL);
+      const yOf = (temp) => plotTop + (1 - (temp - tLo) / Math.max(1e-9, tHi - tLo)) * plotH;
+      ctx.strokeStyle = C.axis;
+      ctx.strokeRect(box.l, plotTop, box.w, plotH);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const n = 48;
+      for (let i = 0; i < n; i += 1) {
+        const u = i / (n - 1);
+        const temp = state.T0 + state.dT * u;
+        const x = box.l + u * box.w;
+        const y = yOf(temp);
+        ctx.strokeStyle = heatTempColor(temp, tLo, tHi);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, plotTop + plotH);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = C.body;
+      ctx.beginPath();
+      ctx.moveTo(box.l, yOf(state.T0));
+      ctx.lineTo(box.r, yOf(state.TL));
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      const dir = state.q >= 0 ? 1 : -1;
+      const mag = Math.min(box.w * 0.35, 28 + 18 * Math.log10(1 + Math.abs(state.q)));
+      const yA = plotTop + plotH * 0.5;
+      const x0 = box.l + box.w * 0.5 - dir * mag * 0.5;
+      drawArrow(ctx, x0, yA, x0 + dir * mag, yA, C.accent, 2);
+      ctx.fillStyle = C.accent;
+      ctx.font = '13px IBM Plex Mono, monospace';
+      ctx.fillText(`q=${formatNum(state.q, 3)}`, box.l, box.t + 16);
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return [
+        { label: 'q', value: `${formatNum(state.q, d)} W/m²` },
+        { label: 'ΔT', value: `${formatNum(state.dT, d)} K` },
+        { label: 'κ', value: `${formatNum(state.kappa, d)} W/(m·K)` },
+        { label: 'L', value: `${formatNum(state.Lwall, d)} m` },
+      ];
+    },
+    getEnergy() {
+      return null;
+    },
+    getTrajectory(state) {
+      const rows = [];
+      const n = 16;
+      for (let i = 0; i <= n; i += 1) {
+        const u = i / n;
+        rows.push({
+          x: u * state.Lwall,
+          T: state.T0 + state.dT * u,
+          q: state.q,
+        });
+      }
+      return rows;
+    },
+  };
+}
+
 /**
  * 薄变体构建器：按 catalog.dims / defaults 生成旋钮与示意动态。
  * 映射的 factory family 仅用于 formalism/capabilities。
+ * Photoelectric and conduction families use the builders above.
  */
 function buildVariant(spec) {
+  if (isPhotoelectricSpec(spec)) return buildPhotoelectricVariant(spec);
+  if (isHeatConductionSpec(spec)) return buildHeatConductionVariant(spec);
   const dimList = Array.isArray(spec.dims) ? spec.dims : [];
   const defaults = spec.defaults && typeof spec.defaults === 'object' ? spec.defaults : {};
   const params = { speed: 1, ...defaults };

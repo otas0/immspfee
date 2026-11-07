@@ -1004,22 +1004,39 @@ var wave_default = {
     state.dx = L / (N + 1);
   },
   step(state, dt) {
-    const { c, damp } = state.params;
+    const c = Math.abs(Number(state.params?.c) || 0);
+    const damp = Number(state.params?.damp) || 0;
     const { N, dx, y, v } = state;
+    const frame = Number(dt);
+    const pinEnds = () => {
+      y[0] = 0;
+      y[N + 1] = 0;
+      v[0] = 0;
+      v[N + 1] = 0;
+    };
+    if (!(frame > 0) || !(dx > 0) || !(N >= 1)) {
+      pinEnds();
+      return;
+    }
+    const dtMax = dx / (c + 1e-6);
+    const hCap = dtMax * 0.9;
+    const nSub = Math.max(1, Math.ceil(frame / hCap));
     const c2 = c * c;
     const inv = 1 / (dx * dx);
-    for (let i = 1; i <= N; i += 1) {
-      const a = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv - damp * v[i];
-      v[i] += a * dt;
+    let left = frame;
+    for (let s = 0; s < nSub && left > 0; s += 1) {
+      const h = s === nSub - 1 ? left : Math.min(left, frame / nSub);
+      for (let i = 1; i <= N; i += 1) {
+        const a = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv - damp * v[i];
+        v[i] += a * h;
+      }
+      for (let i = 1; i <= N; i += 1) {
+        y[i] += v[i] * h;
+      }
+      pinEnds();
+      left -= h;
     }
-    for (let i = 1; i <= N; i += 1) {
-      y[i] += v[i] * dt;
-    }
-    y[0] = 0;
-    y[N + 1] = 0;
-    v[0] = 0;
-    v[N + 1] = 0;
-    state.t += dt;
+    state.t += frame - left;
   },
   draw(ctx, state, view) {
     const { width: W, height: H } = view;
@@ -1189,22 +1206,39 @@ var heat_default = {
     }
   },
   step(state, dt) {
-    const { alpha } = state.params;
-    const { N, dx, T } = state;
-    const dtMax = dx * dx / (2 * Math.max(alpha, 1e-9));
-    const h = Math.min(dt, dtMax * 0.9);
-    const r = alpha * h / (dx * dx);
-    if (!state._next || state._next.length !== N) state._next = new Float64Array(N);
-    const next = state._next;
-    next[0] = state.params.Tleft;
-    next[N - 1] = state.params.Tright;
-    for (let i = 1; i < N - 1; i += 1) {
-      next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
+    const alpha = Math.max(0, Number(state.params?.alpha) || 0);
+    const N = state.N | 0;
+    const dx = Number(state.dx);
+    const frame = Number(dt);
+    if (!(N >= 2) || !state.T) return;
+    const pinEnds = () => {
+      state.T[0] = state.params.Tleft;
+      state.T[N - 1] = state.params.Tright;
+    };
+    if (!(frame > 0) || !(dx > 0)) {
+      pinEnds();
+      return;
     }
-    const swap = state.T;
-    state.T = next;
-    state._next = swap;
-    state.t += h;
+    const dtMax = dx * dx / (2 * Math.max(alpha, 1e-9));
+    const hCap = dtMax * 0.9;
+    const nSub = Math.max(1, Math.ceil(frame / hCap));
+    if (!state._next || state._next.length !== N) state._next = new Float64Array(N);
+    let left = frame;
+    for (let s = 0; s < nSub && left > 0; s += 1) {
+      const h = s === nSub - 1 ? left : Math.min(left, frame / nSub);
+      const r = alpha * h / (dx * dx);
+      const T = state.T;
+      const next = state._next;
+      next[0] = state.params.Tleft;
+      next[N - 1] = state.params.Tright;
+      for (let i = 1; i < N - 1; i += 1) {
+        next[i] = T[i] + r * (T[i + 1] - 2 * T[i] + T[i - 1]);
+      }
+      state.T = next;
+      state._next = T;
+      left -= h;
+    }
+    state.t += frame - left;
   },
   draw(ctx, state, view) {
     const { width: W, height: H } = view;

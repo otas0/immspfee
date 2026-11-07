@@ -2056,28 +2056,34 @@ function setNamesLoading(on) {
 
 async function refreshSidebar(signal) {
   const q = app.filter.q.trim();
-  if (signal?.aborted) return;
-  if (q) {
-    setNamesLoading(true);
-    try {
-      await ensureDomainNames(signal);
-    } catch (err) {
-      if (err?.name === 'AbortError' || signal?.aborted) return;
-    }
+  const stillMine = () => !signal || sidebarSearchAbort?.signal === signal;
+  if (signal?.aborted) {
+    if (stillMine()) setNamesLoading(false);
+    return;
   }
-  if (signal?.aborted) return;
   try {
+    if (q) {
+      setNamesLoading(true);
+      try {
+        await ensureDomainNames(signal);
+      } catch (err) {
+        if (err?.name === 'AbortError' || signal?.aborted) return;
+      }
+    }
+    if (signal?.aborted) return;
     if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
       await loadIndex();
       if (signal?.aborted) return;
       const domains = domainsForFilter();
       await Promise.all(domains.map((domain) => loadDomain(domain)));
     }
+    if (signal?.aborted) return;
+    buildSidebar();
   } finally {
-    if (!signal?.aborted) setNamesLoading(false);
+    // Only the latest search owns the loading chrome — aborted predecessors must not clear it early,
+    // and a superseded abort must not leave is-names-loading stuck forever.
+    if (stillMine()) setNamesLoading(false);
   }
-  if (signal?.aborted) return;
-  buildSidebar();
 }
 
 /** Debounce catalog search so domain-names / domain loads are not fired per keystroke. */

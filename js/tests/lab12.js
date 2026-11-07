@@ -6,7 +6,7 @@ import pidTune from '../models/pidTune.js';
 import compoundMicroscope from '../models/compoundMicroscope.js';
 import { probeSketch } from './sketchPixels.js';
 import { assumptionPreview, formulaLine } from '../i18n/previewText.js';
-import { hydrateGlyphRows, translateCatalogText } from '../i18n/catalogText.js';
+import { hydrateGlyphRows, translateCatalogText, translatePhrasesOnly } from '../i18n/catalogText.js';
 import { ROWS } from '../i18n/glyphRows.js';
 import { exprUsesClock, assertClockParam, overrideRecord } from '../lab/topicOverrides.js';
 import catalog from '../../data/catalog.json' with { type: 'json' };
@@ -143,6 +143,11 @@ export function runLab12() {
   assert('恒温的日文是带假名的句子', kana.test(warm) && !warm.includes('です'), warm);
   const bohrEn = translateCatalogText('en', '类氢、历史模型');
   assert('玻尔假设译成 hydrogen-like; historical model', bohrEn === 'hydrogen-like; historical model', bohrEn);
+  assert('玻尔兹曼不拆成单字', translateCatalogText('en', '玻尔兹曼') === 'Boltzmann', translateCatalogText('en', '玻尔兹曼'));
+  assert('格子玻尔兹曼先于玻尔兹曼', translateCatalogText('en', '格子玻尔兹曼') === 'lattice Boltzmann', translateCatalogText('en', '格子玻尔兹曼'));
+  assert('卡诺不是 card promise', translateCatalogText('en', '卡诺') === 'Carnot', translateCatalogText('en', '卡诺'));
+  assert('电路不是 electric path', translateCatalogText('en', '电路') === 'circuit', translateCatalogText('en', '电路'));
+  assert('短语未覆盖时不回落到单字', translatePhrasesOnly('en', '液滴撞击') == null, String(translatePhrasesOnly('en', '液滴撞击')));
 
   const eCharge = 1.602176634e-19;
   const phraseEn = {
@@ -257,11 +262,22 @@ export function runLab12() {
         if (!sample) sample = `${m.id} [${loc}] ${hanRuns(han.test(a) ? a : f)}`;
       }
     }
-    if (han.test(m.assumptions || '') && !kana.test(assumptionPreview('ja', m.assumptions || ''))) {
+    // JA scientific gloss may be Kanji-only (二光源干渉). Fail only when a
+    // Chinese source run still appears verbatim with no kana evidence of gloss.
+    const jaStillChinese = (src, preview) => {
+      const raw = String(src || '').replace(/\s+/g, ' ').trim();
+      if (!han.test(raw)) return false;
+      const body = String(preview || '').replace(/^(仮定|式)\s*/, '');
+      if (body === raw) return true;
+      if (kana.test(body)) return false;
+      const runs = raw.match(/[\u4e00-\u9fff]{2,}/g) || [];
+      return runs.some((run) => body.includes(run));
+    };
+    if (jaStillChinese(m.assumptions || '', assumptionPreview('ja', m.assumptions || ''))) {
       hanLeak += 1;
       if (!sample) sample = `${m.id} [ja] assumptions`;
     }
-    if (han.test(m.formula || '') && !kana.test(formulaLine('ja', m.formula || ''))) {
+    if (jaStillChinese(m.formula || '', formulaLine('ja', m.formula || ''))) {
       hanLeak += 1;
       if (!sample) sample = `${m.id} [ja] formula`;
     }
