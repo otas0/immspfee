@@ -139,19 +139,26 @@ async function openPage(viewport, dsf, shell) {
   return page;
 }
 
-/** Open param drawer; one click retry if the first press races layout. */
+/** Open param drawer; retries if the first press races layout / transition. */
 async function openParamDrawer(page) {
   const tryOpen = async () => {
-    await page.evaluate(() => document.getElementById('btn-params')?.click());
+    await page.evaluate(() => {
+      const btn = document.getElementById('btn-params');
+      if (!btn) return;
+      btn.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      btn.click();
+    });
     try {
-      await page.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 2500 });
+      await page.waitForFunction(() => document.getElementById('bench')?.classList.contains('open'), null, { timeout: 4000 });
       return true;
     } catch {
       return false;
     }
   };
-  if (await tryOpen()) return;
-  await tryOpen();
+  for (let i = 0; i < 3; i += 1) {
+    if (await tryOpen()) return;
+    await page.waitForTimeout(120);
+  }
 }
 
 async function setShell(page, id) {
