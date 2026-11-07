@@ -20,6 +20,9 @@ const forbidden = [
   { re: /\bCH\s*0?1\b/, label: 'CH 01' },
   { re: /\bbuusdo\b/i, label: 'buusdo' },
   { re: /\bTE\s*\/\s*signal\b/i, label: 'TE/signal' },
+  { re: /讲解/, label: '讲解' },
+  { re: /briefing/i, label: 'briefing' },
+  { re: /browser\s+entry/i, label: 'browser entry' },
 ];
 
 const allowedImg = /immspfee-logo\.svg|lab-qr\.svg/i;
