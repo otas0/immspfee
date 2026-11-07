@@ -92,6 +92,9 @@ jobs:
       - name: Pot regression
         run: npm run test:pot
 
+      - name: Phone toolbar hit + contrast (390)
+        run: npm run test:toolbar-hit
+
       - name: Restore narrow-fail streak
         if: always()
         continue-on-error: true
