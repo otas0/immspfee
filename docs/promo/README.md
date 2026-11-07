@@ -13,11 +13,11 @@
 
 ## Poster design
 
-Claim-first A4: logo + QR only as images (no stage stills). Quiet pillars / rules; claim stays dominant.
+**Default bilingual** (`?lang=both`): EN | 中文 side-by-side. Logo + QR only as images.
 
 - Brand clearspace: sheet padding top/left **≥14mm**
-- Screen desk: white (no gray “dirty edge”)
-- Language: `?lang=en` (default) · `?lang=zh` · `?lang=both` (bilingual kept)
+- Screen desk: white
+- Also: `?lang=en` · `?lang=zh`
 - Sync: `npm run sync:poster` · assert: `npm run assert:poster`
 
 Root: [`/poster.html`](../../poster.html) · Promo: [`poster.html`](./poster.html)

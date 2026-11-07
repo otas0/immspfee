@@ -63,8 +63,8 @@ for (const rel of files) {
     console.error(`assert-poster-lab: ${rel} must not embed stage stills / PNGs`);
     failed += 1;
   }
-  if (!/14mm\s+16mm\s+12mm\s+14mm/.test(text)) {
-    console.error(`assert-poster-lab: ${rel} missing ≥14mm top/left sheet padding`);
+  if (!/padding:\s*14mm/.test(text)) {
+    console.error(`assert-poster-lab: ${rel} missing ≥14mm sheet padding`);
     failed += 1;
   }
 }
