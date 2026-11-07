@@ -217,13 +217,43 @@ await context.addInitScript(() => {
 Required in `scripts/sw-cache.mjs` and `scripts/pages-tti-sw.mjs`. Without the
 spoof, warm TTI looks like another cold network fetch.
 
+
+### `__labCapture` ≠ interactive
+
+`window.__labCapture` appears as soon as `lab.js` finishes evaluating. Entry then sets
+`dataset.boot = 'ready'`. **Neither** means the first model frame has painted.
+
+True first-interaction mark: `performance` mark `boot-interactive` / `__bootMarks.interactiveMs`
+(after free-fall `switchModel` + `requestAnimationFrame`). `pages-tti-sw` waits on this mark;
+do not treat `__labCapture` alone as TTI.
+
+### Pages TTI snapshot (post free-fall stub, 2026-11-07)
+
+Against live Pages (`PAGES_URL=https://otas0.github.io/immspfee/`):
+
+| Visit | readyMs | interactiveMs (boot) | firstHandP95 |
+|-------|---------|----------------------|--------------|
+| Cold (SW blocked) | ~1287 | ~1284 | ~1918 |
+| Warm (SW) | ~204 | ~113 | ~88 |
+
+Local `test:boot-timing` with `PAGES_URL`: pagesDirect ~512ms, pagesSwCached ~189ms.
+
+### Real-device 4G / weak-net first gold frame
+
+Human checklist (do not invent OK):
+
+- [ ] iPhone Safari 4G / Network Link Conditioner: cold open → free-fall gold ball visible
+- [ ] Compare wall time vs cold `interactiveMs` above; note CDN edge if >3s
+- [ ] zh locale: Noto SC loads after Latin; no long blank text flash (`font-display: swap`)
+
 ### pages-tti-sw hard gate
 
 CI runs `PAGES_TTI_HARD=1`: fail if the warm visit has no SW controller /
-`immspfee-hashed-*` cache. Wall-clock and `firstHandMs` p50/p95 stay advisory
-(`FIRST_HAND_SAMPLES`, default 5). JSON includes `cdnJitter` when
-`warm.readyMs > cold.readyMs`, and logs advisory when `firstHandP95` >
-`FIRST_HAND_P95_WARN_MS` (default 10000).
+`immspfee-hashed-*` cache, or if `boot-interactive` is missing. `firstHandP95`
+hard-fails when `FIRST_HAND_P95_HARD` is unset under `PAGES_TTI_HARD` (or set to `1`);
+set `FIRST_HAND_P95_HARD=0` to keep P95 advisory only. Threshold:
+`FIRST_HAND_P95_WARN_MS` (default 10000). JSON includes `cdnJitter` when
+`warm.readyMs > cold.readyMs`.
 
 ### Cold → warm SW controller timeline (Pages, webdriver spoofed)
 

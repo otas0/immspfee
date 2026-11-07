@@ -17,6 +17,8 @@
     "test:shell-first-paint": "node scripts/shell-first-paint.mjs",
     "test:boot": "node scripts/boot-reload.mjs && node scripts/sw-cache.mjs && node scripts/boot-follow.mjs",
     "test:boot-timing": "node scripts/boot-timing.mjs",
+    "test:noto-zh": "node scripts/noto-zh-flicker.mjs",
+    "gen:palette-domains": "node scripts/gen-palette-domains.mjs",
     "test:pages": "node scripts/pages-check.mjs",
     "assert:stage-strips": "node scripts/assert-no-stage-strips.mjs",
     "assert:folds": "node scripts/assert-folds-default.mjs",

@@ -2,8 +2,8 @@
  * 画布色板：UI 外壳黑白；模型语义色来自 data/palettes.json。
  * html.hc 时降饱和，便于高对比阅读。
  *
- * Browser bundle embeds free-fall so cold paint is not gated on the full JSON;
- * hydratePalettes() merges the rest after first paint.
+ * Browser bundle embeds free-fall so cold paint is not gated on palette JSON.
+ * Other models hydrate per-domain shards under data/palettes/domains/.
  */
 import paletteDoc from '../../data/palettes.json' with { type: 'json' };
 
@@ -16,11 +16,13 @@ const NEUTRAL = paletteDoc.neutral;
 const MODEL = paletteDoc.models;
 const HC = paletteDoc.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
 
-/** True once free-fall (or the full file) is available for paint. */
+/** True once free-fall (or a domain pack) is available for paint. */
 let palettesSettled = typeof document === 'undefined' || !!MODEL['free-fall'] || Object.keys(MODEL).length > 1;
-let fullHydrated = typeof document === 'undefined' || Object.keys(MODEL).length > 8;
-/** @type {Promise<void>|null} */
-let hydratePromise = null;
+const hydratedDomains = new Set(typeof document === 'undefined' ? ['*'] : []);
+/** @type {Promise<Record<string, string>>|null} */
+let domainMapPromise = null;
+/** @type {Map<string, Promise<void>>} */
+const domainHydrates = new Map();
 
 function applyPaletteDoc(full) {
   if (!full?.models) return false;
@@ -34,38 +36,65 @@ export function palettesReadyNow() {
   return palettesSettled;
 }
 
-/** Background-fetch the full palette file (no-op when already complete). */
-export function hydratePalettes() {
-  if (fullHydrated || typeof document === 'undefined') return Promise.resolve();
-  if (hydratePromise) return hydratePromise;
-  const href = new URL('data/palettes.json', document.baseURI).href;
-  hydratePromise = fetch(href)
+function loadDomainMap() {
+  if (typeof document === 'undefined') return Promise.resolve({});
+  if (!domainMapPromise) {
+    domainMapPromise = fetch(new URL('data/palettes/model-domain.json', document.baseURI).href)
+      .then((res) => (res.ok ? res.json() : {}))
+      .catch(() => ({}));
+  }
+  return domainMapPromise;
+}
+
+/** Fetch one subject-domain palette shard (not the 500KB monolith). */
+export function hydratePaletteDomain(domain) {
+  if (typeof document === 'undefined') return Promise.resolve();
+  const key = domain || '其他';
+  if (hydratedDomains.has(key) || hydratedDomains.has('*')) return Promise.resolve();
+  if (domainHydrates.has(key)) return domainHydrates.get(key);
+  const safe = encodeURIComponent(key);
+  const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href)
     .then((res) => (res.ok ? res.json() : null))
-    .then((full) => {
-      if (applyPaletteDoc(full)) {
-        fullHydrated = true;
+    .then((doc) => {
+      if (doc?.models) {
+        Object.assign(MODEL, doc.models);
+        hydratedDomains.add(key);
         palettesSettled = true;
-        try { document.documentElement.dataset.palettesFull = '1'; } catch { /* ignore */ }
+        try {
+          document.documentElement.dataset.palettesFull = hydratedDomains.size > 0 ? '1' : '';
+        } catch { /* ignore */ }
         document.dispatchEvent(new Event('imm-palettes'));
-      } else {
-        palettesSettled = true;
       }
     })
-    .catch(() => { palettesSettled = true; });
-  return hydratePromise;
+    .catch(() => { palettesSettled = true; })
+    .finally(() => { domainHydrates.delete(key); });
+  domainHydrates.set(key, task);
+  return task;
+}
+
+/** Resolve model id → domain shard, then hydrate. */
+export async function hydratePalettesForModel(modelId) {
+  if (typeof document === 'undefined') return;
+  if (modelId === 'free-fall' && MODEL['free-fall']) {
+    palettesSettled = true;
+    return;
+  }
+  const map = await loadDomainMap();
+  const domain = map[modelId] || '其他';
+  await hydratePaletteDomain(domain);
+}
+
+/** @deprecated Prefer hydratePalettesForModel — kept as a no-op alias for older callers. */
+export function hydratePalettes() {
+  return hydratePalettesForModel(activeModelId);
 }
 
 /**
- * Resolves when free-fall can paint. Full catalog colors may still be loading —
- * hydratePalettes() (kicked below) fills the rest.
+ * Resolves when free-fall can paint. Other models hydrate per-domain on switch.
  */
 export const palettesReady = (typeof document !== 'undefined' && !MODEL['free-fall'] && Object.keys(MODEL).length === 0)
-  ? hydratePalettes()
+  ? hydratePaletteDomain('物理')
   : Promise.resolve().then(() => { palettesSettled = true; });
-
-if (typeof document !== 'undefined' && !fullHydrated) {
-  void hydratePalettes();
-}
 
 function hashHue(id) {
   let h = 0;

@@ -1,12 +1,6 @@
 import {
-  DEFAULT_PARAMS,
-  EYEPIECES,
-  OBJECTIVES,
-  PARAM_SCHEMA,
-  applyTurretDefaults,
-  opticsFromParams,
   velocityVerlet1D
-} from "./chunk-chunk-AVVKPFKH.js";
+} from "./chunk-chunk-CSLFYDCB.js";
 import {
   forceGraphStep,
   mapNormToScreen,
@@ -21,11 +15,21 @@ import {
   finiteOr,
   formatNum,
   heatTempColor,
-  mobileBudget,
-  perfClassFor,
   phaseHueColor,
   springK
-} from "./chunk-chunk-RNRMMUPI.js";
+} from "./chunk-chunk-DJSVDYBS.js";
+import {
+  DEFAULT_PARAMS,
+  EYEPIECES,
+  OBJECTIVES,
+  PARAM_SCHEMA,
+  applyTurretDefaults,
+  opticsFromParams
+} from "./chunk-chunk-EW7TY4D2.js";
+import {
+  mobileBudget,
+  perfClassFor
+} from "./chunk-chunk-6F5B3IST.js";
 
 // js/models/projectile.js
 var projectile_default = {

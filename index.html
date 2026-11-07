@@ -5,16 +5,13 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="imm-js" content="5eee65e3d75b" />
-  <meta name="imm-css" content="97469e694691" />
+  <meta name="imm-js" content="9667d9afb9fe" />
+  <meta name="imm-css" content="5b0e0de75c6b" />
   <title>IMMSPFEE · Lab</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Latin UI fonts only on cold path — Noto Sans SC loads when locale is zh. -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" /></noscript>
-  <link rel="stylesheet" href="./css/styles.css?v=97469e694691" />
+  <!-- Self-hosted Latin fonts (Noto SC still lazy for zh). -->
+  <link rel="stylesheet" href="./css/fonts.css" />
+  <link rel="stylesheet" href="./css/styles.css?v=5b0e0de75c6b" />
   <!-- Microscope CSS stays off the classic cold path; enable for ?shell=lab-microscope3d or on enter. -->
   <link id="microscope-shell-css" rel="stylesheet" href="./css/microscope-shell.css?v=b55e34b7e978" media="not all" />
   <script>
@@ -61,6 +58,9 @@
         </a>
       </header>
 
+      <!-- Pinned under brand: outside #model-list so catalog scroll never moves the 3D entry. -->
+      <div class="micro3d-host" id="micro3d-host"></div>
+
       <div class="filters">
         <label class="field">
           <span data-i18n="ui.search">搜索</span>
@@ -91,9 +91,6 @@
         <button type="button" id="filter-heavy" class="filter-chip" aria-pressed="false" data-i18n="ui.perfHeavyFilter" data-i18n-aria="ui.perfHeavyFilterHint" aria-label="Show heavy models only">heavy</button>
         <button type="button" id="btn-user-model" class="btn user-model-btn" data-i18n="ui.userModel" title="自建工业级模型（须权威方程与假设）">＋ 自建模型</button>
       </div>
-
-      <!-- Outside #model-list overflow so 3D stage entry never scrolls away with the catalog. -->
-      <div class="micro3d-host" id="micro3d-host"></div>
 
       <nav class="model-list" id="model-list" aria-label="模型列表"></nav>
 

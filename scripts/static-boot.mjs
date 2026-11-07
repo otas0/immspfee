@@ -139,8 +139,8 @@ export function assertStampIndependence(stamp) {
 export function assertIndexBudget(catalog) {
   const packed = packDomainIndex(domainIndex(catalog));
   const bytes = Buffer.byteLength(JSON.stringify(packed));
-  // After dropping formula strings: ~134KB. Keep headroom under the old 256KB ceiling.
-  const limit = 160 * 1024;
+  // Compact array rows: ~70–90KB. Keep headroom under 96KB.
+  const limit = 96 * 1024;
   if (bytes > limit) throw new Error(`domain index ${bytes} bytes exceeds ${limit}`);
   if (JSON.stringify(packed).includes('"formula"')) {
     throw new Error('packed domain index must not carry formula strings');

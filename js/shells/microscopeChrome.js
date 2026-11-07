@@ -34,6 +34,7 @@ import { mobileBudget } from '../utils/mobilePerf.js';
  *   remountShellSelect?: (opts?: { microOnly?: boolean }) => void,
  *   captureWebglPng?: () => void,
    *   getWebglStage?: () => { setCameraView?: (id: string) => string, getCameraView?: () => string, handleCameraKey?: (e: KeyboardEvent) => boolean } | null,
+ *   ensureWebglStageAsync?: () => Promise<object | null>,
  * }} api
  */
 const RESUME_STORAGE_KEY = 'immspfee-micro-resume-v1';
@@ -161,6 +162,13 @@ export function createMicroscopeChrome(api) {
   function ensureMicroscopeCss() {
     const link = document.getElementById('microscope-shell-css');
     if (link && link.media !== 'all') link.media = 'all';
+    // Re-prime fingerprinted micro CSS into the SW cache once the shell is active.
+    try {
+      const href = link?.href;
+      if (href && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'prime', urls: [href] });
+      }
+    } catch { /* ignore */ }
   }
 
   async function enter({ skipModel = false } = {}) {
@@ -192,6 +200,8 @@ export function createMicroscopeChrome(api) {
       if (!skipModel && api.getModelId() !== MICROSCOPE_MODEL_ID) {
         await Promise.resolve(api.switchModel(MICROSCOPE_MODEL_ID, { skipShellSync: true }));
       }
+      // Classic cold path keeps microscopeWebgl out of lab.js — await the chunk here.
+      await api.ensureWebglStageAsync?.();
       sync(true);
       api.paintFrame();
     } finally {

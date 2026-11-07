@@ -1,47 +1,3 @@
-// js/utils/integrator.js
-function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
-  let accumulator = 0;
-  let dt = fixedDt;
-  let maxSteps = maxSubSteps;
-  return {
-    get fixedDt() {
-      return dt;
-    },
-    get maxSubSteps() {
-      return maxSteps;
-    },
-    setFixedDt(next) {
-      const v = Number(next);
-      if (Number.isFinite(v) && v > 0) dt = v;
-    },
-    setMaxSubSteps(next) {
-      const v = Math.floor(Number(next));
-      if (Number.isFinite(v) && v >= 1) maxSteps = v;
-    },
-    reset() {
-      accumulator = 0;
-    },
-    advance(frameDt, stepFn) {
-      const clamped = Math.min(Math.max(frameDt, 0), 0.05);
-      accumulator += clamped;
-      let steps = 0;
-      while (accumulator >= dt && steps < maxSteps) {
-        stepFn(dt);
-        accumulator -= dt;
-        steps += 1;
-      }
-      if (steps === maxSteps) accumulator = 0;
-      return steps;
-    }
-  };
-}
-function velocityVerlet1D(x, v, a, aAt, dt) {
-  const xNext = x + v * dt + 0.5 * a * dt * dt;
-  const aNext = aAt(xNext);
-  const vNext = v + 0.5 * (a + aNext) * dt;
-  return { x: xNext, v: vNext, a: aNext };
-}
-
 // js/models/microscopeOptics.js
 var OBJECTIVES = [
   { id: "4x", mag: 4, fMm: 40, na: 0.1, wdMm: 18, alphaDeg: 5.7 },
@@ -216,8 +172,6 @@ var PARAM_SCHEMA = {
 };
 
 export {
-  createFixedStepper,
-  velocityVerlet1D,
   OBJECTIVES,
   EYEPIECES,
   ACTIVITY_RING,

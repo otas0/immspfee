@@ -18,6 +18,11 @@ Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitt
 
 If a microscope / WebKit agent and a mobile-drawer agent both touch `css/styles.css`, **rebase (or merge main) before push** — never overwrite classic phone drawer z-index rules with projector `position:fixed` menu/params.
 
+**Boot-perf files:** do not revert cold-path wins in `js/entry.js`, `js/utils/theme.js`,
+`js/boot/domainPack.js`, or the free-fall palette stub in `scripts/build-bundle.mjs` when
+editing microscope/WebKit. Rebase instead of restoring older entry/theme copies.
+
+
 ## Classic phone drawer vs Projector overlay (z-index)
 
 | Layer | Classic ≤900 | Projector overlay |

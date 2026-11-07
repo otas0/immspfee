@@ -34,6 +34,13 @@ async function measure(page, label, { sampleHands = 1 } = {}) {
     { timeout: 90000 },
   );
   const readyMs = Date.now() - t0;
+  // True interactivity: first free-fall frame after boot-interactive (not merely module eval).
+  await page.waitForFunction(
+    () => typeof window.__bootMarks?.interactiveMs === 'number',
+    null,
+    { timeout: 90000 },
+  );
+  const interactiveWallMs = Date.now() - t0;
   const boot = await page.evaluate(() => window.__bootMarks || {});
   const cache = await page.evaluate(async () => {
     if (!('serviceWorker' in navigator)) return { sw: false };
@@ -58,6 +65,7 @@ async function measure(page, label, { sampleHands = 1 } = {}) {
   return {
     label,
     readyMs,
+    interactiveWallMs,
     boot,
     firstHandMs: hands[0],
     firstHandSamples: hands,
@@ -100,7 +108,7 @@ const out = {
   cdnJitterNote: cdnJitter
     ? 'warm.readyMs > cold.readyMs — treat as CDN / edge jitter, not a SW regression'
     : '',
-  note: 'Hard-fail only if warm SW controller missing. Wall-clock / firstHand percentiles are advisory (CDN).',
+  note: 'Hard-fail: warm SW controller + boot-interactive present. firstHandP95 fails when FIRST_HAND_P95_HARD=1 (default on PAGES_TTI_HARD).',
 };
 if (cdnJitter) {
   console.warn(`pages-tti-sw advisory: CDN jitter (warm ${warm.readyMs}ms > cold ${cold.readyMs}ms)`);
@@ -116,10 +124,26 @@ fs.writeFileSync(path.join(outDir, 'pages-tti-sw.json'), `${JSON.stringify(out, 
 console.log(JSON.stringify(out, null, 2));
 
 const hard = process.env.PAGES_TTI_HARD !== '0' && (process.env.CI === 'true' || process.env.PAGES_TTI_HARD === '1');
+const handHard = process.env.FIRST_HAND_P95_HARD === '1'
+  || (hard && process.env.FIRST_HAND_P95_HARD !== '0');
 if (hard) {
   const ok = warm.cache?.controller && Array.isArray(warm.cache?.cacheKeys) && warm.cache.cacheKeys.some((k) => /immspfee-hashed/i.test(k));
   if (!ok) {
     console.error('pages-tti-sw hard fail: warm visit missing SW controller / hashed cache', warm.cache);
     process.exit(1);
+  }
+  if (typeof warm.boot?.interactiveMs !== 'number' && typeof cold.boot?.interactiveMs !== 'number') {
+    console.error('pages-tti-sw hard fail: boot-interactive mark missing (ready ≠ interactive)');
+    process.exit(1);
+  }
+}
+if (handHard) {
+  for (const row of [cold, warm]) {
+    if ((row.firstHandP95 || 0) > handP95WarnMs) {
+      console.error(
+        `pages-tti-sw hard fail: ${row.label} firstHandP95 ${row.firstHandP95}ms > ${handP95WarnMs}ms`,
+      );
+      process.exit(1);
+    }
   }
 }

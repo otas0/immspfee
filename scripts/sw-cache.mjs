@@ -51,7 +51,7 @@ await page.waitForFunction(() => navigator.serviceWorker.controller, null, { tim
 await page.waitForFunction(async (name) => {
   const keys = await caches.open(name).then((cache) => cache.keys()).catch(() => []);
   const urls = keys.map((req) => req.url);
-  const need = ['/js/entry.js', '/js/bundle/lab.js', '/css/styles.css', '/css/microscope-shell.css'];
+  const need = ['/js/entry.js', '/js/bundle/lab.js', '/css/styles.css'];
   return need.every((part) => urls.some((url) => url.includes(part) && url.includes('v=')));
 }, cacheName, { timeout: 20000 });
 

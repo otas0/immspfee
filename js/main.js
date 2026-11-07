@@ -16,7 +16,7 @@ import {
   viewportTier,
 } from './utils/mobilePerf.js';
 import { btnHtml, iconOnly, ICO } from './ui/icons.js';
-import { setModelPalette, getModelColors, palettesReady, palettesReadyNow } from './utils/theme.js';
+import { setModelPalette, getModelColors, palettesReady, palettesReadyNow, hydratePalettesForModel } from './utils/theme.js';
 import { deriveCapabilities } from './ui/modelShell.js';
 import { buildZipStore, readZipStore } from './utils/zipStore.js';
 import { FAMILY_META, formalismFor } from './lab/formalism.js';
@@ -50,7 +50,6 @@ import {
   applyShell,
   getShell,
 } from './shells/registry.js';
-import { createMicroscopeWebgl } from './viz/microscopeWebgl.js';
 import { createMicroscopeChrome } from './shells/microscopeChrome.js';
 
 const canvas = document.getElementById('canvas');
@@ -171,11 +170,11 @@ function resolveInitialModelId() {
   // after mountShellSelect already entered the shell.
   const shellModel = getShell(resolveShellId())?.modelId;
   if (shellModel) return shellModel;
-  const candidates = [readModelIdFromUrl(), readModelIdFromStorage()];
-  for (const id of candidates) {
-    if (!id) continue;
-    if (models.some((m) => m.id === id)) return id;
-  }
+  // URL / narrow / #m= wins even before ensureId has loaded the subject into `models`.
+  const fromUrl = readModelIdFromUrl();
+  if (fromUrl) return fromUrl;
+  const fromStorage = readModelIdFromStorage();
+  if (fromStorage && models.some((m) => m.id === fromStorage)) return fromStorage;
   return DEFAULT_MODEL_ID;
 }
 
@@ -1039,10 +1038,16 @@ function paintSidebar() {
     announce('筛选已空');
   });
   modelListEl.appendChild(countEl);
-  // 3D stage entry is pinned above the scrollable list (never inside #model-list).
+  // 3D stage entry is pinned under brand in #micro3d-host (never inside #model-list).
   const microHost = document.getElementById('micro3d-host');
-  if (microHost) microHost.replaceChildren(renderMicro3dStrip());
-  else modelListEl.appendChild(renderMicro3dStrip());
+  if (microHost) {
+    microHost.replaceChildren(renderMicro3dStrip());
+  } else {
+    // Fallback: keep entry out of the scrolling list even if the host node is missing.
+    const strip = renderMicro3dStrip();
+    strip.dataset.orphanPin = '1';
+    modelListEl.parentElement?.insertBefore(strip, modelListEl);
+  }
   if (foldBarEl) {
     foldBarEl.innerHTML = '';
     const btnExpand = document.createElement('button');
@@ -1322,6 +1327,7 @@ function switchModel(id, opts = {}) {
   app.model = model;
   const view = localizeModel(model);
   setModelPalette(model.id);
+  void hydratePalettesForModel(model.id);
   app.state = createState(model);
   stepper.reset();
   prevReadoutMap = new Map();
@@ -1474,26 +1480,48 @@ function updateHud(opts = {}) {
   }
 }
 
+/** @type {Promise<typeof import('./viz/microscopeWebgl.js').createMicroscopeWebgl>|null} */
+let webglCreatePromise = null;
+
+function loadMicroscopeWebgl() {
+  if (!webglCreatePromise) {
+    webglCreatePromise = import('./viz/microscopeWebgl.js').then((mod) => mod.createMicroscopeWebgl);
+  }
+  return webglCreatePromise;
+}
+
 function ensureWebglStage() {
   if (!canvasWebgl) return null;
-  if (!webglStage) {
-    webglStage = createMicroscopeWebgl(canvasWebgl, {
-      t,
-      onPick: (_state, meta = {}) => {
-        paintFrame({ skipMicroRefresh: true });
-        microUi?.refresh();
-        if (!meta.live) { updateHud({ flash: true }); paramBench.refresh?.(); }
-      },
-      onViewChange: () => {
-        paintFrame({ skipMicroRefresh: true });
-      },
-      onCameraView: (id) => {
-        microUi?.syncCameraView?.(id);
-      },
-    });
-  }
+  if (webglStage) return webglStage;
+  // Kick async load so paintFrame after enter settles without a second click.
+  void ensureWebglStageAsync().then((stage) => {
+    if (stage) paintFrame({ skipMicroRefresh: true });
+  });
+  return null;
+}
+
+async function ensureWebglStageAsync() {
+  if (!canvasWebgl) return null;
+  if (webglStage) return webglStage;
+  const create = await loadMicroscopeWebgl();
+  if (webglStage) return webglStage;
+  webglStage = create(canvasWebgl, {
+    t,
+    onPick: (_state, meta = {}) => {
+      paintFrame({ skipMicroRefresh: true });
+      microUi?.refresh();
+      if (!meta.live) { updateHud({ flash: true }); paramBench.refresh?.(); }
+    },
+    onViewChange: () => {
+      paintFrame({ skipMicroRefresh: true });
+    },
+    onCameraView: (id) => {
+      microUi?.syncCameraView?.(id);
+    },
+  });
   return webglStage;
 }
+
 
 function syncStageMode() {
   const shell = getShell(activeShellId);
@@ -2462,6 +2490,7 @@ async function boot() {
   microUi = createMicroscopeChrome({
     t,
     getWebglStage: () => ensureWebglStage(),
+    ensureWebglStageAsync,
     getActiveShellId: () => activeShellId,
     setActiveShellId: (id) => { activeShellId = id; },
     getModelId: () => app.model?.id,
@@ -2490,7 +2519,7 @@ async function boot() {
     remountShellSelect: ({ microOnly } = {}) => {
       fillShellSelectOptions(document.getElementById('shell-select'), { microOnly });
     },
-    captureWebglPng: () => {
+    captureWebglPng: async () => {
       const gl = document.getElementById('canvas-webgl');
       if (!gl || gl.hidden) return;
       const rect = canvasWrap.getBoundingClientRect();
@@ -2503,7 +2532,7 @@ async function boot() {
         showTrail: app.globals.showTrail,
         showAxes: app.globals.showAxes,
       };
-      const stage = ensureWebglStage();
+      const stage = await ensureWebglStageAsync();
       try {
         // Draw + sync DOM labels, then composite WebGL + L/eyepiece overlays (avoids black / label-less exports).
         paintFrame({ skipMicroRefresh: true });

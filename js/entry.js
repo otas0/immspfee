@@ -134,8 +134,18 @@ function registerServiceWorker() {
   if (assetV) worker.searchParams.set('v', assetV);
   navigator.serviceWorker.register(worker.href).then(() => navigator.serviceWorker.ready).then((reg) => {
     const urls = [...document.querySelectorAll('script[src], link[rel="stylesheet"][href]')]
+      .filter((el) => {
+        if (el.tagName !== 'LINK') return true;
+        const media = (el.getAttribute('media') || 'all').trim().toLowerCase();
+        // Skip deferred shell CSS (e.g. microscope media="not all") until that shell is active.
+        return media === 'all' || media === '';
+      })
       .map((el) => el.src || el.href);
     urls.push(new URL(labUrl, import.meta.url).href);
+    try {
+      const fonts = document.querySelector('link[href*="fonts.css"]');
+      if (fonts?.href) urls.push(fonts.href);
+    } catch { /* ignore */ }
     try {
       const factory = sessionStorage.getItem('immspfee-factory-chunk');
       if (factory) urls.push(factory);

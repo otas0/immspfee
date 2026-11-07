@@ -105,7 +105,7 @@ await formCtx.close();
 const paletteCtx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
 let releasePalettes = () => {};
 const holdPalettes = new Promise((resolve) => { releasePalettes = resolve; });
-await paletteCtx.route('**/data/palettes.json', async (route) => {
+await paletteCtx.route('**/data/palettes/**', async (route) => {
   await holdPalettes;
   await route.continue();
 });
@@ -133,11 +133,16 @@ try {
 const stubPaint = await palettePage.evaluate(() => window.__neutralPaints || 0);
 if (stubPaint > 0) fail(`neutral paints with free-fall stub ${stubPaint}`);
 releasePalettes();
+// Trigger a non–free-fall hand model so a domain shard must load.
+await palettePage.evaluate(async () => {
+  await window.__labCapture.switchModel('projectile');
+  await window.__labCapture.switchModel('free-fall');
+});
 await palettePage.waitForFunction(
   () => document.documentElement.dataset.palettesFull === '1',
   null,
   { timeout: 15000 },
-).catch(() => fail('full palettes.json never hydrated after release'));
+).catch(() => fail('domain palette shard never hydrated after release'));
 fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
 await palettePage.evaluate(() => {
   window.__labCapture.pause();

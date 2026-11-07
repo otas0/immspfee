@@ -14,11 +14,13 @@ import {
 import {
   C,
   P,
-  createRingTrail,
   drawArrow,
-  ensureRingCap,
   formatNum,
-  heatTempColor,
+  heatTempColor
+} from "./chunk-chunk-DJSVDYBS.js";
+import {
+  createRingTrail,
+  ensureRingCap,
   mobileBudget,
   particleHashCell,
   perfClassFor,
@@ -26,7 +28,7 @@ import {
   ringForEach,
   ringLast,
   ringPush
-} from "./chunk-chunk-RNRMMUPI.js";
+} from "./chunk-chunk-6F5B3IST.js";
 
 // js/lab/sketches.js
 function ink() {
