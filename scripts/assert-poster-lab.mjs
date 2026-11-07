@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Guard Lab posters against sibling-product / TE sheet markers.
+ * Type + logo only: every <img> must be the IMMSPFEE wordmark.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -42,6 +43,21 @@ for (const rel of files) {
   }
   if (!/IBM\s+Plex\s+Mono/i.test(text)) {
     console.error(`assert-poster-lab: ${rel} missing IBM Plex Mono`);
+    failed += 1;
+  }
+  const imgs = [...text.matchAll(/<img\b[^>]*>/gi)];
+  if (!imgs.length) {
+    console.error(`assert-poster-lab: ${rel} missing logo <img>`);
+    failed += 1;
+  }
+  for (const [tag] of imgs) {
+    if (!/immspfee-logo\.svg/i.test(tag)) {
+      console.error(`assert-poster-lab: ${rel} non-logo image: ${tag.slice(0, 120)}`);
+      failed += 1;
+    }
+  }
+  if (/micro-webkit-3d|lab-qr\.svg/i.test(text)) {
+    console.error(`assert-poster-lab: ${rel} must not embed stage still or QR image`);
     failed += 1;
   }
 }

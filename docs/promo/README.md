@@ -6,20 +6,19 @@
 | `poster-standalone.html` | Same Lab sheet; relative paths for `docs/promo/` |
 | `immspfee-lab-a4.pdf` | Print PDF (`npm run poster:pdf`) |
 | `poster-a4-*.png` | Print smoke shots (`npm run test:poster`) |
-| `lab-qr.svg` | QR → Pages entry with `?v=` from `asset-stamp.json` (`npm run gen:lab-qr`) |
-| `micro-webkit-3d.png` | Poster evidence figure (microscope WebGL) |
+| `lab-qr.svg` | Optional QR for other promo uses (`npm run gen:lab-qr`) — **not** on the A4 poster |
+| `micro-webkit-3d.png` | Microscope WebGL still (docs / shots — **not** on the A4 poster) |
 | `shell-projector-1000.png` / `shell-projector-1000-overlay.png` | Projector chassis stills for docs |
 | `micro-*.png` | Other microscope shell reference stills |
 
 ## Poster design
 
-Layout follows academic / #evenbetterposter practice (Morrison #betterposter + MIT Comm Lab + Argonne / Karolinska):
+Typography + wordmark only (no stage still, no QR image). Academic / #evenbetterposter practice:
 
-- One take-home **claim sentence** (dominant)
-- One **evidence figure** (cropped instrument; no UI caption chrome overlay)
-- Ample whitespace; no bordered cards; logo small, away from the claim
+- One take-home **claim sentence**
+- Ample whitespace; no bordered cards
 - Phrases, not paragraphs; ≤2 typefaces (Sora + IBM Plex Mono)
-- QR + URL once
+- Stamped URL text once (`?v=` from `asset-stamp.json`)
 
 - Root: [`/poster.html`](../../poster.html) · Promo: [`poster.html`](./poster.html)
 - Language: `?lang=en` (default) · `?lang=zh` · `?lang=both`
