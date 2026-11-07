@@ -6,509 +6,474 @@
   <title>IMMSPFEE Lab — A4 briefing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
+    /*
+      IMMSPFEE Lab A4 — mirrors css/styles.css chassis language:
+      pure B/W · soft lines · three-column instrument (catalog · stage · bench).
+      Distinct from sibling product posters (education cream / other brands).
+    */
     :root {
-      --bg: #ffffff;
-      --ink: #111111;
-      --muted: #6b6b6b;
-      --line: #111111;
-      --hair: #d8d8d8;
-      /* Lab chassis: no candy accent — ink blocks like the wordmark */
-      --accent: #111111;
-      --accent-soft: #545454;
+      --bg: #f2f2f2;
+      --chassis: #f7f7f7;
       --panel: #ffffff;
-      --wash: #f7f7f7;
+      --panel-2: #f0f0f0;
+      --ink: #000000;
+      --muted: #666666;
+      --line: rgba(0, 0, 0, 0.08);
+      --line-soft: rgba(0, 0, 0, 0.05);
+      --oled: #000000;
+      --phosphor: #ffffff;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --font-display: "Sora", "Noto Sans SC", sans-serif;
+      --font-body: "Sora", "Noto Sans SC", sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      --elev: 0 8px 28px rgba(0, 0, 0, 0.06);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      background: #cfcfcf;
+      background: #c8c8c8;
       color: var(--ink);
-      font-family: "Space Grotesk", "Noto Sans SC", "PingFang SC", sans-serif;
+      font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+    .screen-hint {
+      width: 210mm;
+      margin: 10px auto 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-align: center;
+      color: #444;
+      letter-spacing: 0.04em;
     }
 
     .sheet {
       width: 210mm;
       height: 297mm;
-      margin: 12px auto;
-      padding: 10mm;
-      background: var(--bg);
-      border: 1px solid #111;
+      margin: 0 auto 12px;
+      padding: 7mm;
+      background: var(--chassis);
+      border-radius: 12px;
+      box-shadow: var(--elev);
       display: flex;
       flex-direction: column;
-      gap: 0;
+      gap: 5mm;
       overflow: hidden;
-      position: relative;
     }
 
-    /* subtle instrument grain — site chassis echo */
-    .sheet::after {
-      content: "";
-      pointer-events: none;
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.015) 100%),
-        repeating-linear-gradient(
-          90deg,
-          transparent 0,
-          transparent 11px,
-          rgba(0,0,0,0.012) 11px,
-          rgba(0,0,0,0.012) 12px
-        );
-      opacity: 0.9;
-      z-index: 0;
-    }
-    .sheet > * { position: relative; z-index: 1; }
-
-    .topbar {
+    /* —— brand header (lab .brand strip) —— */
+    .top {
       display: grid;
       grid-template-columns: auto 1fr auto;
       align-items: center;
-      gap: 7mm;
-      padding-bottom: 6mm;
-      border-bottom: 1px solid var(--line);
+      gap: 5mm;
+      padding: 4.5mm 5mm;
+      background: var(--panel);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
     }
 
-    .logo {
-      width: 28mm;
-      height: 28mm;
-      object-fit: contain;
-      object-position: center;
+    .wordmark {
       display: block;
+      height: 11mm;
+      width: auto;
+      max-width: 52mm;
     }
 
-    .top-mid {
+    .hero {
+      min-width: 0;
+    }
+    .hero .kicker {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.5mm;
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 15.5px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .meta {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .meta strong {
+      display: block;
+      color: var(--ink);
+      font-weight: 600;
+      margin-bottom: 1mm;
+      letter-spacing: 0.08em;
+    }
+
+    /* —— three-column chassis preview —— */
+    .chassis-preview {
+      display: grid;
+      grid-template-columns: 0.85fr 1.5fr 0.95fr;
+      gap: 3mm;
+      min-height: 48mm;
+      flex: 0 0 auto;
+    }
+
+    .col {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 4mm 3.5mm;
       display: flex;
       flex-direction: column;
       gap: 2.5mm;
       min-width: 0;
     }
-
-    .id-row {
-      display: flex;
-      align-items: baseline;
-      gap: 3mm;
-      flex-wrap: wrap;
+    .col.stage {
+      background: var(--oled);
+      color: var(--phosphor);
+      border-color: #111;
     }
 
-    .id-row .name {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
-
-    .id-row .ver {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 0.04em;
-    }
-
-    /* motif from IMMSPFEE letter blocks: I · MM · SPF · EE */
-    .boost {
-      display: inline-flex;
-      align-items: flex-end;
-      gap: 1.5px;
-      height: 10px;
-    }
-    .boost i {
-      display: block;
-      height: 10px;
-      background: var(--ink);
-    }
-    .boost i:nth-child(1) { width: 3px; }
-    .boost i:nth-child(2),
-    .boost i:nth-child(3) { width: 5px; background: var(--accent-soft); }
-    .boost i:nth-child(4),
-    .boost i:nth-child(5),
-    .boost i:nth-child(6) { width: 4px; }
-    .boost i:nth-child(7),
-    .boost i:nth-child(8) { width: 4px; background: var(--accent-soft); }
-
-    .top-mid h1 {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.03em;
-      line-height: 1.15;
-    }
-
-    .top-side {
-      text-align: right;
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 9px;
-      line-height: 1.55;
-      letter-spacing: 0.06em;
+    .col .tag {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--muted);
     }
-    .top-side strong {
-      display: block;
-      color: var(--ink);
-      font-weight: 600;
-      margin-bottom: 1mm;
-    }
+    .col.stage .tag { color: #888; }
 
-    .signal {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      border: 1px solid var(--line);
-      border-top: 0;
-    }
-
-    .sig {
-      padding: 4mm 3mm;
-      border-right: 1px solid var(--line);
-      min-height: 22mm;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 3mm;
-      background: #fff;
-    }
-    .sig:last-child { border-right: 0; }
-
-    .sig .code {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 9px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-    }
-
-    .sig .label {
-      font-size: 12.5px;
+    .col h2 {
+      font-size: 13px;
       font-weight: 600;
       letter-spacing: -0.02em;
-      line-height: 1.15;
+      line-height: 1.2;
     }
-    .sig .label .zh {
-      display: block;
-      font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-      font-size: 10px;
-      font-weight: 500;
+    .col.stage h2 { font-weight: 500; }
+
+    .col p {
+      font-size: 9.5px;
+      line-height: 1.35;
       color: var(--muted);
-      margin-top: 1mm;
-      letter-spacing: 0;
+    }
+    .col.stage p { color: #999; }
+
+    .col .zh-line {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font-body);
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: auto;
+      padding-top: 2mm;
+      border-top: 1px solid var(--line-soft);
+    }
+    .col.stage .zh-line {
+      color: #777;
+      border-top-color: rgba(255, 255, 255, 0.12);
     }
 
-    .sig .mark {
-      width: 100%;
-      height: 3px;
-      background: var(--hair);
+    .stage-fake {
+      flex: 1;
+      margin-top: 1mm;
+      border-radius: var(--radius-sm);
+      background:
+        linear-gradient(180deg, #0a0a0a 0%, #000 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       position: relative;
+      min-height: 18mm;
       overflow: hidden;
     }
-    .sig .mark::after {
+    .stage-fake::before {
       content: "";
       position: absolute;
-      inset: 0 auto 0 0;
-      width: 45%;
-      background: var(--ink);
+      inset: 18% 22%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 2px;
     }
-    .sig:nth-child(2) .mark::after { width: 60%; }
-    .sig:nth-child(3) .mark::after { width: 75%; }
-    .sig:nth-child(4) .mark::after { width: 88%; background: var(--accent-soft); }
-    .sig:last-child {
-      background: var(--ink);
-      color: #fff;
+    .stage-fake::after {
+      content: "Canvas";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #555;
     }
-    .sig:last-child .code { color: #9a9a9a; }
-    .sig:last-child .label .zh { color: #9a9a9a; }
-    .sig:last-child .mark { background: #333; }
-    .sig:last-child .mark::after { width: 100%; background: #fff; }
 
+    /* —— bilingual body —— */
     .body {
       flex: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      border: 1px solid var(--line);
-      border-top: 0;
+      gap: 3mm;
       min-height: 0;
     }
 
     .pane {
-      padding: 5.5mm 5mm 4.5mm;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 4.5mm 4.5mm 4mm;
       display: flex;
       flex-direction: column;
-      gap: 4.5mm;
+      gap: 3.5mm;
       min-width: 0;
-      background: #fff;
     }
-    .pane.en { border-right: 1px solid var(--line); }
 
     .pane-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 3mm;
-      padding-bottom: 2.5mm;
-      border-bottom: 1px solid var(--hair);
+      padding-bottom: 2mm;
+      border-bottom: 1px solid var(--line);
     }
-
     .pane-head .lang {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
       font-weight: 600;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
     }
-
-    .pane-head .led {
-      width: 8px;
-      height: 8px;
+    .pane-head .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
       background: var(--ink);
-      flex: 0 0 auto;
     }
 
-    .pane h2 {
-      font-size: 14.5px;
+    .pane h3 {
+      font-size: 13.5px;
       font-weight: 600;
       letter-spacing: -0.025em;
       line-height: 1.25;
     }
-    .zh h2 {
-      font-family: "Noto Sans SC", "PingFang SC", "Space Grotesk", sans-serif;
-      font-size: 14.5px;
-      letter-spacing: 0;
+    .zh h3 {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font-body);
       font-weight: 700;
+      letter-spacing: 0;
     }
 
-    .mod h3 {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 2.2mm;
-      display: flex;
-      align-items: center;
-      gap: 2mm;
-    }
-    .mod h3::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background: var(--ink);
-      flex: 0 0 auto;
-    }
-
-    .mod p, .mod li {
-      font-size: 10.5px;
-      line-height: 1.4;
-      font-weight: 400;
-    }
-    .zh .mod p, .zh .mod li, .zh .mod {
-      font-family: "Noto Sans SC", "PingFang SC", "Space Grotesk", sans-serif;
-    }
-
-    .steps {
-      list-style: none;
-      border: 1px solid var(--hair);
-    }
-    .steps li {
-      display: grid;
-      grid-template-columns: 9mm 1fr;
-      gap: 0;
-      border-bottom: 1px solid var(--hair);
-      min-height: 9mm;
-    }
-    .steps li:last-child { border-bottom: 0; }
-    .steps .n {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 10px;
-      font-weight: 600;
-      display: grid;
-      place-items: center;
-      border-right: 1px solid var(--hair);
-      color: var(--muted);
-      background: var(--wash);
-    }
-    .steps .txt {
-      padding: 2mm 2.8mm;
-      display: flex;
-      align-items: center;
-      font-size: 10.5px;
-      line-height: 1.3;
-    }
-
-    .see {
-      border-left: 2px solid var(--ink);
-      padding: 1.5mm 0 1.5mm 3.2mm;
-      background: linear-gradient(90deg, var(--wash), transparent 70%);
-    }
-    .see p {
-      font-size: 11.5px;
-      font-weight: 500;
-      line-height: 1.35;
-      letter-spacing: -0.01em;
-    }
-
-    .facts {
-      margin-top: auto;
-      display: grid;
-      gap: 2.5mm;
-      padding-top: 3.5mm;
-      border-top: 1px solid var(--hair);
-    }
-    .facts p {
-      font-size: 10px;
-      line-height: 1.4;
-      color: #222;
-    }
-    .facts a {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 10px;
-      color: var(--ink);
-      word-break: break-all;
-      text-underline-offset: 2px;
-    }
-
-    .dock {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 5mm;
-      align-items: center;
-      margin-top: auto;
-      border: 1px solid var(--line);
-      border-top: 0;
-      padding: 4.5mm;
-      background: #fff;
-    }
-
-    .dock .side h3 {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 9px;
+    .mod h4 {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
       font-weight: 600;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 2mm;
+    }
+
+    .steps {
+      list-style: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .steps li {
+      display: grid;
+      grid-template-columns: 8mm 1fr;
+      border-bottom: 1px solid var(--line-soft);
+      min-height: 8.5mm;
+    }
+    .steps li:last-child { border-bottom: 0; }
+    .steps .n {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      display: grid;
+      place-items: center;
+      background: var(--panel-2);
+      color: var(--muted);
+      border-right: 1px solid var(--line-soft);
+    }
+    .steps .txt {
+      padding: 1.8mm 2.5mm;
       display: flex;
       align-items: center;
+      font-size: 10px;
+      line-height: 1.3;
+    }
+    .zh .steps .txt {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font-body);
+    }
+
+    .callout {
+      padding: 2.5mm 3mm;
+      background: var(--panel-2);
+      border-radius: var(--radius-sm);
+      border-left: 2.5px solid var(--ink);
+    }
+    .callout p {
+      font-size: 10.5px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+    .zh .callout p {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font-body);
+    }
+
+    .facts {
+      margin-top: auto;
+      padding-top: 3mm;
+      border-top: 1px solid var(--line);
+      display: grid;
       gap: 2mm;
     }
-    .dock .side h3::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background: var(--ink);
+    .facts p {
+      font-size: 9.5px;
+      line-height: 1.4;
+      color: #222;
+    }
+    .zh .facts p {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font-body);
+    }
+    .facts a {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--ink);
+      word-break: break-all;
+      text-underline-offset: 2px;
+    }
+
+    /* —— footer dock —— */
+    .dock {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 4mm;
+      align-items: center;
+      padding: 4mm 4.5mm;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .dock .side h4 {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.5mm;
     }
     .dock .side p {
-      font-size: 10.5px;
+      font-size: 10px;
       line-height: 1.35;
     }
     .dock .side.zh {
       text-align: right;
-      font-family: "Noto Sans SC", "PingFang SC", "Space Grotesk", sans-serif;
+      font-family: "Noto Sans SC", "PingFang SC", var(--font-body);
     }
-    .dock .side.zh h3 { justify-content: flex-end; }
     .dock .url {
-      margin-top: 1.5mm;
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 9.5px;
+      margin-top: 1.2mm;
+      font-family: var(--font-mono);
+      font-size: 9px;
       color: var(--muted);
       word-break: break-all;
     }
 
     .qr-box {
-      width: 28mm;
+      width: 26mm;
       border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
       padding: 2mm;
       background: #fff;
       display: grid;
-      gap: 1.5mm;
+      gap: 1.2mm;
       justify-items: center;
     }
     .qr-box img {
-      width: 22mm;
-      height: 22mm;
+      width: 20mm;
+      height: 20mm;
       display: block;
     }
     .qr-box span {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 8px;
-      letter-spacing: 0.12em;
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
-    .screen-hint {
-      width: 210mm;
-      margin: 0 auto 10px;
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      text-align: center;
-      color: #333;
-    }
-
     @media print {
-      html, body { background: #fff; }
-      .screen-hint { display: none !important; }
-      .sheet {
-        margin: 0;
-        border: none;
+      html, body {
+        background: #ffffff !important;
+        color: #000;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      .sheet::after { opacity: 0.5; }
+      .screen-hint { display: none !important; }
+      .sheet {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: var(--chassis) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        page-break-after: avoid;
+        break-after: avoid;
+      }
       @page { size: A4 portrait; margin: 0; }
     }
   </style>
 </head>
 <body>
-  <p class="screen-hint">A4 · Print → Paper A4 · Scale 100% · Margins None · 讲解用 / briefing（非分发）</p>
+  <p class="screen-hint">IMMSPFEE Lab · A4 · Print → Scale 100% · Margins None · gray desk is screen-only</p>
 
   <article class="sheet">
-    <header class="topbar">
-      <img class="logo" src="logo-wordmark.png" alt="IMMSPFEE" width="500" height="500" />
-      <div class="top-mid">
-        <div class="id-row">
-          <span class="name">IMMSPFEE</span>
-          <span class="boost" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-          <span class="ver">lab · teaching &amp; industrial</span>
-        </div>
+    <header class="top">
+      <img class="wordmark" src="../../assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
+      <div class="hero">
+        <p class="kicker">Lab · teaching &amp; industrial</p>
         <h1>Open the lab. Steer the model. Read the signal.</h1>
       </div>
-      <div class="top-side">
-        <strong>Now</strong>
+      <div class="meta">
+        <strong>Live</strong>
         In-browser<br />
-        Teaching + industrial<br />
-        No install
+        No install<br />
+        Shared contract
       </div>
     </header>
 
-    <section class="signal" aria-label="Lab shell">
-      <div class="sig">
-        <span class="code">CH 01</span>
-        <span class="label">Catalog<span class="zh">目录</span></span>
-        <span class="mark" aria-hidden="true"></span>
+    <section class="chassis-preview" aria-label="Lab chassis">
+      <div class="col catalog">
+        <span class="tag">Sidebar</span>
+        <h2>Catalog</h2>
+        <p>1500+ models · domains · search · folds</p>
+        <p class="zh-line">目录 · 分域检索</p>
       </div>
-      <div class="sig">
-        <span class="code">CH 02</span>
-        <span class="label">Stage<span class="zh">舞台</span></span>
-        <span class="mark" aria-hidden="true"></span>
+      <div class="col stage">
+        <span class="tag">Center</span>
+        <h2>Stage</h2>
+        <div class="stage-fake" aria-hidden="true"></div>
+        <p class="zh-line">舞台 · Canvas / WebGL</p>
       </div>
-      <div class="sig">
-        <span class="code">CH 03</span>
-        <span class="label">Bench<span class="zh">参数台</span></span>
-        <span class="mark" aria-hidden="true"></span>
-      </div>
-      <div class="sig">
-        <span class="code">CH 04</span>
-        <span class="label">Readouts<span class="zh">读数</span></span>
-        <span class="mark" aria-hidden="true"></span>
-      </div>
-      <div class="sig">
-        <span class="code">OUT</span>
-        <span class="label">Live<span class="zh">即时反馈</span></span>
-        <span class="mark" aria-hidden="true"></span>
+      <div class="col bench">
+        <span class="tag">Right</span>
+        <h2>Param bench</h2>
+        <p>Live / Reinit · schema · readouts</p>
+        <p class="zh-line">参数台 · 即时调参</p>
       </div>
     </section>
 
@@ -516,30 +481,30 @@
       <section class="pane en" lang="en">
         <div class="pane-head">
           <span class="lang">English</span>
-          <span class="led" aria-hidden="true"></span>
+          <span class="dot" aria-hidden="true"></span>
         </div>
-        <h2>One lab shell—classroom exploration and industrial-grade runs</h2>
+        <h3>One chassis — classroom demos and industrial-grade paths</h3>
 
         <div class="mod">
-          <h3>Try</h3>
+          <h4>Try</h4>
           <ol class="steps">
-            <li><span class="n">01</span><span class="txt">Open the live URL → pick a model from the catalog</span></li>
-            <li><span class="n">02</span><span class="txt">Steer params on the bench (Live / Reinit) and watch the stage</span></li>
-            <li><span class="n">03</span><span class="txt">Use readouts, pause / re-run, deep links when you need to share a state</span></li>
+            <li><span class="n">01</span><span class="txt">Open the live URL → pick a model in the catalog</span></li>
+            <li><span class="n">02</span><span class="txt">Steer Live / Reinit params on the bench; watch the stage</span></li>
+            <li><span class="n">03</span><span class="txt">Read HUD values · pause / re-run · deep-link a state</span></li>
           </ol>
         </div>
 
         <div class="mod">
-          <h3>See it</h3>
-          <div class="see">
-            <p>Instrument-style shell: catalog · stage · param bench—explore and steer models in the browser.</p>
+          <h4>See</h4>
+          <div class="callout">
+            <p>Black-and-white instrument shell: catalog · stage · param bench—explore and steer models in the browser.</p>
           </div>
         </div>
 
         <div class="mod facts">
-          <h3>What it is</h3>
-          <p>IMMSPFEE Lab is a browser-based simulation workbench with a shared model contract, Canvas stage, and parameter bench—covering teaching demos and industrial-grade paths across physics, CS, CE, and engineering.</p>
-          <h3>URL</h3>
+          <h4>What it is</h4>
+          <p>IMMSPFEE Lab is a browser simulation workbench with a shared model contract, Canvas (and one WebGL) stage, and a parameter bench—across physics, CS, CE, and engineering.</p>
+          <h4>URL</h4>
           <p><a href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a></p>
         </div>
       </section>
@@ -547,30 +512,30 @@
       <section class="pane zh" lang="zh-Hans">
         <div class="pane-head">
           <span class="lang">中文</span>
-          <span class="led" aria-hidden="true"></span>
+          <span class="dot" aria-hidden="true"></span>
         </div>
-        <h2>同一套实验壳——课堂探索与工业级能力</h2>
+        <h3>同一套机身——课堂演示与工业级路径</h3>
 
         <div class="mod">
-          <h3>试用</h3>
+          <h4>试用</h4>
           <ol class="steps">
             <li><span class="n">01</span><span class="txt">打开在线地址 → 在目录里选模型</span></li>
-            <li><span class="n">02</span><span class="txt">在参数台调参（即时 / 重置）并观察舞台</span></li>
-            <li><span class="n">03</span><span class="txt">读数、暂停 / 重跑；需要时用深链分享状态</span></li>
+            <li><span class="n">02</span><span class="txt">在参数台用即时 / 重置调参，观察舞台</span></li>
+            <li><span class="n">03</span><span class="txt">读数 · 暂停 / 重跑 · 需要时用深链分享状态</span></li>
           </ol>
         </div>
 
         <div class="mod">
-          <h3>你会看到</h3>
-          <div class="see">
-            <p>仪器风三区：目录 · 舞台 · 参数台——在浏览器里探索、调参、读数。</p>
+          <h4>你会看到</h4>
+          <div class="callout">
+            <p>黑白仪器三栏：目录 · 舞台 · 参数台——在浏览器里探索、调参、读数。</p>
           </div>
         </div>
 
         <div class="mod facts">
-          <h3>它是什么</h3>
-          <p>IMMSPFEE Lab 是浏览器端仿真工作台：统一模型接口、Canvas 舞台与参数台。覆盖教学演示，并支持工业级能力路径（物理 / CS / CE / 工程等）。</p>
-          <h3>网址</h3>
+          <h4>它是什么</h4>
+          <p>IMMSPFEE Lab 是浏览器端仿真工作台：统一模型接口、Canvas（及单一 WebGL）舞台与参数台。覆盖物理 / CS / CE / 工程等教学与工业级路径。</p>
+          <h4>网址</h4>
           <p><a href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a></p>
         </div>
       </section>
@@ -578,16 +543,16 @@
 
     <footer class="dock">
       <div class="side en" lang="en">
-        <h3>Open</h3>
+        <h4>Open</h4>
         <p>Scan for the live lab. Browser entry · briefing use.</p>
         <p class="url">otas0.github.io/immspfee</p>
       </div>
       <div class="qr-box">
-        <img src="lab-qr.svg" alt="QR to otas0.github.io/immspfee" width="120" height="120" />
+        <img src="./lab-qr.svg" alt="QR to otas0.github.io/immspfee" width="120" height="120" />
         <span>scan</span>
       </div>
       <div class="side zh" lang="zh-Hans">
-        <h3>打开</h3>
+        <h4>打开</h4>
         <p>扫码进入在线实验室。浏览器入口 · 讲解用。</p>
         <p class="url">otas0.github.io/immspfee</p>
       </div>
