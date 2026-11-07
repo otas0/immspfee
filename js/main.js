@@ -2075,7 +2075,12 @@ async function refreshSidebar(signal) {
       await loadIndex();
       if (signal?.aborted) return;
       const domains = domainsForFilter();
-      await Promise.all(domains.map((domain) => loadDomain(domain)));
+      try {
+        await Promise.all(domains.map((domain) => loadDomain(domain, signal)));
+      } catch (err) {
+        if (err?.name === 'AbortError' || signal?.aborted) return;
+        throw err;
+      }
     }
     if (signal?.aborted) return;
     buildSidebar();

@@ -245,8 +245,8 @@ Trend pair (same shape, different metrics):
 | `npm run test:pages-tti-trend` | `artifacts/pages-tti-trend.json` (+ `warmStreak`) | `pages-tti-prev-*` → `pages-tti-sw.prev.json` | warm `firstHandP95` >250ms for **2** consecutive runs (`WARM_FIRST_HAND_SOFT_FAIL`) |
 | `npm run test:micro-fps-trend` | `artifacts/micro-fps-trend.json` | `micro-fps-prev-*` → `micro-fps-advisory.prev.json` | advisory only |
 
-**warmStreak cross-run (confirmed):** `5f86997` lab-artifacts had `previous: true` and
-`warmStreak: { over: 0, lastP95: 49 }` vs prior run — cache restore works.
+**warmStreak cross-run (confirmed):** `5f86997` and again `ce008af` lab-artifacts:
+`previous: true`, `warmStreak.over: 0` (P95 ≈ 49–51). Cache restore works.
 
 **CDN jitter (cold `firstHandP95`):** a single cold hit can spike to ~8–11s when the edge is cold;
 `pages-tti-sw` retries once under `PAGES_TTI_HARD`. Do **not** treat a one-shot cold P95 spike as a
@@ -256,21 +256,27 @@ code regression — compare warm P95 and cold `readyMs`/`interactiveMs` first.
 `?lang=zh#m=r018-玻尔模型` on Pages — samples below. Includes catalog resolve + domain load;
 do **not** mix with the free-fall gold-frame TTI table above.
 
-| Sample (UTC) | `interactiveMs` | Notes |
-|--------------|-----------------|-------|
-| 2026-11-07 ~08:52Z | ≈ 11818 | first post-deploy hand check |
-| 2026-11-07 ~09:35Z | ≈ 11536 | re-sample; wall ≈ 11.9s; title 玻尔模型 |
-| 2026-11-07 ~10:14Z | ≈ 12036 | 3rd sample; wall ≈ 12.3s; edge still cold-ish |
+| Sample (UTC) | edge | `interactiveMs` | Notes |
+|--------------|------|-----------------|-------|
+| 2026-11-07 ~08:52Z | (iad-ish) | ≈ 11818 | first post-deploy hand check |
+| 2026-11-07 ~09:35Z | (iad-ish) | ≈ 11536 | re-sample; wall ≈ 11.9s |
+| 2026-11-07 ~10:14Z | (iad-ish) | ≈ 12036 | 3rd sample; wall ≈ 12.3s |
+| 2026-11-07 ~11:00Z | **japaneast** | ≈ 2902 | warm-ish edge; wall ≈ 3.2s |
 
 **narrow soft-fail → hard after 2:** first fail is isolated (`continue-on-error`); streak cache
-`narrow-streak-*` hard-fails the job on the **second consecutive** failure. `5f86997` /
-`9a2fc15` both logged `narrow-regression ok`.
+`narrow-streak-*` hard-fails on the **second consecutive** failure. `ce008af` logged
+`narrow-regression ok` + streak `over: 0` (not flaking).
 
-**micro-fps advisory path:** never shadow repo `root` with the site URL when writing
-`artifacts/micro-fps-advisory.json` (writes to `process.cwd()/artifacts`).
+**micro-fps:** `ce008af` summary has `micro-fps advisory + trend ok`; advisory JSON present with
+`belowGate: true` (≈10 FPS on ubuntu software-GL) — **advisory only, never hard-fail**.
+Write path: `process.cwd()/artifacts` (do not shadow repo `root` with the site URL).
 
-Search debounce is **200ms**; in-flight `ensureDomainNames` uses `AbortController` so a newer
-keystroke cancels the stale names fetch.
+Search debounce is **200ms** (leave for real-device feel; do not chase without hand timing).
+In-flight `ensureDomainNames` **and** `loadDomain` accept `AbortSignal` so a newer keystroke
+cancels stale names/domain fetches.
+
+**Palette shard watch:** `物理__光学` ≈ 5984 B (single sub `光学`, 26 models). Re-split only if a
+shard exceeds **~7.5KB** *and* a finer catalog sub exists — do not invent fake subs.
 
 ### Real-device 4G / weak-net first gold frame
 

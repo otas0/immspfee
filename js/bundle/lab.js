@@ -3542,21 +3542,35 @@ async function mergeSpecs(domain, specs) {
   appendOrphans();
   await appendUsers();
 }
-function loadDomain(domain) {
+function abortError() {
+  const err = new Error("Aborted");
+  err.name = "AbortError";
+  return err;
+}
+function loadDomain(domain, signal) {
   if (!domain) return Promise.resolve(models);
   if (loaded.has(domain)) return Promise.resolve(models);
-  if (inflight.has(domain)) return inflight.get(domain);
+  if (signal?.aborted) return Promise.reject(abortError());
+  if (inflight.has(domain)) {
+    return inflight.get(domain).then((rows) => {
+      if (signal?.aborted) throw abortError();
+      return rows;
+    });
+  }
   const task = Promise.resolve().then(() => ensureHandModels()).then(async () => {
+    if (signal?.aborted) throw abortError();
     const warm = window.__preloadedDomain;
     if (warm && warm.domain === domain && warm.promise) {
       const specs = await warm.promise;
       if (Array.isArray(specs)) return specs;
     }
     const stamp = await loadAssetStamp();
-    const res = await fetch(endpoint(domainChunkUrl(domain, stamp)));
+    if (signal?.aborted) throw abortError();
+    const res = await fetch(endpoint(domainChunkUrl(domain, stamp)), signal ? { signal } : void 0);
     if (!res.ok) throw new Error(`${domain} ${res.status}`);
     return res.json();
   }).then(async (specs) => {
+    if (signal?.aborted) throw abortError();
     loaded.add(domain);
     await mergeSpecs(domain, specs);
     inflight.delete(domain);
@@ -7921,7 +7935,12 @@ async function refreshSidebar(signal) {
       await loadIndex();
       if (signal?.aborted) return;
       const domains = domainsForFilter();
-      await Promise.all(domains.map((domain) => loadDomain(domain)));
+      try {
+        await Promise.all(domains.map((domain) => loadDomain(domain, signal)));
+      } catch (err) {
+        if (err?.name === "AbortError" || signal?.aborted) return;
+        throw err;
+      }
     }
     if (signal?.aborted) return;
     buildSidebar();
