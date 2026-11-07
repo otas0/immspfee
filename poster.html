@@ -9,22 +9,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     /*
-      IMMSPFEE Lab A4 — academic / #evenbetterposter principles
-      (Morrison #betterposter + MIT Comm Lab critique + Argonne / Karolinska):
-
-      1. One take-home claim as the dominant element (complete sentence).
-      2. One evidence figure — not a wall of UI chrome labels.
-      3. ~30%+ whitespace; no bordered "cards"; soft hairlines only.
-      4. Logo small and away from the claim (does not compete with title).
-      5. Phrases over paragraphs; ≤2 typefaces; dark ink on light paper.
-      6. QR + URL once. ?lang=en|zh|both
+      IMMSPFEE Lab A4 — type + logo only.
+      No stage stills, no QR bitmap — only the wordmark <img>.
+      #evenbetterposter: one claim, whitespace, phrases, ≤2 typefaces.
+      ?lang=en|zh|both
     */
     :root {
       --paper: #ffffff;
       --ink: #111111;
       --muted: #5a5a5a;
       --hair: rgba(0, 0, 0, 0.12);
-      --figure-well: #0a0a0a;
       --font: "Sora", "Noto Sans SC", sans-serif;
       --mono: "IBM Plex Mono", ui-monospace, monospace;
     }
@@ -55,132 +49,68 @@
       width: 210mm;
       height: 297mm;
       margin: 0 auto 14px;
-      padding: 14mm 16mm 12mm;
+      padding: 16mm 18mm 14mm;
       background: var(--paper);
       border-radius: 2px;
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
       display: flex;
       flex-direction: column;
-      gap: 0;
       overflow: hidden;
     }
 
-    .mast {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8mm;
-      margin-bottom: 9mm;
-    }
-    .brand {
-      display: flex;
-      flex-direction: column;
-      gap: 2mm;
-      min-width: 0;
-    }
+    .brand { margin-bottom: 14mm; }
     .wordmark {
       display: block;
-      height: 7mm;
+      height: 8mm;
       width: auto;
-      max-width: 42mm;
+      max-width: 48mm;
     }
     .brand .sub {
+      margin-top: 2.5mm;
       font-family: var(--mono);
       font-size: 8px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .qr {
-      flex: 0 0 auto;
-      width: 22mm;
-      display: grid;
-      gap: 1mm;
-      justify-items: center;
-    }
-    .qr img {
-      width: 22mm;
-      height: 22mm;
-      display: block;
-    }
-    .qr span {
-      font-family: var(--mono);
-      font-size: 7px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
     .claim {
-      font-size: 26px;
+      font-size: 32px;
       font-weight: 600;
-      letter-spacing: -0.035em;
-      line-height: 1.18;
-      max-width: 168mm;
-      margin-bottom: 8mm;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      max-width: 170mm;
+      margin-bottom: 12mm;
     }
     .claim.zh {
       font-family: "Noto Sans SC", "PingFang SC", var(--font);
-      font-size: 24px;
+      font-size: 28px;
       letter-spacing: 0;
       font-weight: 700;
-      line-height: 1.28;
+      line-height: 1.3;
     }
     html[data-lang="both"] .claims {
       display: grid;
-      gap: 3.5mm;
-      margin-bottom: 7mm;
+      gap: 5mm;
+      margin-bottom: 10mm;
     }
     html[data-lang="both"] .claim {
-      font-size: 18px;
+      font-size: 20px;
       margin-bottom: 0;
     }
-    html[data-lang="both"] .claim.zh { font-size: 17px; }
-
-    .figure {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 6mm;
-    }
-    .figure-frame {
-      flex: 1 1 auto;
-      min-height: 95mm;
-      background: var(--figure-well);
-      overflow: hidden;
-      position: relative;
-    }
-    .figure-frame img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: 32% 48%;
-      transform: scale(1.42);
-      transform-origin: 32% 48%;
-    }
-    .figure figcaption {
-      margin-top: 2.5mm;
-      font-family: var(--mono);
-      font-size: 8.5px;
-      line-height: 1.4;
-      color: var(--muted);
-      letter-spacing: 0.02em;
-    }
+    html[data-lang="both"] .claim.zh { font-size: 19px; }
 
     .spine {
       display: flex;
       flex-wrap: wrap;
-      gap: 2mm 7mm;
-      padding: 4mm 0;
+      gap: 2mm 8mm;
+      padding: 5mm 0;
       border-top: 1px solid var(--hair);
       border-bottom: 1px solid var(--hair);
-      margin-bottom: 5mm;
-      font-size: 12px;
+      margin-bottom: 8mm;
+      font-size: 14px;
       font-weight: 500;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.015em;
     }
     .spine span {
       color: var(--muted);
@@ -190,20 +120,21 @@
     .steps {
       list-style: none;
       display: grid;
-      gap: 2mm;
-      margin-bottom: 7mm;
+      gap: 3.5mm;
+      margin-bottom: 10mm;
+      max-width: 150mm;
     }
     .steps li {
       display: grid;
-      grid-template-columns: 9mm 1fr;
+      grid-template-columns: 10mm 1fr;
       gap: 2mm;
       align-items: baseline;
-      font-size: 11px;
-      line-height: 1.35;
+      font-size: 13px;
+      line-height: 1.4;
     }
     .steps .n {
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 11px;
       color: var(--muted);
     }
     .steps.zh li {
@@ -213,29 +144,30 @@
     html[data-lang="both"] .detail {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6mm;
-      margin-bottom: 6mm;
+      gap: 8mm;
+      margin-bottom: 8mm;
     }
     html[data-lang="both"] .detail .steps { margin-bottom: 0; }
 
+    .spacer { flex: 1 1 auto; min-height: 8mm; }
+
     .foot {
-      margin-top: auto;
-      padding-top: 4mm;
+      padding-top: 5mm;
       border-top: 1px solid var(--hair);
     }
     .foot a {
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 12px;
       color: var(--ink);
       word-break: break-all;
       text-underline-offset: 2px;
       line-height: 1.4;
     }
     .foot .hint {
-      margin-top: 1.5mm;
-      font-size: 9px;
+      margin-top: 2mm;
+      font-size: 10px;
       color: var(--muted);
-      line-height: 1.35;
+      line-height: 1.4;
     }
     .foot .hint.zh {
       font-family: "Noto Sans SC", "PingFang SC", var(--font);
@@ -264,8 +196,6 @@
         margin: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
         page-break-after: avoid;
         break-after: avoid;
       }
@@ -280,15 +210,9 @@
   </p>
 
   <article class="sheet" data-poster-sheet>
-    <header class="mast">
-      <div class="brand">
-        <img class="wordmark" src="./assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
-        <p class="sub">Lab · teaching &amp; industrial</p>
-      </div>
-      <div class="qr">
-        <img class="lab-qr" src="./docs/promo/lab-qr.svg" alt="QR to IMMSPFEE Lab" width="120" height="120" />
-        <span>scan</span>
-      </div>
+    <header class="brand">
+      <img class="wordmark" src="./assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
+      <p class="sub">Lab · teaching &amp; industrial</p>
     </header>
 
     <div class="claims single-only">
@@ -307,23 +231,6 @@
         在浏览器里打开统一模型接口，即时调参、读数——无需安装。
       </h1>
     </div>
-
-    <figure class="figure">
-      <div class="figure-frame">
-        <img
-          src="./docs/promo/micro-webkit-3d.png"
-          alt="Compound microscope WebGL stage with live optical readouts"
-          width="2560"
-          height="1600"
-        />
-      </div>
-      <figcaption class="lang-en">
-        Evidence — lab-microscope3d · WebGL stage · M · f_obj · NA · d_Abbe from the optics rail
-      </figcaption>
-      <figcaption class="lang-zh">
-        证据 — lab-microscope3d · WebGL 舞台 · 光学导轨给出 M · f_obj · NA · d_Abbe
-      </figcaption>
-    </figure>
 
     <p class="spine lang-en">
       Catalog <span>·</span> Stage <span>·</span> Param bench
@@ -356,6 +263,8 @@
         <li><span class="n">03</span><span>读数 · 暂停 · 深链分享状态</span></li>
       </ol>
     </div>
+
+    <div class="spacer" aria-hidden="true"></div>
 
     <footer class="foot">
       <a class="lab-url" href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a>
