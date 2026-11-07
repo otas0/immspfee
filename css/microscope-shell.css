@@ -344,25 +344,54 @@ html.shell-lab-microscope3d .micro-gl-label {
   left: 0;
   top: 0;
   translate: -50% -100%;
-  padding: 0.18rem 0.35rem;
-  border: 1px solid rgba(232, 238, 246, 0.22);
-  background: rgba(6, 8, 11, 0.72);
+  padding: 0.2rem 0.4rem;
+  border: 1px solid rgba(232, 238, 246, 0.28);
+  background: rgba(4, 6, 10, 0.82);
   color: var(--micro-ink);
   font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   white-space: nowrap;
   will-change: transform;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-obj {
+  border-bottom: 2px solid var(--micro-ring, var(--micro-accent));
+  font-weight: 600;
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-eye {
+  border-color: rgba(120, 200, 255, 0.45);
+  color: #b8e0ff;
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-knob {
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c8d2de;
+  border-color: rgba(180, 200, 220, 0.28);
+  background: rgba(6, 10, 16, 0.88);
 }
 
 html.shell-lab-microscope3d .micro-gl-label.is-active {
-  border-color: var(--micro-accent);
-  color: var(--micro-accent);
+  border-color: #ff3db8;
+  color: #ff9ad8;
+  box-shadow: 0 0 0 1px rgba(255, 61, 184, 0.35);
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-obj.is-active {
+  border-color: #ff3db8;
+  border-bottom-color: var(--micro-ring, #ff3db8);
+  color: #ffe8f6;
 }
 
 html.shell-lab-microscope3d .micro-gl-label.is-dim {
   color: #f0d56a;
-  border-color: rgba(240, 213, 106, 0.45);
+  border-color: rgba(240, 213, 106, 0.55);
+  font-weight: 600;
 }
 
 html.shell-lab-microscope3d .micro-field {

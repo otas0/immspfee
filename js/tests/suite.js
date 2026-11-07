@@ -30,11 +30,14 @@ import hodgkinHuxley from '../models/hodgkinHuxley.js';
 import compoundMicroscope from '../models/compoundMicroscope.js';
 import {
   OBJECTIVE_RING_LEGEND,
+  OBJECTIVES,
+  EYEPIECES,
   objectiveRingColor,
   opticsFromParams,
 } from '../models/microscopeOptics.js';
 import { createMicroscopeStage } from '../shells/microscopeStage.js';
 import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
+import { buildMicroscopeSolid } from '../viz/microscopeMeshBuild.js';
 import { runModelContract } from './model-contract.js';
 import { validateUserModelDraft } from '../lab/userModels.js';
 import { runLab12 } from './lab12.js';
@@ -462,6 +465,16 @@ export function runSuite() {
       for (const k of ['obj', 'eye', 'lamp', 'immersion', 'clip']) {
         assert(`CLICK_KINDS has ${k}`, CLICK_KINDS.has(k));
       }
+      const mesh = buildMicroscopeSolid(
+        o40,
+        null,
+        OBJECTIVES,
+        EYEPIECES,
+        objectiveRingColor,
+        { layout: lay, tess: 1, part: 'all' },
+      );
+      const dynVerts = mesh.dynamicData.length / 6;
+      assert('desktop tess=1 dynamic verts > 100k', dynVerts > 100000, `dyn=${dynVerts}`);
     }
   }
 

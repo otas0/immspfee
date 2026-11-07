@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Playwright: drag focusCoarse + stageX knobs on ?shell=lab-microscope3d
- * and assert params + rail outputs track.
+ * Playwright: drag focusCoarse / focusFine / stageX / stageY on
+ * ?shell=lab-microscope3d and assert params + rail outputs track.
  * Requires lab server (LAB_URL, default http://127.0.0.1:8765/).
  */
 import { chromium } from 'playwright';
@@ -132,6 +132,89 @@ try {
   console.log('stageX ok', {
     stageX: [beforeStage.stageX, afterStage.stageX],
     sxOut: afterStage.sxOut,
+  });
+
+  const beforeFine = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    const stage = window.__labCapture.getWebglStage();
+    const hit = (stage.getHits() || []).find((h) => h.kind === 'focusFine');
+    const canvas = document.getElementById('canvas-webgl');
+    const rect = canvas.getBoundingClientRect();
+    return {
+      focusZ: Number(p.focusZ_mm) || 0,
+      WD: Number(p.WD_mm) || 0,
+      hit,
+      rect: { left: rect.left, top: rect.top },
+    };
+  });
+  if (!beforeFine.hit) fail('no focusFine hit');
+  {
+    const x = beforeFine.rect.left + beforeFine.hit.x;
+    const y = beforeFine.rect.top + beforeFine.hit.y;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y - 100, { steps: 14 });
+    await page.mouse.up();
+  }
+  const afterFine = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    return {
+      focusZ: Number(p.focusZ_mm) || 0,
+      WD: Number(p.WD_mm) || 0,
+      focusOut: document.getElementById('micro-focus-out')?.textContent || '',
+    };
+  });
+  if (!(Math.abs(afterFine.focusZ - beforeFine.focusZ) > 0.005
+    || Math.abs(afterFine.WD - beforeFine.WD) > 0.01)) {
+    fail(`focusFine unchanged z=${beforeFine.focusZ}→${afterFine.focusZ} WD=${beforeFine.WD}→${afterFine.WD}`);
+  }
+  console.log('focusFine ok', {
+    focusZ: [beforeFine.focusZ, afterFine.focusZ],
+    WD: [beforeFine.WD, afterFine.WD],
+  });
+
+  const beforeY = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    const stage = window.__labCapture.getWebglStage();
+    const hit = (stage.getHits() || []).find((h) => h.kind === 'stageY');
+    const canvas = document.getElementById('canvas-webgl');
+    const rect = canvas.getBoundingClientRect();
+    return {
+      stageY: Number(p.stageY_mm) || 0,
+      hit,
+      rect: { left: rect.left, top: rect.top },
+    };
+  });
+  if (!beforeY.hit) fail('no stageY hit');
+  {
+    const x = beforeY.rect.left + beforeY.hit.x;
+    const y = beforeY.rect.top + beforeY.hit.y;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y + 90, { steps: 12 });
+    await page.mouse.up();
+  }
+  const afterY = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    return {
+      stageY: Number(p.stageY_mm) || 0,
+      syOut: document.getElementById('micro-stage-y-out')?.textContent || '',
+    };
+  });
+  if (!(Math.abs(afterY.stageY - beforeY.stageY) > 0.2)) {
+    fail(`stageY unchanged ${beforeY.stageY} → ${afterY.stageY}`);
+  }
+  const syNum = parseFloat(afterY.syOut);
+  if (!(Number.isFinite(syNum) && Math.abs(syNum - afterY.stageY) < 0.6)) {
+    fail(`micro-stage-y-out ${afterY.syOut} does not track stageY ${afterY.stageY}`);
+  }
+  console.log('stageY ok', {
+    stageY: [beforeY.stageY, afterY.stageY],
+    syOut: afterY.syOut,
   });
   console.log('test:micro-knobs ok');
 } finally {

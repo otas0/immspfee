@@ -69,6 +69,11 @@ Selecting the normal `r016-显微镜` catalog row must **not** auto-enter WebGL.
 - Rail starts **closed**; open via 「光学参数」 / Optical params.
 - Strip stays sticky above domains; opening the rail must keep λ / NA outputs linked to `#micro-metric` values.
 
+## Capture / Playwright helpers
+
+`window.__labCapture.getWebglStage()` → live stage; `stage.getHits()` → CSS-pixel
+pick targets after the last `draw()`. Short contract: [`docs/microscope-webgl-api.md`](./microscope-webgl-api.md).
+
 ## Pages asset-stamp
 
 Fingerprint authority is the **JSON fields** in `asset-stamp.json` (`js`, `css`, `microCss`, `main`, `bundleMeta`, …), mirrored into `index.html` (`imm-js` / CSS `?v=`). GitHub Pages does **not** honor repo `_headers` Cache-Control; treat CDN `Cache-Control` as advisory and bust with stamp fields / `?v=` only.

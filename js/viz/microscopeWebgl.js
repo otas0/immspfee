@@ -399,6 +399,8 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const prevKey = hoverHit ? `${hoverHit.kind}:${hoverHit.index}` : '';
     if (nextKey !== prevKey) {
       hoverHit = hit ? { kind: hit.kind, index: hit.index } : null;
+      // Hovering any interactive part kills auto-orbit so knobs stay grab-stable.
+      if (hit && (DRAG_KINDS.has(hit.kind) || CLICK_KINDS.has(hit.kind))) autoSpin = 0;
       canvas.style.cursor = hit ? 'pointer' : 'grab';
       opts.onViewChange?.();
     }
@@ -530,7 +532,11 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     oilSlideX = layout.slideX;
     oilSlideZ = layout.slideZ;
 
-    if (!dragMode && pointers.size < 2 && autoSpin) yaw += autoSpin * 0.016;
+    const hoverBusy = hoverHit
+      && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
+    if (!dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
+      yaw += autoSpin * 0.016;
+    }
 
     // Aim mid-head so Siedentopf ocular tips stay inside vertical FOV.
     const lookY = 2.05;
@@ -556,18 +562,35 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         y: Lpt.y,
       });
     }
+    const knobLabels = {
+      focusCoarse: 'Coarse',
+      focusFine: 'Fine',
+      stageX: 'Stage X',
+      stageY: 'Stage Y',
+      condenser: 'Condenser',
+      iris: 'Abbe iris',
+      fieldIris: 'Field iris',
+      lamp: 'Lamp',
+      tubeL: null, // L dimension already labeled
+      immersion: 'Oil',
+      clip: 'Clip',
+    };
+    const shownKnob = new Set();
     for (const p of layout.pts) {
       if (p.kind === 'obj') {
         const obj = OBJECTIVES[p.index];
         if (!obj) continue;
         const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
         if (!s) continue;
+        const ring = objectiveRingColor(obj.mag);
         overlayLabels.push({
           id: `obj-${obj.id}`,
-          text: `${obj.mag}×`,
+          text: `${obj.mag}× ${ring.name}`,
           x: s.x,
-          y: s.y - 12,
+          y: s.y - 14,
           active: obj.id === optics.obj.id,
+          ring: ring.hex,
+          role: 'obj',
         });
       } else if (p.kind === 'eye') {
         const eye = EYEPIECES[p.index];
@@ -576,10 +599,34 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         if (!s) continue;
         overlayLabels.push({
           id: `eye-${eye.id}`,
-          text: `${eye.mag}×`,
+          text: `Eye ${eye.mag}×`,
           x: s.x,
           y: s.y - 14,
           active: eye.id === optics.eye.id,
+          role: 'eye',
+        });
+      } else if (knobLabels[p.kind] != null) {
+        // One caption per kind (left/right coarse share). Always mark primary
+        // teaching knobs; others appear on hover/drag.
+        const key = p.kind === 'clip' ? `clip-${p.index}` : p.kind;
+        if (shownKnob.has(key)) continue;
+        const primary = p.kind === 'focusCoarse' || p.kind === 'focusFine'
+          || p.kind === 'stageX' || p.kind === 'stageY'
+          || p.kind === 'iris' || p.kind === 'lamp' || p.kind === 'condenser';
+        const hot = (hoverHit && hoverHit.kind === p.kind)
+          || (partHit && partHit.kind === p.kind);
+        if (!primary && !hot) continue;
+        if (primary && p.index !== 0 && !hot) continue;
+        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+        if (!s) continue;
+        shownKnob.add(key);
+        overlayLabels.push({
+          id: `knob-${key}`,
+          text: knobLabels[p.kind],
+          x: s.x,
+          y: s.y + 16,
+          active: hot,
+          role: 'knob',
         });
       }
     }

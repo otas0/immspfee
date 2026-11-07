@@ -425,9 +425,15 @@ export function createMicroscopeStage(api) {
         host.appendChild(el);
       }
       el.dataset.id = lab.id || '';
+      el.dataset.role = lab.role || '';
       el.textContent = lab.text || '';
       el.classList.toggle('is-active', !!lab.active);
       el.classList.toggle('is-dim', lab.id === 'L');
+      el.classList.toggle('is-knob', lab.role === 'knob');
+      el.classList.toggle('is-obj', lab.role === 'obj');
+      el.classList.toggle('is-eye', lab.role === 'eye');
+      if (lab.ring) el.style.setProperty('--micro-ring', lab.ring);
+      else el.style.removeProperty('--micro-ring');
       el.style.transform = `translate(${Math.round(lab.x || 0)}px, ${Math.round(lab.y || 0)}px)`;
     });
   }
