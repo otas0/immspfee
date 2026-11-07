@@ -9,32 +9,32 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     /*
-      IMMSPFEE Lab A4 — one instrument sheet.
-      Soft chassis · Sora / IBM Plex Mono · real stage still · single-language print.
-      ?lang=en (default) | zh | both
+      IMMSPFEE Lab A4 — academic / #evenbetterposter principles
+      (Morrison #betterposter + MIT Comm Lab critique + Argonne / Karolinska):
+
+      1. One take-home claim as the dominant element (complete sentence).
+      2. One evidence figure — not a wall of UI chrome labels.
+      3. ~30%+ whitespace; no bordered "cards"; soft hairlines only.
+      4. Logo small and away from the claim (does not compete with title).
+      5. Phrases over paragraphs; ≤2 typefaces; dark ink on light paper.
+      6. QR + URL once. ?lang=en|zh|both
     */
     :root {
-      --chassis: #f7f7f7;
-      --panel: #ffffff;
-      --ink: #000000;
-      --muted: #666666;
-      --line: rgba(0, 0, 0, 0.08);
-      --line-soft: rgba(0, 0, 0, 0.05);
-      --oled: #0a0a0a;
-      --radius: 10px;
-      --radius-sm: 6px;
-      --font-display: "Sora", "Noto Sans SC", sans-serif;
-      --font-body: "Sora", "Noto Sans SC", sans-serif;
-      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-      --elev: 0 10px 36px rgba(0, 0, 0, 0.08);
+      --paper: #ffffff;
+      --ink: #111111;
+      --muted: #5a5a5a;
+      --hair: rgba(0, 0, 0, 0.12);
+      --figure-well: #0a0a0a;
+      --font: "Sora", "Noto Sans SC", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      background: #bdbdbd;
+      background: #d0d0d0;
       color: var(--ink);
-      font-family: var(--font-body);
+      font-family: var(--font);
       -webkit-font-smoothing: antialiased;
       font-feature-settings: "tnum" 1, "lnum" 1;
     }
@@ -42,11 +42,11 @@
     .screen-hint {
       width: 210mm;
       margin: 10px auto 8px;
-      font-family: var(--font-mono);
+      font-family: var(--mono);
       font-size: 9px;
       text-align: center;
       color: #444;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       line-height: 1.45;
     }
     .screen-hint a { color: inherit; }
@@ -55,265 +55,196 @@
       width: 210mm;
       height: 297mm;
       margin: 0 auto 14px;
-      padding: 8mm 8mm 7mm;
-      background:
-        radial-gradient(120% 80% at 50% -10%, #ffffff 0%, var(--chassis) 55%),
-        var(--chassis);
-      border-radius: 14px;
-      box-shadow: var(--elev);
+      padding: 14mm 16mm 12mm;
+      background: var(--paper);
+      border-radius: 2px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
       display: flex;
       flex-direction: column;
-      gap: 5.5mm;
+      gap: 0;
       overflow: hidden;
-      position: relative;
     }
 
-    /* —— brand —— */
+    .mast {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8mm;
+      margin-bottom: 9mm;
+    }
     .brand {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: end;
-      gap: 4mm;
+      display: flex;
+      flex-direction: column;
+      gap: 2mm;
+      min-width: 0;
     }
     .wordmark {
       display: block;
-      height: 9.5mm;
+      height: 7mm;
       width: auto;
-      max-width: 48mm;
+      max-width: 42mm;
     }
-    .brand-mid {
-      min-width: 0;
-      padding-bottom: 0.4mm;
-    }
-    .brand-mid .kicker {
-      font-family: var(--font-mono);
+    .brand .sub {
+      font-family: var(--mono);
       font-size: 8px;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 1.2mm;
     }
-    .brand-mid h1 {
-      font-family: var(--font-display);
-      font-size: 13.5px;
+
+    .qr {
+      flex: 0 0 auto;
+      width: 22mm;
+      display: grid;
+      gap: 1mm;
+      justify-items: center;
+    }
+    .qr img {
+      width: 22mm;
+      height: 22mm;
+      display: block;
+    }
+    .qr span {
+      font-family: var(--mono);
+      font-size: 7px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .claim {
+      font-size: 26px;
       font-weight: 600;
       letter-spacing: -0.035em;
-      line-height: 1.15;
+      line-height: 1.18;
+      max-width: 168mm;
+      margin-bottom: 8mm;
     }
-    html[data-lang="zh"] .brand-mid h1 { font-size: 13px; letter-spacing: 0; }
-    .live {
-      font-family: var(--font-mono);
-      font-size: 8px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      text-align: right;
-      color: var(--muted);
-      line-height: 1.45;
-      padding-bottom: 0.6mm;
+    .claim.zh {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font);
+      font-size: 24px;
+      letter-spacing: 0;
+      font-weight: 700;
+      line-height: 1.28;
     }
-    .live strong {
-      display: block;
-      color: var(--ink);
-      font-weight: 600;
-      margin-bottom: 0.6mm;
-      letter-spacing: 0.1em;
+    html[data-lang="both"] .claims {
+      display: grid;
+      gap: 3.5mm;
+      margin-bottom: 7mm;
     }
+    html[data-lang="both"] .claim {
+      font-size: 18px;
+      margin-bottom: 0;
+    }
+    html[data-lang="both"] .claim.zh { font-size: 17px; }
 
-    /* —— stage still (product) —— */
-    .stage {
-      flex: 0 0 auto;
-      position: relative;
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: var(--oled);
-      border: 1px solid rgba(0, 0, 0, 0.18);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      height: 122mm;
+    .figure {
+      flex: 1 1 auto;
+      min-height: 0;
       display: flex;
       flex-direction: column;
+      margin-bottom: 6mm;
     }
-    .stage img {
+    .figure-frame {
+      flex: 1 1 auto;
+      min-height: 95mm;
+      background: var(--figure-well);
+      overflow: hidden;
+      position: relative;
+    }
+    .figure-frame img {
       display: block;
       width: 100%;
-      flex: 1;
-      min-height: 0;
-      object-fit: contain;
-      object-position: center center;
-      background: #000;
+      height: 100%;
+      object-fit: cover;
+      object-position: 32% 48%;
+      transform: scale(1.42);
+      transform-origin: 32% 48%;
     }
-    .stage-cap {
-      flex: 0 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1.35fr 1fr;
-      gap: 0;
-      background: #000;
-      color: #fff;
-      padding: 2.4mm 4mm 2.6mm;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      font-family: var(--font-mono);
-      font-size: 7.5px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .stage-cap span {
-      opacity: 0.55;
-      display: block;
-      margin-bottom: 0.6mm;
-      font-size: 6.5px;
-    }
-    .stage-cap strong {
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: none;
-      font-family: var(--font-body);
-      font-size: 10px;
-      opacity: 1;
-    }
-
-    /* —— body —— */
-    .body {
-      flex: 1;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 5mm;
-      align-content: start;
-    }
-    html[data-lang="both"] .body {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .copy { min-width: 0; display: flex; flex-direction: column; gap: 3.2mm; }
-    .copy.zh { font-family: "Noto Sans SC", "PingFang SC", var(--font-body); }
-
-    .lede {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      line-height: 1.3;
-    }
-    .copy.zh .lede { letter-spacing: 0; font-size: 12.5px; }
-
-    .label {
-      font-family: var(--font-mono);
-      font-size: 7.5px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
+    .figure figcaption {
+      margin-top: 2.5mm;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      line-height: 1.4;
       color: var(--muted);
-      margin-bottom: 1.4mm;
+      letter-spacing: 0.02em;
+    }
+
+    .spine {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2mm 7mm;
+      padding: 4mm 0;
+      border-top: 1px solid var(--hair);
+      border-bottom: 1px solid var(--hair);
+      margin-bottom: 5mm;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .spine span {
+      color: var(--muted);
+      font-weight: 400;
     }
 
     .steps {
       list-style: none;
       display: grid;
-      gap: 0;
-      border-top: 1px solid var(--line);
+      gap: 2mm;
+      margin-bottom: 7mm;
     }
     .steps li {
       display: grid;
-      grid-template-columns: 7mm 1fr;
+      grid-template-columns: 9mm 1fr;
       gap: 2mm;
-      padding: 1.8mm 0;
-      border-bottom: 1px solid var(--line-soft);
       align-items: baseline;
-    }
-    .steps .n {
-      font-family: var(--font-mono);
-      font-size: 8.5px;
-      font-weight: 600;
-      color: var(--muted);
-    }
-    .steps .txt {
-      font-size: 9.5px;
+      font-size: 11px;
       line-height: 1.35;
     }
-
-    .blurb {
-      font-size: 9px;
-      line-height: 1.45;
-      color: #222;
-      padding-top: 1mm;
+    .steps .n {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .steps.zh li {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font);
     }
 
-    .side {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 3mm;
-      padding: 3.5mm 3.5mm 3mm;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
+    html[data-lang="both"] .detail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6mm;
+      margin-bottom: 6mm;
     }
-    .side .blurb { color: #333; }
+    html[data-lang="both"] .detail .steps { margin-bottom: 0; }
 
-    .url-block a {
-      font-family: var(--font-mono);
-      font-size: 9px;
+    .foot {
+      margin-top: auto;
+      padding-top: 4mm;
+      border-top: 1px solid var(--hair);
+    }
+    .foot a {
+      font-family: var(--mono);
+      font-size: 10px;
       color: var(--ink);
       word-break: break-all;
       text-underline-offset: 2px;
       line-height: 1.4;
     }
-
-    /* —— dock —— */
-    .dock {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 4mm;
-      align-items: center;
-      padding-top: 1mm;
-      border-top: 1px solid var(--line);
-    }
-    .dock-copy .label { margin-bottom: 1mm; }
-    .dock-copy p {
-      font-size: 9.5px;
+    .foot .hint {
+      margin-top: 1.5mm;
+      font-size: 9px;
+      color: var(--muted);
       line-height: 1.35;
-      max-width: 120mm;
     }
-    .dock-copy .url {
-      margin-top: 1.2mm;
-      font-family: var(--font-mono);
-      font-size: 8.5px;
-      color: var(--muted);
-      word-break: break-all;
+    .foot .hint.zh {
+      font-family: "Noto Sans SC", "PingFang SC", var(--font);
     }
 
-    .qr-box {
-      width: 28mm;
-      padding: 2mm;
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      display: grid;
-      gap: 1mm;
-      justify-items: center;
-    }
-    .qr-box img {
-      width: 22mm;
-      height: 22mm;
-      display: block;
-    }
-    .qr-box span {
-      font-family: var(--font-mono);
-      font-size: 7px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* lang gates */
     html[data-lang="en"] .lang-zh { display: none !important; }
     html[data-lang="zh"] .lang-en { display: none !important; }
-    /* Chrome stays English when printing bilingual body */
-    html[data-lang="both"] .brand-mid .lang-zh,
-    html[data-lang="both"] .stage-cap .lang-zh,
-    html[data-lang="both"] .dock-copy .lang-zh { display: none !important; }
-    html[data-lang="both"] .side-only-single { display: none !important; }
+    html[data-lang="both"] .single-only { display: none !important; }
     html:not([data-lang="both"]) .both-only { display: none !important; }
-    html[data-lang="both"] .copy.lang-en,
-    html[data-lang="both"] .copy.lang-zh { display: flex; }
 
     @media print {
       html, body {
@@ -349,87 +280,87 @@
   </p>
 
   <article class="sheet" data-poster-sheet>
-    <header class="brand">
-      <img class="wordmark" src="./assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
-      <div class="brand-mid">
-        <p class="kicker">Lab · teaching &amp; industrial</p>
-        <h1 class="lang-en">Open the lab. Steer the model. Read the signal.</h1>
-        <h1 class="lang-zh">打开实验室。调参。读信号。</h1>
+    <header class="mast">
+      <div class="brand">
+        <img class="wordmark" src="./assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
+        <p class="sub">Lab · teaching &amp; industrial</p>
       </div>
-      <div class="live">
-        <strong>Live</strong>
-        In-browser<br />
-        No install
-      </div>
-    </header>
-
-    <figure class="stage" aria-label="Lab chassis stage">
-      <img
-        src="./docs/promo/micro-webkit-3d.png"
-        alt="IMMSPFEE Lab microscope WebGL stage"
-        width="2560"
-        height="1600"
-      />
-      <figcaption class="stage-cap">
-        <div><span>Shell</span><strong class="lang-en">lab-microscope3d</strong><strong class="lang-zh">显微镜壳</strong></div>
-        <div><span>Stage</span><strong class="lang-en">WebGL · optics rail</strong><strong class="lang-zh">WebGL · 光学导轨</strong></div>
-        <div><span>Readouts</span><strong class="lang-en">M · f · NA · d_Abbe</strong><strong class="lang-zh">M · f · NA · d_Abbe</strong></div>
-      </figcaption>
-    </figure>
-
-    <div class="body">
-      <section class="copy lang-en" lang="en">
-        <p class="lede">One chassis — classroom demos and industrial-grade paths.</p>
-        <div>
-          <p class="label">Try</p>
-          <ol class="steps">
-            <li><span class="n">01</span><span class="txt">Open the live URL → pick a model in the catalog</span></li>
-            <li><span class="n">02</span><span class="txt">Steer Live / Reinit on the bench; watch the stage</span></li>
-            <li><span class="n">03</span><span class="txt">Read HUD · pause / re-run · deep-link a state</span></li>
-          </ol>
-        </div>
-        <p class="blurb both-only">Black-and-white instrument shell: catalog · stage · param bench—explore and steer models in the browser.</p>
-      </section>
-
-      <section class="copy zh lang-zh" lang="zh-Hans">
-        <p class="lede">同一套机身——课堂演示与工业级路径。</p>
-        <div>
-          <p class="label">试用</p>
-          <ol class="steps">
-            <li><span class="n">01</span><span class="txt">打开在线地址 → 在目录里选模型</span></li>
-            <li><span class="n">02</span><span class="txt">参数台即时 / 重置调参，观察舞台</span></li>
-            <li><span class="n">03</span><span class="txt">读数 · 暂停 / 重跑 · 深链分享状态</span></li>
-          </ol>
-        </div>
-        <p class="blurb both-only">黑白仪器三栏：目录 · 舞台 · 参数台——在浏览器里探索、调参、读数。</p>
-      </section>
-
-      <aside class="side side-only-single">
-        <div>
-          <p class="label lang-en">What it is</p>
-          <p class="label lang-zh">它是什么</p>
-          <p class="blurb lang-en">Browser simulation workbench: shared model contract, Canvas (and one WebGL) stage, parameter bench—physics, CS, CE, engineering.</p>
-          <p class="blurb lang-zh">浏览器端仿真工作台：统一模型接口、Canvas（及单一 WebGL）舞台与参数台。覆盖物理 / CS / CE / 工程。</p>
-        </div>
-        <div class="url-block">
-          <p class="label">URL</p>
-          <a class="lab-url" href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a>
-        </div>
-      </aside>
-    </div>
-
-    <footer class="dock">
-      <div class="dock-copy">
-        <p class="label lang-en">Open</p>
-        <p class="label lang-zh">打开</p>
-        <p class="lang-en">Scan for the live lab. Browser entry · briefing use.</p>
-        <p class="lang-zh">扫码进入在线实验室。浏览器入口 · 讲解用。</p>
-        <p class="url lab-url-text">otas0.github.io/immspfee</p>
-      </div>
-      <div class="qr-box">
+      <div class="qr">
         <img class="lab-qr" src="./docs/promo/lab-qr.svg" alt="QR to IMMSPFEE Lab" width="120" height="120" />
         <span>scan</span>
       </div>
+    </header>
+
+    <div class="claims single-only">
+      <h1 class="claim lang-en">
+        You can open a shared model contract in the browser and steer it live—no install.
+      </h1>
+      <h1 class="claim zh lang-zh">
+        在浏览器里打开统一模型接口，即时调参、读数——无需安装。
+      </h1>
+    </div>
+    <div class="claims both-only">
+      <h1 class="claim lang-en">
+        You can open a shared model contract in the browser and steer it live—no install.
+      </h1>
+      <h1 class="claim zh lang-zh">
+        在浏览器里打开统一模型接口，即时调参、读数——无需安装。
+      </h1>
+    </div>
+
+    <figure class="figure">
+      <div class="figure-frame">
+        <img
+          src="./docs/promo/micro-webkit-3d.png"
+          alt="Compound microscope WebGL stage with live optical readouts"
+          width="2560"
+          height="1600"
+        />
+      </div>
+      <figcaption class="lang-en">
+        Evidence — lab-microscope3d · WebGL stage · M · f_obj · NA · d_Abbe from the optics rail
+      </figcaption>
+      <figcaption class="lang-zh">
+        证据 — lab-microscope3d · WebGL 舞台 · 光学导轨给出 M · f_obj · NA · d_Abbe
+      </figcaption>
+    </figure>
+
+    <p class="spine lang-en">
+      Catalog <span>·</span> Stage <span>·</span> Param bench
+    </p>
+    <p class="spine lang-zh">
+      目录 <span>·</span> 舞台 <span>·</span> 参数台
+    </p>
+
+    <div class="detail single-only">
+      <ol class="steps lang-en">
+        <li><span class="n">01</span><span>Open the live URL → pick a model</span></li>
+        <li><span class="n">02</span><span>Steer Live / Reinit; watch the stage</span></li>
+        <li><span class="n">03</span><span>Read HUD · pause · deep-link a state</span></li>
+      </ol>
+      <ol class="steps zh lang-zh">
+        <li><span class="n">01</span><span>打开地址 → 在目录选模型</span></li>
+        <li><span class="n">02</span><span>即时 / 重置调参，观察舞台</span></li>
+        <li><span class="n">03</span><span>读数 · 暂停 · 深链分享状态</span></li>
+      </ol>
+    </div>
+    <div class="detail both-only">
+      <ol class="steps lang-en">
+        <li><span class="n">01</span><span>Open the live URL → pick a model</span></li>
+        <li><span class="n">02</span><span>Steer Live / Reinit; watch the stage</span></li>
+        <li><span class="n">03</span><span>Read HUD · pause · deep-link a state</span></li>
+      </ol>
+      <ol class="steps zh lang-zh">
+        <li><span class="n">01</span><span>打开地址 → 在目录选模型</span></li>
+        <li><span class="n">02</span><span>即时 / 重置调参，观察舞台</span></li>
+        <li><span class="n">03</span><span>读数 · 暂停 · 深链分享状态</span></li>
+      </ol>
+    </div>
+
+    <footer class="foot">
+      <a class="lab-url" href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a>
+      <p class="hint lang-en">Browser simulation workbench · physics, CS, CE, engineering</p>
+      <p class="hint zh lang-zh">浏览器仿真工作台 · 物理 / CS / CE / 工程</p>
     </footer>
   </article>
 
@@ -445,8 +376,7 @@
     document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'en';
     for (const el of document.querySelectorAll('.lang-en, .lang-zh')) {
       const isZh = el.classList.contains('lang-zh');
-      const isChrome = !!el.closest('.brand-mid, .stage-cap, .dock-copy');
-      if (lang === 'both') el.hidden = isChrome && isZh;
+      if (lang === 'both') el.hidden = false;
       else if (lang === 'zh') el.hidden = !isZh;
       else el.hidden = isZh;
     }
@@ -460,14 +390,11 @@
         const v = stamp.js || stamp.docsAssets || '';
         if (v) stamped = `${base}?v=${encodeURIComponent(v)}`;
       }
-    } catch (_) { /* offline print still works with bare URL */ }
+    } catch (_) { /* offline print still works */ }
 
     for (const a of document.querySelectorAll('a.lab-url')) {
       a.href = stamped;
       a.textContent = stamped.replace(/^https:\/\//, '');
-    }
-    for (const el of document.querySelectorAll('.lab-url-text')) {
-      el.textContent = stamped.replace(/^https:\/\//, '');
     }
   </script>
 </body>
