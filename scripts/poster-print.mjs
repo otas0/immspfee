@@ -17,7 +17,7 @@ import { chromium } from 'playwright';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8765);
-const lang = (process.env.POSTER_LANG || 'en').toLowerCase();
+const lang = (process.env.POSTER_LANG || 'both').toLowerCase();
 const wantPdf = process.argv.includes('--pdf');
 const outDir = path.join(root, 'docs/promo');
 const shotPath = path.join(outDir, `poster-a4-${lang}.png`);
