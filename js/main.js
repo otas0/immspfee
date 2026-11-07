@@ -1478,11 +1478,10 @@ function ensureWebglStage() {
   if (!canvasWebgl) return null;
   if (!webglStage) {
     webglStage = createMicroscopeWebgl(canvasWebgl, {
-      onPick: () => {
+      onPick: (_state, meta = {}) => {
         paintFrame({ skipMicroRefresh: true });
         microUi?.refresh();
-        updateHud({ flash: true });
-        paramBench.refresh?.();
+        if (!meta.live) { updateHud({ flash: true }); paramBench.refresh?.(); }
       },
       onViewChange: () => {
         paintFrame({ skipMicroRefresh: true });
@@ -2170,6 +2169,7 @@ window.__labCapture = {
   leaveMicroscope3d: (opts) => Promise.resolve(microUi?.leave?.(opts)),
   getModelId: () => app.model?.id,
   paintFrame: () => { paintFrame(); },
+  getWebglStage: () => webglStage,
   loadDomain: (domain) => loadDomain(domain),
   pause: () => { if (!app.paused) { app.paused = true; syncPauseUi(); } },
   play: () => { if (app.paused) { app.paused = false; syncPauseUi(); } },

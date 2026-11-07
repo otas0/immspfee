@@ -44,6 +44,7 @@
     "test:pages-tti-sw": "node scripts/pages-tti-sw.mjs",
     "test:pages-mobile": "node scripts/pages-mobile-smoke.mjs",
     "test:pages-stamp": "node scripts/assert-pages-stamp-rolled.mjs",
+    "test:micro-knobs": "node scripts/micro-knob-drag.mjs",
     "sync:safari-proxy": "node scripts/sync-safari-proxy-asset.mjs"
   },
   "devDependencies": {

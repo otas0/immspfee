@@ -180,7 +180,9 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let dynamicVertCount = 0;
   let yaw = 0.85;
   let pitch = 0.22;
-  let radius = 7.5;
+  const narrowStage = typeof matchMedia === 'function'
+    && matchMedia('(max-width: 480px)').matches;
+  let radius = narrowStage ? 9.4 : 7.5;
   /** @type {'orbit' | 'part' | null} */
   let dragMode = null;
   /** @type {{ kind: string, index: number } | null} */
@@ -244,8 +246,8 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     return best;
   }
 
-  function notifyParams() {
-    opts.onPick?.(lastState);
+  function notifyParams(meta = {}) {
+    opts.onPick?.(lastState, meta);
   }
 
   function applyDrag(kind, dx, dy) {
@@ -253,15 +255,15 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const p = lastState.params;
     const o = opticsFromParams(p);
     if (kind === 'focusCoarse') {
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -5, 5);
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -2, 2);
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.09, 0.05, 25);
     } else if (kind === 'focusFine') {
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.006, -5, 5);
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.006, -2, 2);
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.02, 0.05, 25);
     } else if (kind === 'stageX') {
-      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -25, 25);
+      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -15, 15);
     } else if (kind === 'stageY') {
-      p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -25, 25);
+      p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -10, 10);
     } else if (kind === 'condenser') {
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.07, 0.05, 25);
     } else if (kind === 'iris') {
@@ -273,7 +275,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     } else {
       return;
     }
-    notifyParams();
+    notifyParams({ live: true });
   }
 
   function applyClick(hit) {
@@ -316,7 +318,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     }
     if (hit.kind === 'clip') {
       const nudge = hit.index === 1 ? 1.5 : -1.5;
-      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + nudge, -25, 25);
+      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + nudge, -15, 15);
       lastState.pick = `clip-${hit.index}`;
       notifyParams();
       return true;
@@ -613,6 +615,9 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     },
     getOverlayLabels() {
       return overlayLabels.slice();
+    },
+    getHits() {
+      return hits.slice();
     },
     capturePng(state, view) {
       drawScene(state, view);

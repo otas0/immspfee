@@ -75,28 +75,28 @@ export function createMicroscopeStage(api) {
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
-          <span class="micro-rail-kicker">Optical rail</span>
-          <strong class="micro-rail-title">Finite tube</strong>
+          <span class="micro-rail-kicker" data-i18n="ui.microRailKicker">Optical rail</span>
+          <strong class="micro-rail-title" data-i18n="ui.microRailTitle">Finite tube</strong>
           <span class="micro-rail-dirty" id="micro-rail-dirty" hidden>params edited</span>
         </div>
         <div class="micro-field">
-          <span class="micro-field-label">Objective</span>
+          <span class="micro-field-label" data-i18n="ui.microRailObj">Objective</span>
           <div class="micro-chips" id="micro-obj" role="group"></div>
           <div class="micro-ring-legend" id="micro-ring-legend" aria-label="DIN objective rings"></div>
         </div>
         <div class="micro-field">
-          <span class="micro-field-label">Eyepiece</span>
+          <span class="micro-field-label" data-i18n="ui.microRailEye">Eyepiece</span>
           <div class="micro-chips" id="micro-eye" role="group"></div>
         </div>
         <label class="micro-field">
-          <span class="micro-field-label">Tube length L</span>
+          <span class="micro-field-label" data-i18n="ui.microRailTube">Tube length L</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-tube" min="120" max="200" step="1" />
             <output id="micro-tube-out">160 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">NA</span>
+          <span class="micro-field-label" data-i18n="ui.microRailNA">NA</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-na" min="0.05" max="1.4" step="0.01" />
             <output id="micro-na-out">0.25</output>
@@ -104,59 +104,59 @@ export function createMicroscopeStage(api) {
           <span class="micro-cap" id="micro-na-cap"></span>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Working distance</span>
+          <span class="micro-field-label" data-i18n="ui.microRailWD">Working distance</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
             <output id="micro-wd-out">6.5 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Focus Δz</span>
+          <span class="micro-field-label" data-i18n="ui.microRailFocus">Focus Δz</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-focus" min="-5" max="5" step="0.05" />
+            <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
             <output id="micro-focus-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Stage X</span>
+          <span class="micro-field-label" data-i18n="ui.microRailStageX">Stage X</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-stage-x" min="-25" max="25" step="0.5" />
+            <input type="range" id="micro-stage-x" min="-15" max="15" step="0.5" />
             <output id="micro-stage-x-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Stage Y</span>
+          <span class="micro-field-label" data-i18n="ui.microRailStageY">Stage Y</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-stage-y" min="-25" max="25" step="0.5" />
+            <input type="range" id="micro-stage-y" min="-10" max="10" step="0.5" />
             <output id="micro-stage-y-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Field iris</span>
+          <span class="micro-field-label" data-i18n="ui.microRailFieldIris">Field iris</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-field-iris" min="0.1" max="1" step="0.01" />
             <output id="micro-field-iris-out">0.55</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Wavelength λ</span>
+          <span class="micro-field-label" data-i18n="ui.microRailLambda">Wavelength λ</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-lambda-in" min="400" max="700" step="1" />
             <output id="micro-lambda">550 nm</output>
           </div>
         </label>
         <div class="micro-field">
-          <span class="micro-field-label">Lamp</span>
+          <span class="micro-field-label" data-i18n="ui.microRailLamp">Lamp</span>
           <div class="micro-chips" id="micro-lamp" role="group">
-            <button type="button" class="micro-chip" data-lamp="1">On</button>
-            <button type="button" class="micro-chip" data-lamp="0">Off</button>
+            <button type="button" class="micro-chip" data-lamp="1" data-i18n="ui.microRailLampOn">On</button>
+            <button type="button" class="micro-chip" data-lamp="0" data-i18n="ui.microRailLampOff">Off</button>
           </div>
         </div>
         <div class="micro-field">
-          <span class="micro-field-label">Immersion</span>
+          <span class="micro-field-label" data-i18n="ui.microRailImmersion">Immersion</span>
           <div class="micro-chips" id="micro-imm" role="group">
-            <button type="button" class="micro-chip" data-imm="dry">Dry</button>
-            <button type="button" class="micro-chip" data-imm="oil">Oil</button>
+            <button type="button" class="micro-chip" data-imm="dry" data-i18n="ui.microRailDry">Dry</button>
+            <button type="button" class="micro-chip" data-imm="oil" data-i18n="ui.microRailOil">Oil</button>
           </div>
           <span class="micro-cap" id="micro-imm-note">Follows the objective (100× → oil)</span>
         </div>
@@ -311,12 +311,22 @@ export function createMicroscopeStage(api) {
     if (!state?.params) return;
     const o = opticsFromParams(state.params);
     const values = fmtReadouts(o);
+    const t = typeof api.t === 'function' ? api.t : (k) => k;
+    for (const el of stage.querySelectorAll('[data-i18n]')) {
+      const key = el.getAttribute('data-i18n');
+      if (!key) continue;
+      const val = t(key);
+      if (val && val !== key) el.textContent = val;
+    }
+    const kicker = stage.querySelector('.micro-rail-kicker');
+    if (kicker) kicker.textContent = t('ui.microRailKicker');
+    const title = stage.querySelector('.micro-rail-title');
+    if (title) title.textContent = t('ui.microRailTitle');
     if (!baselineFp) baselineFp = opticsFingerprint(state.params);
     const dirty = stage.querySelector('#micro-rail-dirty');
     if (dirty) {
       const edited = opticsFingerprint(state.params) !== baselineFp;
       dirty.hidden = !edited;
-      const t = typeof api.t === 'function' ? api.t : (k) => k;
       dirty.textContent = edited
         ? t('ui.microRailDirtyLive')
           .replace('{M}', formatNum(o.M, 1))

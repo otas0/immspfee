@@ -1505,7 +1505,7 @@ var STRINGS = {
     "ui.lang": "\u8BED\u8A00",
     "ui.shell": "\u58F3",
     "ui.microExit": "\u8FD4\u56DE\u8BFE\u8868",
-    "ui.microLede": "\u62D6\u52A8\u65CB\u8F6C \xB7 \u6EDA\u8F6E\u7F29\u653E \xB7 \u70B9\u51FB\u7269\u955C/\u76EE\u955C \xB7 \u5149\u5B66\u53C2\u6570\u53EF\u6539 L/NA/\u03BB",
+    "ui.microLede": "\u62D6\u52A8\u65CB\u8F6C \xB7 \u53CC\u6307/\u6EDA\u8F6E\u7F29\u653E \xB7 \u70B9\u6309/\u62D6\u52A8\u65CB\u94AE \xB7 \u5149\u5B66\u53C2\u6570\u53EF\u6539 L/NA/WD/\u8F7D\u7269\u53F0",
     "ui.microReset": "\u91CD\u7F6E\u5149\u5B66",
     "ui.microBench": "\u5149\u5B66\u53C2\u6570",
     "ui.micro3dSection": "\u4E09\u7EF4\u53F0",
@@ -1513,6 +1513,24 @@ var STRINGS = {
     "ui.micro3dLede": "\u72EC\u7ACB WebGL \u5149\u5B66\u53F0 \xB7 \u4E0E\u8BFE\u8868 2D \u7ED3\u6784\u56FE\u5206\u5F00",
     "ui.microRailDirty": "\u5DF2\u6539\u53C2\u6570",
     "ui.microRailDirtyLive": "\u5DF2\u6539 \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "\u5149\u5B66\u8F68",
+    "ui.microRailTitle": "\u6709\u9650\u955C\u7B52",
+    "ui.microRailObj": "\u7269\u955C",
+    "ui.microRailEye": "\u76EE\u955C",
+    "ui.microRailTube": "\u955C\u7B52\u957F L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "\u5DE5\u4F5C\u8DDD\u79BB",
+    "ui.microRailFocus": "\u8C03\u7126 \u0394z",
+    "ui.microRailStageX": "\u8F7D\u7269\u53F0 X",
+    "ui.microRailStageY": "\u8F7D\u7269\u53F0 Y",
+    "ui.microRailFieldIris": "\u89C6\u573A\u5149\u9611",
+    "ui.microRailLambda": "\u6CE2\u957F \u03BB",
+    "ui.microRailLamp": "\u706F",
+    "ui.microRailLampOn": "\u5F00",
+    "ui.microRailLampOff": "\u5173",
+    "ui.microRailImmersion": "\u6D78\u6CA1",
+    "ui.microRailDry": "\u5E72",
+    "ui.microRailOil": "\u6CB9",
     "ui.userModel": "\uFF0B \u81EA\u5EFA\u6A21\u578B",
     "ui.manual": "\u624B\u518C",
     "ui.ethics": "\u4F26\u7406",
@@ -1629,6 +1647,24 @@ var STRINGS = {
     "ui.micro3dLede": "Dedicated WebGL optical stage \xB7 separate from the catalog 2D structure",
     "ui.microRailDirty": "params edited",
     "ui.microRailDirtyLive": "edited \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "Optical rail",
+    "ui.microRailTitle": "Finite tube",
+    "ui.microRailObj": "Objective",
+    "ui.microRailEye": "Eyepiece",
+    "ui.microRailTube": "Tube length L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "Working distance",
+    "ui.microRailFocus": "Focus \u0394z",
+    "ui.microRailStageX": "Stage X",
+    "ui.microRailStageY": "Stage Y",
+    "ui.microRailFieldIris": "Field iris",
+    "ui.microRailLambda": "Wavelength \u03BB",
+    "ui.microRailLamp": "Lamp",
+    "ui.microRailLampOn": "On",
+    "ui.microRailLampOff": "Off",
+    "ui.microRailImmersion": "Immersion",
+    "ui.microRailDry": "Dry",
+    "ui.microRailOil": "Oil",
     "ui.userModel": "+ custom model",
     "ui.manual": "manual",
     "ui.ethics": "ethics",
@@ -1737,7 +1773,7 @@ var STRINGS = {
     "ui.lang": "\u8A00\u8A9E",
     "ui.shell": "\u30B7\u30A7\u30EB",
     "ui.microExit": "\u30AB\u30BF\u30ED\u30B0\u3078\u623B\u308B",
-    "ui.microLede": "\u6709\u9650\u93E1\u7B52 \xB7 Hecht \u5149\u5B66 \xB7 \u73FE\u5728\u306E NA \u306B\u3088\u308B Abbe \u9650\u754C",
+    "ui.microLede": "\u30C9\u30E9\u30C3\u30B0\u3067\u56DE\u8EE2 \xB7 \u30D4\u30F3\u30C1/\u30DB\u30A4\u30FC\u30EB\u3067\u30BA\u30FC\u30E0 \xB7 \u30CE\u30D6\u3092\u30BF\u30C3\u30D7/\u30C9\u30E9\u30C3\u30B0 \xB7 L/NA/WD/\u30B9\u30C6\u30FC\u30B8\u3092\u7DE8\u96C6",
     "ui.microReset": "\u5149\u5B66\u3092\u30EA\u30BB\u30C3\u30C8",
     "ui.microBench": "\u5149\u5B66\u30D1\u30E9\u30E1\u30FC\u30BF",
     "ui.micro3dSection": "3D \u30B9\u30C6\u30FC\u30B8",
@@ -1745,6 +1781,24 @@ var STRINGS = {
     "ui.micro3dLede": "\u72EC\u7ACB WebGL \u5149\u5B66\u53F0 \xB7 \u30AB\u30BF\u30ED\u30B0 2D \u69CB\u9020\u56F3\u3068\u306F\u5225",
     "ui.microRailDirty": "\u30D1\u30E9\u30E1\u30FC\u30BF\u5909\u66F4",
     "ui.microRailDirtyLive": "\u5909\u66F4\u6E08 \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "\u5149\u5B66\u30EC\u30FC\u30EB",
+    "ui.microRailTitle": "\u6709\u9650\u93E1\u7B52",
+    "ui.microRailObj": "\u5BFE\u7269\u30EC\u30F3\u30BA",
+    "ui.microRailEye": "\u63A5\u773C\u30EC\u30F3\u30BA",
+    "ui.microRailTube": "\u93E1\u7B52\u9577 L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "\u4F5C\u52D5\u8DDD\u96E2",
+    "ui.microRailFocus": "\u7126\u70B9 \u0394z",
+    "ui.microRailStageX": "\u30B9\u30C6\u30FC\u30B8 X",
+    "ui.microRailStageY": "\u30B9\u30C6\u30FC\u30B8 Y",
+    "ui.microRailFieldIris": "\u8996\u91CE\u7D5E\u308A",
+    "ui.microRailLambda": "\u6CE2\u9577 \u03BB",
+    "ui.microRailLamp": "\u30E9\u30F3\u30D7",
+    "ui.microRailLampOn": "\u30AA\u30F3",
+    "ui.microRailLampOff": "\u30AA\u30D5",
+    "ui.microRailImmersion": "\u6DB2\u6D78",
+    "ui.microRailDry": "\u4E7E\u71E5",
+    "ui.microRailOil": "\u6CB9",
     "ui.userModel": "\uFF0B \u72EC\u81EA\u30E2\u30C7\u30EB",
     "ui.manual": "\u30DE\u30CB\u30E5\u30A2\u30EB",
     "ui.ethics": "\u502B\u7406",
@@ -1815,7 +1869,7 @@ var STRINGS = {
     "ui.lang": "\uC5B8\uC5B4",
     "ui.shell": "\uC178",
     "ui.microExit": "\uBAA9\uB85D\uC73C\uB85C",
-    "ui.microLede": "\uC720\uD55C \uACBD\uD1B5 \xB7 Hecht \uAD11\uD559 \xB7 \uD604\uC7AC NA\uC758 Abbe \uD55C\uACC4",
+    "ui.microLede": "\uB4DC\uB798\uADF8\uB85C \uD68C\uC804 \xB7 \uD540\uCE58/\uD720 \uC90C \xB7 \uB178\uBE0C \uD0ED/\uB4DC\uB798\uADF8 \xB7 L/NA/WD/\uC2A4\uD14C\uC774\uC9C0 \uD3B8\uC9D1",
     "ui.microReset": "\uAD11\uD559 \uCD08\uAE30\uD654",
     "ui.microBench": "\uAD11\uD559 \uB9E4\uAC1C\uBCC0\uC218",
     "ui.micro3dSection": "3D \uC2A4\uD14C\uC774\uC9C0",
@@ -1823,6 +1877,24 @@ var STRINGS = {
     "ui.micro3dLede": "\uC804\uC6A9 WebGL \uAD11\uD559\uB300 \xB7 \uBAA9\uB85D 2D \uAD6C\uC870\uB3C4\uC640 \uBD84\uB9AC",
     "ui.microRailDirty": "\uB9E4\uAC1C\uBCC0\uC218 \uBCC0\uACBD",
     "ui.microRailDirtyLive": "\uBCC0\uACBD\uB428 \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "\uAD11\uD559 \uB808\uC77C",
+    "ui.microRailTitle": "\uC720\uD55C \uACBD\uD1B5",
+    "ui.microRailObj": "\uB300\uBB3C\uB80C\uC988",
+    "ui.microRailEye": "\uC811\uC548\uB80C\uC988",
+    "ui.microRailTube": "\uACBD\uD1B5 \uAE38\uC774 L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "\uC791\uB3D9\uAC70\uB9AC",
+    "ui.microRailFocus": "\uCD08\uC810 \u0394z",
+    "ui.microRailStageX": "\uC2A4\uD14C\uC774\uC9C0 X",
+    "ui.microRailStageY": "\uC2A4\uD14C\uC774\uC9C0 Y",
+    "ui.microRailFieldIris": "\uC2DC\uC57C \uC870\uB9AC\uAC1C",
+    "ui.microRailLambda": "\uD30C\uC7A5 \u03BB",
+    "ui.microRailLamp": "\uB7A8\uD504",
+    "ui.microRailLampOn": "\uCF1C\uAE30",
+    "ui.microRailLampOff": "\uB044\uAE30",
+    "ui.microRailImmersion": "\uC561\uCE68",
+    "ui.microRailDry": "\uAC74\uC2DD",
+    "ui.microRailOil": "\uC624\uC77C",
     "ui.userModel": "+ \uC0AC\uC6A9\uC790 \uBAA8\uB378",
     "ui.manual": "\uB9E4\uB274\uC5BC",
     "ui.ethics": "\uC724\uB9AC",
@@ -1893,7 +1965,7 @@ var STRINGS = {
     "ui.lang": "idioma",
     "ui.shell": "shell",
     "ui.microExit": "Volver al cat\xE1logo",
-    "ui.microLede": "Tubo finito \xB7 \xF3ptica Hecht \xB7 l\xEDmite de Abbe desde el NA vivo",
+    "ui.microLede": "Arrastra para orbitar \xB7 pellizco/rueda zoom \xB7 toca/arrastra mandos \xB7 edita L/NA/WD/platina",
     "ui.microReset": "Restablecer \xF3ptica",
     "ui.microBench": "Par\xE1metros \xF3pticos",
     "ui.micro3dSection": "Escenario 3D",
@@ -1901,6 +1973,24 @@ var STRINGS = {
     "ui.micro3dLede": "Escenario \xF3ptico WebGL dedicado \xB7 separado del 2D del cat\xE1logo",
     "ui.microRailDirty": "params editados",
     "ui.microRailDirtyLive": "editado \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "Carril \xF3ptico",
+    "ui.microRailTitle": "Tubo finito",
+    "ui.microRailObj": "Objetivo",
+    "ui.microRailEye": "Ocular",
+    "ui.microRailTube": "Longitud de tubo L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "Distancia de trabajo",
+    "ui.microRailFocus": "Enfoque \u0394z",
+    "ui.microRailStageX": "Platina X",
+    "ui.microRailStageY": "Platina Y",
+    "ui.microRailFieldIris": "Diafragma de campo",
+    "ui.microRailLambda": "Longitud de onda \u03BB",
+    "ui.microRailLamp": "L\xE1mpara",
+    "ui.microRailLampOn": "Encendida",
+    "ui.microRailLampOff": "Apagada",
+    "ui.microRailImmersion": "Inmersi\xF3n",
+    "ui.microRailDry": "Seco",
+    "ui.microRailOil": "Aceite",
     "ui.userModel": "+ modelo propio",
     "ui.manual": "manual",
     "ui.ethics": "\xE9tica",
@@ -1971,7 +2061,7 @@ var STRINGS = {
     "ui.lang": "langue",
     "ui.shell": "shell",
     "ui.microExit": "Retour au catalogue",
-    "ui.microLede": "Tube fini \xB7 optique Hecht \xB7 limite d\u2019Abbe depuis le NA vivant",
+    "ui.microLede": "Glisser pour orbiter \xB7 pincer/molette zoom \xB7 toucher/glisser les molettes \xB7 \xE9diter L/NA/WD/platine",
     "ui.microReset": "R\xE9initialiser l\u2019optique",
     "ui.microBench": "Param\xE8tres optiques",
     "ui.micro3dSection": "Sc\xE8ne 3D",
@@ -1979,6 +2069,24 @@ var STRINGS = {
     "ui.micro3dLede": "Sc\xE8ne optique WebGL d\xE9di\xE9e \xB7 s\xE9par\xE9e du 2D catalogue",
     "ui.microRailDirty": "params modifi\xE9s",
     "ui.microRailDirtyLive": "modifi\xE9 \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "Rail optique",
+    "ui.microRailTitle": "Tube fini",
+    "ui.microRailObj": "Objectif",
+    "ui.microRailEye": "Oculaire",
+    "ui.microRailTube": "Longueur de tube L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "Distance de travail",
+    "ui.microRailFocus": "Mise au point \u0394z",
+    "ui.microRailStageX": "Platine X",
+    "ui.microRailStageY": "Platine Y",
+    "ui.microRailFieldIris": "Diaphragme de champ",
+    "ui.microRailLambda": "Longueur d\u2019onde \u03BB",
+    "ui.microRailLamp": "Lampe",
+    "ui.microRailLampOn": "Allum\xE9e",
+    "ui.microRailLampOff": "\xC9teinte",
+    "ui.microRailImmersion": "Immersion",
+    "ui.microRailDry": "Sec",
+    "ui.microRailOil": "Huile",
     "ui.userModel": "+ mod\xE8le perso",
     "ui.manual": "manuel",
     "ui.ethics": "\xE9thique",
@@ -2049,7 +2157,7 @@ var STRINGS = {
     "ui.lang": "Sprache",
     "ui.shell": "Shell",
     "ui.microExit": "Zur\xFCck zum Katalog",
-    "ui.microLede": "Endliches Rohr \xB7 Hecht-Optik \xB7 Abbe-Grenze aus der live NA",
+    "ui.microLede": "Ziehen zum Orbit \xB7 Pinch/Rad Zoom \xB7 Kn\xF6pfe tippen/ziehen \xB7 L/NA/WD/Tisch bearbeiten",
     "ui.microReset": "Optik zur\xFCcksetzen",
     "ui.microBench": "Optische Parameter",
     "ui.micro3dSection": "3D-B\xFChne",
@@ -2057,6 +2165,24 @@ var STRINGS = {
     "ui.micro3dLede": "Eigene WebGL-Optikb\xFChne \xB7 getrennt vom Katalog-2D",
     "ui.microRailDirty": "Parameter ge\xE4ndert",
     "ui.microRailDirtyLive": "ge\xE4ndert \xB7 M {M}\xD7 \xB7 d_Abbe {d} \xB5m",
+    "ui.microRailKicker": "Optikschiene",
+    "ui.microRailTitle": "Endliches Rohr",
+    "ui.microRailObj": "Objektiv",
+    "ui.microRailEye": "Okular",
+    "ui.microRailTube": "Tubusl\xE4nge L",
+    "ui.microRailNA": "NA",
+    "ui.microRailWD": "Arbeitsabstand",
+    "ui.microRailFocus": "Fokus \u0394z",
+    "ui.microRailStageX": "Tisch X",
+    "ui.microRailStageY": "Tisch Y",
+    "ui.microRailFieldIris": "Feldblende",
+    "ui.microRailLambda": "Wellenl\xE4nge \u03BB",
+    "ui.microRailLamp": "Lampe",
+    "ui.microRailLampOn": "An",
+    "ui.microRailLampOff": "Aus",
+    "ui.microRailImmersion": "Immersion",
+    "ui.microRailDry": "Trocken",
+    "ui.microRailOil": "\xD6l",
     "ui.userModel": "+ eigenes Modell",
     "ui.manual": "Handbuch",
     "ui.ethics": "Ethik",
@@ -5172,7 +5298,7 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   const glass = [0.7, 0.82, 0.9];
   const glassHi = [0.84, 0.92, 0.96];
   const gold = [0.92, 0.74, 0.22];
-  const lampGlow = layout.lampOn ? [1, 0.88, 0.48] : [0.28, 0.24, 0.18];
+  const lampGlow = layout.lampOn ? [1, 0.92, 0.55] : [0.04, 0.035, 0.03];
   const hi = [0.45, 0.9, 1];
   const hiSoft = [0.62, 0.82, 1];
   const {
@@ -5193,11 +5319,11 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     focus,
     oculars
   } = layout;
-  const tubeSlice = S(56, 28);
-  const torusR = S(40, 20);
-  const torusT = S(12, 8);
-  const midSlice = S(32, 16);
-  const fineSlice = S(20, 10);
+  const tubeSlice = S(112, 48);
+  const torusR = S(80, 32);
+  const torusT = S(20, 10);
+  const midSlice = S(48, 20);
+  const fineSlice = S(28, 12);
   sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, out, S(24, 12), S(16, 10), 0.12);
   for (const side of [-1, 1]) {
     const sideIdx = side < 0 ? 0 : 1;
@@ -5239,10 +5365,10 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   box(0, tubeTopY + 0.07, 0.03, 0.36, 0.12, 0.24, ...enamel, out, 0.1);
   box(0, tubeTopY + 0.15, 0.07, 0.24, 0.08, 0.16, ...enamelHi, out, 0.12);
   cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3, ...chrome, out, S(24, 12), 0.38, true);
-  const oculSlice = S(24, 12);
+  const oculSlice = S(48, 20);
   for (const oc of oculars) {
     tubeSeg(oc.x0, oc.y0, oc.z0, oc.x1, oc.y1, oc.z1, 0.044, ...enamel, out, oculSlice, true, 0.14);
-    torusY(oc.x0, oc.y0, oc.z0, 0.05, 0.01, ...chrome, out, S(20, 10), S(10, 6), 0.34);
+    torusY(oc.x0, oc.y0, oc.z0, 0.05, 0.01, ...chrome, out, S(36, 16), S(14, 8), 0.34);
     tubeSeg(oc.x1, oc.y1, oc.z1, oc.tipX, oc.tipY, oc.tipZ, 0.06, ...chrome, out, oculSlice, true, 0.38);
     const dx = oc.tipX - oc.x1;
     const dy = oc.tipY - oc.y1;
@@ -5260,15 +5386,36 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
       0.022,
       0.026,
       out,
-      S(18, 10),
+      S(28, 14),
       true,
       0.06
     );
   }
   const eyeSlots = [
-    oculars[0] && { x: oculars[0].tipX, y: oculars[0].tipY, z: oculars[0].tipZ },
-    { x: 0, y: tubeTopY + 0.22, z: 0.14 },
-    oculars[1] && { x: oculars[1].tipX, y: oculars[1].tipY, z: oculars[1].tipZ }
+    oculars[0] && {
+      x: oculars[0].tipX,
+      y: oculars[0].tipY,
+      z: oculars[0].tipZ,
+      dx: oculars[0].tipX - oculars[0].x1,
+      dy: oculars[0].tipY - oculars[0].y1,
+      dz: oculars[0].tipZ - oculars[0].z1
+    },
+    {
+      x: 0,
+      y: tubeTopY + 0.22,
+      z: 0.14,
+      dx: 0,
+      dy: Math.cos(34 * Math.PI / 180),
+      dz: Math.sin(34 * Math.PI / 180)
+    },
+    oculars[1] && {
+      x: oculars[1].tipX,
+      y: oculars[1].tipY,
+      z: oculars[1].tipZ,
+      dx: oculars[1].tipX - oculars[1].x1,
+      dy: oculars[1].tipY - oculars[1].y1,
+      dz: oculars[1].tipZ - oculars[1].z1
+    }
   ];
   EYEPIECES2.forEach((eye, i) => {
     const slot = eyeSlots[i] || eyeSlots[1];
@@ -5276,11 +5423,63 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     const active = eye.id === optics.eye.id;
     const hovered = hoverHi(hover, "eye", i);
     const { x, y, z } = slot;
-    cylinderY(x, y, z, active ? 0.05 : 0.044, 0.07, ...chromeDim, out, S(28, 14), true, 0.3);
-    cylinderY(x, y + 0.02, z, 0.03, 0.02, 0.03, 0.035, 0.04, out, S(20, 10), true, 0.08);
+    let dx = slot.dx;
+    let dy = slot.dy;
+    let dz = slot.dz;
+    const dl = Math.hypot(dx, dy, dz) || 1;
+    dx /= dl;
+    dy /= dl;
+    dz /= dl;
+    const half = active ? 0.038 : 0.032;
+    const rad = active ? 0.05 : 0.044;
+    tubeSeg(
+      x - dx * half,
+      y - dy * half,
+      z - dz * half,
+      x + dx * half,
+      y + dy * half,
+      z + dz * half,
+      rad,
+      ...chromeDim,
+      out,
+      S(36, 18),
+      true,
+      0.3
+    );
+    tubeSeg(
+      x + dx * (half * 0.15),
+      y + dy * (half * 0.15),
+      z + dz * (half * 0.15),
+      x + dx * (half + 0.018),
+      y + dy * (half + 0.018),
+      z + dz * (half + 0.018),
+      0.03,
+      0.03,
+      0.035,
+      0.04,
+      out,
+      S(24, 12),
+      true,
+      0.08
+    );
     if (active || hovered) {
       const gr = active ? 0.95 : 0.78;
-      torusY(x, y + 0.04, z, 0.064, 0.012, 0.45, gr, 1, out, S(24, 12), S(12, 6), 0.36);
+      tubeSeg(
+        x + dx * 0.01,
+        y + dy * 0.01,
+        z + dz * 0.01,
+        x + dx * 0.028,
+        y + dy * 0.028,
+        z + dz * 0.028,
+        0.064,
+        0.45,
+        gr,
+        1,
+        out,
+        S(28, 14),
+        true,
+        0.36
+      );
     }
   });
   cylinderY(0, turY + 0.055, 0, 0.36, 0.11, ...enamel, out, midSlice, true, 0.12);
@@ -5312,7 +5511,10 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     const objSlice = S(24, 14);
     cylinderY(ox, yCol, oz, 0.05 * k, 0.04, ...chrome, out, objSlice, true, 0.38);
     cylinderY(ox, ySh, oz, 0.044 * k, 0.042, ...enamel, out, objSlice, true, 0.12);
-    const [rr, rg, rb] = objectiveRingColor2(obj.mag).rgb;
+    const [rr0, rg0, rb0] = objectiveRingColor2(obj.mag).rgb;
+    const rr = Math.min(1, rr0 * 1.18 + 0.04);
+    const rg = Math.min(1, rg0 * 1.18 + 0.04);
+    const rb = Math.min(1, rb0 * 1.18 + 0.04);
     torusY(ox, yRing, oz, 0.05 * k, 0.012, rr, rg, rb, out, S(24, 12), S(10, 6), 0.34);
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
     cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(20, 12), true, 0.36);
@@ -5322,7 +5524,8 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
       torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, out, S(18, 10), S(10, 6), 0.36);
     }
     if (active) {
-      torusY(ox, turY + 0.045, oz, 0.1, 0.014, 0.45, 0.9, 1, out, S(24, 12), S(10, 6), 0.4);
+      torusY(ox, turY + 0.045, oz, 0.1, 0.014, 1, 0.2, 0.85, out, S(24, 12), S(10, 6), 0.4);
+      torusY(ox, turY + 0.045, oz, 0.078, 0.01, 1, 1, 1, out, S(24, 12), S(10, 6), 0.42);
     } else if (hovered) {
       torusY(ox, turY + 0.045, oz, 0.096, 0.012, 0.62, 0.82, 1, out, S(20, 10), S(10, 6), 0.32);
     }
@@ -5392,12 +5595,16 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   box(0, lampY, 0.02, 0.3, 0.16, 0.3, ...lampHot ? enamelHi : enamel, out, 0.08);
   torusY(0, lampY + 0.08, 0.02, 0.1, 0.016, ...chrome, out, S(28, 14), S(10, 6), 0.36);
   box(0, lampY, 0.17, 0.1, 0.07, 0.016, ...lampGlow, out, 0.12);
-  sphere(0, lampY, 0.04, layout.lampOn ? 0.034 : 0.028, ...lampGlow, out, S(16, 8), S(12, 8), 0.18);
+  sphere(0, lampY, 0.04, layout.lampOn ? 0.052 : 0.022, ...lampGlow, out, S(20, 10), S(14, 8), layout.lampOn ? 0.28 : 0.08);
+  if (layout.lampOn) {
+    torusY(0, lampY, 0.02, 0.09, 0.016, ...gold, out, S(32, 16), S(12, 8), 0.42);
+  }
   cylinderY(0, lampY + 0.125, 0.02, 0.09, 0.03, ...glass, out, S(32, 16), true, 0.48);
   cylinderY(0, lampY + 0.158, 0.02, 0.064, 0.02, ...glassHi, out, S(28, 14), true, 0.5);
   irisWedges(0, lampY + 0.185, 0.02, frIn, frOut, 8, fieldHot ? 0.45 : 0.28, fieldHot ? 0.55 : 0.29, fieldHot ? 0.72 : 0.32, out);
   torusY(0, lampY + 0.185, 0.02, 0.076, 0.012, ...fieldHot ? hi : chrome, out, S(28, 14), S(10, 6), 0.36);
-  cylinderY(0, lampY - 0.1, 0.02, 0.12, 0.03, ...enamel, out, S(22, 12), true, 0.08);
+  const floorCol = layout.lampOn ? [1, 0.9, 0.52] : [0.035, 0.03, 0.028];
+  cylinderY(0, lampY - 0.1, 0.02, 0.14, 0.028, ...floorCol, out, S(28, 14), true, layout.lampOn ? 0.22 : 0.04);
   if (lampHot) torusY(0, lampY, 0.02, 0.18, 0.014, ...hiSoft, out, S(24, 12), S(10, 6), 0.34);
 }
 function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRingColor2, opts) {
@@ -5614,7 +5821,8 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   let dynamicVertCount = 0;
   let yaw = 0.85;
   let pitch = 0.22;
-  let radius = 7.5;
+  const narrowStage = typeof matchMedia === "function" && matchMedia("(max-width: 480px)").matches;
+  let radius = narrowStage ? 9.4 : 7.5;
   let dragMode = null;
   let partHit = null;
   let moved = false;
@@ -5669,23 +5877,23 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     }
     return best;
   }
-  function notifyParams() {
-    opts.onPick?.(lastState);
+  function notifyParams(meta = {}) {
+    opts.onPick?.(lastState, meta);
   }
   function applyDrag(kind, dx, dy) {
     if (!lastState?.params) return;
     const p = lastState.params;
     const o = opticsFromParams(p);
     if (kind === "focusCoarse") {
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -5, 5);
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -2, 2);
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.09, 0.05, 25);
     } else if (kind === "focusFine") {
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -6e-3, -5, 5);
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -6e-3, -2, 2);
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.02, 0.05, 25);
     } else if (kind === "stageX") {
-      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -25, 25);
+      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -15, 15);
     } else if (kind === "stageY") {
-      p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -25, 25);
+      p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -10, 10);
     } else if (kind === "condenser") {
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.07, 0.05, 25);
     } else if (kind === "iris") {
@@ -5697,7 +5905,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     } else {
       return;
     }
-    notifyParams();
+    notifyParams({ live: true });
   }
   function applyClick(hit) {
     if (!lastState?.params || !hit || !CLICK_KINDS.has(hit.kind)) return false;
@@ -5739,7 +5947,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     }
     if (hit.kind === "clip") {
       const nudge = hit.index === 1 ? 1.5 : -1.5;
-      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + nudge, -25, 25);
+      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + nudge, -15, 15);
       lastState.pick = `clip-${hit.index}`;
       notifyParams();
       return true;
@@ -6022,6 +6230,9 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     getOverlayLabels() {
       return overlayLabels.slice();
     },
+    getHits() {
+      return hits.slice();
+    },
     capturePng(state, view) {
       drawScene(state, view);
       gl.finish();
@@ -6102,28 +6313,28 @@ function createMicroscopeStage(api) {
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
-          <span class="micro-rail-kicker">Optical rail</span>
-          <strong class="micro-rail-title">Finite tube</strong>
+          <span class="micro-rail-kicker" data-i18n="ui.microRailKicker">Optical rail</span>
+          <strong class="micro-rail-title" data-i18n="ui.microRailTitle">Finite tube</strong>
           <span class="micro-rail-dirty" id="micro-rail-dirty" hidden>params edited</span>
         </div>
         <div class="micro-field">
-          <span class="micro-field-label">Objective</span>
+          <span class="micro-field-label" data-i18n="ui.microRailObj">Objective</span>
           <div class="micro-chips" id="micro-obj" role="group"></div>
           <div class="micro-ring-legend" id="micro-ring-legend" aria-label="DIN objective rings"></div>
         </div>
         <div class="micro-field">
-          <span class="micro-field-label">Eyepiece</span>
+          <span class="micro-field-label" data-i18n="ui.microRailEye">Eyepiece</span>
           <div class="micro-chips" id="micro-eye" role="group"></div>
         </div>
         <label class="micro-field">
-          <span class="micro-field-label">Tube length L</span>
+          <span class="micro-field-label" data-i18n="ui.microRailTube">Tube length L</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-tube" min="120" max="200" step="1" />
             <output id="micro-tube-out">160 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">NA</span>
+          <span class="micro-field-label" data-i18n="ui.microRailNA">NA</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-na" min="0.05" max="1.4" step="0.01" />
             <output id="micro-na-out">0.25</output>
@@ -6131,59 +6342,59 @@ function createMicroscopeStage(api) {
           <span class="micro-cap" id="micro-na-cap"></span>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Working distance</span>
+          <span class="micro-field-label" data-i18n="ui.microRailWD">Working distance</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
             <output id="micro-wd-out">6.5 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Focus \u0394z</span>
+          <span class="micro-field-label" data-i18n="ui.microRailFocus">Focus \u0394z</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-focus" min="-5" max="5" step="0.05" />
+            <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
             <output id="micro-focus-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Stage X</span>
+          <span class="micro-field-label" data-i18n="ui.microRailStageX">Stage X</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-stage-x" min="-25" max="25" step="0.5" />
+            <input type="range" id="micro-stage-x" min="-15" max="15" step="0.5" />
             <output id="micro-stage-x-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Stage Y</span>
+          <span class="micro-field-label" data-i18n="ui.microRailStageY">Stage Y</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-stage-y" min="-25" max="25" step="0.5" />
+            <input type="range" id="micro-stage-y" min="-10" max="10" step="0.5" />
             <output id="micro-stage-y-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Field iris</span>
+          <span class="micro-field-label" data-i18n="ui.microRailFieldIris">Field iris</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-field-iris" min="0.1" max="1" step="0.01" />
             <output id="micro-field-iris-out">0.55</output>
           </div>
         </label>
         <label class="micro-field">
-          <span class="micro-field-label">Wavelength \u03BB</span>
+          <span class="micro-field-label" data-i18n="ui.microRailLambda">Wavelength \u03BB</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-lambda-in" min="400" max="700" step="1" />
             <output id="micro-lambda">550 nm</output>
           </div>
         </label>
         <div class="micro-field">
-          <span class="micro-field-label">Lamp</span>
+          <span class="micro-field-label" data-i18n="ui.microRailLamp">Lamp</span>
           <div class="micro-chips" id="micro-lamp" role="group">
-            <button type="button" class="micro-chip" data-lamp="1">On</button>
-            <button type="button" class="micro-chip" data-lamp="0">Off</button>
+            <button type="button" class="micro-chip" data-lamp="1" data-i18n="ui.microRailLampOn">On</button>
+            <button type="button" class="micro-chip" data-lamp="0" data-i18n="ui.microRailLampOff">Off</button>
           </div>
         </div>
         <div class="micro-field">
-          <span class="micro-field-label">Immersion</span>
+          <span class="micro-field-label" data-i18n="ui.microRailImmersion">Immersion</span>
           <div class="micro-chips" id="micro-imm" role="group">
-            <button type="button" class="micro-chip" data-imm="dry">Dry</button>
-            <button type="button" class="micro-chip" data-imm="oil">Oil</button>
+            <button type="button" class="micro-chip" data-imm="dry" data-i18n="ui.microRailDry">Dry</button>
+            <button type="button" class="micro-chip" data-imm="oil" data-i18n="ui.microRailOil">Oil</button>
           </div>
           <span class="micro-cap" id="micro-imm-note">Follows the objective (100\xD7 \u2192 oil)</span>
         </div>
@@ -6333,12 +6544,22 @@ function createMicroscopeStage(api) {
     if (!state?.params) return;
     const o = opticsFromParams(state.params);
     const values = fmtReadouts(o);
+    const t2 = typeof api.t === "function" ? api.t : (k) => k;
+    for (const el of stage.querySelectorAll("[data-i18n]")) {
+      const key = el.getAttribute("data-i18n");
+      if (!key) continue;
+      const val = t2(key);
+      if (val && val !== key) el.textContent = val;
+    }
+    const kicker = stage.querySelector(".micro-rail-kicker");
+    if (kicker) kicker.textContent = t2("ui.microRailKicker");
+    const title = stage.querySelector(".micro-rail-title");
+    if (title) title.textContent = t2("ui.microRailTitle");
     if (!baselineFp) baselineFp = opticsFingerprint(state.params);
     const dirty = stage.querySelector("#micro-rail-dirty");
     if (dirty) {
       const edited = opticsFingerprint(state.params) !== baselineFp;
       dirty.hidden = !edited;
-      const t2 = typeof api.t === "function" ? api.t : (k) => k;
       dirty.textContent = edited ? t2("ui.microRailDirtyLive").replace("{M}", formatNum(o.M, 1)).replace("{d}", formatNum(o.dResM * 1e6, 2)) : t2("ui.microRailDirty");
     }
     for (const row of READOUTS) {
@@ -8105,11 +8326,13 @@ function ensureWebglStage() {
   if (!canvasWebgl) return null;
   if (!webglStage) {
     webglStage = createMicroscopeWebgl(canvasWebgl, {
-      onPick: () => {
+      onPick: (_state, meta = {}) => {
         paintFrame({ skipMicroRefresh: true });
         microUi?.refresh();
-        updateHud({ flash: true });
-        paramBench.refresh?.();
+        if (!meta.live) {
+          updateHud({ flash: true });
+          paramBench.refresh?.();
+        }
       },
       onViewChange: () => {
         paintFrame({ skipMicroRefresh: true });
@@ -8264,11 +8487,19 @@ document.addEventListener("keydown", (e) => {
     }
   }
   if (e.key !== "Escape") return;
+  const catalogOpen = sidebar.classList.contains("open") || !!document.getElementById("chassis")?.classList.contains("shell-sidebar-overlay");
+  if (inField && catalogOpen) {
+    e.target.blur?.();
+    setSidebarOpen(false);
+    btnMenu?.focus();
+    e.preventDefault();
+    return;
+  }
   if (inField) {
     e.target.blur?.();
     return;
   }
-  if (sidebar.classList.contains("open")) {
+  if (catalogOpen) {
     setSidebarOpen(false);
     btnMenu?.focus();
     e.preventDefault();
@@ -8745,6 +8976,7 @@ window.__labCapture = {
   paintFrame: () => {
     paintFrame();
   },
+  getWebglStage: () => webglStage,
   loadDomain: (domain) => loadDomain(domain),
   pause: () => {
     if (!app.paused) {
