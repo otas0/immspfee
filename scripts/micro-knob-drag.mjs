@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * Playwright: drag focusCoarse / focusFine / stageX / stageY on
- * ?shell=lab-microscope3d and assert params + rail outputs track.
+ * Playwright: drag focusCoarse / focusFine / stageX / stageY / interpupillary
+ * on ?shell=lab-microscope3d and assert params + rail outputs track.
+ * Drags dispatch PointerEvents on the canvas (narrow-safe; overlays do not eat them).
+ * VIEWPORT=WxH (default 1280x800).
  * Requires lab server (LAB_URL, default http://127.0.0.1:8765/).
  */
 import { chromium } from 'playwright';
@@ -14,8 +16,60 @@ function fail(msg) {
   process.exit(1);
 }
 
+function parseViewport() {
+  const raw = process.env.VIEWPORT || '1280x800';
+  const m = /^(\d+)x(\d+)$/.exec(raw);
+  if (!m) fail(`VIEWPORT must be WxH, got ${raw}`);
+  return { width: Number(m[1]), height: Number(m[2]) };
+}
+
+/**
+ * Pointer drag on a pick target. Client coordinates come from getHits(),
+ * so a closed rail or a narrow layout cannot steal the event.
+ */
+async function dragHit(page, kind, dx, dy) {
+  const result = await page.evaluate(({ kind, dx, dy }) => {
+    window.__labCapture.paintFrame();
+    const stage = window.__labCapture.getWebglStage();
+    const hits = stage.getHits() || [];
+    const hit = hits.find((h) => h.kind === kind && h.index === 0)
+      || hits.find((h) => h.kind === kind);
+    if (!hit) return { ok: false, reason: `no ${kind} hit` };
+    const canvas = document.getElementById('canvas-webgl');
+    const rect = canvas.getBoundingClientRect();
+    const x0 = rect.left + hit.x;
+    const y0 = rect.top + hit.y;
+    const opts = (x, y, buttons) => ({
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: x,
+      clientY: y,
+      pointerId: 1,
+      pointerType: 'mouse',
+      isPrimary: true,
+      button: 0,
+      buttons,
+    });
+    canvas.dispatchEvent(new PointerEvent('pointerdown', opts(x0, y0, 1)));
+    const steps = 14;
+    for (let i = 1; i <= steps; i += 1) {
+      const x = x0 + (dx * i) / steps;
+      const y = y0 + (dy * i) / steps;
+      window.dispatchEvent(new PointerEvent('pointermove', opts(x, y, 1)));
+    }
+    window.dispatchEvent(new PointerEvent('pointerup', opts(x0 + dx, y0 + dy, 0)));
+    window.__labCapture.paintFrame();
+    return { ok: true, hit };
+  }, { kind, dx, dy });
+  if (!result?.ok) fail(result?.reason || `drag ${kind} failed`);
+  return result.hit;
+}
+
+const viewport = parseViewport();
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const page = await browser.newPage({ viewport });
+console.log('micro-knobs viewport', `${viewport.width}x${viewport.height}`);
 
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -38,27 +92,12 @@ try {
   const beforeFocus = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
-    const stage = window.__labCapture.getWebglStage();
-    const hit = (stage.getHits() || []).find((h) => h.kind === 'focusCoarse');
-    const canvas = document.getElementById('canvas-webgl');
-    const rect = canvas.getBoundingClientRect();
     return {
       focusZ: Number(p.focusZ_mm) || 0,
       WD: Number(p.WD_mm) || 0,
-      wdOut: document.getElementById('micro-wd-out')?.textContent || '',
-      hit,
-      rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
     };
   });
-  if (!beforeFocus.hit) fail('no focusCoarse hit');
-
-  const fx0 = beforeFocus.rect.left + beforeFocus.hit.x;
-  const fy0 = beforeFocus.rect.top + beforeFocus.hit.y;
-  await page.mouse.move(fx0, fy0);
-  await page.mouse.down();
-  await page.mouse.move(fx0, fy0 - 80, { steps: 12 });
-  await page.mouse.up();
-
+  await dragHit(page, 'focusCoarse', 0, -80);
   const afterFocus = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
@@ -93,26 +132,9 @@ try {
   const beforeStage = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
-    const stage = window.__labCapture.getWebglStage();
-    const hit = (stage.getHits() || []).find((h) => h.kind === 'stageX');
-    const canvas = document.getElementById('canvas-webgl');
-    const rect = canvas.getBoundingClientRect();
-    return {
-      stageX: Number(p.stageX_mm) || 0,
-      sxOut: document.getElementById('micro-stage-x-out')?.textContent || '',
-      hit,
-      rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-    };
+    return { stageX: Number(p.stageX_mm) || 0 };
   });
-  if (!beforeStage.hit) fail('no stageX hit');
-
-  const sx0 = beforeStage.rect.left + beforeStage.hit.x;
-  const sy0 = beforeStage.rect.top + beforeStage.hit.y;
-  await page.mouse.move(sx0, sy0);
-  await page.mouse.down();
-  await page.mouse.move(sx0 + 90, sy0, { steps: 12 });
-  await page.mouse.up();
-
+  await dragHit(page, 'stageX', 90, 0);
   const afterStage = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
@@ -121,7 +143,6 @@ try {
       sxOut: document.getElementById('micro-stage-x-out')?.textContent || '',
     };
   });
-
   if (!(Math.abs(afterStage.stageX - beforeStage.stageX) > 0.2)) {
     fail(`stageX unchanged ${beforeStage.stageX} → ${afterStage.stageX}`);
   }
@@ -137,26 +158,12 @@ try {
   const beforeFine = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
-    const stage = window.__labCapture.getWebglStage();
-    const hit = (stage.getHits() || []).find((h) => h.kind === 'focusFine');
-    const canvas = document.getElementById('canvas-webgl');
-    const rect = canvas.getBoundingClientRect();
     return {
       focusZ: Number(p.focusZ_mm) || 0,
       WD: Number(p.WD_mm) || 0,
-      hit,
-      rect: { left: rect.left, top: rect.top },
     };
   });
-  if (!beforeFine.hit) fail('no focusFine hit');
-  {
-    const x = beforeFine.rect.left + beforeFine.hit.x;
-    const y = beforeFine.rect.top + beforeFine.hit.y;
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x, y - 100, { steps: 14 });
-    await page.mouse.up();
-  }
+  await dragHit(page, 'focusFine', 0, -100);
   const afterFine = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
@@ -175,7 +182,6 @@ try {
     WD: [beforeFine.WD, afterFine.WD],
   });
 
-  // Contract: when focusZ is saturated at ±2, fine still moves WD only.
   await page.evaluate(() => {
     const p = window.__labCapture.getParams() || {};
     p.focusZ_mm = 2;
@@ -184,27 +190,13 @@ try {
   const beforeSat = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
-    const stage = window.__labCapture.getWebglStage();
-    const hit = (stage.getHits() || []).find((h) => h.kind === 'focusFine');
-    const canvas = document.getElementById('canvas-webgl');
-    const rect = canvas.getBoundingClientRect();
     return {
       focusZ: Number(p.focusZ_mm) || 0,
       WD: Number(p.WD_mm) || 0,
-      hit,
-      rect: { left: rect.left, top: rect.top },
     };
   });
   if (!(Math.abs(beforeSat.focusZ - 2) < 1e-6)) fail(`focusZ not saturated at 2 (${beforeSat.focusZ})`);
-  if (!beforeSat.hit) fail('no focusFine hit (saturated)');
-  {
-    const x = beforeSat.rect.left + beforeSat.hit.x;
-    const y = beforeSat.rect.top + beforeSat.hit.y;
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x, y - 80, { steps: 10 });
-    await page.mouse.up();
-  }
+  await dragHit(page, 'focusFine', 0, -80);
   const afterSat = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
@@ -227,25 +219,9 @@ try {
   const beforeY = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
-    const stage = window.__labCapture.getWebglStage();
-    const hit = (stage.getHits() || []).find((h) => h.kind === 'stageY');
-    const canvas = document.getElementById('canvas-webgl');
-    const rect = canvas.getBoundingClientRect();
-    return {
-      stageY: Number(p.stageY_mm) || 0,
-      hit,
-      rect: { left: rect.left, top: rect.top },
-    };
+    return { stageY: Number(p.stageY_mm) || 0 };
   });
-  if (!beforeY.hit) fail('no stageY hit');
-  {
-    const x = beforeY.rect.left + beforeY.hit.x;
-    const y = beforeY.rect.top + beforeY.hit.y;
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x, y + 90, { steps: 12 });
-    await page.mouse.up();
-  }
+  await dragHit(page, 'stageY', 0, 90);
   const afterY = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
@@ -264,6 +240,32 @@ try {
   console.log('stageY ok', {
     stageY: [beforeY.stageY, afterY.stageY],
     syOut: afterY.syOut,
+  });
+
+  const beforeIpd = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    return { ipd: Number(p.interpupillary_mm) || 0 };
+  });
+  await dragHit(page, 'interpupillary', 80, 0);
+  const afterIpd = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    return {
+      ipd: Number(p.interpupillary_mm) || 0,
+      ipdOut: document.getElementById('micro-ipd-out')?.textContent || '',
+    };
+  });
+  if (!(Math.abs(afterIpd.ipd - beforeIpd.ipd) > 0.4)) {
+    fail(`IPD unchanged ${beforeIpd.ipd} → ${afterIpd.ipd}`);
+  }
+  const ipdNum = parseFloat(afterIpd.ipdOut);
+  if (!(Number.isFinite(ipdNum) && Math.abs(ipdNum - afterIpd.ipd) < 0.6)) {
+    fail(`micro-ipd-out ${afterIpd.ipdOut} does not track IPD ${afterIpd.ipd}`);
+  }
+  console.log('interpupillary ok', {
+    ipd: [beforeIpd.ipd, afterIpd.ipd],
+    ipdOut: afterIpd.ipdOut,
   });
   console.log('test:micro-knobs ok');
 } finally {

@@ -584,7 +584,7 @@ function budgetFor(tier) {
       lifeNCap: 48,
       lifeMaxGens: 1,
       microDprCap: 1.75,
-      microTess: 0.42,
+      microTess: 0.55,
       trailCap: 400,
       hudMinMs: 125
     };
@@ -602,7 +602,7 @@ function budgetFor(tier) {
       lifeNCap: 64,
       lifeMaxGens: 2,
       microDprCap: 2,
-      microTess: 0.58,
+      microTess: 0.72,
       trailCap: 700,
       hudMinMs: 100
     };

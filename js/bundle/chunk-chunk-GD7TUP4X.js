@@ -56,6 +56,11 @@ var EYEPIECES = [
 ];
 var OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}\xD7` }));
 var EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}\xD7` }));
+var ACTIVITY_RING = {
+  rgb: [1, 0.08, 0.72],
+  hex: "#ff14b8",
+  name: "magenta"
+};
 function objectiveRingColor(mag) {
   if (mag <= 4) return { rgb: [0.92, 0.18, 0.16], hex: "#eb2e29", name: "red" };
   if (mag <= 10) return { rgb: [0.95, 0.82, 0.12], hex: "#f2d11f", name: "yellow" };
@@ -215,6 +220,7 @@ export {
   velocityVerlet1D,
   OBJECTIVES,
   EYEPIECES,
+  ACTIVITY_RING,
   objectiveRingColor,
   OBJECTIVE_RING_LEGEND,
   opticsFromParams,

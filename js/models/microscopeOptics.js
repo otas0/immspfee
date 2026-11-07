@@ -19,6 +19,16 @@ export const EYEPIECES = [
 export const OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}×` }));
 export const EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}×` }));
 
+/**
+ * Active-objective collar. A teaching marker, not a DIN identification color:
+ * kept far from the red / yellow / light-blue / white barrel bands.
+ */
+export const ACTIVITY_RING = {
+  rgb: [1, 0.08, 0.72],
+  hex: '#ff14b8',
+  name: 'magenta',
+};
+
 /** DIN / ISO objective identification ring (teaching colors on the barrel). */
 export function objectiveRingColor(mag) {
   if (mag <= 4) return { rgb: [0.92, 0.18, 0.16], hex: '#eb2e29', name: 'red' };

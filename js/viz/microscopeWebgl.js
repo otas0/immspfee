@@ -11,7 +11,7 @@ import {
   objectiveRingColor,
 } from '../models/microscopeOptics.js';
 import { buildMicroscopeSolid, meshStaticKey, meshDynamicKey } from './microscopeMeshBuild.js';
-import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from './microscopeLayout.js';
+import { activityCollarWorld, microscopeLayout, DRAG_KINDS, CLICK_KINDS } from './microscopeLayout.js';
 import { mobileBudget } from '../utils/mobilePerf.js';
 
 function compile(gl, type, src) {
@@ -200,9 +200,16 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let oilSlideX = 0;
   let oilSlideZ = 0;
   let oilActive = false;
-  /** 0..1 blend toward real immersion (short drip when switching to 100×). */
+  /** 0..1 linear blend toward real immersion (rise 0.45 s, fall 0.32 s). */
+  const OIL_RISE_SEC = 0.45;
+  const OIL_FALL_SEC = 0.32;
   let oilBlend = 0;
+  let oilRiseElapsed = 0;
+  /** Previous immersion aim (0 dry / 1 oil) so a new rise restarts the clock. */
+  let oilAim = 0;
   let lastOilT = 0;
+  let lastMvp = null;
+  let lastLayout = null;
   /** Screen-space labels refreshed each draw (L dimension + picks). */
   let overlayLabels = [];
   /** @type {Map<number, { x: number, y: number }>} */
@@ -572,12 +579,19 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     }
     oilSlideX = layout.slideX;
     oilSlideZ = layout.slideZ;
-    // Short drip toward the real immersion flag (100× oil / dry).
+    // Linear drip toward the real immersion flag (100× oil / dry). Not exponential.
     const dt = lastOilT ? Math.min(0.05, Math.max(0, tSec - lastOilT)) : 0.016;
     lastOilT = tSec;
     const oilTarget = oilActive ? 1 : 0;
-    oilBlend += (oilTarget - oilBlend) * Math.min(1, dt * 7);
-    if (Math.abs(oilBlend - oilTarget) < 0.01) oilBlend = oilTarget;
+    if (oilTarget > oilAim) oilRiseElapsed = 0;
+    oilAim = oilTarget;
+    if (oilBlend < oilTarget) {
+      oilBlend = Math.min(oilTarget, oilBlend + dt / OIL_RISE_SEC);
+      oilRiseElapsed += dt;
+    } else if (oilBlend > oilTarget) {
+      oilBlend = Math.max(oilTarget, oilBlend - dt / OIL_FALL_SEC);
+      if (oilTarget === 0 && oilBlend <= 0) oilRiseElapsed = 0;
+    }
 
     const hoverBusy = hoverHit
       && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
@@ -594,10 +608,33 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const proj = perspective(38, aspect, 0.15, 56);
     const viewM = lookAt(ex, ey, ez, 0, lookY, 0, 0, 1, 0);
     const mvp = multiply(proj, viewM);
+    lastMvp = mvp;
+    lastLayout = layout;
     rebuildHits(mvp, view.width, view.height, layout);
 
     overlayLabels = [];
     const showLabels = Number(params.showLabels) !== 0;
+    const dragHot = dragMode === 'part' && partHit ? partHit : null;
+    const pointerHot = dragHot || hoverHit;
+    const hotMatch = (kind, index = 0) => !!(
+      pointerHot
+      && pointerHot.kind === kind
+      && (pointerHot.index == null || pointerHot.index === index)
+    );
+    const knobLabels = {
+      focusCoarse: 'Coarse',
+      focusFine: 'Fine',
+      stageX: 'Stage X',
+      stageY: 'Stage Y',
+      condenser: 'Condenser',
+      iris: 'Abbe iris',
+      fieldIris: 'Field iris',
+      lamp: 'Lamp',
+      tubeL: null, // L dimension already labeled when captions are standing
+      interpupillary: 'IPD',
+      immersion: 'Oil',
+      clip: 'Clip',
+    };
     if (showLabels) {
       const tubeHit = layout.pts.find((row) => row.kind === 'tubeL');
       const Lpt = tubeHit
@@ -611,20 +648,6 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
           y: Lpt.y,
         });
       }
-      const knobLabels = {
-        focusCoarse: 'Coarse',
-        focusFine: 'Fine',
-        stageX: 'Stage X',
-        stageY: 'Stage Y',
-        condenser: 'Condenser',
-        iris: 'Abbe iris',
-        fieldIris: 'Field iris',
-        lamp: 'Lamp',
-        tubeL: null, // L dimension already labeled
-        interpupillary: 'IPD',
-        immersion: 'Oil',
-        clip: 'Clip',
-      };
       const shownKnob = new Set();
       for (const p of layout.pts) {
         if (p.kind === 'obj') {
@@ -690,6 +713,59 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         }
       }
       overlayLabels = resolveLabelCollisions(overlayLabels);
+    } else if (pointerHot) {
+      // Standing captions are off; hover and knob-drag still get one temporary label.
+      const p = (layout.pts || []).find((row) => hotMatch(row.kind, row.index));
+      if (p) {
+        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+        if (s) {
+          if (p.kind === 'obj') {
+            const obj = OBJECTIVES[p.index];
+            if (obj) {
+              const ring = objectiveRingColor(obj.mag);
+              overlayLabels.push({
+                id: `obj-${obj.id}`,
+                text: `${obj.mag}× ${ring.name}`,
+                x: s.x,
+                y: s.y - 18,
+                active: true,
+                ring: ring.hex,
+                role: 'obj',
+              });
+            }
+          } else if (p.kind === 'eye') {
+            const eye = EYEPIECES[p.index];
+            if (eye) {
+              overlayLabels.push({
+                id: `eye-${eye.id}`,
+                text: `Eye ${eye.mag}×`,
+                x: s.x,
+                y: s.y - 14,
+                active: true,
+                role: 'eye',
+              });
+            }
+          } else if (p.kind === 'tubeL') {
+            overlayLabels.push({
+              id: 'L',
+              text: `L = ${Math.round(optics.Lmm)} mm`,
+              x: s.x,
+              y: s.y,
+              active: true,
+            });
+          } else if (knobLabels[p.kind]) {
+            const key = p.kind === 'clip' ? `clip-${p.index}` : p.kind;
+            overlayLabels.push({
+              id: `knob-${key}`,
+              text: knobLabels[p.kind],
+              x: s.x,
+              y: s.y + 16,
+              active: true,
+              role: 'knob',
+            });
+          }
+        }
+      }
     }
 
     gl.useProgram(prog);
@@ -726,6 +802,27 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     },
     getHits() {
       return hits.slice();
+    },
+    /** CSS px of the active objective barrel collar (DIN-ring height) from the last draw. */
+    getActivityRing() {
+      if (!lastMvp || !lastLayout || !lastState) return null;
+      const optics = opticsFromParams(lastState.params || {});
+      const w = activityCollarWorld(lastLayout, optics.obj.id);
+      const { width, height } = lastView;
+      const c = project(lastMvp, w.x, w.y, w.z, width, height);
+      if (!c) return null;
+      const edge = project(lastMvp, w.x + 0.1, w.y, w.z, width, height);
+      const r = edge ? Math.max(6, Math.hypot(edge.x - c.x, edge.y - c.y)) : 16;
+      return { x: c.x, y: c.y, r };
+    },
+    getOilBlend() {
+      return oilBlend;
+    },
+    getOilRiseSec() {
+      return OIL_RISE_SEC;
+    },
+    getOilRiseElapsed() {
+      return oilRiseElapsed;
     },
     capturePng(state, view) {
       drawScene(state, view);

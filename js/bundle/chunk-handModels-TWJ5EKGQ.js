@@ -6,7 +6,7 @@ import {
   applyTurretDefaults,
   opticsFromParams,
   velocityVerlet1D
-} from "./chunk-chunk-CZEKU4O4.js";
+} from "./chunk-chunk-GD7TUP4X.js";
 import {
   forceGraphStep,
   mapNormToScreen,
@@ -25,7 +25,7 @@ import {
   perfClassFor,
   phaseHueColor,
   springK
-} from "./chunk-chunk-GKMEN2KM.js";
+} from "./chunk-chunk-EKGDC6UE.js";
 
 // js/models/projectile.js
 var projectile_default = {

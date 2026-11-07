@@ -12,6 +12,33 @@ import {
 } from '../models/microscopeOptics.js';
 import { formatNum } from '../utils/draw.js';
 
+const LABELS_PREF_KEY = 'imm-micro-labels-pref-v1';
+/** Session latch so a failed localStorage write still applies the narrow default only once. */
+let labelsPrefMemory = false;
+
+/**
+ * On viewports ≤480px, default `showLabels` to 0 a single time.
+ * Later visits keep whatever the user last chose.
+ * @param {object | null | undefined} state
+ * @returns {boolean} true when this call wrote the default
+ */
+export function labelsPrefSet(state) {
+  if (!state?.params) return false;
+  if (labelsPrefMemory) return false;
+  let stored = false;
+  try { stored = localStorage.getItem(LABELS_PREF_KEY) === '1'; } catch { stored = false; }
+  if (stored) {
+    labelsPrefMemory = true;
+    return false;
+  }
+  const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches;
+  if (!narrow) return false;
+  state.params.showLabels = 0;
+  labelsPrefMemory = true;
+  try { localStorage.setItem(LABELS_PREF_KEY, '1'); } catch { /* session-only */ }
+  return true;
+}
+
 const READOUTS = [
   { key: 'M', label: 'M' },
   { key: 'f_obj', label: 'f_obj' },
@@ -335,6 +362,7 @@ export function createMicroscopeStage(api) {
     if (!stage) return;
     const state = api.getState();
     if (!state?.params) return;
+    labelsPrefSet(state);
     const o = opticsFromParams(state.params);
     const values = fmtReadouts(o);
     const t = typeof api.t === 'function' ? api.t : (k) => k;
@@ -428,8 +456,7 @@ export function createMicroscopeStage(api) {
     for (const btn of stage.querySelectorAll('#micro-labels .micro-chip')) {
       btn.classList.toggle('is-active', (btn.dataset.labels === '1') === showLabels);
     }
-    const labelHost = stage.querySelector('#micro-gl-labels');
-    if (labelHost) labelHost.hidden = !showLabels;
+    // #micro-gl-labels stays mounted so hover/drag captions can still attach.
     const note = stage.querySelector('#micro-imm-note');
     if (note) {
       note.textContent = o.immersion
@@ -443,7 +470,10 @@ export function createMicroscopeStage(api) {
   function setVisible(on) {
     const stage = ensureDom();
     if (stage) stage.hidden = !on;
-    if (on) captureBaseline();
+    if (on) {
+      labelsPrefSet(api.getState());
+      captureBaseline();
+    }
   }
 
   /** Screen-space L / eyepiece labels from the WebGL stage (same optics as readouts). */

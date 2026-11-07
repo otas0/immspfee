@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * WebKit: pixel-sample the active-objective magenta activity ring (ROI around
- * the obj hit). Avoids relying only on overlay labels / getHits metadata.
- * Requires lab server (LAB_URL) + Playwright WebKit.
+ * Pixel-sample the active-objective magenta activity collar via getActivityRing().
+ * Chromium by default; MICRO_BROWSER=webkit selects WebKit.
+ * VIEWPORT=WxH (default 1280x800). Opens the optical rail before clicking 40×.
+ * Requires lab server (LAB_URL) + Playwright.
  */
 import { chromium, webkit } from 'playwright';
 import fs from 'node:fs';
@@ -22,30 +23,37 @@ function fail(msg) {
   process.exit(1);
 }
 
+function parseViewport() {
+  const raw = process.env.VIEWPORT || '1280x800';
+  const m = /^(\d+)x(\d+)$/.exec(raw);
+  if (!m) fail(`VIEWPORT must be WxH, got ${raw}`);
+  return { width: Number(m[1]), height: Number(m[2]) };
+}
+
 function sampleMagenta(png, cx, cy, radius) {
   let magenta = 0;
   let total = 0;
-  const r0 = Math.max(8, Math.round(radius));
+  const r0 = Math.max(6, Math.round(radius));
   for (let y = cy - r0; y <= cy + r0; y += 1) {
     for (let x = cx - r0; x <= cx + r0; x += 1) {
       if (x < 0 || y < 0 || x >= png.width || y >= png.height) continue;
       const d = Math.hypot(x - cx, y - cy);
-      if (d > r0 || d < r0 * 0.22) continue; // activity-collar annulus
+      if (d > r0 || d < r0 * 0.22) continue;
       const i = (png.width * y + x) << 2;
       const r = png.data[i];
       const g = png.data[i + 1];
       const b = png.data[i + 2];
       total += 1;
-      // Magenta / hot-pink activity collar (distinct from yellow/blue DIN bands).
       if (r > 120 && b > 70 && g < r * 0.78 && (r - g) > 28 && (b - g) > 8) magenta += 1;
     }
   }
   return { magenta, total, frac: total ? magenta / total : 0 };
 }
 
+const viewport = parseViewport();
 const browser = await (useWebkit ? webkit : chromium).launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-console.log('micro-magenta browser', useWebkit ? 'webkit' : 'chromium');
+const page = await browser.newPage({ viewport });
+console.log('micro-magenta browser', useWebkit ? 'webkit' : 'chromium', `${viewport.width}x${viewport.height}`);
 
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -60,58 +68,69 @@ try {
     p.showLabels = 1;
     p.lampOn = 1;
     window.__labCapture.paintFrame?.();
+    document.getElementById('micro-rail')?.classList.add('is-open');
   });
-  await page.waitForTimeout(150);
-  await page.click('#micro-obj [data-obj="40x"]');
+  await page.waitForTimeout(350);
+  await page.click('#micro-obj [data-obj="40x"]', { timeout: 15000 });
+  // Rail is only needed to reach the 40× chip. On a phone it covers the barrel.
   await page.evaluate(() => {
+    document.getElementById('micro-rail')?.classList.remove('is-open');
+  });
+  await page.waitForTimeout(360);
+  const ring = await page.evaluate(() => {
     window.__labCapture.pause?.();
     for (let i = 0; i < 4; i += 1) window.__labCapture.paintFrame?.();
-  });
-  const hit = await page.evaluate(() => {
     const stage = window.__labCapture.getWebglStage();
     const canvas = document.getElementById('canvas-webgl');
     const rect = canvas.getBoundingClientRect();
-    const h = (stage.getHits() || []).find((row) => row.kind === 'obj' && row.index === 2); // 40x
-    const active = (stage.getOverlayLabels?.() || []).find((l) => l.role === 'obj' && l.active);
     return {
-      hit: h,
-      active: active?.text || '',
+      ring: stage.getActivityRing?.() || null,
+      obj: window.__labCapture.getParams()?.objective,
       canvas: {
-        left: rect.left,
-        top: rect.top,
         w: canvas.width,
         h: canvas.height,
         cw: canvas.clientWidth,
         ch: canvas.clientHeight,
+        left: rect.left,
+        top: rect.top,
       },
     };
   });
-  if (!hit.hit) fail('no 40× obj hit');
-  const shotPath = path.join(outDir, 'shell-micro-magenta-roi-webkit.png');
+  if (ring.obj !== '40x') fail(`objective is ${ring.obj}, expected 40x`);
+  if (!ring.ring || !Number.isFinite(ring.ring.x) || !Number.isFinite(ring.ring.y)) {
+    fail(`getActivityRing missing ${JSON.stringify(ring.ring)}`);
+  }
+  const shotName = `shell-micro-magenta-roi-${viewport.width}${useWebkit ? '-webkit' : ''}.png`;
+  const shotPath = path.join(outDir, shotName);
   await page.locator('#canvas-webgl').screenshot({ path: shotPath });
   const png = PNG.sync.read(fs.readFileSync(shotPath));
-  // Map CSS hit → buffer pixels.
-  const sx = png.width / Math.max(hit.canvas.cw, 1);
-  const sy = png.height / Math.max(hit.canvas.ch, 1);
-  const cx = Math.round(hit.hit.x * sx);
-  // Magenta collar sits above the objective body — try a few vertical offsets.
-  let best = { magenta: 0, total: 0, frac: 0, cy: 0 };
-  for (const lift of [8, 16, 24, 32, 40]) {
-    const cy = Math.round((hit.hit.y - lift) * sy);
-    const sample = sampleMagenta(png, cx, cy, Math.round(hit.hit.r * sx * 1.05));
-    if (sample.frac > best.frac) best = { ...sample, cy };
+  const sx = png.width / Math.max(ring.canvas.cw, 1);
+  const sy = png.height / Math.max(ring.canvas.ch, 1);
+  const cx = Math.round(ring.ring.x * sx);
+  const cy = Math.round(ring.ring.y * sy);
+  const baseR = Math.max(6, ring.ring.r * sx);
+  let best = { magenta: 0, total: 0, frac: 0, r: baseR };
+  for (const scale of [1, 0.72, 1.25]) {
+    const sample = sampleMagenta(png, cx, cy, baseR * scale);
+    if (sample.magenta > best.magenta || (sample.magenta === best.magenta && sample.total > best.total)) {
+      best = { ...sample, r: baseR * scale };
+    }
   }
   console.log('magenta-roi', JSON.stringify({
-    active: hit.active,
     cx,
-    cy: best.cy,
+    cy,
+    ring: ring.ring,
     magenta: best.magenta,
     total: best.total,
     frac: best.frac,
     shot: path.relative(root, shotPath),
   }));
-  if (!(best.total > 40 && best.frac > 0.03 && best.magenta >= 40)) {
-    fail(`magenta fraction too low frac=${best.frac.toFixed(4)} total=${best.total} magenta=${best.magenta}`);
+  const narrow = viewport.width <= 480;
+  const gate = narrow
+    ? { total: 8, frac: 0.008, magenta: 6 }
+    : { total: 40, frac: 0.03, magenta: 40 };
+  if (!(best.total > gate.total && best.frac > gate.frac && best.magenta >= gate.magenta)) {
+    fail(`magenta fraction too low frac=${best.frac.toFixed(4)} total=${best.total} magenta=${best.magenta} gate=${JSON.stringify(gate)}`);
   }
   console.log('test:micro-magenta ok');
 } finally {

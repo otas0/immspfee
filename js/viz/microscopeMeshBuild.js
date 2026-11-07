@@ -6,7 +6,8 @@
  *
  * Vertex format: [x,y,z, r,g,b] × N — soft key+fill baked into RGB.
  */
-import { armPoint, MagScale } from './microscopeLayout.js';
+import { ACTIVITY_RING } from '../models/microscopeOptics.js';
+import { armPoint, MagScale, OBJECTIVE_COLLAR_DY } from './microscopeLayout.js';
 
 /** Bake a soft key+fill light into vertex RGB (no extra attributes). */
 function shade(nx, ny, nz, r, g, b, gloss = 0.12) {
@@ -296,13 +297,34 @@ export function meshDynamicKey(optics, hover, params = {}) {
   ].join('|');
 }
 
-/** Thin box glyph strokes for DIN mag numerals on the objective barrel. */
+/**
+ * 7-segment strokes for DIN magnification numerals on the objective barrel.
+ * Normalized [0,1]×[0,1], y = 0 at the top of the glyph: [x0,y0,x1,y1].
+ * Segments a–g plus a diagonal pair for the × mark.
+ */
 function digitStrokes(ch) {
-  // Normalized [0,1]×[0,1] segments: [x0,y0,x1,y1] in local ring plane.
+  const a = [0.16, 0.08, 0.84, 0.08];
+  const b = [0.84, 0.12, 0.84, 0.46];
+  const c = [0.84, 0.54, 0.84, 0.88];
+  const d = [0.16, 0.92, 0.84, 0.92];
+  const e = [0.16, 0.54, 0.16, 0.88];
+  const f = [0.16, 0.12, 0.16, 0.46];
+  const g = [0.18, 0.50, 0.82, 0.50];
+  const times = [[0.22, 0.18, 0.78, 0.82], [0.78, 0.18, 0.22, 0.82]];
   const H = {
-    '0': [[0.15, 0.1, 0.85, 0.1], [0.15, 0.9, 0.85, 0.9], [0.15, 0.1, 0.15, 0.9], [0.85, 0.1, 0.85, 0.9]],
-    '1': [[0.5, 0.1, 0.5, 0.9], [0.35, 0.22, 0.5, 0.1]],
-    '4': [[0.2, 0.1, 0.2, 0.55], [0.2, 0.55, 0.8, 0.55], [0.7, 0.1, 0.7, 0.9]],
+    0: [a, b, c, d, e, f],
+    1: [b, c],
+    2: [a, b, d, e, g],
+    3: [a, b, c, d, g],
+    4: [b, c, f, g],
+    5: [a, c, d, f, g],
+    6: [a, c, d, e, f, g],
+    7: [a, b, c],
+    8: [a, b, c, d, e, f, g],
+    9: [a, b, c, d, f, g],
+    '×': times,
+    x: times,
+    X: times,
   };
   return H[ch] || [];
 }
@@ -316,21 +338,34 @@ function drawMagGlyph(cx, cy, cz, ang, mag, r, g, b, out, S) {
   const charH = 0.034;
   const totalW = chars.length * charW * 0.85;
   let ox = -totalW / 2;
-  for (const ch of chars) {
-    for (const [u0, v0, u1, v1] of digitStrokes(ch)) {
-      const midU = (u0 + u1) / 2;
-      const midV = (v0 + v1) / 2;
-      const lenU = Math.abs(u1 - u0) * charW + 0.004;
-      const lenV = Math.abs(v1 - v0) * charH + 0.004;
-      const px = cx + radial[0] * 0.052 + tangential[0] * (ox + midU * charW);
-      const py = cy + (0.5 - midV) * charH;
-      const pz = cz + radial[2] * 0.052 + tangential[2] * (ox + midU * charW);
-      const sx = Math.max(lenU, 0.006);
-      const sy = Math.max(lenV, 0.006);
-      box(px, py, pz, sx, sy, 0.008, r, g, b, out, 0.35);
+    const at = (u, v, along) => {
+      const px = cx + radial[0] * 0.052 + tangential[0] * (along + u * charW);
+      const py = cy + (0.5 - v) * charH;
+      const pz = cz + radial[2] * 0.052 + tangential[2] * (along + u * charW);
+      return [px, py, pz];
+    };
+    for (const ch of chars) {
+      for (const [u0, v0, u1, v1] of digitStrokes(ch)) {
+        const du = Math.abs(u1 - u0);
+        const dv = Math.abs(v1 - v0);
+        // Diagonals (the × mark) are not axis-aligned boxes.
+        if (du > 0.25 && dv > 0.25) {
+          const p0 = at(u0, v0, ox);
+          const p1 = at(u1, v1, ox);
+          tubeSeg(p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], 0.0032, r, g, b, out, 8, true, 0.35);
+          continue;
+        }
+        const midU = (u0 + u1) / 2;
+        const midV = (v0 + v1) / 2;
+        const lenU = du * charW + 0.004;
+        const lenV = dv * charH + 0.004;
+        const [px, py, pz] = at(midU, midV, ox);
+        const sx = Math.max(lenU, 0.006);
+        const sy = Math.max(lenV, 0.006);
+        box(px, py, pz, sx, sy, 0.008, r, g, b, out, 0.35);
+      }
+      ox += charW * 0.85;
     }
-    ox += charW * 0.85;
-  }
   void S;
 }
 
@@ -412,12 +447,12 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     lampY, focus, oculars,
   } = layout;
 
-  // Desktop tess=1 → extreme tube/ocular rings (promo-grade cylinders).
-  const tubeSlice = S(180, 64);
-  const torusR = S(112, 48);
-  const torusT = S(28, 14);
-  const midSlice = S(96, 32);
-  const fineSlice = S(48, 18);
+  // Desktop tess=1 → research-grade tube/ocular rings (slightly denser than the teaching solid).
+  const tubeSlice = S(216, 72);
+  const torusR = S(128, 52);
+  const torusT = S(32, 14);
+  const midSlice = S(108, 36);
+  const fineSlice = S(56, 20);
 
   // —— Bilateral coaxial coarse + fine focus (hover-sensitive → dynamic) ——
   sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, out, S(24, 12), S(16, 10), 0.12);
@@ -469,13 +504,25 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   // —— Siedentopf binocular from layout.oculars ——
   box(0, tubeTopY + 0.07, 0.03, 0.36, 0.12, 0.24, ...enamel, out, 0.1);
   box(0, tubeTopY + 0.15, 0.07, 0.24, 0.08, 0.16, ...enamelHi, out, 0.12);
+  // Chrome parting lines: center split, lid seam, and the housing edges.
+  {
+    const prismY = tubeTopY + 0.07;
+    const prismZ = 0.03;
+    box(0, prismY, prismZ, 0.007, 0.122, 0.242, ...chrome, out, 0.48);
+    box(0, prismY + 0.06, prismZ, 0.362, 0.006, 0.008, ...chrome, out, 0.46);
+    box(0, prismY, prismZ + 0.121, 0.362, 0.006, 0.007, ...chrome, out, 0.44);
+    box(0, prismY, prismZ - 0.121, 0.362, 0.006, 0.007, ...chrome, out, 0.44);
+    box(-0.181, prismY, prismZ, 0.006, 0.122, 0.008, ...chrome, out, 0.42);
+    box(0.181, prismY, prismZ, 0.006, 0.122, 0.008, ...chrome, out, 0.42);
+    box(0, tubeTopY + 0.19, 0.07, 0.242, 0.005, 0.008, ...chrome, out, 0.46);
+  }
   const ipdHot = hoverHi(hover, 'interpupillary');
   cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3 * (layout.ipdScale || 1), ...(ipdHot ? hi : chrome), out, S(32, 14), 0.38, true);
   // Siedentopf IPD dial (center hinge).
   torusY(0, tubeTopY + 0.12, 0.05, 0.05, 0.012, ...(ipdHot ? hi : chrome), out, S(40, 18), S(14, 8), 0.4);
   if (ipdHot) torusY(0, tubeTopY + 0.12, 0.05, 0.068, 0.01, ...hiSoft, out, fineSlice, S(12, 8), 0.36);
 
-  const oculSlice = S(96, 36);
+  const oculSlice = S(112, 40);
   for (const oc of oculars) {
     tubeSeg(oc.x0, oc.y0, oc.z0, oc.x1, oc.y1, oc.z1, 0.044, ...enamel, out, oculSlice, true, 0.14);
     torusY(oc.x0, oc.y0, oc.z0, 0.05, 0.01, ...chrome, out, S(36, 16), S(14, 8), 0.34);
@@ -567,22 +614,22 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     };
     const yCol = band(0.04);
     const ySh = band(0.042);
-    const yRing = y;
-    y -= 0.01;
+    y -= 0.01; // gap at the DIN ring (OBJECTIVE_COLLAR_DY)
     const yBar = band(0.075);
     const yStep = band(0.026);
     const noseH = 0.055 + MagScale(obj.mag) * 0.028;
     const yNose = band(noseH);
     const yFront = band(0.016);
-    const objSlice = S(64, 28);
+    const objSlice = S(72, 32);
     cylinderY(ox, yCol, oz, 0.05 * k, 0.04, ...chrome, out, objSlice, true, 0.38);
     cylinderY(ox, ySh, oz, 0.044 * k, 0.042, ...enamel, out, objSlice, true, 0.12);
     const [rr0, rg0, rb0] = objectiveRingColor(obj.mag).rgb;
-    // DIN ring slightly brighter than catalog RGB.
+    // DIN ring slightly brighter than catalog RGB. Collar shares this height.
     const rr = Math.min(1, rr0 * 1.18 + 0.04);
     const rg = Math.min(1, rg0 * 1.18 + 0.04);
     const rb = Math.min(1, rb0 * 1.18 + 0.04);
-    torusY(ox, yRing, oz, 0.05 * k, 0.016, rr, rg, rb, out, S(64, 28), S(20, 12), 0.34);
+    const collarY = turY + OBJECTIVE_COLLAR_DY;
+    torusY(ox, collarY, oz, 0.05 * k, 0.016, rr, rg, rb, out, S(72, 32), S(22, 12), 0.34);
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
     // DIN magnification glyph on the enamel barrel (mesh strokes, not HUD text).
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
@@ -593,10 +640,15 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
       torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, out, S(36, 16), S(14, 8), 0.36);
     }
     if (active) {
-      // Magenta activity ring + white inner — never confused with DIN bands.
-      torusY(ox, turY + 0.045, oz, 0.112, 0.02, 1, 0.08, 0.72, out, S(64, 28), S(20, 12), 0.52);
+      const [ar, ag, ab] = ACTIVITY_RING.rgb;
+      // Barrel collar at the DIN ring — phone FOV still catches this magenta.
+      cylinderY(ox, collarY, oz, 0.086 * k, 0.046, ar, ag, ab, out, S(64, 28), true, 0.5);
+      torusY(ox, collarY, oz, 0.098 * k, 0.016, ar, ag, ab, out, S(72, 32), S(20, 12), 0.55);
+      torusY(ox, collarY + 0.012, oz, 0.062 * k, 0.006, 1, 1, 1, out, S(56, 24), S(14, 8), 0.5);
+      // Marker kept on the nosepiece plate (desktop orbit).
+      torusY(ox, turY + 0.045, oz, 0.112, 0.02, ar, ag, ab, out, S(64, 28), S(20, 12), 0.52);
       torusY(ox, turY + 0.045, oz, 0.084, 0.012, 1, 1, 1, out, S(56, 24), S(16, 10), 0.55);
-      torusY(ox, turY + 0.06, oz, 0.096, 0.009, 1, 0.4, 0.9, out, S(48, 20), S(14, 8), 0.44);
+      torusY(ox, turY + 0.06, oz, 0.096, 0.009, ar, Math.min(1, ag + 0.32), Math.min(1, ab + 0.18), out, S(48, 20), S(14, 8), 0.44);
     } else if (hovered) {
       torusY(ox, turY + 0.045, oz, 0.104, 0.014, 0.62, 0.82, 1, out, S(48, 20), S(14, 8), 0.38);
     }
@@ -612,8 +664,30 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   box(0, stageY, 0.04, 1.02, 0.05, 0.7, ...ivory, out, 0.06);
   box(0, stageY - 0.032, 0.04, 0.94, 0.016, 0.62, ...ivoryEdge, out, 0.08);
   box(0, stageY - 0.05, 0.02, 0.7, 0.02, 0.46, ...chromeDim, out, 0.16);
-  // Soft edge bevel around the mechanical stage.
-  torusY(0, stageY + 0.01, 0.04, 0.48, 0.018, ...ivoryEdge, out, S(64, 28), S(12, 8), 0.1);
+  // Rounded ivory rim: tubes along the plate edges, spheres at the corners.
+  {
+    const stageHx = 0.51;
+    const stageHz = 0.35;
+    const stageCz = 0.04;
+    const rimY = stageY + 0.025;
+    const rimR = 0.016;
+    const xL = -stageHx;
+    const xR = stageHx;
+    const zB = stageCz - stageHz;
+    const zF = stageCz + stageHz;
+    const rimSlice = S(28, 12);
+    tubeSeg(xL, rimY, zB, xR, rimY, zB, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    tubeSeg(xL, rimY, zF, xR, rimY, zF, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    tubeSeg(xL, rimY, zB, xL, rimY, zF, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    tubeSeg(xR, rimY, zB, xR, rimY, zF, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    const cornerU = S(16, 8);
+    const cornerV = S(12, 6);
+    for (const px of [xL, xR]) {
+      for (const pz of [zB, zF]) {
+        sphere(px, rimY, pz, rimR * 1.05, ...ivoryEdge, out, cornerU, cornerV, 0.14);
+      }
+    }
+  }
   cylinderY(0, stageY + 0.02, 0.02, 0.1, 0.02, 0.08, 0.08, 0.09, out, S(48, 20), true, 0.05);
   torusY(0, stageY + 0.028, 0.02, 0.12, 0.012, ...chromeDim, out, S(48, 20), S(14, 8), 0.22);
 

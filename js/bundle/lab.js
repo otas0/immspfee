@@ -380,7 +380,7 @@ function applyLowInkStrokeBoost(model) {
 }
 
 
-/* inlined chunk-chunk-CZEKU4O4.js */
+/* inlined chunk-chunk-GD7TUP4X.js */
 // js/utils/integrator.js
 function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
   let accumulator = 0;
@@ -439,6 +439,11 @@ var EYEPIECES = [
 ];
 var OBJ_OPTIONS = OBJECTIVES.map((o) => ({ value: o.id, label: `${o.mag}\xD7` }));
 var EYE_OPTIONS = EYEPIECES.map((e) => ({ value: e.id, label: `${e.mag}\xD7` }));
+var ACTIVITY_RING = {
+  rgb: [1, 0.08, 0.72],
+  hex: "#ff14b8",
+  name: "magenta"
+};
 function objectiveRingColor(mag) {
   if (mag <= 4) return { rgb: [0.92, 0.18, 0.16], hex: "#eb2e29", name: "red" };
   if (mag <= 10) return { rgb: [0.95, 0.82, 0.12], hex: "#f2d11f", name: "yellow" };
@@ -594,7 +599,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-GKMEN2KM.js */
+/* inlined chunk-chunk-EKGDC6UE.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -1181,7 +1186,7 @@ function budgetFor(tier) {
       lifeNCap: 48,
       lifeMaxGens: 1,
       microDprCap: 1.75,
-      microTess: 0.42,
+      microTess: 0.55,
       trailCap: 400,
       hudMinMs: 125
     };
@@ -1199,7 +1204,7 @@ function budgetFor(tier) {
       lifeNCap: 64,
       lifeMaxGens: 2,
       microDprCap: 2,
-      microTess: 0.58,
+      microTess: 0.72,
       trailCap: 700,
       hudMinMs: 100
     };
@@ -1277,8 +1282,8 @@ function ringLast(ring) {
 
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
-/* static chunk inlined: chunk-chunk-CZEKU4O4.js */
-/* static chunk inlined: chunk-chunk-GKMEN2KM.js */
+/* static chunk inlined: chunk-chunk-GD7TUP4X.js */
+/* static chunk inlined: chunk-chunk-EKGDC6UE.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1483,7 +1488,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-6VR676DR.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-VOCRFTVP.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3026,7 +3031,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-XPSN4FAQ.js").then((mod) => {
+    handsPending = import("./chunk-handModels-TWJ5EKGQ.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -4713,6 +4718,16 @@ function applyShell(id, opts = {}) {
 function MagScale(m) {
   return Math.log10(Math.max(4, m));
 }
+var OBJECTIVE_COLLAR_DY = -0.094;
+function activityCollarWorld(layout, objectiveId) {
+  const activeIdx = Math.max(0, OBJECTIVES.findIndex((o) => o.id === objectiveId));
+  const ang = layout.turretRot + activeIdx * (Math.PI / 2);
+  return {
+    x: Math.cos(ang) * 0.32,
+    y: layout.turY + OBJECTIVE_COLLAR_DY,
+    z: Math.sin(ang) * 0.32
+  };
+}
 function armPoint(t2) {
   const heelZ = -0.56;
   const y = 0.24 + t2 * 1.3;
@@ -5291,10 +5306,28 @@ function meshDynamicKey(optics, hover, params = {}) {
   ].join("|");
 }
 function digitStrokes(ch) {
+  const a = [0.16, 0.08, 0.84, 0.08];
+  const b = [0.84, 0.12, 0.84, 0.46];
+  const c = [0.84, 0.54, 0.84, 0.88];
+  const d = [0.16, 0.92, 0.84, 0.92];
+  const e = [0.16, 0.54, 0.16, 0.88];
+  const f = [0.16, 0.12, 0.16, 0.46];
+  const g = [0.18, 0.5, 0.82, 0.5];
+  const times = [[0.22, 0.18, 0.78, 0.82], [0.78, 0.18, 0.22, 0.82]];
   const H = {
-    "0": [[0.15, 0.1, 0.85, 0.1], [0.15, 0.9, 0.85, 0.9], [0.15, 0.1, 0.15, 0.9], [0.85, 0.1, 0.85, 0.9]],
-    "1": [[0.5, 0.1, 0.5, 0.9], [0.35, 0.22, 0.5, 0.1]],
-    "4": [[0.2, 0.1, 0.2, 0.55], [0.2, 0.55, 0.8, 0.55], [0.7, 0.1, 0.7, 0.9]]
+    0: [a, b, c, d, e, f],
+    1: [b, c],
+    2: [a, b, d, e, g],
+    3: [a, b, c, d, g],
+    4: [b, c, f, g],
+    5: [a, c, d, f, g],
+    6: [a, c, d, e, f, g],
+    7: [a, b, c],
+    8: [a, b, c, d, e, f, g],
+    9: [a, b, c, d, f, g],
+    "\xD7": times,
+    x: times,
+    X: times
   };
   return H[ch] || [];
 }
@@ -5307,15 +5340,27 @@ function drawMagGlyph(cx, cy, cz, ang, mag, r, g, b, out, S) {
   const charH = 0.034;
   const totalW = chars.length * charW * 0.85;
   let ox = -totalW / 2;
+  const at = (u, v, along) => {
+    const px = cx + radial[0] * 0.052 + tangential[0] * (along + u * charW);
+    const py = cy + (0.5 - v) * charH;
+    const pz = cz + radial[2] * 0.052 + tangential[2] * (along + u * charW);
+    return [px, py, pz];
+  };
   for (const ch of chars) {
     for (const [u0, v0, u1, v1] of digitStrokes(ch)) {
+      const du = Math.abs(u1 - u0);
+      const dv = Math.abs(v1 - v0);
+      if (du > 0.25 && dv > 0.25) {
+        const p0 = at(u0, v0, ox);
+        const p1 = at(u1, v1, ox);
+        tubeSeg(p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], 32e-4, r, g, b, out, 8, true, 0.35);
+        continue;
+      }
       const midU = (u0 + u1) / 2;
       const midV = (v0 + v1) / 2;
-      const lenU = Math.abs(u1 - u0) * charW + 4e-3;
-      const lenV = Math.abs(v1 - v0) * charH + 4e-3;
-      const px = cx + radial[0] * 0.052 + tangential[0] * (ox + midU * charW);
-      const py = cy + (0.5 - midV) * charH;
-      const pz = cz + radial[2] * 0.052 + tangential[2] * (ox + midU * charW);
+      const lenU = du * charW + 4e-3;
+      const lenV = dv * charH + 4e-3;
+      const [px, py, pz] = at(midU, midV, ox);
       const sx = Math.max(lenU, 6e-3);
       const sy = Math.max(lenV, 6e-3);
       box(px, py, pz, sx, sy, 8e-3, r, g, b, out, 0.35);
@@ -5412,11 +5457,11 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     focus,
     oculars
   } = layout;
-  const tubeSlice = S(180, 64);
-  const torusR = S(112, 48);
-  const torusT = S(28, 14);
-  const midSlice = S(96, 32);
-  const fineSlice = S(48, 18);
+  const tubeSlice = S(216, 72);
+  const torusR = S(128, 52);
+  const torusT = S(32, 14);
+  const midSlice = S(108, 36);
+  const fineSlice = S(56, 20);
   sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, out, S(24, 12), S(16, 10), 0.12);
   for (const side of [-1, 1]) {
     const sideIdx = side < 0 ? 0 : 1;
@@ -5458,11 +5503,22 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   if (tubeHot) torusY(dimX, tubeCenterY, 0, 0.06, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.3);
   box(0, tubeTopY + 0.07, 0.03, 0.36, 0.12, 0.24, ...enamel, out, 0.1);
   box(0, tubeTopY + 0.15, 0.07, 0.24, 0.08, 0.16, ...enamelHi, out, 0.12);
+  {
+    const prismY = tubeTopY + 0.07;
+    const prismZ = 0.03;
+    box(0, prismY, prismZ, 7e-3, 0.122, 0.242, ...chrome, out, 0.48);
+    box(0, prismY + 0.06, prismZ, 0.362, 6e-3, 8e-3, ...chrome, out, 0.46);
+    box(0, prismY, prismZ + 0.121, 0.362, 6e-3, 7e-3, ...chrome, out, 0.44);
+    box(0, prismY, prismZ - 0.121, 0.362, 6e-3, 7e-3, ...chrome, out, 0.44);
+    box(-0.181, prismY, prismZ, 6e-3, 0.122, 8e-3, ...chrome, out, 0.42);
+    box(0.181, prismY, prismZ, 6e-3, 0.122, 8e-3, ...chrome, out, 0.42);
+    box(0, tubeTopY + 0.19, 0.07, 0.242, 5e-3, 8e-3, ...chrome, out, 0.46);
+  }
   const ipdHot = hoverHi(hover, "interpupillary");
   cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3 * (layout.ipdScale || 1), ...ipdHot ? hi : chrome, out, S(32, 14), 0.38, true);
   torusY(0, tubeTopY + 0.12, 0.05, 0.05, 0.012, ...ipdHot ? hi : chrome, out, S(40, 18), S(14, 8), 0.4);
   if (ipdHot) torusY(0, tubeTopY + 0.12, 0.05, 0.068, 0.01, ...hiSoft, out, fineSlice, S(12, 8), 0.36);
-  const oculSlice = S(96, 36);
+  const oculSlice = S(112, 40);
   for (const oc of oculars) {
     tubeSeg(oc.x0, oc.y0, oc.z0, oc.x1, oc.y1, oc.z1, 0.044, ...enamel, out, oculSlice, true, 0.14);
     torusY(oc.x0, oc.y0, oc.z0, 0.05, 0.01, ...chrome, out, S(36, 16), S(14, 8), 0.34);
@@ -5598,21 +5654,21 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     };
     const yCol = band(0.04);
     const ySh = band(0.042);
-    const yRing = y;
     y -= 0.01;
     const yBar = band(0.075);
     const yStep = band(0.026);
     const noseH = 0.055 + MagScale(obj.mag) * 0.028;
     const yNose = band(noseH);
     const yFront = band(0.016);
-    const objSlice = S(64, 28);
+    const objSlice = S(72, 32);
     cylinderY(ox, yCol, oz, 0.05 * k, 0.04, ...chrome, out, objSlice, true, 0.38);
     cylinderY(ox, ySh, oz, 0.044 * k, 0.042, ...enamel, out, objSlice, true, 0.12);
     const [rr0, rg0, rb0] = objectiveRingColor2(obj.mag).rgb;
     const rr = Math.min(1, rr0 * 1.18 + 0.04);
     const rg = Math.min(1, rg0 * 1.18 + 0.04);
     const rb = Math.min(1, rb0 * 1.18 + 0.04);
-    torusY(ox, yRing, oz, 0.05 * k, 0.016, rr, rg, rb, out, S(64, 28), S(20, 12), 0.34);
+    const collarY = turY + OBJECTIVE_COLLAR_DY;
+    torusY(ox, collarY, oz, 0.05 * k, 0.016, rr, rg, rb, out, S(72, 32), S(22, 12), 0.34);
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
     cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(48, 20), true, 0.36);
@@ -5622,9 +5678,13 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
       torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, out, S(36, 16), S(14, 8), 0.36);
     }
     if (active) {
-      torusY(ox, turY + 0.045, oz, 0.112, 0.02, 1, 0.08, 0.72, out, S(64, 28), S(20, 12), 0.52);
+      const [ar, ag, ab] = ACTIVITY_RING.rgb;
+      cylinderY(ox, collarY, oz, 0.086 * k, 0.046, ar, ag, ab, out, S(64, 28), true, 0.5);
+      torusY(ox, collarY, oz, 0.098 * k, 0.016, ar, ag, ab, out, S(72, 32), S(20, 12), 0.55);
+      torusY(ox, collarY + 0.012, oz, 0.062 * k, 6e-3, 1, 1, 1, out, S(56, 24), S(14, 8), 0.5);
+      torusY(ox, turY + 0.045, oz, 0.112, 0.02, ar, ag, ab, out, S(64, 28), S(20, 12), 0.52);
       torusY(ox, turY + 0.045, oz, 0.084, 0.012, 1, 1, 1, out, S(56, 24), S(16, 10), 0.55);
-      torusY(ox, turY + 0.06, oz, 0.096, 9e-3, 1, 0.4, 0.9, out, S(48, 20), S(14, 8), 0.44);
+      torusY(ox, turY + 0.06, oz, 0.096, 9e-3, ar, Math.min(1, ag + 0.32), Math.min(1, ab + 0.18), out, S(48, 20), S(14, 8), 0.44);
     } else if (hovered) {
       torusY(ox, turY + 0.045, oz, 0.104, 0.014, 0.62, 0.82, 1, out, S(48, 20), S(14, 8), 0.38);
     }
@@ -5637,7 +5697,29 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   box(0, stageY, 0.04, 1.02, 0.05, 0.7, ...ivory, out, 0.06);
   box(0, stageY - 0.032, 0.04, 0.94, 0.016, 0.62, ...ivoryEdge, out, 0.08);
   box(0, stageY - 0.05, 0.02, 0.7, 0.02, 0.46, ...chromeDim, out, 0.16);
-  torusY(0, stageY + 0.01, 0.04, 0.48, 0.018, ...ivoryEdge, out, S(64, 28), S(12, 8), 0.1);
+  {
+    const stageHx = 0.51;
+    const stageHz = 0.35;
+    const stageCz = 0.04;
+    const rimY = stageY + 0.025;
+    const rimR = 0.016;
+    const xL = -stageHx;
+    const xR = stageHx;
+    const zB = stageCz - stageHz;
+    const zF = stageCz + stageHz;
+    const rimSlice = S(28, 12);
+    tubeSeg(xL, rimY, zB, xR, rimY, zB, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    tubeSeg(xL, rimY, zF, xR, rimY, zF, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    tubeSeg(xL, rimY, zB, xL, rimY, zF, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    tubeSeg(xR, rimY, zB, xR, rimY, zF, rimR, ...ivoryEdge, out, rimSlice, false, 0.12);
+    const cornerU = S(16, 8);
+    const cornerV = S(12, 6);
+    for (const px of [xL, xR]) {
+      for (const pz of [zB, zF]) {
+        sphere(px, rimY, pz, rimR * 1.05, ...ivoryEdge, out, cornerU, cornerV, 0.14);
+      }
+    }
+  }
   cylinderY(0, stageY + 0.02, 0.02, 0.1, 0.02, 0.08, 0.08, 0.09, out, S(48, 20), true, 0.05);
   torusY(0, stageY + 0.028, 0.02, 0.12, 0.012, ...chromeDim, out, S(48, 20), S(14, 8), 0.22);
   const railY = stageY + 0.036;
@@ -5940,8 +6022,14 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   let oilSlideX = 0;
   let oilSlideZ = 0;
   let oilActive = false;
+  const OIL_RISE_SEC = 0.45;
+  const OIL_FALL_SEC = 0.32;
   let oilBlend = 0;
+  let oilRiseElapsed = 0;
+  let oilAim = 0;
   let lastOilT = 0;
+  let lastMvp = null;
+  let lastLayout = null;
   let overlayLabels = [];
   const pointers = /* @__PURE__ */ new Map();
   let pinchDist = 0;
@@ -6294,8 +6382,15 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     const dt = lastOilT ? Math.min(0.05, Math.max(0, tSec - lastOilT)) : 0.016;
     lastOilT = tSec;
     const oilTarget = oilActive ? 1 : 0;
-    oilBlend += (oilTarget - oilBlend) * Math.min(1, dt * 7);
-    if (Math.abs(oilBlend - oilTarget) < 0.01) oilBlend = oilTarget;
+    if (oilTarget > oilAim) oilRiseElapsed = 0;
+    oilAim = oilTarget;
+    if (oilBlend < oilTarget) {
+      oilBlend = Math.min(oilTarget, oilBlend + dt / OIL_RISE_SEC);
+      oilRiseElapsed += dt;
+    } else if (oilBlend > oilTarget) {
+      oilBlend = Math.max(oilTarget, oilBlend - dt / OIL_FALL_SEC);
+      if (oilTarget === 0 && oilBlend <= 0) oilRiseElapsed = 0;
+    }
     const hoverBusy = hoverHit && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
     if (!dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
       yaw += autoSpin * 0.016;
@@ -6308,9 +6403,29 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     const proj = perspective(38, aspect, 0.15, 56);
     const viewM = lookAt(ex, ey, ez, 0, lookY, 0, 0, 1, 0);
     const mvp = multiply(proj, viewM);
+    lastMvp = mvp;
+    lastLayout = layout;
     rebuildHits(mvp, view.width, view.height, layout);
     overlayLabels = [];
     const showLabels = Number(params.showLabels) !== 0;
+    const dragHot = dragMode === "part" && partHit ? partHit : null;
+    const pointerHot = dragHot || hoverHit;
+    const hotMatch = (kind, index = 0) => !!(pointerHot && pointerHot.kind === kind && (pointerHot.index == null || pointerHot.index === index));
+    const knobLabels = {
+      focusCoarse: "Coarse",
+      focusFine: "Fine",
+      stageX: "Stage X",
+      stageY: "Stage Y",
+      condenser: "Condenser",
+      iris: "Abbe iris",
+      fieldIris: "Field iris",
+      lamp: "Lamp",
+      tubeL: null,
+      // L dimension already labeled when captions are standing
+      interpupillary: "IPD",
+      immersion: "Oil",
+      clip: "Clip"
+    };
     if (showLabels) {
       const tubeHit = layout.pts.find((row) => row.kind === "tubeL");
       const Lpt = tubeHit ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height) : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
@@ -6322,21 +6437,6 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
           y: Lpt.y
         });
       }
-      const knobLabels = {
-        focusCoarse: "Coarse",
-        focusFine: "Fine",
-        stageX: "Stage X",
-        stageY: "Stage Y",
-        condenser: "Condenser",
-        iris: "Abbe iris",
-        fieldIris: "Field iris",
-        lamp: "Lamp",
-        tubeL: null,
-        // L dimension already labeled
-        interpupillary: "IPD",
-        immersion: "Oil",
-        clip: "Clip"
-      };
       const shownKnob = /* @__PURE__ */ new Set();
       for (const p of layout.pts) {
         if (p.kind === "obj") {
@@ -6397,6 +6497,58 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
         }
       }
       overlayLabels = resolveLabelCollisions(overlayLabels);
+    } else if (pointerHot) {
+      const p = (layout.pts || []).find((row) => hotMatch(row.kind, row.index));
+      if (p) {
+        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+        if (s) {
+          if (p.kind === "obj") {
+            const obj = OBJECTIVES[p.index];
+            if (obj) {
+              const ring = objectiveRingColor(obj.mag);
+              overlayLabels.push({
+                id: `obj-${obj.id}`,
+                text: `${obj.mag}\xD7 ${ring.name}`,
+                x: s.x,
+                y: s.y - 18,
+                active: true,
+                ring: ring.hex,
+                role: "obj"
+              });
+            }
+          } else if (p.kind === "eye") {
+            const eye = EYEPIECES[p.index];
+            if (eye) {
+              overlayLabels.push({
+                id: `eye-${eye.id}`,
+                text: `Eye ${eye.mag}\xD7`,
+                x: s.x,
+                y: s.y - 14,
+                active: true,
+                role: "eye"
+              });
+            }
+          } else if (p.kind === "tubeL") {
+            overlayLabels.push({
+              id: "L",
+              text: `L = ${Math.round(optics.Lmm)} mm`,
+              x: s.x,
+              y: s.y,
+              active: true
+            });
+          } else if (knobLabels[p.kind]) {
+            const key = p.kind === "clip" ? `clip-${p.index}` : p.kind;
+            overlayLabels.push({
+              id: `knob-${key}`,
+              text: knobLabels[p.kind],
+              x: s.x,
+              y: s.y + 16,
+              active: true,
+              role: "knob"
+            });
+          }
+        }
+      }
     }
     gl.useProgram(prog);
     gl.uniformMatrix4fv(uMVP, false, mvp);
@@ -6431,6 +6583,27 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     getHits() {
       return hits.slice();
     },
+    /** CSS px of the active objective barrel collar (DIN-ring height) from the last draw. */
+    getActivityRing() {
+      if (!lastMvp || !lastLayout || !lastState) return null;
+      const optics = opticsFromParams(lastState.params || {});
+      const w = activityCollarWorld(lastLayout, optics.obj.id);
+      const { width, height } = lastView;
+      const c = project(lastMvp, w.x, w.y, w.z, width, height);
+      if (!c) return null;
+      const edge = project(lastMvp, w.x + 0.1, w.y, w.z, width, height);
+      const r = edge ? Math.max(6, Math.hypot(edge.x - c.x, edge.y - c.y)) : 16;
+      return { x: c.x, y: c.y, r };
+    },
+    getOilBlend() {
+      return oilBlend;
+    },
+    getOilRiseSec() {
+      return OIL_RISE_SEC;
+    },
+    getOilRiseElapsed() {
+      return oilRiseElapsed;
+    },
     capturePng(state, view) {
       drawScene(state, view);
       gl.finish();
@@ -6460,6 +6633,31 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
 }
 
 // js/shells/microscopeStage.js
+var LABELS_PREF_KEY = "imm-micro-labels-pref-v1";
+var labelsPrefMemory = false;
+function labelsPrefSet(state) {
+  if (!state?.params) return false;
+  if (labelsPrefMemory) return false;
+  let stored = false;
+  try {
+    stored = localStorage.getItem(LABELS_PREF_KEY) === "1";
+  } catch {
+    stored = false;
+  }
+  if (stored) {
+    labelsPrefMemory = true;
+    return false;
+  }
+  const narrow = typeof matchMedia === "function" && matchMedia("(max-width: 480px)").matches;
+  if (!narrow) return false;
+  state.params.showLabels = 0;
+  labelsPrefMemory = true;
+  try {
+    localStorage.setItem(LABELS_PREF_KEY, "1");
+  } catch {
+  }
+  return true;
+}
 var READOUTS = [
   { key: "M", label: "M" },
   { key: "f_obj", label: "f_obj" },
@@ -6766,6 +6964,7 @@ function createMicroscopeStage(api) {
     if (!stage) return;
     const state = api.getState();
     if (!state?.params) return;
+    labelsPrefSet(state);
     const o = opticsFromParams(state.params);
     const values = fmtReadouts(o);
     const t2 = typeof api.t === "function" ? api.t : (k) => k;
@@ -6855,8 +7054,6 @@ function createMicroscopeStage(api) {
     for (const btn of stage.querySelectorAll("#micro-labels .micro-chip")) {
       btn.classList.toggle("is-active", btn.dataset.labels === "1" === showLabels);
     }
-    const labelHost = stage.querySelector("#micro-gl-labels");
-    if (labelHost) labelHost.hidden = !showLabels;
     const note = stage.querySelector("#micro-imm-note");
     if (note) {
       note.textContent = o.immersion ? "Oil film on the stage \xB7 n \u2265 1.515" : "Dry objective \xB7 immersion follows 100\xD7";
@@ -6867,7 +7064,10 @@ function createMicroscopeStage(api) {
   function setVisible(on) {
     const stage = ensureDom();
     if (stage) stage.hidden = !on;
-    if (on) captureBaseline();
+    if (on) {
+      labelsPrefSet(api.getState());
+      captureBaseline();
+    }
   }
   function syncOverlayLabels(labels = []) {
     const host = document.getElementById("micro-gl-labels");
@@ -9891,4 +10091,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-6VR676DR.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-VOCRFTVP.js");

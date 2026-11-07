@@ -147,15 +147,27 @@ jobs:
           MICRO_FPS_MIN=25 npm run test:micro-fps 2>&1 | tee artifacts/micro-fps.log
           echo "micro-fps gate ok" >> artifacts/ci-summary.txt
 
-      - name: Microscope knob contract (coarse/fine/stage)
+      - name: Microscope palette (activity ring vs DIN)
+        run: |
+          npm run test:micro-palette 2>&1 | tee artifacts/micro-palette.log
+          echo "micro-palette ok" >> artifacts/ci-summary.txt
+
+      - name: Microscope knob contract (coarse/fine/stage/IPD, 1280 and 390)
         run: |
           npm run test:micro-knobs 2>&1 | tee artifacts/micro-knobs.log
+          npm run test:micro-knobs:390 2>&1 | tee artifacts/micro-knobs-390.log
           echo "micro-knobs ok" >> artifacts/ci-summary.txt
 
-      - name: Microscope magenta activity-ring ROI
+      - name: Microscope magenta activity-ring ROI (1280 and 390)
         run: |
           npm run test:micro-magenta 2>&1 | tee artifacts/micro-magenta.log
+          npm run test:micro-magenta:390 2>&1 | tee artifacts/micro-magenta-390.log
           echo "micro-magenta ok" >> artifacts/ci-summary.txt
+
+      - name: Microscope oil blend
+        run: |
+          npm run test:micro-oil 2>&1 | tee artifacts/micro-oil.log
+          echo "micro-oil ok" >> artifacts/ci-summary.txt
 
       - name: Short SHA for artifacts
         if: always()
@@ -508,6 +520,10 @@ jobs:
         env:
           MICRO_BROWSER: webkit
         run: npm run test:micro-magenta
+      - name: WebKit microscope promo shots
+        env:
+          MICRO_BROWSER: webkit
+        run: npm run test:micro-shots
       - name: Sync safari-proxy into docs/assets when drifted
         if: always()
         id: safari_proxy

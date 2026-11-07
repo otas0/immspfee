@@ -8,6 +8,23 @@ export function MagScale(m) {
   return Math.log10(Math.max(4, m));
 }
 
+/**
+ * DIN ring / activity-collar height relative to `turY`.
+ * Matches the objective band stack in microscopeMeshBuild (0.012 + 0.04 + 0.042).
+ */
+export const OBJECTIVE_COLLAR_DY = -0.094;
+
+/** World point of the active objective's barrel collar (DIN-ring height). */
+export function activityCollarWorld(layout, objectiveId) {
+  const activeIdx = Math.max(0, OBJECTIVES.findIndex((o) => o.id === objectiveId));
+  const ang = layout.turretRot + activeIdx * (Math.PI / 2);
+  return {
+    x: Math.cos(ang) * 0.32,
+    y: layout.turY + OBJECTIVE_COLLAR_DY,
+    z: Math.sin(ang) * 0.32,
+  };
+}
+
 /** C-arm parametric point (t∈[0,1]) — focus knobs sit near t≈0.3. */
 export function armPoint(t) {
   const heelZ = -0.56;
