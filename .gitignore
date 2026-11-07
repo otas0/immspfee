@@ -15,7 +15,8 @@ js/bundle/*
 scripts/.narrow-regression.mjs.*
 scripts/narrow-batch.mjs
 
-# prepare-site local scratch (Pages regenerates into _site)
+# prepare-site local scratch (Pages regenerates into _site) — never git-add _site/
+_site/
 data/domains/
 data/domain-index.json
 # Manual embeds: ignore dirt under docs/assets, keep tracked manual shots
@@ -27,6 +28,7 @@ docs/assets/*
 !docs/assets/narrow-params-open-390.png
 !docs/assets/shell-projector-1000-menu.png
 !docs/assets/shell-micro-menu-390-webkit.png
+!docs/assets/shell-micro-1280-lamp-off-webkit.png
 
 # Poster print smoke / PDF (regenerate locally)
 docs/promo/poster-a4-*.png

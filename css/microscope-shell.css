@@ -367,6 +367,22 @@ html.shell-lab-microscope3d .micro-gl-label.is-eye {
   color: #b8e0ff;
 }
 
+html.shell-lab-microscope3d .micro-gl-label.is-din {
+  padding: 0.08rem 0.28rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0a0c10;
+  background: var(--micro-ring, #f2d11f);
+  border-color: rgba(0, 0, 0, 0.35);
+  translate: -50% -30%;
+}
+
+html.shell-lab-microscope3d .micro-gl-label.is-din.is-active {
+  box-shadow: 0 0 0 1px #ff3db8;
+  color: #1a0612;
+}
+
 html.shell-lab-microscope3d .micro-gl-label.is-knob {
   font-size: 0.58rem;
   letter-spacing: 0.06em;

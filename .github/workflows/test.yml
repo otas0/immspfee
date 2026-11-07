@@ -142,6 +142,21 @@ jobs:
             exit 1
           fi
 
+      - name: Microscope denser-mesh FPS gate
+        run: |
+          MICRO_FPS_MIN=25 npm run test:micro-fps 2>&1 | tee artifacts/micro-fps.log
+          echo "micro-fps gate ok" >> artifacts/ci-summary.txt
+
+      - name: Microscope knob contract (coarse/fine/stage)
+        run: |
+          npm run test:micro-knobs 2>&1 | tee artifacts/micro-knobs.log
+          echo "micro-knobs ok" >> artifacts/ci-summary.txt
+
+      - name: Microscope magenta activity-ring ROI
+        run: |
+          npm run test:micro-magenta 2>&1 | tee artifacts/micro-magenta.log
+          echo "micro-magenta ok" >> artifacts/ci-summary.txt
+
       - name: Short SHA for artifacts
         if: always()
         id: short_sha
@@ -489,6 +504,10 @@ jobs:
         env:
           SHELL_WEBKIT_ONLY: '1'
         run: node scripts/shell-chrome.mjs
+      - name: WebKit magenta activity-ring ROI
+        env:
+          MICRO_BROWSER: webkit
+        run: npm run test:micro-magenta
       - name: Sync safari-proxy into docs/assets when drifted
         if: always()
         id: safari_proxy

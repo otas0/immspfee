@@ -200,6 +200,9 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let oilSlideX = 0;
   let oilSlideZ = 0;
   let oilActive = false;
+  /** 0..1 blend toward real immersion (short drip when switching to 100×). */
+  let oilBlend = 0;
+  let lastOilT = 0;
   /** Screen-space labels refreshed each draw (L dimension + picks). */
   let overlayLabels = [];
   /** @type {Map<number, { x: number, y: number }>} */
@@ -210,9 +213,41 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const rw = Math.max(0.04, Number(p.rWorld) || 0.12);
     const c = project(mvp, p.x, p.y, p.z, width, height);
     const e = project(mvp, p.x + rw, p.y, p.z, width, height);
-    if (!c || !e) return 36;
+    const dpr = Math.min(window.devicePixelRatio || 1, Number(document.documentElement.dataset.dprCap) || 3);
+    const narrow = narrowStage || width <= 420;
+    // Narrow / retina: larger CSS-px floors so 390 picks stay fat-finger friendly.
+    const floor = narrow ? Math.round(34 + dpr * 4) : 28;
+    const ceil = narrow ? Math.round(70 + dpr * 6) : 64;
+    const fat = narrow ? 1.28 + Math.min(0.28, (dpr - 1) * 0.12) : 1.18;
+    if (!c || !e) return floor + 8;
     const r = Math.hypot(e.x - c.x, e.y - c.y);
-    return Math.max(28, Math.min(64, r * 1.35));
+    return Math.max(floor, Math.min(ceil, r * 1.35 * fat));
+  }
+
+  function resolveLabelCollisions(labels) {
+    const rows = labels.slice();
+    const est = (lab) => ({
+      w: Math.max(28, String(lab.text || '').length * (lab.role === 'din' ? 5.5 : 7.2)),
+      h: lab.role === 'din' ? 12 : lab.role === 'knob' ? 14 : 16,
+    });
+    for (let pass = 0; pass < 4; pass += 1) {
+      for (let i = 0; i < rows.length; i += 1) {
+        for (let j = 0; j < i; j += 1) {
+          const a = rows[i];
+          const b = rows[j];
+          const ea = est(a);
+          const eb = est(b);
+          const dx = Math.abs(a.x - b.x);
+          const dy = Math.abs(a.y - b.y);
+          if (dx < (ea.w + eb.w) * 0.5 && dy < (ea.h + eb.h) * 0.55) {
+            const push = ((ea.h + eb.h) * 0.55 - dy) + 2 + pass;
+            if (a.y <= b.y) a.y -= push;
+            else a.y += push;
+          }
+        }
+      }
+    }
+    return rows;
   }
 
   function rebuildHits(mvp, width, height, layout) {
@@ -255,10 +290,14 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const p = lastState.params;
     const o = opticsFromParams(p);
     if (kind === 'focusCoarse') {
+      // Coarse: large rack-and-pinion Δz + WD together.
       p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -2, 2);
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.09, 0.05, 25);
     } else if (kind === 'focusFine') {
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.006, -2, 2);
+      // Fine: small Δz while unsaturated; WD always nudges so a saturated
+      // focusZ knob never feels dead (contract: fine→WD when focusZ hits ±2).
+      const z0 = Number(p.focusZ_mm) || 0;
+      p.focusZ_mm = clamp(z0 + dy * -0.006, -2, 2);
       p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.02, 0.05, 25);
     } else if (kind === 'stageX') {
       p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -15, 15);
@@ -272,6 +311,8 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       p.fieldIris = clamp((Number(p.fieldIris) || 0.55) + dx * 0.003, 0.1, 1);
     } else if (kind === 'tubeL') {
       p.tubeL_mm = clamp((Number(p.tubeL_mm) || 160) + dy * -0.2, 120, 200);
+    } else if (kind === 'interpupillary') {
+      p.interpupillary_mm = clamp((Number(p.interpupillary_mm) || 64) + dx * 0.08, 50, 75);
     } else {
       return;
     }
@@ -531,6 +572,12 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     }
     oilSlideX = layout.slideX;
     oilSlideZ = layout.slideZ;
+    // Short drip toward the real immersion flag (100× oil / dry).
+    const dt = lastOilT ? Math.min(0.05, Math.max(0, tSec - lastOilT)) : 0.016;
+    lastOilT = tSec;
+    const oilTarget = oilActive ? 1 : 0;
+    oilBlend += (oilTarget - oilBlend) * Math.min(1, dt * 7);
+    if (Math.abs(oilBlend - oilTarget) < 0.01) oilBlend = oilTarget;
 
     const hoverBusy = hoverHit
       && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
@@ -550,85 +597,99 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     rebuildHits(mvp, view.width, view.height, layout);
 
     overlayLabels = [];
-    const tubeHit = layout.pts.find((row) => row.kind === 'tubeL');
-    const Lpt = tubeHit
-      ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height)
-      : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
-    if (Lpt) {
-      overlayLabels.push({
-        id: 'L',
-        text: `L = ${Math.round(optics.Lmm)} mm`,
-        x: Lpt.x,
-        y: Lpt.y,
-      });
-    }
-    const knobLabels = {
-      focusCoarse: 'Coarse',
-      focusFine: 'Fine',
-      stageX: 'Stage X',
-      stageY: 'Stage Y',
-      condenser: 'Condenser',
-      iris: 'Abbe iris',
-      fieldIris: 'Field iris',
-      lamp: 'Lamp',
-      tubeL: null, // L dimension already labeled
-      immersion: 'Oil',
-      clip: 'Clip',
-    };
-    const shownKnob = new Set();
-    for (const p of layout.pts) {
-      if (p.kind === 'obj') {
-        const obj = OBJECTIVES[p.index];
-        if (!obj) continue;
-        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
-        if (!s) continue;
-        const ring = objectiveRingColor(obj.mag);
+    const showLabels = Number(params.showLabels) !== 0;
+    if (showLabels) {
+      const tubeHit = layout.pts.find((row) => row.kind === 'tubeL');
+      const Lpt = tubeHit
+        ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height)
+        : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
+      if (Lpt) {
         overlayLabels.push({
-          id: `obj-${obj.id}`,
-          text: `${obj.mag}× ${ring.name}`,
-          x: s.x,
-          y: s.y - 14,
-          active: obj.id === optics.obj.id,
-          ring: ring.hex,
-          role: 'obj',
-        });
-      } else if (p.kind === 'eye') {
-        const eye = EYEPIECES[p.index];
-        if (!eye) continue;
-        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
-        if (!s) continue;
-        overlayLabels.push({
-          id: `eye-${eye.id}`,
-          text: `Eye ${eye.mag}×`,
-          x: s.x,
-          y: s.y - 14,
-          active: eye.id === optics.eye.id,
-          role: 'eye',
-        });
-      } else if (knobLabels[p.kind] != null) {
-        // One caption per kind (left/right coarse share). Always mark primary
-        // teaching knobs; others appear on hover/drag.
-        const key = p.kind === 'clip' ? `clip-${p.index}` : p.kind;
-        if (shownKnob.has(key)) continue;
-        const primary = p.kind === 'focusCoarse' || p.kind === 'focusFine'
-          || p.kind === 'stageX' || p.kind === 'stageY'
-          || p.kind === 'iris' || p.kind === 'lamp' || p.kind === 'condenser';
-        const hot = (hoverHit && hoverHit.kind === p.kind)
-          || (partHit && partHit.kind === p.kind);
-        if (!primary && !hot) continue;
-        if (primary && p.index !== 0 && !hot) continue;
-        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
-        if (!s) continue;
-        shownKnob.add(key);
-        overlayLabels.push({
-          id: `knob-${key}`,
-          text: knobLabels[p.kind],
-          x: s.x,
-          y: s.y + 16,
-          active: hot,
-          role: 'knob',
+          id: 'L',
+          text: `L = ${Math.round(optics.Lmm)} mm`,
+          x: Lpt.x,
+          y: Lpt.y,
         });
       }
+      const knobLabels = {
+        focusCoarse: 'Coarse',
+        focusFine: 'Fine',
+        stageX: 'Stage X',
+        stageY: 'Stage Y',
+        condenser: 'Condenser',
+        iris: 'Abbe iris',
+        fieldIris: 'Field iris',
+        lamp: 'Lamp',
+        tubeL: null, // L dimension already labeled
+        interpupillary: 'IPD',
+        immersion: 'Oil',
+        clip: 'Clip',
+      };
+      const shownKnob = new Set();
+      for (const p of layout.pts) {
+        if (p.kind === 'obj') {
+          const obj = OBJECTIVES[p.index];
+          if (!obj) continue;
+          const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+          if (!s) continue;
+          const ring = objectiveRingColor(obj.mag);
+          // Compact DIN sticker near the ring + name caption above.
+          overlayLabels.push({
+            id: `din-${obj.id}`,
+            text: String(obj.mag),
+            x: s.x,
+            y: s.y + 6,
+            active: obj.id === optics.obj.id,
+            ring: ring.hex,
+            role: 'din',
+          });
+          overlayLabels.push({
+            id: `obj-${obj.id}`,
+            text: `${obj.mag}× ${ring.name}`,
+            x: s.x,
+            y: s.y - 18,
+            active: obj.id === optics.obj.id,
+            ring: ring.hex,
+            role: 'obj',
+          });
+        } else if (p.kind === 'eye') {
+          const eye = EYEPIECES[p.index];
+          if (!eye) continue;
+          const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+          if (!s) continue;
+          overlayLabels.push({
+            id: `eye-${eye.id}`,
+            text: `Eye ${eye.mag}×`,
+            x: s.x,
+            y: s.y - 14,
+            active: eye.id === optics.eye.id,
+            role: 'eye',
+          });
+        } else if (knobLabels[p.kind] != null) {
+          const key = p.kind === 'clip' ? `clip-${p.index}` : p.kind;
+          if (shownKnob.has(key)) continue;
+          const primary = p.kind === 'focusCoarse' || p.kind === 'focusFine'
+            || p.kind === 'stageX' || p.kind === 'stageY'
+            || p.kind === 'iris' || p.kind === 'lamp' || p.kind === 'condenser'
+            || p.kind === 'interpupillary';
+          const hot = (hoverHit && hoverHit.kind === p.kind)
+            || (partHit && partHit.kind === p.kind);
+          if (!primary && !hot) continue;
+          if (primary && p.index !== 0 && !hot) continue;
+          const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+          if (!s) continue;
+          shownKnob.add(key);
+          overlayLabels.push({
+            id: `knob-${key}`,
+            text: knobLabels[p.kind],
+            x: s.x,
+            y: s.y + 16,
+            active: hot,
+            role: 'knob',
+          });
+        }
+      }
+      overlayLabels = resolveLabelCollisions(overlayLabels);
     }
 
     gl.useProgram(prog);
@@ -636,16 +697,16 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     drawBuffer(staticBuf, staticVertCount);
     drawBuffer(dynamicBuf, dynamicVertCount);
 
-    if (oilActive) {
+    if (oilBlend > 0.02) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
       gl.useProgram(oilProg);
       gl.uniformMatrix4fv(oilUMVP, false, mvp);
       gl.uniform3f(oilUCenter, oilSlideX, oilStageY, oilSlideZ);
-      gl.uniform1f(oilUScale, 0.58);
+      gl.uniform1f(oilUScale, 0.58 * (0.35 + 0.65 * oilBlend));
       gl.uniform1f(oilUTime, tSec);
-      gl.uniform1f(oilUImm, 1);
+      gl.uniform1f(oilUImm, oilBlend);
       gl.bindBuffer(gl.ARRAY_BUFFER, oilBuf);
       gl.enableVertexAttribArray(oilAUv);
       gl.vertexAttribPointer(oilAUv, 2, gl.FLOAT, false, 0, 0);

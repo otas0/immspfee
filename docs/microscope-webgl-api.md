@@ -48,6 +48,9 @@ Call `paintFrame()` (or wait one rAF) before reading hits after a param change
 ## Related
 
 - Overlay captions: `stage.getOverlayLabels()` → `#micro-gl-labels` via
-  `microUi.syncOverlayLabels`.
-- Knob contract test: `npm run test:micro-knobs` (`scripts/micro-knob-drag.mjs`).
+  `microUi.syncOverlayLabels`. Hide with rail **3D labels** / `params.showLabels=0`.
+- Focus knobs: coarse moves large `focusZ_mm`+`WD_mm`; fine nudges both, and when
+  `focusZ_mm` is clamped at ±2 only WD continues (`npm run test:micro-knobs`).
+- Magenta activity ring pixel assert: `npm run test:micro-magenta`.
 - Mesh / layout: `js/viz/microscopeMeshBuild.js`, `js/viz/microscopeLayout.js`.
+- Interpupillary: `params.interpupillary_mm` (50–75) + drag kind `interpupillary`.

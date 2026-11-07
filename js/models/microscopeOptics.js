@@ -127,9 +127,11 @@ export const DEFAULT_PARAMS = {
   stageY_mm: 0,
   fieldIris: 0.55,
   lampOn: 1,
+  interpupillary_mm: 64,
   n: 1.0,
   lambda_nm: 550,
   showRays: 1,
+  showLabels: 1,
 };
 
 export const PARAM_SCHEMA = {
@@ -154,10 +156,17 @@ export const PARAM_SCHEMA = {
     group: 'display', unit: '', label: 'Lamp',
     options: [{ value: 0, label: 'Off' }, { value: 1, label: 'On' }],
   },
+  interpupillary_mm: {
+    group: 'dynamics', unit: 'mm', label: 'Interpupillary', min: 50, max: 75,
+  },
   n: { group: 'dynamics', unit: '—', label: 'n (medium)', min: 1, max: 1.6 },
   lambda_nm: { group: 'dynamics', unit: 'nm', label: 'λ', min: 400, max: 700 },
   showRays: {
     group: 'display', unit: '', label: 'Ray diagram',
+    options: [{ value: 0, label: 'Hide' }, { value: 1, label: 'Show' }],
+  },
+  showLabels: {
+    group: 'display', unit: '', label: '3D labels',
     options: [{ value: 0, label: 'Hide' }, { value: 1, label: 'Show' }],
   },
 };

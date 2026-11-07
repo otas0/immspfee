@@ -46,6 +46,8 @@
     "test:pages-stamp": "node scripts/assert-pages-stamp-rolled.mjs",
     "test:micro-knobs": "node scripts/micro-knob-drag.mjs",
     "test:micro-fps": "node scripts/micro-fps-probe.mjs",
+    "test:micro-magenta": "node scripts/micro-magenta-roi.mjs",
+    "test:micro-shots": "node scripts/micro-promo-shots.mjs",
     "sync:safari-proxy": "node scripts/sync-safari-proxy-asset.mjs",
     "sync:poster": "node scripts/sync-poster-promo.mjs",
     "gen:lab-qr": "node scripts/gen-lab-qr.mjs",

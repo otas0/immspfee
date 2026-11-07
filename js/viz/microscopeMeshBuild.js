@@ -291,8 +291,47 @@ export function meshDynamicKey(optics, hover, params = {}) {
     p.stageY_mm ?? 0,
     p.fieldIris ?? 0.55,
     Number(p.lampOn) !== 0 ? 1 : 0,
+    p.interpupillary_mm ?? 64,
     h,
   ].join('|');
+}
+
+/** Thin box glyph strokes for DIN mag numerals on the objective barrel. */
+function digitStrokes(ch) {
+  // Normalized [0,1]×[0,1] segments: [x0,y0,x1,y1] in local ring plane.
+  const H = {
+    '0': [[0.15, 0.1, 0.85, 0.1], [0.15, 0.9, 0.85, 0.9], [0.15, 0.1, 0.15, 0.9], [0.85, 0.1, 0.85, 0.9]],
+    '1': [[0.5, 0.1, 0.5, 0.9], [0.35, 0.22, 0.5, 0.1]],
+    '4': [[0.2, 0.1, 0.2, 0.55], [0.2, 0.55, 0.8, 0.55], [0.7, 0.1, 0.7, 0.9]],
+  };
+  return H[ch] || [];
+}
+
+function drawMagGlyph(cx, cy, cz, ang, mag, r, g, b, out, S) {
+  const text = String(mag);
+  const chars = text.split('');
+  const tangential = [-Math.sin(ang), 0, Math.cos(ang)];
+  const radial = [Math.cos(ang), 0, Math.sin(ang)];
+  const charW = 0.028;
+  const charH = 0.034;
+  const totalW = chars.length * charW * 0.85;
+  let ox = -totalW / 2;
+  for (const ch of chars) {
+    for (const [u0, v0, u1, v1] of digitStrokes(ch)) {
+      const midU = (u0 + u1) / 2;
+      const midV = (v0 + v1) / 2;
+      const lenU = Math.abs(u1 - u0) * charW + 0.004;
+      const lenV = Math.abs(v1 - v0) * charH + 0.004;
+      const px = cx + radial[0] * 0.052 + tangential[0] * (ox + midU * charW);
+      const py = cy + (0.5 - midV) * charH;
+      const pz = cz + radial[2] * 0.052 + tangential[2] * (ox + midU * charW);
+      const sx = Math.max(lenU, 0.006);
+      const sy = Math.max(lenV, 0.006);
+      box(px, py, pz, sx, sy, 0.008, r, g, b, out, 0.35);
+    }
+    ox += charW * 0.85;
+  }
+  void S;
 }
 
 function hoverHi(hover, kind, index = 0) {
@@ -312,10 +351,10 @@ function buildStatic(out, S) {
   const tipZ = 0.78;
 
   // —— Horseshoe: curved rear arc, straight forks, chrome sphere toes ——
-  // Extreme teaching solid (desktop tess=1 — dense shoe/arm cylinders).
-  const arcSegs = S(48, 22);
-  const arcSlice = S(64, 28);
-  const chromeSlice = S(32, 14);
+  // Extreme teaching solid (desktop tess=1 — near-smooth shoe/arm).
+  const arcSegs = S(56, 24);
+  const arcSlice = S(80, 32);
+  const chromeSlice = S(40, 16);
   for (let i = 0; i < arcSegs; i += 1) {
     const a0 = Math.PI + (i / arcSegs) * Math.PI;
     const a1 = Math.PI + ((i + 1) / arcSegs) * Math.PI;
@@ -328,16 +367,17 @@ function buildStatic(out, S) {
   }
   tubeSeg(-shoeR, shoeY, shoeZc, -shoeR, shoeY, tipZ, shoeRad, ...enamel, out, arcSlice, false, 0.1);
   tubeSeg(shoeR, shoeY, shoeZc, shoeR, shoeY, tipZ, shoeRad, ...enamel, out, arcSlice, false, 0.1);
-  sphere(-shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, out, S(40, 20), S(24, 14), 0.42);
-  sphere(shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, out, S(40, 20), S(24, 14), 0.42);
+  sphere(-shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, out, S(48, 24), S(28, 16), 0.42);
+  sphere(shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, out, S(48, 24), S(28, 16), 0.42);
 
   // Pillar / heel rises out of the rear arc into the limb.
-  cylinderY(0, 0.22, heelZ, 0.095, 0.3, ...enamel, out, S(80, 32), true, 0.1);
-  torusY(0, 0.34, heelZ, 0.1, 0.016, ...chrome, out, S(64, 28), S(20, 12), 0.36);
+  cylinderY(0, 0.22, heelZ, 0.095, 0.3, ...enamel, out, S(96, 36), true, 0.1);
+  torusY(0, 0.34, heelZ, 0.1, 0.016, ...chrome, out, S(80, 32), S(24, 14), 0.36);
+  torusY(0, 0.18, heelZ, 0.1, 0.012, ...chrome, out, S(64, 28), S(16, 10), 0.34);
 
   // —— C-arm (opens toward the optical axis) ——
-  const armSegs = S(48, 22);
-  const armSlice = S(64, 28);
+  const armSegs = S(56, 24);
+  const armSlice = S(80, 32);
   for (let i = 0; i < armSegs; i += 1) {
     const a = armPoint(i / armSegs);
     const b = armPoint((i + 1) / armSegs);
@@ -372,12 +412,12 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     lampY, focus, oculars,
   } = layout;
 
-  // Desktop tess=1 → dense tube/ocular rings (near-smooth cylinders).
-  const tubeSlice = S(144, 56);
-  const torusR = S(96, 40);
-  const torusT = S(24, 12);
-  const midSlice = S(80, 28);
-  const fineSlice = S(40, 16);
+  // Desktop tess=1 → extreme tube/ocular rings (promo-grade cylinders).
+  const tubeSlice = S(180, 64);
+  const torusR = S(112, 48);
+  const torusT = S(28, 14);
+  const midSlice = S(96, 32);
+  const fineSlice = S(48, 18);
 
   // —— Bilateral coaxial coarse + fine focus (hover-sensitive → dynamic) ——
   sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, out, S(24, 12), S(16, 10), 0.12);
@@ -388,14 +428,16 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     cylinderX(focus[0] + side * 0.09, focus[1], focus[2], 0.026, 0.1, ...chromeDim, out, S(16, 8), 0.28, false);
     const coarseX = focus[0] + side * 0.155;
     const cCol = coarseHot ? hi : chrome;
-    cylinderX(coarseX, focus[1], focus[2], 0.092, 0.05, ...cCol, out, S(28, 14), 0.4, true);
-    cylinderX(coarseX - side * 0.012, focus[1], focus[2], 0.102, 0.01, ...chromeDim, out, S(28, 14), 0.32, false);
-    cylinderX(coarseX + side * 0.012, focus[1], focus[2], 0.102, 0.01, ...chromeDim, out, S(28, 14), 0.32, false);
-    if (coarseHot) torusY(coarseX, focus[1], focus[2], 0.11, 0.012, ...hi, out, fineSlice, S(10, 6), 0.4);
+    cylinderX(coarseX, focus[1], focus[2], 0.092, 0.05, ...cCol, out, S(36, 16), 0.4, true);
+    // Knurled grooves on the coarse knob face.
+    for (let k = -2; k <= 2; k += 1) {
+      cylinderX(coarseX + side * k * 0.008, focus[1], focus[2], 0.098, 0.006, ...chromeDim, out, S(28, 14), 0.28, false);
+    }
+    if (coarseHot) torusY(coarseX, focus[1], focus[2], 0.11, 0.012, ...hi, out, fineSlice, S(12, 8), 0.4);
     const fineX = focus[0] + side * 0.21;
     const fCol = fineHot ? hi : chrome;
-    cylinderX(fineX, focus[1], focus[2], 0.05, 0.036, ...fCol, out, S(22, 12), 0.42, true);
-    sphere(focus[0] + side * 0.232, focus[1], focus[2], 0.046, ...(fineHot ? hi : chrome), out, S(16, 10), S(12, 8), 0.42);
+    cylinderX(fineX, focus[1], focus[2], 0.05, 0.036, ...fCol, out, S(32, 14), 0.42, true);
+    sphere(focus[0] + side * 0.232, focus[1], focus[2], 0.046, ...(fineHot ? hi : chrome), out, S(24, 12), S(16, 10), 0.42);
     if (fineHot) torusY(fineX, focus[1], focus[2], 0.066, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.36);
   }
 
@@ -427,9 +469,13 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   // —— Siedentopf binocular from layout.oculars ——
   box(0, tubeTopY + 0.07, 0.03, 0.36, 0.12, 0.24, ...enamel, out, 0.1);
   box(0, tubeTopY + 0.15, 0.07, 0.24, 0.08, 0.16, ...enamelHi, out, 0.12);
-  cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3, ...chrome, out, S(24, 12), 0.38, true);
+  const ipdHot = hoverHi(hover, 'interpupillary');
+  cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3 * (layout.ipdScale || 1), ...(ipdHot ? hi : chrome), out, S(32, 14), 0.38, true);
+  // Siedentopf IPD dial (center hinge).
+  torusY(0, tubeTopY + 0.12, 0.05, 0.05, 0.012, ...(ipdHot ? hi : chrome), out, S(40, 18), S(14, 8), 0.4);
+  if (ipdHot) torusY(0, tubeTopY + 0.12, 0.05, 0.068, 0.01, ...hiSoft, out, fineSlice, S(12, 8), 0.36);
 
-  const oculSlice = S(80, 28);
+  const oculSlice = S(96, 36);
   for (const oc of oculars) {
     tubeSeg(oc.x0, oc.y0, oc.z0, oc.x1, oc.y1, oc.z1, 0.044, ...enamel, out, oculSlice, true, 0.14);
     torusY(oc.x0, oc.y0, oc.z0, 0.05, 0.01, ...chrome, out, S(36, 16), S(14, 8), 0.34);
@@ -528,7 +574,7 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     const noseH = 0.055 + MagScale(obj.mag) * 0.028;
     const yNose = band(noseH);
     const yFront = band(0.016);
-    const objSlice = S(48, 20);
+    const objSlice = S(64, 28);
     cylinderY(ox, yCol, oz, 0.05 * k, 0.04, ...chrome, out, objSlice, true, 0.38);
     cylinderY(ox, ySh, oz, 0.044 * k, 0.042, ...enamel, out, objSlice, true, 0.12);
     const [rr0, rg0, rb0] = objectiveRingColor(obj.mag).rgb;
@@ -536,21 +582,23 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     const rr = Math.min(1, rr0 * 1.18 + 0.04);
     const rg = Math.min(1, rg0 * 1.18 + 0.04);
     const rb = Math.min(1, rb0 * 1.18 + 0.04);
-    torusY(ox, yRing, oz, 0.05 * k, 0.014, rr, rg, rb, out, S(48, 20), S(16, 10), 0.34);
+    torusY(ox, yRing, oz, 0.05 * k, 0.016, rr, rg, rb, out, S(64, 28), S(20, 12), 0.34);
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
-    cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(36, 16), true, 0.36);
-    frustumY(ox, yNose, oz, 0.03 * k, 0.02 * k, noseH, ...chromeDim, out, S(36, 16), 0.3);
-    cylinderY(ox, yFront, oz, 0.016 * k, 0.016, ...glass, out, S(28, 14), true, 0.45);
+    // DIN magnification glyph on the enamel barrel (mesh strokes, not HUD text).
+    drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
+    cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(48, 20), true, 0.36);
+    frustumY(ox, yNose, oz, 0.03 * k, 0.02 * k, noseH, ...chromeDim, out, S(48, 20), 0.3);
+    cylinderY(ox, yFront, oz, 0.016 * k, 0.016, ...glass, out, S(36, 16), true, 0.45);
     if (obj.immersion) {
-      torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, out, S(28, 14), S(12, 8), 0.36);
+      torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, out, S(36, 16), S(14, 8), 0.36);
     }
     if (active) {
       // Magenta activity ring + white inner — never confused with DIN bands.
-      torusY(ox, turY + 0.045, oz, 0.108, 0.018, 1, 0.12, 0.78, out, S(48, 20), S(16, 10), 0.48);
-      torusY(ox, turY + 0.045, oz, 0.082, 0.012, 1, 1, 1, out, S(48, 20), S(14, 8), 0.5);
-      torusY(ox, turY + 0.058, oz, 0.094, 0.008, 1, 0.45, 0.92, out, S(40, 18), S(12, 8), 0.4);
+      torusY(ox, turY + 0.045, oz, 0.112, 0.02, 1, 0.08, 0.72, out, S(64, 28), S(20, 12), 0.52);
+      torusY(ox, turY + 0.045, oz, 0.084, 0.012, 1, 1, 1, out, S(56, 24), S(16, 10), 0.55);
+      torusY(ox, turY + 0.06, oz, 0.096, 0.009, 1, 0.4, 0.9, out, S(48, 20), S(14, 8), 0.44);
     } else if (hovered) {
-      torusY(ox, turY + 0.045, oz, 0.1, 0.014, 0.62, 0.82, 1, out, S(36, 16), S(12, 8), 0.36);
+      torusY(ox, turY + 0.045, oz, 0.104, 0.014, 0.62, 0.82, 1, out, S(48, 20), S(14, 8), 0.38);
     }
   });
 
@@ -564,8 +612,10 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   box(0, stageY, 0.04, 1.02, 0.05, 0.7, ...ivory, out, 0.06);
   box(0, stageY - 0.032, 0.04, 0.94, 0.016, 0.62, ...ivoryEdge, out, 0.08);
   box(0, stageY - 0.05, 0.02, 0.7, 0.02, 0.46, ...chromeDim, out, 0.16);
-  cylinderY(0, stageY + 0.02, 0.02, 0.1, 0.02, 0.08, 0.08, 0.09, out, S(32, 16), true, 0.05);
-  torusY(0, stageY + 0.028, 0.02, 0.12, 0.012, ...chromeDim, out, S(32, 16), S(10, 6), 0.22);
+  // Soft edge bevel around the mechanical stage.
+  torusY(0, stageY + 0.01, 0.04, 0.48, 0.018, ...ivoryEdge, out, S(64, 28), S(12, 8), 0.1);
+  cylinderY(0, stageY + 0.02, 0.02, 0.1, 0.02, 0.08, 0.08, 0.09, out, S(48, 20), true, 0.05);
+  torusY(0, stageY + 0.028, 0.02, 0.12, 0.012, ...chromeDim, out, S(48, 20), S(14, 8), 0.22);
 
   const railY = stageY + 0.036;
   box(0.02, railY, 0.2, 0.68, 0.01, 0.018, ...chromeDim, out, 0.18);
@@ -629,21 +679,28 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   const fieldHot = hoverHi(hover, 'fieldIris');
   const frIn = 0.012 + fieldIris * 0.05;
   const frOut = 0.068;
-  box(0, lampY, 0.02, 0.3, 0.16, 0.3, ...(lampHot ? enamelHi : enamel), out, 0.08);
-  torusY(0, lampY + 0.08, 0.02, 0.1, 0.016, ...chrome, out, S(28, 14), S(10, 6), 0.36);
-  box(0, lampY, 0.17, 0.1, 0.07, 0.016, ...lampGlow, out, 0.12);
-  sphere(0, lampY, 0.04, layout.lampOn ? 0.052 : 0.022, ...lampGlow, out, S(20, 10), S(14, 8), layout.lampOn ? 0.28 : 0.08);
+  // Lamp house: darker shell when off so WebKit screenshots show clear contrast.
+  const houseCol = layout.lampOn
+    ? (lampHot ? enamelHi : enamel)
+    : [0.045, 0.04, 0.038];
+  box(0, lampY, 0.02, 0.3, 0.16, 0.3, ...houseCol, out, layout.lampOn ? 0.08 : 0.04);
+  torusY(0, lampY + 0.08, 0.02, 0.1, 0.016, ...chrome, out, S(40, 18), S(14, 8), 0.36);
+  box(0, lampY, 0.17, 0.1, 0.07, 0.016, ...lampGlow, out, layout.lampOn ? 0.12 : 0.04);
+  sphere(0, lampY, 0.04, layout.lampOn ? 0.052 : 0.018, ...lampGlow, out, S(28, 14), S(18, 10), layout.lampOn ? 0.28 : 0.05);
   if (layout.lampOn) {
-    torusY(0, lampY, 0.02, 0.09, 0.016, ...gold, out, S(32, 16), S(12, 8), 0.42);
+    torusY(0, lampY, 0.02, 0.09, 0.016, ...gold, out, S(40, 18), S(14, 8), 0.42);
+  } else {
+    // Cold collector glass when lamp is off.
+    torusY(0, lampY, 0.02, 0.09, 0.012, 0.12, 0.13, 0.15, out, S(36, 16), S(12, 8), 0.12);
   }
-  cylinderY(0, lampY + 0.125, 0.02, 0.09, 0.03, ...glass, out, S(32, 16), true, 0.48);
-  cylinderY(0, lampY + 0.158, 0.02, 0.064, 0.02, ...glassHi, out, S(28, 14), true, 0.5);
-  irisWedges(0, lampY + 0.185, 0.02, frIn, frOut, 8, fieldHot ? 0.45 : 0.28, fieldHot ? 0.55 : 0.29, fieldHot ? 0.72 : 0.32, out);
-  torusY(0, lampY + 0.185, 0.02, 0.076, 0.012, ...(fieldHot ? hi : chrome), out, S(28, 14), S(10, 6), 0.36);
+  cylinderY(0, lampY + 0.125, 0.02, 0.09, 0.03, ...glass, out, S(48, 20), true, layout.lampOn ? 0.48 : 0.18);
+  cylinderY(0, lampY + 0.158, 0.02, 0.064, 0.02, ...glassHi, out, S(40, 18), true, layout.lampOn ? 0.5 : 0.2);
+  irisWedges(0, lampY + 0.185, 0.02, frIn, frOut, 10, fieldHot ? 0.45 : 0.28, fieldHot ? 0.55 : 0.29, fieldHot ? 0.72 : 0.32, out);
+  torusY(0, lampY + 0.185, 0.02, 0.076, 0.012, ...(fieldHot ? hi : chrome), out, S(40, 18), S(12, 8), 0.36);
   // Floor plate: bright when lamp on, near-black when off.
-  const floorCol = layout.lampOn ? [1, 0.9, 0.52] : [0.035, 0.03, 0.028];
-  cylinderY(0, lampY - 0.1, 0.02, 0.14, 0.028, ...floorCol, out, S(28, 14), true, layout.lampOn ? 0.22 : 0.04);
-  if (lampHot) torusY(0, lampY, 0.02, 0.18, 0.014, ...hiSoft, out, S(24, 12), S(10, 6), 0.34);
+  const floorCol = layout.lampOn ? [1, 0.9, 0.52] : [0.02, 0.018, 0.016];
+  cylinderY(0, lampY - 0.1, 0.02, 0.14, 0.028, ...floorCol, out, S(40, 18), true, layout.lampOn ? 0.22 : 0.03);
+  if (lampHot) torusY(0, lampY, 0.02, 0.18, 0.014, ...hiSoft, out, S(32, 14), S(12, 8), 0.34);
 }
 
 /**

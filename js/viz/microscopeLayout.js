@@ -55,15 +55,19 @@ export function microscopeLayout(optics, params = {}) {
   const fieldIris = Math.min(1, Math.max(0.1, Number(params.fieldIris) || 0.55));
   const lampOn = Number(params.lampOn) !== 0;
 
+  // Siedentopf IPD — textbook binocular range ~50–75 mm (default 64 mm).
+  const ipdMm = Math.min(75, Math.max(50, Number(params.interpupillary_mm) || 64));
+  const ipdScale = ipdMm / 64;
+  const ocularHalf = 0.09 * ipdScale;
   const tilt = (34 * Math.PI) / 180;
   const dirY = Math.cos(tilt);
   const dirZ = Math.sin(tilt);
   const ocularLen = 0.3;
   const oculars = [-1, 1].map((side) => {
-    const x0 = side * 0.09;
+    const x0 = side * ocularHalf;
     const y0 = tubeTopY + 0.12;
     const z0 = 0.04;
-    const x1 = x0 + side * 0.032;
+    const x1 = x0 + side * (0.032 * ipdScale);
     const y1 = y0 + dirY * ocularLen;
     const z1 = z0 + dirZ * ocularLen;
     const flange = 0.07;
@@ -191,6 +195,14 @@ export function microscopeLayout(optics, params = {}) {
     rWorld: 0.12,
   });
   pts.push({
+    kind: 'interpupillary',
+    index: 0,
+    x: 0,
+    y: tubeTopY + 0.12,
+    z: 0.05,
+    rWorld: 0.1,
+  });
+  pts.push({
     kind: 'immersion',
     index: 0,
     x: 0.08 + slideX,
@@ -235,6 +247,8 @@ export function microscopeLayout(optics, params = {}) {
     lampY,
     focus,
     oculars,
+    ipdMm,
+    ipdScale,
     WD,
     NA,
     NAcap,
@@ -252,6 +266,7 @@ export const DRAG_KINDS = new Set([
   'iris',
   'fieldIris',
   'tubeL',
+  'interpupillary',
 ]);
 
 /** Discrete click / tap targets. */

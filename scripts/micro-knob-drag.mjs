@@ -175,6 +175,55 @@ try {
     WD: [beforeFine.WD, afterFine.WD],
   });
 
+  // Contract: when focusZ is saturated at ±2, fine still moves WD only.
+  await page.evaluate(() => {
+    const p = window.__labCapture.getParams() || {};
+    p.focusZ_mm = 2;
+    window.__labCapture.paintFrame?.();
+  });
+  const beforeSat = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    const stage = window.__labCapture.getWebglStage();
+    const hit = (stage.getHits() || []).find((h) => h.kind === 'focusFine');
+    const canvas = document.getElementById('canvas-webgl');
+    const rect = canvas.getBoundingClientRect();
+    return {
+      focusZ: Number(p.focusZ_mm) || 0,
+      WD: Number(p.WD_mm) || 0,
+      hit,
+      rect: { left: rect.left, top: rect.top },
+    };
+  });
+  if (!(Math.abs(beforeSat.focusZ - 2) < 1e-6)) fail(`focusZ not saturated at 2 (${beforeSat.focusZ})`);
+  if (!beforeSat.hit) fail('no focusFine hit (saturated)');
+  {
+    const x = beforeSat.rect.left + beforeSat.hit.x;
+    const y = beforeSat.rect.top + beforeSat.hit.y;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y - 80, { steps: 10 });
+    await page.mouse.up();
+  }
+  const afterSat = await page.evaluate(() => {
+    window.__labCapture.paintFrame();
+    const p = window.__labCapture.getParams() || {};
+    return {
+      focusZ: Number(p.focusZ_mm) || 0,
+      WD: Number(p.WD_mm) || 0,
+    };
+  });
+  if (!(Math.abs(afterSat.focusZ - 2) < 1e-6)) {
+    fail(`fine at ceiling moved focusZ ${beforeSat.focusZ} → ${afterSat.focusZ}`);
+  }
+  if (!(Math.abs(afterSat.WD - beforeSat.WD) > 0.01)) {
+    fail(`fine at ceiling did not move WD ${beforeSat.WD} → ${afterSat.WD}`);
+  }
+  console.log('focusFine@ceiling ok', {
+    focusZ: afterSat.focusZ,
+    WD: [beforeSat.WD, afterSat.WD],
+  });
+
   const beforeY = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};

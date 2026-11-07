@@ -51,6 +51,8 @@ function opticsFingerprint(params) {
     (Number(p.stageY_mm) || 0).toFixed(1),
     (Number(p.fieldIris) || 0.55).toFixed(2),
     Number(p.lampOn) !== 0 ? '1' : '0',
+    Math.round(Number(p.interpupillary_mm) || 64),
+    Number(p.showLabels) !== 0 ? '1' : '0',
   ].join('|');
 }
 
@@ -150,6 +152,20 @@ export function createMicroscopeStage(api) {
           <div class="micro-chips" id="micro-lamp" role="group">
             <button type="button" class="micro-chip" data-lamp="1" data-i18n="ui.microRailLampOn">On</button>
             <button type="button" class="micro-chip" data-lamp="0" data-i18n="ui.microRailLampOff">Off</button>
+          </div>
+        </div>
+        <label class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailIpd">Interpupillary</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-ipd" min="50" max="75" step="0.5" />
+            <output id="micro-ipd-out">64 mm</output>
+          </div>
+        </label>
+        <div class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailLabels">3D labels</span>
+          <div class="micro-chips" id="micro-labels" role="group">
+            <button type="button" class="micro-chip" data-labels="1" data-i18n="ui.microRailLabelsOn">Show</button>
+            <button type="button" class="micro-chip" data-labels="0" data-i18n="ui.microRailLabelsOff">Hide</button>
           </div>
         </div>
         <div class="micro-field">
@@ -285,12 +301,22 @@ export function createMicroscopeStage(api) {
     bindSlider('#micro-stage-x', 'stageX_mm');
     bindSlider('#micro-stage-y', 'stageY_mm');
     bindSlider('#micro-field-iris', 'fieldIris');
+    bindSlider('#micro-ipd', 'interpupillary_mm');
     stage.querySelector('#micro-lamp')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-lamp]');
       if (!btn) return;
       const state = api.getState();
       if (!state?.params) return;
       state.params.lampOn = Number(btn.dataset.lamp) ? 1 : 0;
+      paint();
+      api.onChange();
+    });
+    stage.querySelector('#micro-labels')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-labels]');
+      if (!btn) return;
+      const state = api.getState();
+      if (!state?.params) return;
+      state.params.showLabels = Number(btn.dataset.labels) ? 1 : 0;
       paint();
       api.onChange();
     });
@@ -393,6 +419,17 @@ export function createMicroscopeStage(api) {
     for (const btn of stage.querySelectorAll('#micro-lamp .micro-chip')) {
       btn.classList.toggle('is-active', (btn.dataset.lamp === '1') === lampOn);
     }
+    const ipd = Math.min(75, Math.max(50, Number(state.params.interpupillary_mm) || 64));
+    const ipdEl = stage.querySelector('#micro-ipd');
+    const ipdOut = stage.querySelector('#micro-ipd-out');
+    if (ipdEl) ipdEl.value = String(ipd);
+    if (ipdOut) ipdOut.textContent = `${formatNum(ipd, 1)} mm`;
+    const showLabels = Number(state.params.showLabels) !== 0;
+    for (const btn of stage.querySelectorAll('#micro-labels .micro-chip')) {
+      btn.classList.toggle('is-active', (btn.dataset.labels === '1') === showLabels);
+    }
+    const labelHost = stage.querySelector('#micro-gl-labels');
+    if (labelHost) labelHost.hidden = !showLabels;
     const note = stage.querySelector('#micro-imm-note');
     if (note) {
       note.textContent = o.immersion
@@ -400,6 +437,7 @@ export function createMicroscopeStage(api) {
         : 'Dry objective · immersion follows 100×';
     }
     stage.dataset.immersion = o.immersion ? '1' : '0';
+    stage.dataset.labels = showLabels ? '1' : '0';
   }
 
   function setVisible(on) {
@@ -432,6 +470,7 @@ export function createMicroscopeStage(api) {
       el.classList.toggle('is-knob', lab.role === 'knob');
       el.classList.toggle('is-obj', lab.role === 'obj');
       el.classList.toggle('is-eye', lab.role === 'eye');
+      el.classList.toggle('is-din', lab.role === 'din');
       if (lab.ring) el.style.setProperty('--micro-ring', lab.ring);
       else el.style.removeProperty('--micro-ring');
       el.style.transform = `translate(${Math.round(lab.x || 0)}px, ${Math.round(lab.y || 0)}px)`;
