@@ -528,6 +528,12 @@ jobs:
         run: |
           npm run test:micro-magenta
           npm run test:micro-magenta:390
+      - name: WebKit oil blend (1280 + 390 getOilScreen)
+        env:
+          MICRO_BROWSER: webkit
+        run: |
+          npm run test:micro-oil
+          npm run test:micro-oil:390
       - name: WebKit camera contract (WASD / blur / presets / hover)
         env:
           MICRO_BROWSER: webkit

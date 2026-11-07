@@ -39,7 +39,7 @@ import {
 import { createMicroscopeStage } from '../shells/microscopeStage.js';
 import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
 import { buildMicroscopeSolid, digitStrokes } from '../viz/microscopeMeshBuild.js';
-import { overlayCaptionPolicy } from '../viz/microscopeWebgl.js';
+import { overlayCaptionPolicy, CAMERA_HOLD, VIEW_HOTKEYS } from '../viz/microscopeWebgl.js';
 import { runModelContract } from './model-contract.js';
 import { validateUserModelDraft } from '../lab/userModels.js';
 import { runLab12 } from './lab12.js';
@@ -506,6 +506,11 @@ export function runSuite() {
         JSON.stringify(coldCap),
       );
       assert('DEFAULT_PARAMS.showLabels is 0', DEFAULT_PARAMS.showLabels === 0, String(DEFAULT_PARAMS.showLabels));
+      assert('CAMERA_HOLD KeyD → yawRight', CAMERA_HOLD.KeyD === 'yawRight', String(CAMERA_HOLD.KeyD));
+      assert('CAMERA_HOLD KeyA → yawLeft', CAMERA_HOLD.KeyA === 'yawLeft', String(CAMERA_HOLD.KeyA));
+      assert('CAMERA_HOLD KeyW → dollyIn', CAMERA_HOLD.KeyW === 'dollyIn', String(CAMERA_HOLD.KeyW));
+      assert('VIEW_HOTKEYS 3 → turret', VIEW_HOTKEYS['3'] === 'turret', String(VIEW_HOTKEYS['3']));
+      assert('VIEW_HOTKEYS 5 → lamp', VIEW_HOTKEYS['5'] === 'lamp', String(VIEW_HOTKEYS['5']));
 
       const oLow = opticsFromParams({ objective: '40x', eyepiece: '10x', tubeL_mm: 160, NA: 0.2, WD_mm: 0.6 });
       const layLow = microscopeLayout(oLow, { focusZ_mm: 0.5, stageX_mm: 5, stageY_mm: -3, fieldIris: 0.4, lampOn: 1 });
