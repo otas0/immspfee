@@ -580,6 +580,16 @@ function clampTess(tess) {
 function meshStaticKey(tess) {
   return `static:${clampTess(tess)}`;
 }
+function condenserLensRadii(irisOpen) {
+  const open = Math.min(0.95, Math.max(0.08, Number(irisOpen) || 0.08));
+  return {
+    irisOpen: open,
+    lensBot: 0.04 + open * 0.04,
+    lensTop: 0.055 + open * 0.03,
+    rIn: 0.018 + open * 0.075,
+    rOut: 0.1
+  };
+}
 function meshDynamicKey(optics, hover, params = {}) {
   const p = params || {};
   const h = hover ? `${hover.kind}:${hover.index}` : "-";
@@ -1070,11 +1080,8 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   box(0, stageY - 0.04, -0.24, 0.16, 0.08, 0.16, ...enamel, out, 0.08);
   const irisHot = hoverHi(hover, "iris");
   const condHot = hoverHi(hover, "condenser");
-  const rIn = 0.018 + irisOpen * 0.075;
-  const rOut = 0.1;
+  const { lensBot, lensTop, rIn, rOut } = condenserLensRadii(irisOpen);
   frustumY(0, condenserY + 0.055, 0.02, 0.07, 0.11, 0.08, ...chrome, out, S(32, 16), 0.34);
-  const lensBot = 0.04 + irisOpen * 0.04;
-  const lensTop = 0.055 + irisOpen * 0.03;
   frustumY(0, condenserY + 0.02, 0.02, lensBot, lensTop, 0.035, ...glass, out, S(28, 14), 0.42);
   torusY(0, condenserY + 0.02, 0.02, (lensBot + lensTop) * 0.5, 35e-4, ...glassHi, out, S(28, 14), S(8, 6), 0.4);
   irisWedges(0, condenserY, 0.02, rIn, rOut, 12, irisHot ? 0.4 : 0.22, irisHot ? 0.55 : 0.23, irisHot ? 0.7 : 0.26, out);
@@ -1310,6 +1317,17 @@ var VIEW_HOTKEYS = {
   6: "condenser",
   7: "side"
 };
+var STAGE_CAPTURE_KEYS = Object.freeze([
+  "getMeshDynamicKey",
+  "getHeldCameraKeys",
+  "getActivityRing",
+  "getCameraState",
+  "setCameraView",
+  "handleCameraKey",
+  "getOilBlend",
+  "oilVisible",
+  "getOilScreen"
+]);
 var CAMERA_HOLD = {
   KeyW: "dollyIn",
   ArrowUp: "dollyIn",
@@ -2176,6 +2194,7 @@ function createMicroscopeWebgl(canvas, opts = {}) {
 export {
   CAMERA_HOLD,
   CAMERA_VIEWS,
+  STAGE_CAPTURE_KEYS,
   VIEW_HOTKEYS,
   createMicroscopeWebgl,
   overlayCaptionPolicy
