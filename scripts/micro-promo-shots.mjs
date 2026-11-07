@@ -54,16 +54,23 @@ try {
 
   await page.click('[data-lamp="1"]').catch(() => {});
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.click('#micro-views [data-view="binocular"]').catch(() => {});
+  // 390 promo: default-hide labels, params closed, binocular + full view-chip row (incl. Lamp/Condenser/Side).
   await page.evaluate(() => {
+    document.getElementById('micro-rail')?.classList.remove('is-open');
+    document.getElementById('bench')?.classList.remove('is-open');
+    document.body.classList.remove('drawer-open', 'params-open');
+    document.querySelector('#micro-labels [data-labels="0"]')?.click();
+    window.__labCapture.setParam?.('showLabels', 0);
+    window.__labCapture.setParam?.('lampOn', 1);
     const stage = window.__labCapture.getWebglStage?.();
-    if (stage && typeof stage.setCameraView === 'function') stage.setCameraView('binocular');
-    const p = window.__labCapture.getParams?.() || {};
-    p.showLabels = 1;
-    p.lampOn = 1;
-    p.objective = '10x';
+    stage?.setCameraView?.('binocular');
+    for (const el of document.querySelectorAll('#micro-views .micro-chip')) {
+      el.classList.toggle('is-active', el.dataset.view === 'binocular');
+    }
     for (let i = 0; i < 6; i += 1) window.__labCapture.paintFrame?.();
   });
+  await page.click('#micro-views [data-view="binocular"]').catch(() => {});
+  await page.waitForTimeout(200);
   const promo390 = path.join(root, 'docs/promo/micro-390-webkit-binocular.png');
   fs.mkdirSync(path.dirname(promo390), { recursive: true });
   await page.screenshot({ path: promo390, fullPage: false });

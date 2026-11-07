@@ -1074,6 +1074,10 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         viewLocked,
       };
     },
+    /** Last meshDynamicKey after draw (NA / irisOpen / turret rebuild fingerprint). */
+    getMeshDynamicKey() {
+      return dynamicKey;
+    },
     capturePng(state, view) {
       drawScene(state, view);
       gl.finish();

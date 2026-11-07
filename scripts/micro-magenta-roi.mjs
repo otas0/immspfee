@@ -73,8 +73,12 @@ try {
   await page.waitForTimeout(350);
   await page.click('#micro-obj [data-obj="40x"]', { timeout: 15000 });
   // Rail is only needed to reach the 40× chip. On a phone it covers the barrel.
+  // Overview orbit hides the −Z collar face (zero magenta pixels); Turret faces it.
   await page.evaluate(() => {
     document.getElementById('micro-rail')?.classList.remove('is-open');
+    const stage = window.__labCapture.getWebglStage?.();
+    stage?.setCameraView?.('turret');
+    document.querySelector('#micro-views [data-view="turret"]')?.classList.add('is-active');
   });
   await page.waitForTimeout(360);
   const ring = await page.evaluate(() => {
@@ -86,6 +90,7 @@ try {
     return {
       ring: stage.getActivityRing?.() || null,
       obj: window.__labCapture.getParams()?.objective,
+      view: stage.getCameraState?.()?.view || null,
       canvas: {
         w: canvas.width,
         h: canvas.height,

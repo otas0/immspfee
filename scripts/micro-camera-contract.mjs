@@ -170,13 +170,33 @@ try {
   if (hover.n !== 1) fail(`caption n=${hover.n}`);
   if (!hover.texts.some((t) => t.includes('粗调') || t === 'Coarse')) fail(`texts ${hover.texts}`);
 
-  // NA irisOpen linkage via setParam + layout fingerprint through mesh rebuild (hit r soft)
+  // NA → Abbe irisOpen drives condenser second-lens radii (meshDynamicKey includes irisOpen).
+  // Use 40× so NAcap≈0.65; 10× clamps 0.65 → ~0.25 and the delta collapses.
   await page.evaluate(() => {
-    window.__labCapture.setParam?.('NA', 0.15);
-    for (let i = 0; i < 3; i += 1) window.__labCapture.paintFrame?.();
-    window.__labCapture.setParam?.('NA', 0.65);
-    for (let i = 0; i < 3; i += 1) window.__labCapture.paintFrame?.();
+    document.getElementById('micro-rail')?.classList.add('is-open');
   });
+  await page.click('#micro-obj [data-obj="40x"]', { timeout: 15000 }).catch(() => {});
+  const naLens = await page.evaluate(() => {
+    document.getElementById('micro-rail')?.classList.remove('is-open');
+    const stage = window.__labCapture.getWebglStage();
+    stage.setCameraView('condenser');
+    window.__labCapture.setParam?.('NA', 0.15);
+    for (let i = 0; i < 4; i += 1) window.__labCapture.paintFrame?.();
+    const keyLow = stage.getMeshDynamicKey?.() || null;
+    const naLow = window.__labCapture.getParams()?.NA;
+    window.__labCapture.setParam?.('NA', 0.65);
+    for (let i = 0; i < 4; i += 1) window.__labCapture.paintFrame?.();
+    const keyHigh = stage.getMeshDynamicKey?.() || null;
+    const naHigh = window.__labCapture.getParams()?.NA;
+    return { keyLow, keyHigh, naLow, naHigh, obj: window.__labCapture.getParams()?.objective };
+  });
+  console.log('naLens', JSON.stringify(naLens));
+  if (naLens.obj !== '40x') fail(`expected 40x got ${naLens.obj}`);
+  if (!(Number(naLens.naLow) < 0.25)) fail(`NA low ${naLens.naLow}`);
+  if (!(Number(naLens.naHigh) > 0.55)) fail(`NA high ${naLens.naHigh}`);
+  if (!naLens.keyLow || !naLens.keyHigh || naLens.keyLow === naLens.keyHigh) {
+    fail(`NA did not rebuild condenser mesh ${JSON.stringify(naLens)}`);
+  }
 
   let fps = null;
   if (viewport.width <= 420) {

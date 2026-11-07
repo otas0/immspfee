@@ -76,6 +76,7 @@ if (stage.oilVisible()) {
 `setCameraView(id)` snaps a viewpoint. `getCameraView()` returns the active id.
 `getCameraState()` returns `{ yaw, pitch, radius, lookX, lookY, lookZ, autoSpin, view, viewLocked }`.
 `getHeldCameraKeys()` lists active hold actions; `window` `blur` clears them (`npm run test:micro-camera`).
+`getMeshDynamicKey()` returns the last draw’s mesh rebuild fingerprint (includes `irisOpen` / NA).
 The look-at target is `(lookX, lookY, lookZ)`; the eye is that point plus the
 yaw / pitch / radius offset. Chrome chips live in `#micro-views` (`0`–`7`).
 Orbit, pinch, wheel, and the held keys below unlock back to `free`.
