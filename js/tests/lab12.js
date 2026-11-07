@@ -133,7 +133,11 @@ export function runLab12() {
   }
   const tune = boot(pidTune);
   for (let i = 0; i < 600; i += 1) pidTune.step(tune, 1 / 60);
-  assert('pid-tune 超调约 0.408', Math.abs(tune.overshoot - 0.408) < 0.02, String(tune.overshoot));
+  assert(
+    'pid-tune Ogata 对象 10s 内无超调且已上升',
+    tune.overshoot < 0.02 && tune.y > 0.9,
+    `os=${tune.overshoot} y=${tune.y}`,
+  );
 
   const warm = translateCatalogText('ja', '恒温');
   assert('恒温的日文是带假名的句子', kana.test(warm) && !warm.includes('です'), warm);

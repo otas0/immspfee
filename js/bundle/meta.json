@@ -1,9 +1,9 @@
 {
-  "at": "2026-11-07T09:03:24.252Z",
+  "at": "2026-11-07T09:56:28.908Z",
   "outputs": [
     {
-      "file": "chunk-factory-LVUS2Q44.js",
-      "bytes": 352750
+      "file": "chunk-factory-IR2EAFK5.js",
+      "bytes": 353995
     },
     {
       "file": "lab.js",
@@ -14,8 +14,8 @@
       "bytes": 269853
     },
     {
-      "file": "chunk-handModels-WB5EMFU4.js",
-      "bytes": 159250
+      "file": "chunk-handModels-5S25EF34.js",
+      "bytes": 160085
     },
     {
       "file": "chunk-microscopeWebgl-3B6R52DP.js",

@@ -576,19 +576,21 @@ function malus(spec) {
 
 function photo(spec) {
   return shell(spec, {
-    equation: 'K_max = max(0, hf − W)',
-    authority: 'Einstein 光电方程；Halliday 近代物理章节',
-    assumptions: 'hf 与 W 同用 eV；无空间电荷',
-    params: { hf: 3, W: 2 },
+    equation: 'K_max = max(0, hf − W); R ∝ I only if K_max>0',
+    authority: 'Einstein photoelectric equation; Halliday (K_max independent of intensity; yield ∝ I above threshold)',
+    assumptions: 'hf and W both in eV; no space charge; R is a relative yield, not a calibrated current',
+    params: { hf: 3, W: 2, intensity: 1 },
     schema: {
       hf: S('hf', 'dynamics', 'eV', 0, 12),
       W: S('W', 'dynamics', 'eV', 0, 10),
+      intensity: S('I', 'dynamics', '—', 0, 10),
     },
     tick(state) {
       state.K = Math.max(0, P(state.params, 'hf', 3) - P(state.params, 'W', 2));
+      state.rate = state.K > 0 ? Math.max(0, P(state.params, 'intensity', 1)) : 0;
     },
     plot: (s) => s.K,
-    rows: (s) => [['K_max', s.K, 'eV']],
+    rows: (s) => [['K_max', s.K, 'eV'], ['R', s.rate, '∝I']],
   });
 }
 
@@ -4800,8 +4802,29 @@ function singleSlitModel(spec) {
   });
 }
 
+function boltzmannFactor(spec) {
+  return shell(spec, {
+    equation: 'n₂/n₁ = exp(−ΔE / kT)',
+    authority: 'Schroeder, An Introduction to Thermal Physics, Boltzmann factor',
+    assumptions: 'thermal equilibrium, non-degenerate levels; ΔE and kT in joules',
+    params: { dE: 1.6e-20, T: 300 },
+    schema: {
+      dE: S('ΔE', 'dynamics', 'J', 1e-22, 1e-18),
+      T: S('T', 'dynamics', 'K', 50, 2000),
+    },
+    tick(state) {
+      const kB = 1.380649e-23;
+      const T = Math.max(1, P(state.params, 'T', 300));
+      state.ratio = Math.exp(-P(state.params, 'dE', 1.6e-20) / (kB * T));
+    },
+    plot: (s) => s.ratio,
+    rows: (s) => [['n2/n1', s.ratio, '']],
+  });
+}
+
 function keywordModel(spec) {
   const blob = `${spec.id} ${spec.name} ${spec.formula || ''}`;
+  if (/玻尔兹曼/.test(blob) && !/格子|斯特藩/.test(blob)) return boltzmannFactor(spec);
   const rules = [
     [/洛伦兹|lorenz/i, () => lorenzSys(spec)],
     [/rossler|若斯勒/i, () => rossler(spec)],
@@ -4817,7 +4840,7 @@ function keywordModel(spec) {
     [/single-slit|单缝/, () => singleSlitModel(spec)],
     [/double-slit|双缝|Δ=d sin|Δ=d/, () => doubleSlit(spec)],
     [/斯涅尔|折射定律/, () => snell(spec)],
-    [/E_n=-13\.6|玻尔/, () => bohr(spec)],
+    [/E_n=-13\.6|玻尔模型|玻尔能级/, () => bohr(spec)],
     [/N=N₀|衰变/, () => decay(spec)],
     [/PV=nRT|理想气体/, () => gasLaw(spec)],
     [/卡诺|Tc\/Th/, () => carnot(spec, blob)],

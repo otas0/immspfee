@@ -52,7 +52,7 @@
   </section>
 <section class="pair">
     <h2>PID 参数整定（交互） · PID</h2>
-    <p>pid-tune integrates a second-order plant with u = Kp e + Ki ∫e + Kd ė. The course entry is the step-error reduction u = Kp e + Ki e t (ė = 0). Shared defaults Kp = 1.4, Ki = 0.55, Kd = 0.12. At t = 1 with e = 1, course u = 1.950. pid-tune closed-loop overshoot = 0.408.</p>
+    <p>pid-tune integrates a second-order plant with u = Kp e + Ki ∫e + Kd ė. The course entry is the step-error reduction u = Kp e + Ki e t (ė = 0). Shared defaults Kp = 1.4, Ki = 0.55, Kd = 0.12. At t = 1 with e = 1, course u = 1.950. pid-tune closed-loop overshoot = 0.000.</p>
     <table>
       <thead><tr><th>Source</th><th>Id</th><th>Equation</th><th>Authority</th><th>Assumptions</th></tr></thead>
       <tbody>
@@ -957,10 +957,10 @@
       <thead><tr><th>Name</th><th>Equation</th><th>Fidelity</th><th>Assumptions</th><th>Authority</th></tr></thead>
       <tbody><tr>
     <td><a href="./index.html#m=photoelectric">光电效应</a><div class="id">photoelectric</div></td>
-    <td class="eq">K_max = max(0, hf − W)</td>
+    <td class="eq">K_max = max(0, hf − W); R ∝ I only if K_max&gt;0</td>
     <td>engineering</td>
-    <td>hf 与 W 同用 eV；无空间电荷</td>
-    <td>Einstein 光电方程；Halliday 近代物理章节</td>
+    <td>hf and W both in eV; no space charge; R is a relative yield, not a calibrated current</td>
+    <td>Einstein photoelectric equation; Halliday (K_max independent of intensity; yield ∝ I above threshold)</td>
   </tr><tr>
     <td><a href="./index.html#m=bohr">玻尔模型/氢原子</a><div class="id">bohr</div></td>
     <td class="eq">E_n = −13.6 eV / n²</td>
@@ -4513,10 +4513,10 @@
       <thead><tr><th>Name</th><th>Equation</th><th>Fidelity</th><th>Assumptions</th><th>Authority</th></tr></thead>
       <tbody><tr>
     <td><a href="./index.html#m=r018-%E5%85%89%E7%94%B5%E6%95%88%E5%BA%94">光电效应</a><div class="id">r018-光电效应</div></td>
-    <td class="eq">K_max = max(0, hf − W)</td>
+    <td class="eq">K_max = max(0, hf − W); R ∝ I only if K_max&gt;0</td>
     <td>engineering</td>
-    <td>hf 与 W 同用 eV；无空间电荷</td>
-    <td>Einstein 光电方程；Halliday 近代物理章节</td>
+    <td>hf and W both in eV; no space charge; R is a relative yield, not a calibrated current</td>
+    <td>Einstein photoelectric equation; Halliday (K_max independent of intensity; yield ∝ I above threshold)</td>
   </tr><tr>
     <td><a href="./index.html#m=r018-%E5%BA%B7%E6%99%AE%E9%A1%BF">康普顿</a><div class="id">r018-康普顿</div></td>
     <td class="eq">Δλ = λ_c (1 − cosθ)，λ_c=2.426 pm</td>

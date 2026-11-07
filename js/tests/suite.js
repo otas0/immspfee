@@ -27,6 +27,8 @@ import logicGates from '../models/logicGates.js';
 import beamSfdBmd from '../models/beamSfdBmd.js';
 import pidTune from '../models/pidTune.js';
 import hodgkinHuxley from '../models/hodgkinHuxley.js';
+import heat from '../models/heat.js';
+import wave from '../models/wave.js';
 import compoundMicroscope from '../models/compoundMicroscope.js';
 import {
   OBJECTIVE_RING_LEGEND,
@@ -175,6 +177,32 @@ export function runSuite() {
     assert('热传导 α=0 温度场不变', ok, 'α=0 显式步进应恒等');
   }
 
+  // Dirichlet ends are live; length updates dx without wiping the interior.
+  {
+    const hs = {
+      params: {
+        ...heat.params, N: 21, L: 1, alpha: 0, T0: 20, hotspot: 20, Tleft: 100, Tright: 0,
+      },
+    };
+    heat.init(hs);
+    const mid = hs.T[10];
+    hs.params.Tleft = 5;
+    hs.params.L = 2;
+    heat.refresh(hs);
+    assert('热传导左端温度 live 不重置内部', hs.T[0] === 5 && hs.T[10] === mid, `T0=${hs.T[0]} mid=${hs.T[10]}`);
+    assert('热传导 L 更新 dx', Math.abs(hs.dx - 2 / 20) < 1e-12, `dx=${hs.dx}`);
+    assert('热传导边界组为 dynamics', heat.paramSchema.Tleft.group === 'dynamics' && heat.paramSchema.Tright.group === 'dynamics');
+  }
+
+  {
+    const ws = { params: { ...wave.params, N: 16, L: 1 } };
+    wave.init(ws);
+    const y1 = ws.y[1];
+    ws.params.L = 4;
+    wave.refresh(ws);
+    assert('弦长 L 更新 dx 且不抹掉位移', Math.abs(ws.dx - 4 / 17) < 1e-12 && ws.y[1] === y1, `dx=${ws.dx} y1=${ws.y[1]}`);
+  }
+
   // 波边界
   {
     const N = 16;
@@ -274,10 +302,27 @@ export function runSuite() {
       const { state, r } = smoke(pidTune, 400, 0.02);
       assert('pid-tune metrics', r.some((x) => x.label === 'OS%') && r.some((x) => x.label === 'IAE') && r.some((x) => x.label === 'ts'));
       assert('pid-tune IAE grows', state.iae > 0, `iae=${state.iae}`);
+      const plant = { params: { ...pidTune.params, speed: 1 } };
+      pidTune.init(plant);
+      pidTune.step(plant, 0.01);
+      const u0 = 1.4 * 1 + 0.55 * 0.01;
+      const a0 = (2.2 ** 2) * u0;
+      const yExpect = a0 * 0.01 * 0.01;
+      assert('pid 对象 ÿ=K ωn² u − 2ζωn ẏ − ωn² y', Math.abs(plant.y - yExpect) < 1e-9, `y=${plant.y} expect=${yExpect}`);
     }
     {
       const { r } = smoke(hodgkinHuxley, 200, 0.001);
       assert('hodgkin-huxley readout', r.length >= 4);
+      const hh = { params: { ...hodgkinHuxley.params } };
+      hodgkinHuxley.init(hh);
+      hh.V = -55;
+      hodgkinHuxley.step(hh, 1 / 60);
+      assert(
+        'HH α_n 在 V=-55 有限',
+        Number.isFinite(hh.V) && Number.isFinite(hh.n) && Number.isFinite(hh.m),
+        `V=${hh.V} n=${hh.n} m=${hh.m}`,
+      );
+      assert('HH 刺激起点为 dynamics', hodgkinHuxley.paramSchema.stimStart.group === 'dynamics');
     }
     {
       const state = { params: { ...compoundMicroscope.params } };
@@ -708,6 +753,20 @@ export function runSuite() {
     assert('catalog has sorting', ids.has('sorting'));
     assert('catalog has raft', ids.has('raft'));
     assert('catalog has photoelectric', ids.has('photoelectric'));
+    {
+      const pe = models.find((m) => m.id === 'photoelectric');
+      const st = { params: { ...pe.params, hf: 5, W: 2, intensity: 4 } };
+      pe.init(st);
+      const kOf = () => parseFloat(pe.getReadouts(st).find((r) => r.label === 'K_max')?.value);
+      const rOf = () => parseFloat(pe.getReadouts(st).find((r) => r.label === 'R')?.value);
+      assert('光电 K_max=hf−W 不乘光强', Math.abs(kOf() - 3) < 1e-9 && Math.abs(rOf() - 4) < 1e-9, `K=${kOf()} R=${rOf()}`);
+      st.params.intensity = 9;
+      pe.step(st, 0);
+      assert('光电光强只改产额', Math.abs(kOf() - 3) < 1e-9 && Math.abs(rOf() - 9) < 1e-9, `K=${kOf()} R=${rOf()}`);
+      st.params.hf = 1;
+      pe.step(st, 0);
+      assert('光电阈值以下产额为 0', Math.abs(kOf()) < 1e-9 && Math.abs(rOf()) < 1e-9, `K=${kOf()} R=${rOf()}`);
+    }
     assert('catalog has beam-sfd-bmd', ids.has('beam-sfd-bmd'));
     assert('catalog has pid-tune', ids.has('pid-tune'));
     assert('catalog has lorenz', ids.has('lorenz'));

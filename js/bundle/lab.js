@@ -1552,7 +1552,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-LVUS2Q44.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-IR2EAFK5.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3234,7 +3234,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-WB5EMFU4.js").then((mod) => {
+    handsPending = import("./chunk-handModels-5S25EF34.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -8562,4 +8562,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-LVUS2Q44.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-IR2EAFK5.js");

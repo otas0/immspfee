@@ -3,8 +3,9 @@ import { C, heatTempColor } from '../utils/theme.js';
 import { mobileBudget, perfClassFor } from '../utils/mobilePerf.js';
 
 /**
- * 一维热传导：∂T/∂t = α ∂²T/∂x²
- * 显式有限差分；两端恒温边界；灰度条 + 曲线。
+ * 1D heat equation ∂T/∂t = α ∂²T/∂x² (Incropera, transient conduction).
+ * Explicit FD. Tleft/Tright are Dirichlet boundary conditions applied every
+ * step — live parameters, not initial data. L sets dx = L/(N−1).
  */
 export default {
   id: 'heat',
@@ -23,8 +24,8 @@ export default {
     N: { group: 'numerics', unit: '', label: '网格点数 N', min: 10, max: 256 },
     L: { group: 'dynamics', unit: 'm', label: '杆长 L', min: 0.1, max: 10 },
     alpha: { group: 'dynamics', unit: 'm²/s', label: '热扩散率 α', min: 0, max: 2 },
-    Tleft: { group: 'initial', unit: '°C', label: '左端温度', min: -50, max: 200 },
-    Tright: { group: 'initial', unit: '°C', label: '右端温度', min: -50, max: 200 },
+    Tleft: { group: 'dynamics', unit: '°C', label: '左端温度', min: -50, max: 200 },
+    Tright: { group: 'dynamics', unit: '°C', label: '右端温度', min: -50, max: 200 },
     T0: { group: 'initial', unit: '°C', label: '初温 T₀', min: -50, max: 200 },
     hotspot: { group: 'initial', unit: '°C', label: '热斑温度', min: -50, max: 200 },
   },
@@ -52,6 +53,18 @@ export default {
     state.T[N - 1] = p.Tright;
   },
 
+  /** Live L rescales dx; live Dirichlet ends do not rebuild the interior. */
+  refresh(state) {
+    const p = state.params || {};
+    const N = state.N || Math.max(10, Math.floor(Number(p.N) || 10));
+    const L = Math.max(Number(p.L) || 0.1, 1e-6);
+    state.dx = L / Math.max(N - 1, 1);
+    if (state.T && state.T.length >= 2) {
+      state.T[0] = p.Tleft;
+      state.T[state.T.length - 1] = p.Tright;
+    }
+  },
+
   step(state, dt) {
     const { alpha } = state.params;
     const { N, dx, T } = state;
@@ -77,8 +90,16 @@ export default {
     const { L } = state.params;
     const { N, T } = state;
     const margin = { l: 50, r: 50, t: 50, b: 70 };
-    const tMin = Math.min(state.params.Tright, state.params.T0, 0);
-    const tMax = Math.max(state.params.Tleft, state.params.hotspot, 1);
+    let tMin = Infinity;
+    let tMax = -Infinity;
+    for (let i = 0; i < N; i += 1) {
+      tMin = Math.min(tMin, T[i]);
+      tMax = Math.max(tMax, T[i]);
+    }
+    if (!(tMax > tMin)) {
+      tMin -= 0.5;
+      tMax += 0.5;
+    }
 
     const barY = margin.t;
     const barH = 36;

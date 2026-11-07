@@ -936,19 +936,21 @@ function malus(spec) {
 }
 function photo(spec) {
   return shell(spec, {
-    equation: "K_max = max(0, hf \u2212 W)",
-    authority: "Einstein \u5149\u7535\u65B9\u7A0B\uFF1BHalliday \u8FD1\u4EE3\u7269\u7406\u7AE0\u8282",
-    assumptions: "hf \u4E0E W \u540C\u7528 eV\uFF1B\u65E0\u7A7A\u95F4\u7535\u8377",
-    params: { hf: 3, W: 2 },
+    equation: "K_max = max(0, hf \u2212 W); R \u221D I only if K_max>0",
+    authority: "Einstein photoelectric equation; Halliday (K_max independent of intensity; yield \u221D I above threshold)",
+    assumptions: "hf and W both in eV; no space charge; R is a relative yield, not a calibrated current",
+    params: { hf: 3, W: 2, intensity: 1 },
     schema: {
       hf: S("hf", "dynamics", "eV", 0, 12),
-      W: S("W", "dynamics", "eV", 0, 10)
+      W: S("W", "dynamics", "eV", 0, 10),
+      intensity: S("I", "dynamics", "\u2014", 0, 10)
     },
     tick(state) {
       state.K = Math.max(0, P(state.params, "hf", 3) - P(state.params, "W", 2));
+      state.rate = state.K > 0 ? Math.max(0, P(state.params, "intensity", 1)) : 0;
     },
     plot: (s) => s.K,
-    rows: (s) => [["K_max", s.K, "eV"]]
+    rows: (s) => [["K_max", s.K, "eV"], ["R", s.rate, "\u221DI"]]
   });
 }
 function gamma(spec, topic) {
@@ -4821,8 +4823,28 @@ function singleSlitModel(spec) {
     rows: (s) => [["\u03B8", s.th * 180 / Math.PI, "\xB0"]]
   });
 }
+function boltzmannFactor(spec) {
+  return shell(spec, {
+    equation: "n\u2082/n\u2081 = exp(\u2212\u0394E / kT)",
+    authority: "Schroeder, An Introduction to Thermal Physics, Boltzmann factor",
+    assumptions: "thermal equilibrium, non-degenerate levels; \u0394E and kT in joules",
+    params: { dE: 16e-21, T: 300 },
+    schema: {
+      dE: S("\u0394E", "dynamics", "J", 1e-22, 1e-18),
+      T: S("T", "dynamics", "K", 50, 2e3)
+    },
+    tick(state) {
+      const kB = 1380649e-29;
+      const T = Math.max(1, P(state.params, "T", 300));
+      state.ratio = Math.exp(-P(state.params, "dE", 16e-21) / (kB * T));
+    },
+    plot: (s) => s.ratio,
+    rows: (s) => [["n2/n1", s.ratio, ""]]
+  });
+}
 function keywordModel(spec) {
   const blob = `${spec.id} ${spec.name} ${spec.formula || ""}`;
+  if (/玻尔兹曼/.test(blob) && !/格子|斯特藩/.test(blob)) return boltzmannFactor(spec);
   const rules = [
     [/洛伦兹|lorenz/i, () => lorenzSys(spec)],
     [/rossler|若斯勒/i, () => rossler(spec)],
@@ -4838,7 +4860,7 @@ function keywordModel(spec) {
     [/single-slit|单缝/, () => singleSlitModel(spec)],
     [/double-slit|双缝|Δ=d sin|Δ=d/, () => doubleSlit(spec)],
     [/斯涅尔|折射定律/, () => snell(spec)],
-    [/E_n=-13\.6|玻尔/, () => bohr(spec)],
+    [/E_n=-13\.6|玻尔模型|玻尔能级/, () => bohr(spec)],
     [/N=N₀|衰变/, () => decay(spec)],
     [/PV=nRT|理想气体/, () => gasLaw(spec)],
     [/卡诺|Tc\/Th/, () => carnot(spec, blob)],
@@ -7041,14 +7063,16 @@ function buildGauge(spec) {
     photoelectric: {
       params: { freq: 2.2, intensity: 1, workFunc: 1.5, speed: 1 },
       schema: {
-        freq: schemaNum("\u9891\u7387 f", "dynamics", "Hz", 0.1, 20),
-        intensity: schemaNum("\u5149\u5F3A", "dynamics", "\u2014", 0, 10),
+        freq: schemaNum("hf", "dynamics", "eV", 0.1, 20),
+        intensity: schemaNum("\u5149\u5F3A I", "dynamics", "\u2014", 0, 10),
         workFunc: schemaNum("\u9038\u51FA\u529F W", "dynamics", "eV", 0.1, 10),
         speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
       },
       step(state, dt) {
         state.t += dt * P(state.params, "speed", 1);
-        state.val = Math.max(0, P(state.params, "freq", 2.2) - P(state.params, "workFunc", 1.5)) * P(state.params, "intensity", 1);
+        const K = Math.max(0, P(state.params, "freq", 2.2) - P(state.params, "workFunc", 1.5));
+        state.val = K;
+        state.rate = K > 0 ? Math.max(0, P(state.params, "intensity", 1)) : 0;
       }
     },
     "time-dilation": {
@@ -7124,10 +7148,12 @@ function buildGauge(spec) {
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
-      return [
+      const rows = [
         { label: "t", value: `${formatNum(state.t, d)} s` },
         { label: "val", value: formatNum(state.val, d) }
       ];
+      if (Number.isFinite(state.rate)) rows.push({ label: "R", value: formatNum(state.rate, d) });
+      return rows;
     },
     getTrajectory(state) {
       return state.hist.map((v, i) => ({ i, v }));

@@ -996,6 +996,13 @@ var wave_default = {
     state.y[0] = 0;
     state.y[N + 1] = 0;
   },
+  /** Keep the samples; only the physical spacing follows L. */
+  refresh(state) {
+    const p = state.params || {};
+    const N = state.N || Math.max(8, Math.floor(Number(p.N) || 8));
+    const L = Math.max(Number(p.L) || 0.1, 1e-6);
+    state.dx = L / (N + 1);
+  },
   step(state, dt) {
     const { c, damp } = state.params;
     const { N, dx, y, v } = state;
@@ -1144,8 +1151,8 @@ var heat_default = {
     N: { group: "numerics", unit: "", label: "\u7F51\u683C\u70B9\u6570 N", min: 10, max: 256 },
     L: { group: "dynamics", unit: "m", label: "\u6746\u957F L", min: 0.1, max: 10 },
     alpha: { group: "dynamics", unit: "m\xB2/s", label: "\u70ED\u6269\u6563\u7387 \u03B1", min: 0, max: 2 },
-    Tleft: { group: "initial", unit: "\xB0C", label: "\u5DE6\u7AEF\u6E29\u5EA6", min: -50, max: 200 },
-    Tright: { group: "initial", unit: "\xB0C", label: "\u53F3\u7AEF\u6E29\u5EA6", min: -50, max: 200 },
+    Tleft: { group: "dynamics", unit: "\xB0C", label: "\u5DE6\u7AEF\u6E29\u5EA6", min: -50, max: 200 },
+    Tright: { group: "dynamics", unit: "\xB0C", label: "\u53F3\u7AEF\u6E29\u5EA6", min: -50, max: 200 },
     T0: { group: "initial", unit: "\xB0C", label: "\u521D\u6E29 T\u2080", min: -50, max: 200 },
     hotspot: { group: "initial", unit: "\xB0C", label: "\u70ED\u6591\u6E29\u5EA6", min: -50, max: 200 }
   },
@@ -1170,6 +1177,17 @@ var heat_default = {
     state.T[0] = p.Tleft;
     state.T[N - 1] = p.Tright;
   },
+  /** Live L rescales dx; live Dirichlet ends do not rebuild the interior. */
+  refresh(state) {
+    const p = state.params || {};
+    const N = state.N || Math.max(10, Math.floor(Number(p.N) || 10));
+    const L = Math.max(Number(p.L) || 0.1, 1e-6);
+    state.dx = L / Math.max(N - 1, 1);
+    if (state.T && state.T.length >= 2) {
+      state.T[0] = p.Tleft;
+      state.T[state.T.length - 1] = p.Tright;
+    }
+  },
   step(state, dt) {
     const { alpha } = state.params;
     const { N, dx, T } = state;
@@ -1193,8 +1211,16 @@ var heat_default = {
     const { L } = state.params;
     const { N, T } = state;
     const margin = { l: 50, r: 50, t: 50, b: 70 };
-    const tMin = Math.min(state.params.Tright, state.params.T0, 0);
-    const tMax = Math.max(state.params.Tleft, state.params.hotspot, 1);
+    let tMin = Infinity;
+    let tMax = -Infinity;
+    for (let i = 0; i < N; i += 1) {
+      tMin = Math.min(tMin, T[i]);
+      tMax = Math.max(tMax, T[i]);
+    }
+    if (!(tMax > tMin)) {
+      tMin -= 0.5;
+      tMax += 0.5;
+    }
     const barY = margin.t;
     const barH = 36;
     const barW = W - margin.l - margin.r;
@@ -4196,6 +4222,7 @@ var pidTune_default = {
     state.t = 0;
     state.y = 0;
     state.v = 0;
+    state.u = 0;
     state.ie = 0;
     state.hist = [];
     state.ref = 1;
@@ -4215,8 +4242,8 @@ var pidTune_default = {
     const e = state.ref - state.y;
     state.ie += e * h;
     const u = P(state.params, "Kp", 1.4) * e + P(state.params, "Ki", 0.55) * state.ie - P(state.params, "Kd", 0.12) * state.v;
-    const drive = K * (state.ref + 0.4 * u);
-    const a = drive * wn * wn - 2 * zeta * wn * state.v - wn * wn * state.y;
+    state.u = u;
+    const a = K * wn * wn * u - 2 * zeta * wn * state.v - wn * wn * state.y;
     state.v += a * h;
     state.y += state.v * h;
     state.t += h;
@@ -4283,8 +4310,8 @@ var pidTune_default = {
     const d = opts.digits ?? 3;
     const osPct = state.overshoot / Math.max(Math.abs(state.ref), 1e-9) * 100;
     return [
-      { label: "\u4FDD\u771F", value: "\u539F\u7406\u7EA7\u2260\u5DE5\u4E1A" },
       { label: "y", value: formatNum(state.y, d) },
+      { label: "u", value: formatNum(state.u, d) },
       { label: "OS%", value: formatNum(osPct, d) },
       { label: "ts", value: state.ts >= 0 ? `${formatNum(state.ts, d)} s` : "\u2014" },
       { label: "IAE", value: formatNum(state.iae, d) },
@@ -4303,14 +4330,18 @@ var GL = 0.3;
 var ENa = 50;
 var EK = -77;
 var EL = -54.387;
+function gateAlpha(coef, x, scale) {
+  if (Math.abs(x) < 1e-4) return coef * scale;
+  return coef * x / (1 - Math.exp(-x / scale));
+}
 function alphaN(V) {
-  return 0.01 * (V + 55) / (1 - Math.exp(-(V + 55) / 10));
+  return gateAlpha(0.01, V + 55, 10);
 }
 function betaN(V) {
   return 0.125 * Math.exp(-(V + 65) / 80);
 }
 function alphaM(V) {
-  return 0.1 * (V + 40) / (1 - Math.exp(-(V + 40) / 10));
+  return gateAlpha(0.1, V + 40, 10);
 }
 function betaM(V) {
   return 4 * Math.exp(-(V + 65) / 18);
@@ -4338,7 +4369,7 @@ var hodgkinHuxley_default = {
   },
   paramSchema: {
     Istim: { group: "dynamics", unit: "\u03BCA/cm\xB2", label: "\u523A\u6FC0\u7535\u6D41", min: 0, max: 40 },
-    stimStart: { group: "initial", unit: "ms", label: "\u523A\u6FC0\u8D77\u70B9", min: 0, max: 40 },
+    stimStart: { group: "dynamics", unit: "ms", label: "\u523A\u6FC0\u8D77\u70B9", min: 0, max: 40 },
     stimDur: { group: "dynamics", unit: "ms", label: "\u523A\u6FC0\u65F6\u957F", min: 0.2, max: 20 },
     C: { group: "dynamics", unit: "\u03BCF/cm\xB2", label: "\u819C\u7535\u5BB9 C", min: 0.5, max: 2 },
     speed: { group: "dynamics", unit: "\u2014", label: "\u52A8\u753B\u901F", min: 0.2, max: 4 }

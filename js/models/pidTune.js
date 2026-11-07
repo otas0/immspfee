@@ -3,7 +3,10 @@ import { P } from '../utils/params.js';
 import { C } from '../utils/theme.js';
 
 /**
- * PID 交互整定：二阶对象 + 阶跃指标（超调 OS%、调节时间 ts、IAE）。
+ * PID step response (Åström & Murray, Feedback Systems; Ogata, Modern Control Engineering).
+ * Plant: ÿ + 2 ζ ωn ẏ + ωn² y = K ωn² u
+ * Ideal PID, derivative on measurement (constant ref ⇒ ė = −ẏ):
+ *   u = Kp e + Ki ∫e dt − Kd ẏ
  */
 export default {
   id: 'pid-tune',
@@ -35,6 +38,7 @@ export default {
     state.t = 0;
     state.y = 0;
     state.v = 0;
+    state.u = 0;
     state.ie = 0;
     state.hist = [];
     state.ref = 1;
@@ -57,8 +61,8 @@ export default {
     const u = P(state.params, 'Kp', 1.4) * e
       + P(state.params, 'Ki', 0.55) * state.ie
       - P(state.params, 'Kd', 0.12) * state.v;
-    const drive = K * (state.ref + 0.4 * u);
-    const a = drive * wn * wn - 2 * zeta * wn * state.v - wn * wn * state.y;
+    state.u = u;
+    const a = K * wn * wn * u - 2 * zeta * wn * state.v - wn * wn * state.y;
     state.v += a * h;
     state.y += state.v * h;
     state.t += h;
@@ -133,8 +137,8 @@ export default {
     const d = opts.digits ?? 3;
     const osPct = (state.overshoot / Math.max(Math.abs(state.ref), 1e-9)) * 100;
     return [
-      { label: '保真', value: '原理级≠工业' },
       { label: 'y', value: formatNum(state.y, d) },
+      { label: 'u', value: formatNum(state.u, d) },
       { label: 'OS%', value: formatNum(osPct, d) },
       { label: 'ts', value: state.ts >= 0 ? `${formatNum(state.ts, d)} s` : '—' },
       { label: 'IAE', value: formatNum(state.iae, d) },

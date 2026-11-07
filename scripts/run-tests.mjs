@@ -13,7 +13,7 @@ if (!indexHtml.includes('d = 0.61') || !indexHtml.includes('handwritten assembly
   console.error('equation-index.html is missing the microscope pair');
   process.exit(1);
 }
-if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 0.408')) {
+if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 0.000')) {
   console.error('equation-index.html is missing the locked PID numbers');
   process.exit(1);
 }

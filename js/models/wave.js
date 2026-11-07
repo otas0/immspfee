@@ -2,9 +2,9 @@ import { formatNum } from '../utils/draw.js';
 import { C } from '../utils/theme.js';
 
 /**
- * 横波 / 弦振动：N 个离散质点，两端固定。
- * 初条件 = 驻波模式叠加：Σ Aₙ sin(nπ x / L)
- * 波动方程离散：ÿᵢ = c² (yᵢ₊₁ - 2yᵢ + yᵢ₋₁)/dx² - d·ẏᵢ
+ * Transverse wave on a fixed string (Pain, Vibrations and Waves).
+ * ÿᵢ = c² (yᵢ₊₁ − 2yᵢ + yᵢ₋₁)/dx² − d ẏᵢ, dx = L/(N+1).
+ * L is live: refresh must recompute dx or the discrete Laplacian stays on the old length.
  */
 export default {
   id: 'wave',
@@ -46,6 +46,14 @@ export default {
     }
     state.y[0] = 0;
     state.y[N + 1] = 0;
+  },
+
+  /** Keep the samples; only the physical spacing follows L. */
+  refresh(state) {
+    const p = state.params || {};
+    const N = state.N || Math.max(8, Math.floor(Number(p.N) || 8));
+    const L = Math.max(Number(p.L) || 0.1, 1e-6);
+    state.dx = L / (N + 1);
   },
 
   step(state, dt) {

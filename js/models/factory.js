@@ -1982,15 +1982,18 @@ function buildGauge(spec) {
     photoelectric: {
       params: { freq: 2.2, intensity: 1, workFunc: 1.5, speed: 1 },
       schema: {
-        freq: schemaNum('频率 f', 'dynamics', 'Hz', 0.1, 20),
-        intensity: schemaNum('光强', 'dynamics', '—', 0, 10),
+        freq: schemaNum('hf', 'dynamics', 'eV', 0.1, 20),
+        intensity: schemaNum('光强 I', 'dynamics', '—', 0, 10),
         workFunc: schemaNum('逸出功 W', 'dynamics', 'eV', 0.1, 10),
         speed: schemaNum('动画速', 'dynamics', '—', 0.1, 4),
       },
       step(state, dt) {
         state.t += dt * P(state.params, 'speed', 1);
-        state.val = Math.max(0, P(state.params, 'freq', 2.2) - P(state.params, 'workFunc', 1.5))
-          * P(state.params, 'intensity', 1);
+        // Einstein: K_max = max(0, hf − W) does not scale with intensity.
+        // `freq` is photon energy in eV (same convention as the topic model).
+        const K = Math.max(0, P(state.params, 'freq', 2.2) - P(state.params, 'workFunc', 1.5));
+        state.val = K;
+        state.rate = K > 0 ? Math.max(0, P(state.params, 'intensity', 1)) : 0;
       },
     },
     'time-dilation': {
@@ -2063,10 +2066,12 @@ function buildGauge(spec) {
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
-      return [
+      const rows = [
         { label: 't', value: `${formatNum(state.t, d)} s` },
         { label: 'val', value: formatNum(state.val, d) },
       ];
+      if (Number.isFinite(state.rate)) rows.push({ label: 'R', value: formatNum(state.rate, d) });
+      return rows;
     },
     getTrajectory(state) { return state.hist.map((v, i) => ({ i, v })); },
   };

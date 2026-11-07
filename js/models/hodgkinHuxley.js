@@ -12,9 +12,14 @@ const ENa = 50;
 const EK = -77;
 const EL = -54.387;
 
-function alphaN(V) { return (0.01 * (V + 55)) / (1 - Math.exp(-(V + 55) / 10)); }
+/** HH α rates have a removable singularity (Hodgkin & Huxley, J. Physiol. 1952). */
+function gateAlpha(coef, x, scale) {
+  if (Math.abs(x) < 1e-4) return coef * scale;
+  return (coef * x) / (1 - Math.exp(-x / scale));
+}
+function alphaN(V) { return gateAlpha(0.01, V + 55, 10); }
 function betaN(V) { return 0.125 * Math.exp(-(V + 65) / 80); }
-function alphaM(V) { return (0.1 * (V + 40)) / (1 - Math.exp(-(V + 40) / 10)); }
+function alphaM(V) { return gateAlpha(0.1, V + 40, 10); }
 function betaM(V) { return 4 * Math.exp(-(V + 65) / 18); }
 function alphaH(V) { return 0.07 * Math.exp(-(V + 65) / 20); }
 function betaH(V) { return 1 / (1 + Math.exp(-(V + 35) / 10)); }
@@ -33,7 +38,7 @@ export default {
   },
   paramSchema: {
     Istim: { group: 'dynamics', unit: 'μA/cm²', label: '刺激电流', min: 0, max: 40 },
-    stimStart: { group: 'initial', unit: 'ms', label: '刺激起点', min: 0, max: 40 },
+    stimStart: { group: 'dynamics', unit: 'ms', label: '刺激起点', min: 0, max: 40 },
     stimDur: { group: 'dynamics', unit: 'ms', label: '刺激时长', min: 0.2, max: 20 },
     C: { group: 'dynamics', unit: 'μF/cm²', label: '膜电容 C', min: 0.5, max: 2 },
     speed: { group: 'dynamics', unit: '—', label: '动画速', min: 0.2, max: 4 },
