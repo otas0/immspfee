@@ -159,13 +159,50 @@ export function overlayCaptionPolicy({ showLabels = 1, hot = false } = {}) {
   };
 }
 
-/** Named viewpoints — free orbit or snap-to-fixed (定点). */
+/** Named viewpoints — free orbit or snap-to-fixed. Eye = look + yaw/pitch/radius offset. */
 export const CAMERA_VIEWS = {
   free: null,
-  overview: { yaw: 0.85, pitch: 0.22, radius: 7.5, lookY: 2.05 },
-  binocular: { yaw: 0.18, pitch: 0.58, radius: 4.35, lookY: 2.55 },
-  turret: { yaw: -Math.PI / 2, pitch: 0.36, radius: 5.4, lookY: 1.55 },
-  stage: { yaw: -Math.PI / 2 + 0.28, pitch: 0.82, radius: 4.7, lookY: 0.95 },
+  overview: { yaw: 0.85, pitch: 0.22, radius: 7.5, lookX: 0, lookY: 2.05, lookZ: 0 },
+  binocular: { yaw: 0.18, pitch: 0.58, radius: 4.35, lookX: 0, lookY: 2.55, lookZ: 0 },
+  turret: { yaw: -Math.PI / 2, pitch: 0.36, radius: 5.4, lookX: 0, lookY: 1.55, lookZ: 0 },
+  stage: { yaw: -Math.PI / 2 + 0.28, pitch: 0.82, radius: 4.7, lookX: 0, lookY: 0.95, lookZ: 0 },
+  lamp: { yaw: 0.62, pitch: 0.2, radius: 3.55, lookX: 0, lookY: 0.32, lookZ: 0.02 },
+  condenser: { yaw: 1.05, pitch: 0.48, radius: 3.35, lookX: 0.06, lookY: 0.58, lookZ: 0.04 },
+  side: { yaw: 0.02, pitch: 0.18, radius: 8.1, lookX: 0, lookY: 1.35, lookZ: -0.04 },
+};
+
+/** Digit keys 0–7 snap to viewpoint ids. Home also snaps overview. */
+export const VIEW_HOTKEYS = {
+  0: 'free',
+  1: 'overview',
+  2: 'binocular',
+  3: 'turret',
+  4: 'stage',
+  5: 'lamp',
+  6: 'condenser',
+  7: 'side',
+};
+
+/** Physical keys held for dolly / yaw / crane / pitch / strafe. Shift is separate. */
+const CAMERA_HOLD = {
+  KeyW: 'dollyIn',
+  ArrowUp: 'dollyIn',
+  Equal: 'dollyIn',
+  NumpadAdd: 'dollyIn',
+  KeyS: 'dollyOut',
+  ArrowDown: 'dollyOut',
+  Minus: 'dollyOut',
+  NumpadSubtract: 'dollyOut',
+  KeyA: 'yawLeft',
+  ArrowLeft: 'yawLeft',
+  KeyD: 'yawRight',
+  ArrowRight: 'yawRight',
+  KeyQ: 'craneUp',
+  KeyE: 'craneDown',
+  KeyR: 'pitchUp',
+  KeyF: 'pitchDown',
+  KeyZ: 'strafeLeft',
+  KeyC: 'strafeRight',
 };
 
 /**
@@ -207,10 +244,16 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let yaw = narrowStage ? -Math.PI / 2 : 0.85;
   let pitch = narrowStage ? 0.32 : 0.22;
   let radius = narrowStage ? 9.4 : 7.5;
+  let lookX = 0;
   let lookY = 2.05;
+  let lookZ = 0;
   /** @type {keyof typeof CAMERA_VIEWS} */
   let cameraView = 'free';
   let viewLocked = false;
+  /** @type {Set<string>} */
+  const heldKeys = new Set();
+  const onCamBlur = () => { heldKeys.clear(); };
+  window.addEventListener('blur', onCamBlur);
   /** @type {'orbit' | 'part' | null} */
   let dragMode = null;
   /** @type {{ kind: string, index: number } | null} */
@@ -218,7 +261,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let moved = false;
   let lastX = 0;
   let lastY = 0;
-  let autoSpin = narrowStage ? 0 : 0.08;
+  let autoSpin = 0;
 
   function markFreeView() {
     if (cameraView === 'free' && !viewLocked) return;
@@ -240,12 +283,89 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     yaw = preset.yaw;
     pitch = preset.pitch;
     radius = narrowStage ? Math.max(preset.radius, 6.2) : preset.radius;
-    lookY = preset.lookY;
+    lookX = preset.lookX ?? 0;
+    lookY = preset.lookY ?? 2.05;
+    lookZ = preset.lookZ ?? 0;
     viewLocked = true;
     autoSpin = 0;
     opts.onCameraView?.(key);
     opts.onViewChange?.();
     return key;
+  }
+
+  /**
+   * Integrate held WASD / arrows / QE / RF / ZC / +/-.
+   * Does not call onViewChange — drawScene already owns the frame (no paint recursion).
+   * @param {number} dt seconds
+   */
+  function applyHeldCamera(dt) {
+    if (!heldKeys.size || !(dt > 0)) return false;
+    const fine = heldKeys.has('shift') ? 0.25 : 1;
+    const step = dt * fine;
+    let movedCam = false;
+    const dolly = (heldKeys.has('dollyOut') ? 1 : 0) - (heldKeys.has('dollyIn') ? 1 : 0);
+    if (dolly) {
+      radius = clamp(radius + dolly * 2.4 * step, 2.4, 12);
+      movedCam = true;
+    }
+    const yawDir = (heldKeys.has('yawRight') ? 1 : 0) - (heldKeys.has('yawLeft') ? 1 : 0);
+    if (yawDir) {
+      yaw += yawDir * 1.15 * step;
+      movedCam = true;
+    }
+    const crane = (heldKeys.has('craneUp') ? 1 : 0) - (heldKeys.has('craneDown') ? 1 : 0);
+    if (crane) {
+      lookY = clamp(lookY + crane * 0.95 * step, -0.4, 4.2);
+      movedCam = true;
+    }
+    const pitchDir = (heldKeys.has('pitchUp') ? 1 : 0) - (heldKeys.has('pitchDown') ? 1 : 0);
+    if (pitchDir) {
+      pitch = clamp(pitch + pitchDir * 0.55 * step, 0.05, 1.15);
+      movedCam = true;
+    }
+    const strafe = (heldKeys.has('strafeRight') ? 1 : 0) - (heldKeys.has('strafeLeft') ? 1 : 0);
+    if (strafe) {
+      const s = strafe * 1.35 * step;
+      lookX = clamp(lookX + Math.sin(yaw) * s, -4, 4);
+      lookZ = clamp(lookZ - Math.cos(yaw) * s, -4, 4);
+      movedCam = true;
+    }
+    if (movedCam) markFreeView();
+    return movedCam;
+  }
+
+  /**
+   * keydown / keyup. Digits snap presets, Home = overview, Space toggles autoSpin.
+   * @param {KeyboardEvent} e
+   * @returns {boolean} true when the microscope consumed the key
+   */
+  function handleCameraKey(e) {
+    const down = e.type !== 'keyup';
+    if (e.key === 'Shift' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      if (down) heldKeys.add('shift');
+      else heldKeys.delete('shift');
+      return false;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (e.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return false;
+    const snapId = VIEW_HOTKEYS[e.key];
+    if (snapId || e.key === 'Home' || e.key === ' ' || e.code === 'Space') {
+      if (!down) return false;
+      e.preventDefault();
+      if (e.repeat) return true;
+      if (e.key === ' ' || e.code === 'Space') {
+        autoSpin = autoSpin ? 0 : 0.06;
+        return true;
+      }
+      applyCameraView(e.key === 'Home' ? 'overview' : snapId);
+      return true;
+    }
+    const action = CAMERA_HOLD[e.code];
+    if (!action) return false;
+    if (down) heldKeys.add(action);
+    else heldKeys.delete(action);
+    e.preventDefault();
+    return true;
   }
   let hits = [];
   let lastView = { width: 1, height: 1 };
@@ -663,16 +783,22 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
 
     const hoverBusy = hoverHit
       && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
+    const camDt = dt;
     if (!viewLocked && !dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
-      yaw += autoSpin * 0.016;
+      yaw += autoSpin * camDt;
     }
+    // Held keys move the camera inside this draw. No onViewChange — that would re-enter paint.
+    if (dragMode !== 'part') applyHeldCamera(camDt);
 
-    const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
-    const ey = Math.sin(pitch) * radius + 0.2;
-    const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
+    const ox = Math.cos(yaw) * Math.cos(pitch) * radius;
+    const oy = Math.sin(pitch) * radius;
+    const oz = Math.sin(yaw) * Math.cos(pitch) * radius;
+    const ex = lookX + ox;
+    const ey = lookY + oy;
+    const ez = lookZ + oz;
     const aspect = view.width / Math.max(view.height, 1);
     const proj = perspective(38, aspect, 0.15, 56);
-    const viewM = lookAt(ex, ey, ez, 0, lookY, 0, 0, 1, 0);
+    const viewM = lookAt(ex, ey, ez, lookX, lookY, lookZ, 0, 1, 0);
     const mvp = multiply(proj, viewM);
     lastMvp = mvp;
     lastLayout = layout;
@@ -917,12 +1043,26 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     getOilFallElapsed() {
       return oilFallElapsed;
     },
-    /** Free orbit or named fixed viewpoint (`overview` / `binocular` / `turret` / `stage`). */
+    /** Free orbit or named fixed viewpoint (overview / binocular / turret / stage / lamp / condenser / side). */
     setCameraView(id) {
       return applyCameraView(id);
     },
     getCameraView() {
       return cameraView;
+    },
+    handleCameraKey,
+    getCameraState() {
+      return {
+        yaw,
+        pitch,
+        radius,
+        lookX,
+        lookY,
+        lookZ,
+        autoSpin,
+        view: cameraView,
+        viewLocked,
+      };
     },
     capturePng(state, view) {
       drawScene(state, view);
@@ -936,6 +1076,8 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       }
     },
     dispose() {
+      window.removeEventListener('blur', onCamBlur);
+      heldKeys.clear();
       canvas.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);

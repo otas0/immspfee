@@ -60,15 +60,54 @@ last `draw()`. The collar sits at the DIN ring (`turY + OBJECTIVE_COLLAR_DY`, ab
 `getOilFallElapsed()` is seconds into the current fall (reset when immersion turns off).
 The oil shader path runs only while `oilVisible = getOilBlend() > 0.02`
 (`stage.oilVisible()`). `getOilScreen()` is the film center in CSS pixels from the
-last draw. Assert with `npm run test:micro-oil`.
+last draw. Assert with `npm run test:micro-oil` and `npm run test:micro-oil:390`
+(viewports ≤420 also require `getOilScreen()` on the canvas at rise and mid-fall).
+
+```js
+const stage = window.__labCapture.getWebglStage();
+stage.setCameraView('stage');
+if (stage.oilVisible()) {
+  const screen = stage.getOilScreen(); // { x, y, r } CSS px from the last draw
+}
+```
 
 ## Camera views
 
-`setCameraView('free'|'overview'|'binocular'|'turret'|'stage')` — free orbit or a
-fixed viewpoint (定点). Orbit / pinch / wheel unlocks back to `free`.
-`getCameraView()` returns the active id. Chrome chips live in `#micro-views`.
+`setCameraView(id)` snaps a viewpoint. `getCameraView()` returns the active id.
+`getCameraState()` returns `{ yaw, pitch, radius, lookX, lookY, lookZ, autoSpin, view, viewLocked }`.
+The look-at target is `(lookX, lookY, lookZ)`; the eye is that point plus the
+yaw / pitch / radius offset. Chrome chips live in `#micro-views` (`0`–`7`).
+Orbit, pinch, wheel, and the held keys below unlock back to `free`.
+`applyHeldCamera` runs inside `draw` and does **not** call `onViewChange`.
 Narrow (≤480px) defaults to yaw `−π/2` so the magenta activity collar faces the
-camera (active objective on −Z).
+camera (active objective on −Z). `autoSpin` starts at `0`; Space toggles `0.06`.
+
+```js
+const stage = window.__labCapture.getWebglStage();
+stage.setCameraView('lamp'); // free | overview | binocular | turret | stage | lamp | condenser | side
+stage.getCameraView();
+stage.getCameraState();
+```
+
+| key | action |
+| --- | --- |
+| `0` | free orbit |
+| `1` / Home | overview |
+| `2` | binocular |
+| `3` | turret |
+| `4` | stage |
+| `5` | lamp |
+| `6` | condenser |
+| `7` | side |
+| `W` / `↑` / `+` | dolly in |
+| `S` / `↓` / `−` | dolly out |
+| `A` / `←` | yaw left |
+| `D` / `→` | yaw right |
+| `Q` / `E` | crane `lookY` |
+| `R` / `F` | pitch |
+| `Z` / `C` | strafe |
+| Shift | fine (¼ speed) |
+| Space | toggle `autoSpin` `0.06` |
 
 ## FPS gate
 
@@ -81,8 +120,9 @@ phone **0.55**, tablet **0.72**, desktop **1** (`js/utils/mobilePerf.js`).
 - Overlay captions: `stage.getOverlayLabels()` → `#micro-gl-labels` via
   `microUi.syncOverlayLabels`. The host stays mounted. `params.showLabels=0` hides
   standing captions; hover and knob-drag still show one temporary caption.
-  Viewports ≤480px default `showLabels=0` once (`labelsPrefSet` in
-  `js/shells/microscopeStage.js`).
+  `DEFAULT_PARAMS.showLabels` is `0`. `labelsPrefSet` keeps them hidden unless
+  `localStorage['imm-micro-labels-on-v1'] === '1'` (Show/Hide chip calls
+  `persistLabelsPref`).
 - Focus knobs: coarse moves large `focusZ_mm`+`WD_mm`; fine nudges both, and when
   `focusZ_mm` is clamped at ±2 only WD continues (`npm run test:micro-knobs`,
   `test:micro-knobs:390`). Drags dispatch `PointerEvent`s. IPD drag updates

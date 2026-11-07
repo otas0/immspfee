@@ -15,6 +15,19 @@ function fail(msg) {
   process.exit(1);
 }
 
+function assertOilScreenOnCanvas(tag, sample) {
+  if (viewport.width > 420) return;
+  const s = sample?.screen;
+  const w = Number(sample?.canvasW) || viewport.width;
+  const h = Number(sample?.canvasH) || viewport.height;
+  if (!s || !Number.isFinite(s.x) || !Number.isFinite(s.y)) {
+    fail(`${tag}: getOilScreen missing on ${viewport.width}px (${JSON.stringify(s)})`);
+  }
+  if (!(s.x >= 0 && s.y >= 0 && s.x <= w && s.y <= h)) {
+    fail(`${tag}: getOilScreen off-canvas ${JSON.stringify(s)} canvas ${w}x${h}`);
+  }
+}
+
 function parseViewport() {
   const raw = process.env.VIEWPORT || '1280x800';
   const m = /^(\d+)x(\d+)$/.exec(raw);
@@ -117,7 +130,9 @@ try {
         apiVisible: typeof stage.oilVisible === 'function' ? stage.oilVisible() : oilVisible,
         fall: typeof stage.getOilFallElapsed === 'function' ? stage.getOilFallElapsed() : null,
         fallSec: typeof stage.getOilFallSec === 'function' ? stage.getOilFallSec() : null,
-        screen: screen ? { x: Math.round(screen.x), y: Math.round(screen.y), r: screen.r } : null,
+        screen: screen ? { x: screen.x, y: screen.y, r: screen.r } : null,
+        canvasW: canvas ? canvas.clientWidth : 0,
+        canvasH: canvas ? canvas.clientHeight : 0,
       };
     };
   });
@@ -132,6 +147,7 @@ try {
   if (!(risen.oilish >= 4)) {
     fail(`rise blend ${risen.blend} expected blue-ish oil pixels, oilish=${risen.oilish} screen=${JSON.stringify(risen.screen)}`);
   }
+  assertOilScreenOnCanvas('rise', risen);
 
   const fall = await page.evaluate(async () => {
     document.querySelector('#micro-obj [data-obj="40x"]')?.click();
@@ -173,6 +189,7 @@ try {
     if (!(wall >= 0.2 && wall <= 0.5)) fail(`oil fall wall clock ${wall}s outside 0.2–0.5`);
   }
   if (fall.mid.oilVisible !== true) fail(`mid-fall oilVisible false at blend ${fall.mid.blend}`);
+  assertOilScreenOnCanvas('mid-fall', fall.mid);
   if (!(fall.mid.oilish >= 3)) {
     fail(`mid-fall blend ${fall.mid.blend} lost oil tint, oilish=${fall.mid.oilish}`);
   }

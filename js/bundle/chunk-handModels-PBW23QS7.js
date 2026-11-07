@@ -6,7 +6,7 @@ import {
   applyTurretDefaults,
   opticsFromParams,
   velocityVerlet1D
-} from "./chunk-chunk-GD7TUP4X.js";
+} from "./chunk-chunk-AVVKPFKH.js";
 import {
   forceGraphStep,
   mapNormToScreen,

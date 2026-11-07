@@ -141,7 +141,7 @@ export const DEFAULT_PARAMS = {
   n: 1.0,
   lambda_nm: 550,
   showRays: 1,
-  showLabels: 1,
+  showLabels: 0,
 };
 
 export const PARAM_SCHEMA = {

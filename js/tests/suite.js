@@ -34,6 +34,7 @@ import {
   EYEPIECES,
   objectiveRingColor,
   opticsFromParams,
+  DEFAULT_PARAMS,
 } from '../models/microscopeOptics.js';
 import { createMicroscopeStage } from '../shells/microscopeStage.js';
 import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
@@ -498,6 +499,13 @@ export function runSuite() {
       );
       const standCap = overlayCaptionPolicy({ showLabels: 1, hot: true });
       assert('showLabels=1 → standing captions', standCap.standing === true, JSON.stringify(standCap));
+      const coldCap = overlayCaptionPolicy({ showLabels: '0', hot: false });
+      assert(
+        "showLabels='0' cold hides captions",
+        coldCap.standing === false && coldCap.hoverCaption === false,
+        JSON.stringify(coldCap),
+      );
+      assert('DEFAULT_PARAMS.showLabels is 0', DEFAULT_PARAMS.showLabels === 0, String(DEFAULT_PARAMS.showLabels));
 
       const oLow = opticsFromParams({ objective: '40x', eyepiece: '10x', tubeL_mm: 160, NA: 0.2, WD_mm: 0.6 });
       const layLow = microscopeLayout(oLow, { focusZ_mm: 0.5, stageX_mm: 5, stageY_mm: -3, fieldIris: 0.4, lampOn: 1 });

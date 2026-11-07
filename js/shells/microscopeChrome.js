@@ -33,7 +33,7 @@ import { mobileBudget } from '../utils/mobilePerf.js';
  *   onOpticsChange?: () => void,
  *   remountShellSelect?: (opts?: { microOnly?: boolean }) => void,
  *   captureWebglPng?: () => void,
- *   getWebglStage?: () => { setCameraView?: (id: string) => string, getCameraView?: () => string } | null,
+   *   getWebglStage?: () => { setCameraView?: (id: string) => string, getCameraView?: () => string, handleCameraKey?: (e: KeyboardEvent) => boolean } | null,
  * }} api
  */
 const RESUME_STORAGE_KEY = 'immspfee-micro-resume-v1';
@@ -311,7 +311,14 @@ export function createMicroscopeChrome(api) {
       leave({ nextShell: 'lab-classic' });
       return true;
     }
+    const gl = api.getWebglStage?.();
+    if (gl && typeof gl.handleCameraKey === 'function' && gl.handleCameraKey(e)) {
+      syncCameraView(gl.getCameraView?.() || 'free');
+      api.paintFrame();
+      return true;
+    }
     // Catalog model cycling must not run under microscope inputMode.
+    // Arrow keys are forwarded to the camera above; only swallow leftovers.
     if (
       !e.target?.closest?.('input, textarea, select, #micro-rail')
       && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'j', 'k', 'J', 'K', 'PageUp', 'PageDown'].includes(e.key)
@@ -364,6 +371,11 @@ export function createMicroscopeChrome(api) {
       }
     });
     document.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    window.addEventListener('keyup', (e) => {
+      if (api.getActiveShellId() !== MICROSCOPE_SHELL_ID) return;
+      const gl = api.getWebglStage?.();
+      if (gl && typeof gl.handleCameraKey === 'function') gl.handleCameraKey(e);
+    });
   }
 
   return {

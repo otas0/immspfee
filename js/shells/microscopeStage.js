@@ -12,31 +12,29 @@ import {
 } from '../models/microscopeOptics.js';
 import { formatNum } from '../utils/draw.js';
 
-const LABELS_PREF_KEY = 'imm-micro-labels-pref-v1';
-/** Session latch so a failed localStorage write still applies the narrow default only once. */
-let labelsPrefMemory = false;
+const LABELS_ON_KEY = 'imm-micro-labels-on-v1';
 
 /**
- * On viewports ≤480px, default `showLabels` to 0 a single time.
- * Later visits keep whatever the user last chose.
+ * Standing captions stay hidden unless the user previously chose Show
+ * (`localStorage['imm-micro-labels-on-v1'] === '1'`).
  * @param {object | null | undefined} state
- * @returns {boolean} true when this call wrote the default
+ * @returns {boolean} true when this call changed showLabels
  */
 export function labelsPrefSet(state) {
   if (!state?.params) return false;
-  if (labelsPrefMemory) return false;
-  let stored = false;
-  try { stored = localStorage.getItem(LABELS_PREF_KEY) === '1'; } catch { stored = false; }
-  if (stored) {
-    labelsPrefMemory = true;
-    return false;
-  }
-  const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches;
-  if (!narrow) return false;
-  state.params.showLabels = 0;
-  labelsPrefMemory = true;
-  try { localStorage.setItem(LABELS_PREF_KEY, '1'); } catch { /* session-only */ }
-  return true;
+  let on = false;
+  try { on = localStorage.getItem(LABELS_ON_KEY) === '1'; } catch { on = false; }
+  const next = on ? 1 : 0;
+  const changed = Number(state.params.showLabels) !== next;
+  state.params.showLabels = next;
+  return changed;
+}
+
+/** Remember the Show / Hide chip for the next visit. */
+export function persistLabelsPref(on) {
+  try {
+    localStorage.setItem(LABELS_ON_KEY, Number(on) !== 0 ? '1' : '0');
+  } catch { /* session-only */ }
 }
 
 const READOUTS = [
@@ -344,6 +342,7 @@ export function createMicroscopeStage(api) {
       const state = api.getState();
       if (!state?.params) return;
       state.params.showLabels = Number(btn.dataset.labels) ? 1 : 0;
+      persistLabelsPref(state.params.showLabels);
       paint();
       api.onChange();
     });

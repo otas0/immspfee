@@ -162,7 +162,7 @@ var DEFAULT_PARAMS = {
   n: 1,
   lambda_nm: 550,
   showRays: 1,
-  showLabels: 1
+  showLabels: 0
 };
 var PARAM_SCHEMA = {
   objective: {

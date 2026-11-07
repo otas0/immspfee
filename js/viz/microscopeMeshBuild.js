@@ -634,9 +634,10 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     // DIN magnification glyph on the enamel barrel (mesh strokes, not HUD text).
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
     // RMS thread: thin chrome rings stepped from the DIN collar down to the nose.
-    // Active barrels get a denser stack so the engaged objective reads as threaded.
+    // Active barrels get a denser stack. Phone tess (S(100,8) < 65) thins the stack.
     {
-      const threadN = active ? 6 : 4;
+      const phoneTess = S(100, 8) < 65;
+      const threadN = phoneTess ? (active ? 3 : 2) : (active ? 6 : 4);
       const y0 = collarY - 0.016;
       const y1 = yNose + noseH * 0.2;
       const threadR = S(24, 12);

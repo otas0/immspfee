@@ -380,7 +380,7 @@ function applyLowInkStrokeBoost(model) {
 }
 
 
-/* inlined chunk-chunk-GD7TUP4X.js */
+/* inlined chunk-chunk-AVVKPFKH.js */
 // js/utils/integrator.js
 function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
   let accumulator = 0;
@@ -545,7 +545,7 @@ var DEFAULT_PARAMS = {
   n: 1,
   lambda_nm: 550,
   showRays: 1,
-  showLabels: 1
+  showLabels: 0
 };
 var PARAM_SCHEMA = {
   objective: {
@@ -1282,7 +1282,7 @@ function ringLast(ring) {
 
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
-/* static chunk inlined: chunk-chunk-GD7TUP4X.js */
+/* static chunk inlined: chunk-chunk-AVVKPFKH.js */
 /* static chunk inlined: chunk-chunk-EKGDC6UE.js */
 // js/models/freeFall.js
 var freeFall_default = {
@@ -1525,7 +1525,7 @@ var STRINGS = {
     "ui.lang": "\u8BED\u8A00",
     "ui.shell": "\u58F3",
     "ui.microExit": "\u8FD4\u56DE\u8BFE\u8868",
-    "ui.microLede": "\u62D6\u52A8\u65CB\u8F6C \xB7 \u53CC\u6307/\u6EDA\u8F6E\u7F29\u653E \xB7 \u70B9\u6309/\u62D6\u52A8\u65CB\u94AE \xB7 \u5149\u5B66\u53C2\u6570\u53EF\u6539 L/NA/WD/\u8F7D\u7269\u53F0",
+    "ui.microLede": "WASD/\u65B9\u5411\u952E \xB7 QE\u5347\u964D \xB7 RF\u4FEF\u4EF0 \xB7 ZC\u5E73\u79FB \xB7 0\u20137\u673A\u4F4D \xB7 \u53CC\u6307/\u6EDA\u8F6E\u7F29\u653E \xB7 \u65CB\u94AE\u6539 L/NA/WD/\u8F7D\u7269\u53F0",
     "ui.microReset": "\u91CD\u7F6E\u5149\u5B66",
     "ui.microBench": "\u5149\u5B66\u53C2\u6570",
     "ui.micro3dSection": "\u4E09\u7EF4\u53F0",
@@ -1560,6 +1560,9 @@ var STRINGS = {
     "ui.microViewBinocular": "\u53CC\u76EE",
     "ui.microViewTurret": "\u8F6C\u76D8",
     "ui.microViewStage": "\u8F7D\u7269\u53F0",
+    "ui.microViewLamp": "\u5149\u6E90",
+    "ui.microViewCondenser": "\u805A\u5149\u955C",
+    "ui.microViewSide": "\u4FA7\u9762",
     "ui.microKnobCoarse": "\u7C97\u8C03",
     "ui.microKnobFine": "\u5FAE\u8C03",
     "ui.microKnobStageX": "\u8F7D\u7269\u53F0 X",
@@ -1679,7 +1682,7 @@ var STRINGS = {
     "ui.lang": "language",
     "ui.shell": "shell",
     "ui.microExit": "Back to catalog",
-    "ui.microLede": "Drag to orbit \xB7 pinch/wheel zoom \xB7 tap/drag every knob \xB7 Optical params edit L/NA/WD/stage",
+    "ui.microLede": "WASD/arrows dolly+yaw \xB7 QE crane \xB7 RF pitch \xB7 ZC strafe \xB7 0\u20137 views \xB7 pinch/wheel zoom \xB7 knobs edit L/NA/WD/stage",
     "ui.microReset": "Reset optics",
     "ui.microBench": "Optical params",
     "ui.micro3dSection": "3D stage",
@@ -1714,6 +1717,9 @@ var STRINGS = {
     "ui.microViewBinocular": "Binocular",
     "ui.microViewTurret": "Turret",
     "ui.microViewStage": "Stage",
+    "ui.microViewLamp": "Lamp",
+    "ui.microViewCondenser": "Condenser",
+    "ui.microViewSide": "Side",
     "ui.microKnobCoarse": "Coarse",
     "ui.microKnobFine": "Fine",
     "ui.microKnobStageX": "Stage X",
@@ -1833,7 +1839,7 @@ var STRINGS = {
     "ui.lang": "\u8A00\u8A9E",
     "ui.shell": "\u30B7\u30A7\u30EB",
     "ui.microExit": "\u30AB\u30BF\u30ED\u30B0\u3078\u623B\u308B",
-    "ui.microLede": "\u30C9\u30E9\u30C3\u30B0\u3067\u56DE\u8EE2 \xB7 \u30D4\u30F3\u30C1/\u30DB\u30A4\u30FC\u30EB\u3067\u30BA\u30FC\u30E0 \xB7 \u30CE\u30D6\u3092\u30BF\u30C3\u30D7/\u30C9\u30E9\u30C3\u30B0 \xB7 L/NA/WD/\u30B9\u30C6\u30FC\u30B8\u3092\u7DE8\u96C6",
+    "ui.microLede": "WASD/\u77E2\u5370 \xB7 QE\u30AF\u30EC\u30FC\u30F3 \xB7 RF\u30D4\u30C3\u30C1 \xB7 ZC\u30B9\u30C8\u30EC\u30A4\u30D5 \xB7 0\u20137\u8996\u70B9 \xB7 \u30D4\u30F3\u30C1/\u30DB\u30A4\u30FC\u30EB \xB7 \u30CE\u30D6\u3067 L/NA/WD/\u30B9\u30C6\u30FC\u30B8",
     "ui.microReset": "\u5149\u5B66\u3092\u30EA\u30BB\u30C3\u30C8",
     "ui.microBench": "\u5149\u5B66\u30D1\u30E9\u30E1\u30FC\u30BF",
     "ui.micro3dSection": "3D \u30B9\u30C6\u30FC\u30B8",
@@ -1868,6 +1874,9 @@ var STRINGS = {
     "ui.microViewBinocular": "\u53CC\u773C",
     "ui.microViewTurret": "\u30EC\u30DC\u30EB\u30D0\u30FC",
     "ui.microViewStage": "\u30B9\u30C6\u30FC\u30B8",
+    "ui.microViewLamp": "\u30E9\u30F3\u30D7",
+    "ui.microViewCondenser": "\u30B3\u30F3\u30C7\u30F3\u30B5",
+    "ui.microViewSide": "\u5074\u9762",
     "ui.microKnobCoarse": "\u7C97\u52D5",
     "ui.microKnobFine": "\u5FAE\u52D5",
     "ui.microKnobStageX": "\u30B9\u30C6\u30FC\u30B8 X",
@@ -1949,7 +1958,7 @@ var STRINGS = {
     "ui.lang": "\uC5B8\uC5B4",
     "ui.shell": "\uC178",
     "ui.microExit": "\uBAA9\uB85D\uC73C\uB85C",
-    "ui.microLede": "\uB4DC\uB798\uADF8\uB85C \uD68C\uC804 \xB7 \uD540\uCE58/\uD720 \uC90C \xB7 \uB178\uBE0C \uD0ED/\uB4DC\uB798\uADF8 \xB7 L/NA/WD/\uC2A4\uD14C\uC774\uC9C0 \uD3B8\uC9D1",
+    "ui.microLede": "WASD/\uD654\uC0B4\uD45C \xB7 QE\uD06C\uB808\uC778 \xB7 RF\uD53C\uCE58 \xB7 ZC\uC2A4\uD2B8\uB808\uC774\uD504 \xB7 0\u20137\uC2DC\uC810 \xB7 \uD540\uCE58/\uD720 \xB7 \uB178\uBE0C\uB85C L/NA/WD/\uC2A4\uD14C\uC774\uC9C0",
     "ui.microReset": "\uAD11\uD559 \uCD08\uAE30\uD654",
     "ui.microBench": "\uAD11\uD559 \uB9E4\uAC1C\uBCC0\uC218",
     "ui.micro3dSection": "3D \uC2A4\uD14C\uC774\uC9C0",
@@ -1984,6 +1993,9 @@ var STRINGS = {
     "ui.microViewBinocular": "\uC30D\uC548",
     "ui.microViewTurret": "\uD68C\uC804\uD310",
     "ui.microViewStage": "\uC7AC\uBB3C\uB300",
+    "ui.microViewLamp": "\uB7A8\uD504",
+    "ui.microViewCondenser": "\uC9D1\uAD11\uAE30",
+    "ui.microViewSide": "\uCE21\uBA74",
     "ui.microKnobCoarse": "\uC870\uB3D9",
     "ui.microKnobFine": "\uBBF8\uB3D9",
     "ui.microKnobStageX": "\uC7AC\uBB3C\uB300 X",
@@ -2065,7 +2077,7 @@ var STRINGS = {
     "ui.lang": "idioma",
     "ui.shell": "shell",
     "ui.microExit": "Volver al cat\xE1logo",
-    "ui.microLede": "Arrastra para orbitar \xB7 pellizco/rueda zoom \xB7 toca/arrastra mandos \xB7 edita L/NA/WD/platina",
+    "ui.microLede": "WASD/flechas \xB7 QE gr\xFAa \xB7 RF cabeceo \xB7 ZC strafe \xB7 vistas 0\u20137 \xB7 pellizco/rueda \xB7 mandos L/NA/WD/platina",
     "ui.microReset": "Restablecer \xF3ptica",
     "ui.microBench": "Par\xE1metros \xF3pticos",
     "ui.micro3dSection": "Escenario 3D",
@@ -2100,6 +2112,9 @@ var STRINGS = {
     "ui.microViewBinocular": "Binocular",
     "ui.microViewTurret": "Rev\xF3lver",
     "ui.microViewStage": "Platina",
+    "ui.microViewLamp": "L\xE1mpara",
+    "ui.microViewCondenser": "Condensador",
+    "ui.microViewSide": "Lateral",
     "ui.microKnobCoarse": "Grueso",
     "ui.microKnobFine": "Fino",
     "ui.microKnobStageX": "Platina X",
@@ -2181,7 +2196,7 @@ var STRINGS = {
     "ui.lang": "langue",
     "ui.shell": "shell",
     "ui.microExit": "Retour au catalogue",
-    "ui.microLede": "Glisser pour orbiter \xB7 pincer/molette zoom \xB7 toucher/glisser les molettes \xB7 \xE9diter L/NA/WD/platine",
+    "ui.microLede": "WASD/fl\xE8ches \xB7 QE grue \xB7 RF tangage \xB7 ZC strafe \xB7 vues 0\u20137 \xB7 pincer/molette \xB7 molettes L/NA/WD/platine",
     "ui.microReset": "R\xE9initialiser l\u2019optique",
     "ui.microBench": "Param\xE8tres optiques",
     "ui.micro3dSection": "Sc\xE8ne 3D",
@@ -2216,6 +2231,9 @@ var STRINGS = {
     "ui.microViewBinocular": "Binoculaire",
     "ui.microViewTurret": "Tourelle",
     "ui.microViewStage": "Platine",
+    "ui.microViewLamp": "Lampe",
+    "ui.microViewCondenser": "Condenseur",
+    "ui.microViewSide": "C\xF4t\xE9",
     "ui.microKnobCoarse": "Grossi\xE8re",
     "ui.microKnobFine": "Fine",
     "ui.microKnobStageX": "Platine X",
@@ -2297,7 +2315,7 @@ var STRINGS = {
     "ui.lang": "Sprache",
     "ui.shell": "Shell",
     "ui.microExit": "Zur\xFCck zum Katalog",
-    "ui.microLede": "Ziehen zum Orbit \xB7 Pinch/Rad Zoom \xB7 Kn\xF6pfe tippen/ziehen \xB7 L/NA/WD/Tisch bearbeiten",
+    "ui.microLede": "WASD/Pfeile \xB7 QE Kran \xB7 RF Neigung \xB7 ZC Strafe \xB7 Ansichten 0\u20137 \xB7 Pinch/Rad \xB7 Kn\xF6pfe L/NA/WD/Tisch",
     "ui.microReset": "Optik zur\xFCcksetzen",
     "ui.microBench": "Optische Parameter",
     "ui.micro3dSection": "3D-B\xFChne",
@@ -2332,6 +2350,9 @@ var STRINGS = {
     "ui.microViewBinocular": "Binokular",
     "ui.microViewTurret": "Revolver",
     "ui.microViewStage": "Tisch",
+    "ui.microViewLamp": "Lampe",
+    "ui.microViewCondenser": "Kondensor",
+    "ui.microViewSide": "Seite",
     "ui.microKnobCoarse": "Grob",
     "ui.microKnobFine": "Fein",
     "ui.microKnobStageX": "Tisch X",
@@ -3143,7 +3164,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-TWJ5EKGQ.js").then((mod) => {
+    handsPending = import("./chunk-handModels-PBW23QS7.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -5784,7 +5805,8 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
     {
-      const threadN = active ? 6 : 4;
+      const phoneTess = S(100, 8) < 65;
+      const threadN = phoneTess ? active ? 3 : 2 : active ? 6 : 4;
       const y0 = collarY - 0.016;
       const y1 = yNose + noseH * 0.2;
       const threadR = S(24, 12);
@@ -6107,10 +6129,43 @@ function overlayCaptionPolicy({ showLabels = 1, hot = false } = {}) {
 }
 var CAMERA_VIEWS = {
   free: null,
-  overview: { yaw: 0.85, pitch: 0.22, radius: 7.5, lookY: 2.05 },
-  binocular: { yaw: 0.18, pitch: 0.58, radius: 4.35, lookY: 2.55 },
-  turret: { yaw: -Math.PI / 2, pitch: 0.36, radius: 5.4, lookY: 1.55 },
-  stage: { yaw: -Math.PI / 2 + 0.28, pitch: 0.82, radius: 4.7, lookY: 0.95 }
+  overview: { yaw: 0.85, pitch: 0.22, radius: 7.5, lookX: 0, lookY: 2.05, lookZ: 0 },
+  binocular: { yaw: 0.18, pitch: 0.58, radius: 4.35, lookX: 0, lookY: 2.55, lookZ: 0 },
+  turret: { yaw: -Math.PI / 2, pitch: 0.36, radius: 5.4, lookX: 0, lookY: 1.55, lookZ: 0 },
+  stage: { yaw: -Math.PI / 2 + 0.28, pitch: 0.82, radius: 4.7, lookX: 0, lookY: 0.95, lookZ: 0 },
+  lamp: { yaw: 0.62, pitch: 0.2, radius: 3.55, lookX: 0, lookY: 0.32, lookZ: 0.02 },
+  condenser: { yaw: 1.05, pitch: 0.48, radius: 3.35, lookX: 0.06, lookY: 0.58, lookZ: 0.04 },
+  side: { yaw: 0.02, pitch: 0.18, radius: 8.1, lookX: 0, lookY: 1.35, lookZ: -0.04 }
+};
+var VIEW_HOTKEYS = {
+  0: "free",
+  1: "overview",
+  2: "binocular",
+  3: "turret",
+  4: "stage",
+  5: "lamp",
+  6: "condenser",
+  7: "side"
+};
+var CAMERA_HOLD = {
+  KeyW: "dollyIn",
+  ArrowUp: "dollyIn",
+  Equal: "dollyIn",
+  NumpadAdd: "dollyIn",
+  KeyS: "dollyOut",
+  ArrowDown: "dollyOut",
+  Minus: "dollyOut",
+  NumpadSubtract: "dollyOut",
+  KeyA: "yawLeft",
+  ArrowLeft: "yawLeft",
+  KeyD: "yawRight",
+  ArrowRight: "yawRight",
+  KeyQ: "craneUp",
+  KeyE: "craneDown",
+  KeyR: "pitchUp",
+  KeyF: "pitchDown",
+  KeyZ: "strafeLeft",
+  KeyC: "strafeRight"
 };
 function createMicroscopeWebgl(canvas2, opts = {}) {
   const gl = canvas2.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true });
@@ -6153,15 +6208,22 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   let yaw = narrowStage ? -Math.PI / 2 : 0.85;
   let pitch = narrowStage ? 0.32 : 0.22;
   let radius = narrowStage ? 9.4 : 7.5;
+  let lookX = 0;
   let lookY = 2.05;
+  let lookZ = 0;
   let cameraView = "free";
   let viewLocked = false;
+  const heldKeys = /* @__PURE__ */ new Set();
+  const onCamBlur = () => {
+    heldKeys.clear();
+  };
+  window.addEventListener("blur", onCamBlur);
   let dragMode = null;
   let partHit = null;
   let moved = false;
   let lastX = 0;
   let lastY = 0;
-  let autoSpin = narrowStage ? 0 : 0.08;
+  let autoSpin = 0;
   function markFreeView() {
     if (cameraView === "free" && !viewLocked) return;
     cameraView = "free";
@@ -6181,12 +6243,77 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     yaw = preset.yaw;
     pitch = preset.pitch;
     radius = narrowStage ? Math.max(preset.radius, 6.2) : preset.radius;
-    lookY = preset.lookY;
+    lookX = preset.lookX ?? 0;
+    lookY = preset.lookY ?? 2.05;
+    lookZ = preset.lookZ ?? 0;
     viewLocked = true;
     autoSpin = 0;
     opts.onCameraView?.(key);
     opts.onViewChange?.();
     return key;
+  }
+  function applyHeldCamera(dt) {
+    if (!heldKeys.size || !(dt > 0)) return false;
+    const fine = heldKeys.has("shift") ? 0.25 : 1;
+    const step = dt * fine;
+    let movedCam = false;
+    const dolly = (heldKeys.has("dollyOut") ? 1 : 0) - (heldKeys.has("dollyIn") ? 1 : 0);
+    if (dolly) {
+      radius = clamp(radius + dolly * 2.4 * step, 2.4, 12);
+      movedCam = true;
+    }
+    const yawDir = (heldKeys.has("yawRight") ? 1 : 0) - (heldKeys.has("yawLeft") ? 1 : 0);
+    if (yawDir) {
+      yaw += yawDir * 1.15 * step;
+      movedCam = true;
+    }
+    const crane = (heldKeys.has("craneUp") ? 1 : 0) - (heldKeys.has("craneDown") ? 1 : 0);
+    if (crane) {
+      lookY = clamp(lookY + crane * 0.95 * step, -0.4, 4.2);
+      movedCam = true;
+    }
+    const pitchDir = (heldKeys.has("pitchUp") ? 1 : 0) - (heldKeys.has("pitchDown") ? 1 : 0);
+    if (pitchDir) {
+      pitch = clamp(pitch + pitchDir * 0.55 * step, 0.05, 1.15);
+      movedCam = true;
+    }
+    const strafe = (heldKeys.has("strafeRight") ? 1 : 0) - (heldKeys.has("strafeLeft") ? 1 : 0);
+    if (strafe) {
+      const s = strafe * 1.35 * step;
+      lookX = clamp(lookX + Math.sin(yaw) * s, -4, 4);
+      lookZ = clamp(lookZ - Math.cos(yaw) * s, -4, 4);
+      movedCam = true;
+    }
+    if (movedCam) markFreeView();
+    return movedCam;
+  }
+  function handleCameraKey(e) {
+    const down = e.type !== "keyup";
+    if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+      if (down) heldKeys.add("shift");
+      else heldKeys.delete("shift");
+      return false;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (e.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return false;
+    const snapId = VIEW_HOTKEYS[e.key];
+    if (snapId || e.key === "Home" || e.key === " " || e.code === "Space") {
+      if (!down) return false;
+      e.preventDefault();
+      if (e.repeat) return true;
+      if (e.key === " " || e.code === "Space") {
+        autoSpin = autoSpin ? 0 : 0.06;
+        return true;
+      }
+      applyCameraView(e.key === "Home" ? "overview" : snapId);
+      return true;
+    }
+    const action = CAMERA_HOLD[e.code];
+    if (!action) return false;
+    if (down) heldKeys.add(action);
+    else heldKeys.delete(action);
+    e.preventDefault();
+    return true;
   }
   let hits = [];
   let lastView = { width: 1, height: 1 };
@@ -6578,15 +6705,20 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       if (oilTarget === 0 && oilBlend <= 0) oilRiseElapsed = 0;
     }
     const hoverBusy = hoverHit && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
+    const camDt = dt;
     if (!viewLocked && !dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
-      yaw += autoSpin * 0.016;
+      yaw += autoSpin * camDt;
     }
-    const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
-    const ey = Math.sin(pitch) * radius + 0.2;
-    const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
+    if (dragMode !== "part") applyHeldCamera(camDt);
+    const ox = Math.cos(yaw) * Math.cos(pitch) * radius;
+    const oy = Math.sin(pitch) * radius;
+    const oz = Math.sin(yaw) * Math.cos(pitch) * radius;
+    const ex = lookX + ox;
+    const ey = lookY + oy;
+    const ez = lookZ + oz;
     const aspect = view.width / Math.max(view.height, 1);
     const proj = perspective(38, aspect, 0.15, 56);
-    const viewM = lookAt(ex, ey, ez, 0, lookY, 0, 0, 1, 0);
+    const viewM = lookAt(ex, ey, ez, lookX, lookY, lookZ, 0, 1, 0);
     const mvp = multiply(proj, viewM);
     lastMvp = mvp;
     lastLayout = layout;
@@ -6815,12 +6947,26 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     getOilFallElapsed() {
       return oilFallElapsed;
     },
-    /** Free orbit or named fixed viewpoint (`overview` / `binocular` / `turret` / `stage`). */
+    /** Free orbit or named fixed viewpoint (overview / binocular / turret / stage / lamp / condenser / side). */
     setCameraView(id) {
       return applyCameraView(id);
     },
     getCameraView() {
       return cameraView;
+    },
+    handleCameraKey,
+    getCameraState() {
+      return {
+        yaw,
+        pitch,
+        radius,
+        lookX,
+        lookY,
+        lookZ,
+        autoSpin,
+        view: cameraView,
+        viewLocked
+      };
     },
     capturePng(state, view) {
       drawScene(state, view);
@@ -6834,6 +6980,8 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       }
     },
     dispose() {
+      window.removeEventListener("blur", onCamBlur);
+      heldKeys.clear();
       canvas2.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
@@ -6851,30 +6999,25 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
 }
 
 // js/shells/microscopeStage.js
-var LABELS_PREF_KEY = "imm-micro-labels-pref-v1";
-var labelsPrefMemory = false;
+var LABELS_ON_KEY = "imm-micro-labels-on-v1";
 function labelsPrefSet(state) {
   if (!state?.params) return false;
-  if (labelsPrefMemory) return false;
-  let stored = false;
+  let on = false;
   try {
-    stored = localStorage.getItem(LABELS_PREF_KEY) === "1";
+    on = localStorage.getItem(LABELS_ON_KEY) === "1";
   } catch {
-    stored = false;
+    on = false;
   }
-  if (stored) {
-    labelsPrefMemory = true;
-    return false;
-  }
-  const narrow = typeof matchMedia === "function" && matchMedia("(max-width: 480px)").matches;
-  if (!narrow) return false;
-  state.params.showLabels = 0;
-  labelsPrefMemory = true;
+  const next = on ? 1 : 0;
+  const changed = Number(state.params.showLabels) !== next;
+  state.params.showLabels = next;
+  return changed;
+}
+function persistLabelsPref(on) {
   try {
-    localStorage.setItem(LABELS_PREF_KEY, "1");
+    localStorage.setItem(LABELS_ON_KEY, Number(on) !== 0 ? "1" : "0");
   } catch {
   }
-  return true;
 }
 var READOUTS = [
   { key: "M", label: "M" },
@@ -7166,6 +7309,7 @@ function createMicroscopeStage(api) {
       const state = api.getState();
       if (!state?.params) return;
       state.params.showLabels = Number(btn.dataset.labels) ? 1 : 0;
+      persistLabelsPref(state.params.showLabels);
       paint();
       api.onChange();
     });
@@ -7589,6 +7733,12 @@ function createMicroscopeChrome(api) {
       leave({ nextShell: "lab-classic" });
       return true;
     }
+    const gl = api.getWebglStage?.();
+    if (gl && typeof gl.handleCameraKey === "function" && gl.handleCameraKey(e)) {
+      syncCameraView(gl.getCameraView?.() || "free");
+      api.paintFrame();
+      return true;
+    }
     if (!e.target?.closest?.("input, textarea, select, #micro-rail") && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "j", "k", "J", "K", "PageUp", "PageDown"].includes(e.key)) {
       e.preventDefault();
       return true;
@@ -7635,6 +7785,11 @@ function createMicroscopeChrome(api) {
       }
     });
     document.addEventListener("wheel", onWheel, { capture: true, passive: false });
+    window.addEventListener("keyup", (e) => {
+      if (api.getActiveShellId() !== MICROSCOPE_SHELL_ID) return;
+      const gl = api.getWebglStage?.();
+      if (gl && typeof gl.handleCameraKey === "function") gl.handleCameraKey(e);
+    });
   }
   return {
     MICROSCOPE_MODEL_ID,

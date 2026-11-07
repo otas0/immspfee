@@ -523,6 +523,20 @@ html.shell-lab-microscope3d .micro-cap {
     justify-content: flex-start;
   }
 
+  html.shell-lab-microscope3d .micro-views {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+  }
+
+  html.shell-lab-microscope3d .micro-views .micro-chip {
+    font-size: 0.5rem;
+    letter-spacing: 0.02em;
+    padding: 0.22rem 0.32rem;
+  }
+
   html.shell-lab-microscope3d .micro-brand {
     font-size: 1.35rem;
   }
