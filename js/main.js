@@ -2578,11 +2578,9 @@ async function boot() {
   microUi.bind();
   mountShellSelect(document.getElementById('shell-select'));
   mountLocaleSelect(document.getElementById('locale-select'));
-  await bootI18n();
-  // Belt-and-suspenders: pack must be ready before any catalog title paint.
-  try { await ensureSidebarLocales(); } catch { /* ignore */ }
-  syncChromeI18n();
-  microUi.sync(microUi.isMicroscopeShell());
+  // Kick chrome i18n + model-name pack in parallel with catalog work — do not
+  // serialize ~160KB models-en behind domain-index on the cold CDN path.
+  const i18nPack = bootI18n();
   onLocaleChange(() => {
     syncChromeI18n();
     microUi?.sync(microUi.isMicroscopeShell());
@@ -2600,14 +2598,41 @@ async function boot() {
     syncDrawerChrome();
   });
 
-  await loadIndex();
-  const pinned = readModelIdFromUrl() || readModelIdFromStorage();
-  if (pinned) {
-    if (!(await ensureId(pinned))) await primeHandModel(DEFAULT_MODEL_ID);
-  } else {
-    // Hand model only — keep subjects folded so cold boot does not fetch domain JSON.
-    await primeHandModel(DEFAULT_MODEL_ID);
+  const fromUrl = readModelIdFromUrl();
+  const wantShell = resolveShellId();
+  const shellDef = getShell(wantShell);
+  const initialId = resolveInitialModelId();
+  const needsCatalog = !!(shellDef?.modelId || (initialId && initialId !== DEFAULT_MODEL_ID) || fromUrl);
+
+  // Fast path: free-fall (+ stub palette) paints before index / locale pack land.
+  await Promise.all([
+    palettesReady,
+    primeHandModel(DEFAULT_MODEL_ID),
+    needsCatalog ? loadIndex() : Promise.resolve(),
+  ]);
+  if (shellDef?.modelId) await ensureId(shellDef.modelId);
+  else if (initialId && initialId !== DEFAULT_MODEL_ID) {
+    if (!(await ensureId(initialId))) await primeHandModel(DEFAULT_MODEL_ID);
   }
+  switchModel(initialId);
+  if (shellDef?.modelId) microUi?.applyShellId(wantShell);
+  requestAnimationFrame(frame);
+  try {
+    performance.mark('boot-interactive');
+    window.__bootMarks = {
+      ...(window.__bootMarks || {}),
+      interactiveMs: performance.getEntriesByName('boot-interactive').at(-1)?.startTime ?? null,
+    };
+  } catch { /* ignore */ }
+
+  // Sidebar / filters / deep-link focus — after first interactive frame.
+  await Promise.all([
+    needsCatalog ? Promise.resolve() : loadIndex(),
+    i18nPack,
+  ]);
+  try { await ensureSidebarLocales(); } catch { /* ignore */ }
+  syncChromeI18n();
+  microUi.sync(microUi.isMicroscopeShell());
   try {
     const loadIndexMs = performance.measure('boot-loadIndex', 'boot-loadIndex-start', 'boot-loadIndex-end').duration;
     let ensureIdMs = null;
@@ -2629,16 +2654,12 @@ async function boot() {
   applyGlobals();
   syncPauseUi();
   buildSidebar();
-  await palettesReady;
-  const fromUrl = readModelIdFromUrl();
-  const wantShell = resolveShellId();
-  const shellDef = getShell(wantShell);
-  const initialId = resolveInitialModelId();
-  if (shellDef?.modelId) await ensureId(shellDef.modelId);
-  else if (initialId && initialId !== DEFAULT_MODEL_ID) await ensureId(initialId);
-  switchModel(initialId);
-  // Re-enter exclusive shells after the catalog bind — boot must not strand chrome hidden.
-  if (shellDef?.modelId) microUi?.applyShellId(wantShell);
+  if (app.model) {
+    const view = localizeModel(app.model);
+    toolbarTitle.textContent = view.name;
+    microUi?.setTitle(view.name);
+    metaFormula.textContent = [view.formula, view.description].filter(Boolean).join('\n');
+  }
   if (fromUrl && !shellDef?.modelId) {
     const activeRow = domainIndex.find((row) => row.id === fromUrl);
     if (activeRow) {
@@ -2648,7 +2669,6 @@ async function boot() {
   if (!isCompact()) bench.classList.add('open');
   bindCanvasPointer();
   syncDrawerChrome();
-  requestAnimationFrame(frame);
 }
 
 function populateUserModelFamilies() {

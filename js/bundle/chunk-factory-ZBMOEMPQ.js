@@ -26,7 +26,7 @@ import {
   ringForEach,
   ringLast,
   ringPush
-} from "./chunk-chunk-EKGDC6UE.js";
+} from "./chunk-chunk-RNRMMUPI.js";
 
 // js/lab/sketches.js
 function ink() {

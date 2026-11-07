@@ -1,19 +1,26 @@
 /**
  * 画布色板：UI 外壳黑白；模型语义色来自 data/palettes.json。
  * html.hc 时降饱和，便于高对比阅读。
+ *
+ * Browser bundle embeds free-fall so cold paint is not gated on the full JSON;
+ * hydratePalettes() merges the rest after first paint.
  */
 import paletteDoc from '../../data/palettes.json' with { type: 'json' };
 
 let activeModelId = 'free-fall';
 
 // Keep the same objects the palette module exported. The browser bundle
-// replaces that module with an empty shell and fills it after first paint,
+// replaces that module with a free-fall stub and fills the rest after paint,
 // so a spread here would freeze the shell and ignore the real file.
 const NEUTRAL = paletteDoc.neutral;
 const MODEL = paletteDoc.models;
 const HC = paletteDoc.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
 
-let palettesSettled = typeof document === 'undefined' || Object.keys(MODEL).length > 0;
+/** True once free-fall (or the full file) is available for paint. */
+let palettesSettled = typeof document === 'undefined' || !!MODEL['free-fall'] || Object.keys(MODEL).length > 1;
+let fullHydrated = typeof document === 'undefined' || Object.keys(MODEL).length > 8;
+/** @type {Promise<void>|null} */
+let hydratePromise = null;
 
 function applyPaletteDoc(full) {
   if (!full?.models) return false;
@@ -27,17 +34,38 @@ export function palettesReadyNow() {
   return palettesSettled;
 }
 
-/** Resolves before the first model frame so free-fall is not drawn in neutral colors. */
-export const palettesReady = (typeof document !== 'undefined' && Object.keys(MODEL).length === 0)
-  ? fetch(new URL('data/palettes.json', document.baseURI).href)
+/** Background-fetch the full palette file (no-op when already complete). */
+export function hydratePalettes() {
+  if (fullHydrated || typeof document === 'undefined') return Promise.resolve();
+  if (hydratePromise) return hydratePromise;
+  const href = new URL('data/palettes.json', document.baseURI).href;
+  hydratePromise = fetch(href)
     .then((res) => (res.ok ? res.json() : null))
     .then((full) => {
-      applyPaletteDoc(full);
-      palettesSettled = true;
-      if (full?.models) document.dispatchEvent(new Event('imm-palettes'));
+      if (applyPaletteDoc(full)) {
+        fullHydrated = true;
+        palettesSettled = true;
+        try { document.documentElement.dataset.palettesFull = '1'; } catch { /* ignore */ }
+        document.dispatchEvent(new Event('imm-palettes'));
+      } else {
+        palettesSettled = true;
+      }
     })
-    .catch(() => { palettesSettled = true; })
-  : Promise.resolve();
+    .catch(() => { palettesSettled = true; });
+  return hydratePromise;
+}
+
+/**
+ * Resolves when free-fall can paint. Full catalog colors may still be loading —
+ * hydratePalettes() (kicked below) fills the rest.
+ */
+export const palettesReady = (typeof document !== 'undefined' && !MODEL['free-fall'] && Object.keys(MODEL).length === 0)
+  ? hydratePalettes()
+  : Promise.resolve().then(() => { palettesSettled = true; });
+
+if (typeof document !== 'undefined' && !fullHydrated) {
+  void hydratePalettes();
+}
 
 function hashHue(id) {
   let h = 0;

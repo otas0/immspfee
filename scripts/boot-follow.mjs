@@ -112,22 +112,7 @@ await paletteCtx.route('**/data/palettes.json', async (route) => {
 const palettePage = await paletteCtx.newPage();
 await palettePage.goto(base, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await palettePage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
-await palettePage.waitForTimeout(250);
-const before = await palettePage.evaluate(() => {
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let gold = 0;
-  for (let i = 0; i < data.length; i += 16) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    if (Math.abs(r - 240) < 20 && Math.abs(g - 180) < 20 && Math.abs(b - 41) < 24) gold += 1;
-  }
-  return { gold, neutral: window.__neutralPaints || 0 };
-});
-if (before.gold > 0 || before.neutral > 0) fail(`free-fall painted before palettes ${JSON.stringify(before)}`);
-releasePalettes();
+// Cold bundle embeds free-fall colors — first paint must not wait on palettes.json.
 try {
   await palettePage.waitForFunction(() => {
     const canvas = document.getElementById('canvas');
@@ -143,8 +128,16 @@ try {
     return gold > 8;
   }, null, { timeout: 15000 });
 } catch {
-  fail('free-fall frame never picked up the palette body color');
+  fail('free-fall stub never painted while palettes.json was held');
 }
+const stubPaint = await palettePage.evaluate(() => window.__neutralPaints || 0);
+if (stubPaint > 0) fail(`neutral paints with free-fall stub ${stubPaint}`);
+releasePalettes();
+await palettePage.waitForFunction(
+  () => document.documentElement.dataset.palettesFull === '1',
+  null,
+  { timeout: 15000 },
+).catch(() => fail('full palettes.json never hydrated after release'));
 fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
 await palettePage.evaluate(() => {
   window.__labCapture.pause();

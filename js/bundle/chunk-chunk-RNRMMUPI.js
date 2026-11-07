@@ -269,7 +269,17 @@ function inferGroup(key, value) {
 // palette-shell:../../data/palettes.json
 var doc = {
   neutral: { axis: "#5c6570", ground: "#6b7280", muted: "#94a3b8", theory: "#64748b", text: "#94a3b8", bg: "#000000", flash: "rgba(255, 220, 100, 0.45)" },
-  models: {},
+  models: {
+    "free-fall": {
+      swatch: "#f0b429",
+      body: "#f0b429",
+      body2: "#d97706",
+      accent: "#fb7185",
+      vector: "#2dd4bf",
+      trail: "rgba(240, 180, 41, 0.4)",
+      legend: ["\u7403 body", "\u901F\u5EA6 vector"]
+    }
+  },
   hc: { saturationScale: 0.42, lightnessBoost: 0.08 }
 };
 var palettes_default = doc;
@@ -279,7 +289,9 @@ var activeModelId = "free-fall";
 var NEUTRAL = palettes_default.neutral;
 var MODEL = palettes_default.models;
 var HC = palettes_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
-var palettesSettled = typeof document === "undefined" || Object.keys(MODEL).length > 0;
+var palettesSettled = typeof document === "undefined" || !!MODEL["free-fall"] || Object.keys(MODEL).length > 1;
+var fullHydrated = typeof document === "undefined" || Object.keys(MODEL).length > 8;
+var hydratePromise = null;
 function applyPaletteDoc(full) {
   if (!full?.models) return false;
   if (full.neutral) Object.assign(NEUTRAL, full.neutral);
@@ -290,13 +302,33 @@ function applyPaletteDoc(full) {
 function palettesReadyNow() {
   return palettesSettled;
 }
-var palettesReady = typeof document !== "undefined" && Object.keys(MODEL).length === 0 ? fetch(new URL("data/palettes.json", document.baseURI).href).then((res) => res.ok ? res.json() : null).then((full) => {
-  applyPaletteDoc(full);
+function hydratePalettes() {
+  if (fullHydrated || typeof document === "undefined") return Promise.resolve();
+  if (hydratePromise) return hydratePromise;
+  const href = new URL("data/palettes.json", document.baseURI).href;
+  hydratePromise = fetch(href).then((res) => res.ok ? res.json() : null).then((full) => {
+    if (applyPaletteDoc(full)) {
+      fullHydrated = true;
+      palettesSettled = true;
+      try {
+        document.documentElement.dataset.palettesFull = "1";
+      } catch {
+      }
+      document.dispatchEvent(new Event("imm-palettes"));
+    } else {
+      palettesSettled = true;
+    }
+  }).catch(() => {
+    palettesSettled = true;
+  });
+  return hydratePromise;
+}
+var palettesReady = typeof document !== "undefined" && !MODEL["free-fall"] && Object.keys(MODEL).length === 0 ? hydratePalettes() : Promise.resolve().then(() => {
   palettesSettled = true;
-  if (full?.models) document.dispatchEvent(new Event("imm-palettes"));
-}).catch(() => {
-  palettesSettled = true;
-}) : Promise.resolve();
+});
+if (typeof document !== "undefined" && !fullHydrated) {
+  void hydratePalettes();
+}
 function hashHue(id) {
   let h = 0;
   for (let i = 0; i < String(id).length; i += 1) h = h * 31 + String(id).charCodeAt(i) >>> 0;

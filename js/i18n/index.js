@@ -139,6 +139,17 @@ function notify() {
   }
 }
 
+/** Lazy-load Noto Sans SC only when the UI is Chinese — keeps Latin cold path lean. */
+function ensureNotoSc() {
+  if (typeof document === 'undefined') return;
+  if (document.querySelector('link[data-imm-noto-sc]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap';
+  link.dataset.immNotoSc = '1';
+  document.head.appendChild(link);
+}
+
 /** @param {string} next @param {{ focusSelect?: boolean }} [opts] */
 export function setLocale(next, opts = {}) {
   if (!STRINGS[next] || next === locale) {
@@ -152,6 +163,7 @@ export function setLocale(next, opts = {}) {
   writeUrlLang(next);
   document.documentElement.lang = htmlLang(next);
   document.documentElement.setAttribute('xml:lang', htmlLang(next));
+  if (next === 'zh') ensureNotoSc();
   applyDomI18n();
   notify();
   void ensureModelPack(next).then(() => notify());
@@ -221,6 +233,7 @@ export function bootI18n() {
   document.documentElement.setAttribute('xml:lang', htmlLang(locale));
   try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
   writeUrlLang(locale);
+  if (locale === 'zh') ensureNotoSc();
   applyDomI18n();
   return ensureModelPack(locale);
 }

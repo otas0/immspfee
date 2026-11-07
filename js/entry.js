@@ -107,8 +107,7 @@ async function preloadCatalog() {
 }
 
 const labUrl = stampedUrl('./bundle/lab.js');
-// Kick lab.js fetch in parallel with catalog preload (CDN cold path — do not split entry further).
-// Use import.meta.url so preload hits /js/bundle/lab.js (not document-root /bundle/lab.js).
+// Prefer lab.js bandwidth — only race domain-index when a deep-link needs it.
 {
   const link = document.createElement('link');
   link.rel = 'modulepreload';
@@ -117,10 +116,11 @@ const labUrl = stampedUrl('./bundle/lab.js');
 }
 
 mark('boot-main-start');
-await Promise.all([
-  preloadCatalog(),
-  import(labUrl),
-]);
+const deepLink = wantedModelId();
+const catalogKick = deepLink ? preloadCatalog() : null;
+await import(labUrl);
+if (!deepLink) void preloadCatalog();
+else await catalogKick;
 mark('boot-main-end');
 try {
   const mainMs = performance.measure('boot-main', 'boot-main-start', 'boot-main-end').duration;
@@ -128,8 +128,8 @@ try {
 } catch { /* ignore */ }
 document.documentElement.dataset.boot = 'ready';
 
-if ('serviceWorker' in navigator && navigator.webdriver !== true) {
-  // Default scope is the SW directory (…/immspfee/), not origin root — required on project Pages.
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || navigator.webdriver === true) return;
   const worker = new URL('../sw.js', import.meta.url);
   if (assetV) worker.searchParams.set('v', assetV);
   navigator.serviceWorker.register(worker.href).then(() => navigator.serviceWorker.ready).then((reg) => {
@@ -145,4 +145,11 @@ if ('serviceWorker' in navigator && navigator.webdriver !== true) {
     });
     reg.active?.postMessage({ type: 'prime', urls: hashed });
   }).catch(() => {});
+}
+
+// Idle-defer SW so prime does not race palettes / locale on the cold CDN path.
+if (typeof requestIdleCallback === 'function') {
+  requestIdleCallback(() => registerServiceWorker(), { timeout: 2500 });
+} else {
+  setTimeout(registerServiceWorker, 1);
 }

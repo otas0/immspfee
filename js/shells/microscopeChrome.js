@@ -158,7 +158,13 @@ export function createMicroscopeChrome(api) {
     api.syncDrawerChrome();
   }
 
+  function ensureMicroscopeCss() {
+    const link = document.getElementById('microscope-shell-css');
+    if (link && link.media !== 'all') link.media = 'all';
+  }
+
   async function enter({ skipModel = false } = {}) {
+    ensureMicroscopeCss();
     if (lock) return;
     lock = true;
     try {
@@ -263,6 +269,7 @@ export function createMicroscopeChrome(api) {
 
   function applyShellId(id) {
     if (id === MICROSCOPE_SHELL_ID) {
+      ensureMicroscopeCss();
       void enter({ skipModel: api.getModelId() === MICROSCOPE_MODEL_ID });
       return true;
     }

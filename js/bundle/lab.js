@@ -599,7 +599,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-EKGDC6UE.js */
+/* inlined chunk-chunk-RNRMMUPI.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -871,7 +871,17 @@ function inferGroup(key, value) {
 // palette-shell:../../data/palettes.json
 var doc = {
   neutral: { axis: "#5c6570", ground: "#6b7280", muted: "#94a3b8", theory: "#64748b", text: "#94a3b8", bg: "#000000", flash: "rgba(255, 220, 100, 0.45)" },
-  models: {},
+  models: {
+    "free-fall": {
+      swatch: "#f0b429",
+      body: "#f0b429",
+      body2: "#d97706",
+      accent: "#fb7185",
+      vector: "#2dd4bf",
+      trail: "rgba(240, 180, 41, 0.4)",
+      legend: ["\u7403 body", "\u901F\u5EA6 vector"]
+    }
+  },
   hc: { saturationScale: 0.42, lightnessBoost: 0.08 }
 };
 var palettes_default = doc;
@@ -881,7 +891,9 @@ var activeModelId = "free-fall";
 var NEUTRAL = palettes_default.neutral;
 var MODEL = palettes_default.models;
 var HC = palettes_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
-var palettesSettled = typeof document === "undefined" || Object.keys(MODEL).length > 0;
+var palettesSettled = typeof document === "undefined" || !!MODEL["free-fall"] || Object.keys(MODEL).length > 1;
+var fullHydrated = typeof document === "undefined" || Object.keys(MODEL).length > 8;
+var hydratePromise = null;
 function applyPaletteDoc(full) {
   if (!full?.models) return false;
   if (full.neutral) Object.assign(NEUTRAL, full.neutral);
@@ -892,13 +904,33 @@ function applyPaletteDoc(full) {
 function palettesReadyNow() {
   return palettesSettled;
 }
-var palettesReady = typeof document !== "undefined" && Object.keys(MODEL).length === 0 ? fetch(new URL("data/palettes.json", document.baseURI).href).then((res) => res.ok ? res.json() : null).then((full) => {
-  applyPaletteDoc(full);
+function hydratePalettes() {
+  if (fullHydrated || typeof document === "undefined") return Promise.resolve();
+  if (hydratePromise) return hydratePromise;
+  const href = new URL("data/palettes.json", document.baseURI).href;
+  hydratePromise = fetch(href).then((res) => res.ok ? res.json() : null).then((full) => {
+    if (applyPaletteDoc(full)) {
+      fullHydrated = true;
+      palettesSettled = true;
+      try {
+        document.documentElement.dataset.palettesFull = "1";
+      } catch {
+      }
+      document.dispatchEvent(new Event("imm-palettes"));
+    } else {
+      palettesSettled = true;
+    }
+  }).catch(() => {
+    palettesSettled = true;
+  });
+  return hydratePromise;
+}
+var palettesReady = typeof document !== "undefined" && !MODEL["free-fall"] && Object.keys(MODEL).length === 0 ? hydratePalettes() : Promise.resolve().then(() => {
   palettesSettled = true;
-  if (full?.models) document.dispatchEvent(new Event("imm-palettes"));
-}).catch(() => {
-  palettesSettled = true;
-}) : Promise.resolve();
+});
+if (typeof document !== "undefined" && !fullHydrated) {
+  void hydratePalettes();
+}
 function hashHue(id) {
   let h = 0;
   for (let i = 0; i < String(id).length; i += 1) h = h * 31 + String(id).charCodeAt(i) >>> 0;
@@ -1283,7 +1315,7 @@ function ringLast(ring) {
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
 /* static chunk inlined: chunk-chunk-AVVKPFKH.js */
-/* static chunk inlined: chunk-chunk-EKGDC6UE.js */
+/* static chunk inlined: chunk-chunk-RNRMMUPI.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1488,7 +1520,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-VOCRFTVP.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-ZBMOEMPQ.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -2543,6 +2575,15 @@ function notify() {
     }
   }
 }
+function ensureNotoSc() {
+  if (typeof document === "undefined") return;
+  if (document.querySelector("link[data-imm-noto-sc]")) return;
+  const link2 = document.createElement("link");
+  link2.rel = "stylesheet";
+  link2.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap";
+  link2.dataset.immNotoSc = "1";
+  document.head.appendChild(link2);
+}
 function setLocale(next, opts = {}) {
   if (!STRINGS[next] || next === locale) {
     if (opts.focusSelect !== false) {
@@ -2558,6 +2599,7 @@ function setLocale(next, opts = {}) {
   writeUrlLang(next);
   document.documentElement.lang = htmlLang(next);
   document.documentElement.setAttribute("xml:lang", htmlLang(next));
+  if (next === "zh") ensureNotoSc();
   applyDomI18n();
   notify();
   void ensureModelPack(next).then(() => notify());
@@ -2621,6 +2663,7 @@ function bootI18n() {
   } catch {
   }
   writeUrlLang(locale);
+  if (locale === "zh") ensureNotoSc();
   applyDomI18n();
   return ensureModelPack(locale);
 }
@@ -3164,7 +3207,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-PBW23QS7.js").then((mod) => {
+    handsPending = import("./chunk-handModels-WWXDGJ2Q.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -7620,7 +7663,12 @@ function createMicroscopeChrome(api) {
     }
     api.syncDrawerChrome();
   }
+  function ensureMicroscopeCss() {
+    const link2 = document.getElementById("microscope-shell-css");
+    if (link2 && link2.media !== "all") link2.media = "all";
+  }
   async function enter({ skipModel = false } = {}) {
+    ensureMicroscopeCss();
     if (lock) return;
     lock = true;
     try {
@@ -7704,6 +7752,7 @@ function createMicroscopeChrome(api) {
   }
   function applyShellId(id) {
     if (id === MICROSCOPE_SHELL_ID) {
+      ensureMicroscopeCss();
       void enter({ skipModel: api.getModelId() === MICROSCOPE_MODEL_ID });
       return true;
     }
@@ -10240,13 +10289,7 @@ async function boot() {
   microUi.bind();
   mountShellSelect(document.getElementById("shell-select"));
   mountLocaleSelect(document.getElementById("locale-select"));
-  await bootI18n();
-  try {
-    await ensureSidebarLocales();
-  } catch {
-  }
-  syncChromeI18n();
-  microUi.sync(microUi.isMicroscopeShell());
+  const i18nPack = bootI18n();
   onLocaleChange(() => {
     syncChromeI18n();
     microUi?.sync(microUi.isMicroscopeShell());
@@ -10263,13 +10306,41 @@ async function boot() {
     syncPauseUi();
     syncDrawerChrome();
   });
-  await loadIndex();
-  const pinned = readModelIdFromUrl() || readModelIdFromStorage();
-  if (pinned) {
-    if (!await ensureId(pinned)) await primeHandModel(DEFAULT_MODEL_ID);
-  } else {
-    await primeHandModel(DEFAULT_MODEL_ID);
+  const fromUrl = readModelIdFromUrl();
+  const wantShell = resolveShellId();
+  const shellDef = getShell(wantShell);
+  const initialId = resolveInitialModelId();
+  const needsCatalog = !!(shellDef?.modelId || initialId && initialId !== DEFAULT_MODEL_ID || fromUrl);
+  await Promise.all([
+    palettesReady,
+    primeHandModel(DEFAULT_MODEL_ID),
+    needsCatalog ? loadIndex() : Promise.resolve()
+  ]);
+  if (shellDef?.modelId) await ensureId(shellDef.modelId);
+  else if (initialId && initialId !== DEFAULT_MODEL_ID) {
+    if (!await ensureId(initialId)) await primeHandModel(DEFAULT_MODEL_ID);
   }
+  switchModel(initialId);
+  if (shellDef?.modelId) microUi?.applyShellId(wantShell);
+  requestAnimationFrame(frame);
+  try {
+    performance.mark("boot-interactive");
+    window.__bootMarks = {
+      ...window.__bootMarks || {},
+      interactiveMs: performance.getEntriesByName("boot-interactive").at(-1)?.startTime ?? null
+    };
+  } catch {
+  }
+  await Promise.all([
+    needsCatalog ? Promise.resolve() : loadIndex(),
+    i18nPack
+  ]);
+  try {
+    await ensureSidebarLocales();
+  } catch {
+  }
+  syncChromeI18n();
+  microUi.sync(microUi.isMicroscopeShell());
   try {
     const loadIndexMs = performance.measure("boot-loadIndex", "boot-loadIndex-start", "boot-loadIndex-end").duration;
     let ensureIdMs = null;
@@ -10295,15 +10366,12 @@ async function boot() {
   applyGlobals();
   syncPauseUi();
   buildSidebar();
-  await palettesReady;
-  const fromUrl = readModelIdFromUrl();
-  const wantShell = resolveShellId();
-  const shellDef = getShell(wantShell);
-  const initialId = resolveInitialModelId();
-  if (shellDef?.modelId) await ensureId(shellDef.modelId);
-  else if (initialId && initialId !== DEFAULT_MODEL_ID) await ensureId(initialId);
-  switchModel(initialId);
-  if (shellDef?.modelId) microUi?.applyShellId(wantShell);
+  if (app.model) {
+    const view = localizeModel2(app.model);
+    toolbarTitle.textContent = view.name;
+    microUi?.setTitle(view.name);
+    metaFormula.textContent = [view.formula, view.description].filter(Boolean).join("\n");
+  }
   if (fromUrl && !shellDef?.modelId) {
     const activeRow = domainIndex.find((row) => row.id === fromUrl);
     if (activeRow) {
@@ -10313,7 +10381,6 @@ async function boot() {
   if (!isCompact()) bench.classList.add("open");
   bindCanvasPointer();
   syncDrawerChrome();
-  requestAnimationFrame(frame);
 }
 function populateUserModelFamilies() {
   if (!userModelFamily) return;
@@ -10507,4 +10574,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-VOCRFTVP.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-ZBMOEMPQ.js");
