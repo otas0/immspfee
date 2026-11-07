@@ -142,13 +142,17 @@ jobs:
             exit 1
           fi
 
-      - name: Microscope denser-mesh FPS gate
-        # Soft gate: GHA Linux often software-GL (~6 fps). Phone tess 0.55 is asserted in test:micro-camera.
+      - name: Microscope denser-mesh FPS advisory (1280)
+        # Advisory only — writes artifacts/micro-fps-advisory.json. Hard gate: test:micro-camera fps390.
         continue-on-error: true
         run: |
           set -o pipefail
           MICRO_FPS_MIN=25 npm run test:micro-fps 2>&1 | tee artifacts/micro-fps.log
-          echo "micro-fps gate ok" >> artifacts/ci-summary.txt
+          if [[ -f artifacts/micro-fps-advisory.json ]]; then
+            echo "micro-fps advisory artifact ok" >> artifacts/ci-summary.txt
+          else
+            echo "micro-fps advisory missing json (probe older?)" >> artifacts/ci-summary.txt
+          fi
 
       - name: Microscope palette (activity ring vs DIN)
         run: |
@@ -502,7 +506,14 @@ jobs:
 
   webkit-projector:
     name: webkit-projector (optional)
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[webkit]')
+    # Tip [webkit] OR micro Playwright scripts / mesh / shell chrome touched on this push.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[webkit]') ||
+      contains(toJSON(github.event.commits.*.modified), 'scripts/micro-') ||
+      contains(toJSON(github.event.commits.*.added), 'scripts/micro-') ||
+      contains(toJSON(github.event.commits.*.modified), 'js/viz/microscope') ||
+      contains(toJSON(github.event.commits.*.modified), 'scripts/shell-chrome.mjs')
     # Ubuntu WebKit apt deps frequently fail (exit 100); macOS ships a usable WebKit binary.
     # Prefer macos-latest: macos-14 can cancel instantly with
     # "configuration 'macos-14-arm64-us-default' is not supported" on this repo.

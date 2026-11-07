@@ -183,6 +183,19 @@ export const VIEW_HOTKEYS = {
   7: 'side',
 };
 
+/** Capture-stage methods Playwright / suite must keep (API regression guard). */
+export const STAGE_CAPTURE_KEYS = Object.freeze([
+  'getMeshDynamicKey',
+  'getHeldCameraKeys',
+  'getActivityRing',
+  'getCameraState',
+  'setCameraView',
+  'handleCameraKey',
+  'getOilBlend',
+  'oilVisible',
+  'getOilScreen',
+]);
+
 /** Physical keys held for dolly / yaw / crane / pitch / strafe. Shift is separate. */
 export const CAMERA_HOLD = {
   KeyW: 'dollyIn',

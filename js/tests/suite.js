@@ -38,8 +38,8 @@ import {
 } from '../models/microscopeOptics.js';
 import { createMicroscopeStage } from '../shells/microscopeStage.js';
 import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
-import { buildMicroscopeSolid, digitStrokes } from '../viz/microscopeMeshBuild.js';
-import { overlayCaptionPolicy, CAMERA_HOLD, VIEW_HOTKEYS } from '../viz/microscopeWebgl.js';
+import { buildMicroscopeSolid, digitStrokes, condenserLensRadii, meshDynamicKey } from '../viz/microscopeMeshBuild.js';
+import { overlayCaptionPolicy, CAMERA_HOLD, VIEW_HOTKEYS, STAGE_CAPTURE_KEYS } from '../viz/microscopeWebgl.js';
 import { runModelContract } from './model-contract.js';
 import { validateUserModelDraft } from '../lab/userModels.js';
 import { runLab12 } from './lab12.js';
@@ -511,6 +511,11 @@ export function runSuite() {
       assert('CAMERA_HOLD KeyW → dollyIn', CAMERA_HOLD.KeyW === 'dollyIn', String(CAMERA_HOLD.KeyW));
       assert('VIEW_HOTKEYS 3 → turret', VIEW_HOTKEYS['3'] === 'turret', String(VIEW_HOTKEYS['3']));
       assert('VIEW_HOTKEYS 5 → lamp', VIEW_HOTKEYS['5'] === 'lamp', String(VIEW_HOTKEYS['5']));
+      assert(
+        'STAGE_CAPTURE_KEYS includes getMeshDynamicKey',
+        STAGE_CAPTURE_KEYS.includes('getMeshDynamicKey'),
+        String(STAGE_CAPTURE_KEYS),
+      );
 
       const oLow = opticsFromParams({ objective: '40x', eyepiece: '10x', tubeL_mm: 160, NA: 0.2, WD_mm: 0.6 });
       const layLow = microscopeLayout(oLow, { focusZ_mm: 0.5, stageX_mm: 5, stageY_mm: -3, fieldIris: 0.4, lampOn: 1 });
@@ -518,6 +523,25 @@ export function runSuite() {
         'NA=0.65 vs NA=0.2 changes irisOpen',
         Math.abs(lay.irisOpen - layLow.irisOpen) > 0.05,
         `hi=${lay.irisOpen} lo=${layLow.irisOpen}`,
+      );
+      const lensShut = condenserLensRadii(0.08);
+      const lensOpen = condenserLensRadii(lay.irisOpen);
+      assert(
+        'irisOpen→lensBot/lensTop opens with NA',
+        lensOpen.lensBot > lensShut.lensBot && lensOpen.lensTop > lensShut.lensTop,
+        `shut=${JSON.stringify(lensShut)} open=${JSON.stringify(lensOpen)}`,
+      );
+      assert(
+        'condenserLensRadii matches irisOpen clamp',
+        Math.abs(lensOpen.irisOpen - lay.irisOpen) < 1e-12,
+        String(lensOpen.irisOpen),
+      );
+      const keyHi = meshDynamicKey(o40, null, { NA: o40.NA, objective: '40x' });
+      const keyLo = meshDynamicKey(oLow, null, { NA: oLow.NA, objective: '40x' });
+      assert(
+        'meshDynamicKey changes with NA/irisOpen',
+        keyHi !== keyLo,
+        `hi=${keyHi} lo=${keyLo}`,
       );
       const meshShut = buildMicroscopeSolid(
         o40, null, OBJECTIVES, EYEPIECES, objectiveRingColor,

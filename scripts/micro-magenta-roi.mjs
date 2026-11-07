@@ -113,9 +113,15 @@ try {
   const sy = png.height / Math.max(ring.canvas.ch, 1);
   const cx = Math.round(ring.ring.x * sx);
   const cy = Math.round(ring.ring.y * sy);
-  const baseR = Math.max(6, ring.ring.r * sx);
+  // Adaptive annulus: follow getActivityRing().r (CSS→bitmap) plus a few scales.
+  const baseR = Math.max(6, Number(ring.ring.r) * Math.min(sx, sy));
+  const scales = baseR < 10
+    ? [0.85, 1, 1.2, 1.45, 1.8]
+    : baseR < 18
+      ? [0.72, 1, 1.25, 1.5]
+      : [0.65, 0.85, 1, 1.2, 1.4];
   let best = { magenta: 0, total: 0, frac: 0, r: baseR };
-  for (const scale of [1, 0.72, 1.25]) {
+  for (const scale of scales) {
     const sample = sampleMagenta(png, cx, cy, baseR * scale);
     if (sample.magenta > best.magenta || (sample.magenta === best.magenta && sample.total > best.total)) {
       best = { ...sample, r: baseR * scale };

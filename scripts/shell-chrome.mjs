@@ -562,27 +562,40 @@ const strip = await desk.evaluate(() => {
   const btn = document.getElementById('btn-micro3d-entry');
   const stripEl = document.querySelector('.micro3d-strip');
   const domains = document.querySelector('.domain-group');
+  const filters = document.querySelector('.sidebar > .filters');
+  const brand = document.querySelector('.sidebar > .brand');
   const list = document.getElementById('model-list');
   if (list) list.scrollTop = 0;
   const btnTop = btn?.getBoundingClientRect().top ?? 0;
   const domainTop = domains?.getBoundingClientRect().top ?? 0;
+  const filtersTop = filters?.getBoundingClientRect().top ?? 0;
+  const brandBottom = brand?.getBoundingClientRect().bottom ?? 0;
   const host = document.getElementById('micro3d-host');
   const count = document.querySelector('#model-list .filter-count');
+  const side = document.getElementById('sidebar');
   return {
     hasBtn: !!btn,
     hasStrip: !!stripEl,
     aboveDomains: !!(btn && domains && btnTop < domainTop - 4),
+    aboveFilters: !!(host && filters && host.getBoundingClientRect().bottom <= filtersTop + 1),
+    underBrand: !!(host && brand && host.getBoundingClientRect().top >= brandBottom - 2),
     hostPinned: !!host && host.contains(stripEl) && !list?.contains(host),
     countInList: !!count && !!list?.contains(count),
     stripPos: stripEl ? getComputedStyle(stripEl).position : '',
+    sideOverflow: side ? getComputedStyle(side).overflow : '',
     label: btn?.querySelector('.name')?.textContent?.trim() || '',
   };
 });
 if (!strip.hasBtn || !strip.hasStrip) fail(`3D strip missing ${JSON.stringify(strip)}`);
 if (!strip.aboveDomains) fail(`3D strip must sit above domain folds ${JSON.stringify(strip)}`);
+if (!strip.aboveFilters) fail(`3D strip must sit above filters ${JSON.stringify(strip)}`);
+if (!strip.underBrand) fail(`3D strip must sit under brand ${JSON.stringify(strip)}`);
 if (!strip.hostPinned) fail(`3D strip must live in #micro3d-host outside #model-list ${JSON.stringify(strip)}`);
 if (!strip.countInList) fail(`filter-count must stay inside scrolling #model-list ${JSON.stringify(strip)}`);
 if (strip.stripPos === 'sticky') fail(`3D strip should be static in pinned host ${JSON.stringify(strip)}`);
+if (strip.sideOverflow === 'auto' || strip.sideOverflow === 'scroll') {
+  fail(`sidebar must not be the scrollport ${JSON.stringify(strip)}`);
+}
 const pinBefore = await desk.evaluate(() => {
   const host = document.getElementById('micro3d-host');
   const list = document.getElementById('model-list');
@@ -980,8 +993,13 @@ await focusCompact.close();
 const classicCompact = await openPage({ width: 1000, height: 800 }, 2, 'lab-classic');
 await openParamDrawer(classicCompact);
 const classicBench = await stageGeom(classicCompact);
-await classicCompact.screenshot({ path: join(shotsDir, 'shell-classic-1000-bench.png') });
-if (!classicBench.benchOpen) fail('1000 classic could not open the param drawer');
+const classicBenchShot = join(shotsDir, 'shell-classic-1000-bench.png');
+await classicCompact.screenshot({ path: classicBenchShot });
+if (!classicBench.benchOpen) {
+  const failShot = join(shotsDir, 'shell-classic-1000-bench-FAIL.png');
+  await classicCompact.screenshot({ path: failShot }).catch(() => {});
+  fail(`1000 classic could not open the param drawer (shot ${failShot})`);
+}
 if (classicBench.benchCoversFormula) console.warn('1000 classic open bench covers the formula strip'); // soft: layout churn
 await classicCompact.close();
 

@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-07T08:12:51.262Z",
+  "at": "2026-11-07T08:23:34.712Z",
   "outputs": [
     {
       "file": "chunk-factory-ZGNQYSGD.js",
@@ -18,8 +18,8 @@
       "bytes": 159250
     },
     {
-      "file": "chunk-microscopeWebgl-HU64TUQ4.js",
-      "bytes": 75159
+      "file": "chunk-microscopeWebgl-3B6R52DP.js",
+      "bytes": 75593
     },
     {
       "file": "chunk-chunk-DJSVDYBS.js",

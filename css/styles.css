@@ -95,9 +95,21 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* Only #model-list scrolls — keep brand / filters / #micro3d-host pinned. */
+  /* Only #model-list (and capped .filters) scroll — brand + #micro3d-host stay pinned. */
   overflow: hidden;
   z-index: 30; /* 高于 drawer-backdrop(24)，否则打开后被遮罩盖住看不见 */
+}
+.sidebar > .brand,
+.sidebar > .micro3d-host,
+.sidebar > .sidebar-foot {
+  flex-shrink: 0;
+}
+.sidebar > .filters {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: min(38vh, 22rem);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 .sidebar-drag {
   display: none;
@@ -487,13 +499,14 @@ html.hc .domain-group .domain-count {
   .user-model-grid .span-2 { grid-column: auto; }
 }
 /*
- * Pinned host between filters and the scrolling catalog.
+ * Pinned host under brand (above filters + scrolling catalog).
  * Must stay outside #model-list overflow — and the sidebar itself must NOT be
  * the scroll container (projector overlay previously used overflow:auto on
  * .sidebar, which dragged this host away with the catalog).
  */
 .micro3d-host {
   flex-shrink: 0;
+  position: relative;
   padding: 0.35rem 0.55rem 0.45rem;
   background: var(--panel);
   border-bottom: 1px solid var(--line-soft);
@@ -1900,8 +1913,22 @@ html.shell-lab-projector body.drawer-open .toolbar,
     background: var(--panel);
     /* Above model-shell (33) / toolbar (32) / backdrop (24); below fixed menu (70). */
     z-index: 45;
+    /* Re-assert flex pin: phone drawer must not become a single scrollport. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
   }
   .sidebar.open { transform: translateX(0); }
+  .sidebar > .model-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .sidebar > .filters {
+    max-height: min(32vh, 14rem);
+  }
   /* Stage chrome must not paint through the open catalog. */
   body.drawer-open:not(.shell-lab-projector) .model-shell {
     z-index: 1;

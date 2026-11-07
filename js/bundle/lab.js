@@ -7108,7 +7108,7 @@ function updateHud(opts = {}) {
 var webglCreatePromise = null;
 function loadMicroscopeWebgl() {
   if (!webglCreatePromise) {
-    webglCreatePromise = import("./chunk-microscopeWebgl-HU64TUQ4.js").then((mod) => mod.createMicroscopeWebgl);
+    webglCreatePromise = import("./chunk-microscopeWebgl-3B6R52DP.js").then((mod) => mod.createMicroscopeWebgl);
   }
   return webglCreatePromise;
 }

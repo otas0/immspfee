@@ -274,6 +274,21 @@ export function meshStaticKey(tess) {
   return `static:${clampTess(tess)}`;
 }
 
+/**
+ * Abbe condenser second-glass radii from irisOpen (= clamp(NA/NAcap)).
+ * Shared by mesh build + suite so teaching geometry cannot drift from the key.
+ */
+export function condenserLensRadii(irisOpen) {
+  const open = Math.min(0.95, Math.max(0.08, Number(irisOpen) || 0.08));
+  return {
+    irisOpen: open,
+    lensBot: 0.04 + open * 0.04,
+    lensTop: 0.055 + open * 0.03,
+    rIn: 0.018 + open * 0.075,
+    rOut: 0.1,
+  };
+}
+
 /** Cache key for the dynamic optics stack (layout + hover). */
 export function meshDynamicKey(optics, hover, params = {}) {
   const p = params || {};
@@ -753,12 +768,9 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   // —— Abbe condenser + iris (layout.condenserY / irisOpen) ——
   const irisHot = hoverHi(hover, 'iris');
   const condHot = hoverHi(hover, 'condenser');
-  const rIn = 0.018 + irisOpen * 0.075;
-  const rOut = 0.1;
+  const { lensBot, lensTop, rIn, rOut } = condenserLensRadii(irisOpen);
   frustumY(0, condenserY + 0.055, 0.02, 0.07, 0.11, 0.08, ...chrome, out, S(32, 16), 0.34);
   // Second glass element: aperture tracks Abbe irisOpen (NA / NAcap). Wedges stay below.
-  const lensBot = 0.04 + irisOpen * 0.04;
-  const lensTop = 0.055 + irisOpen * 0.03;
   frustumY(0, condenserY + 0.02, 0.02, lensBot, lensTop, 0.035, ...glass, out, S(28, 14), 0.42);
   torusY(0, condenserY + 0.02, 0.02, (lensBot + lensTop) * 0.5, 0.0035, ...glassHi, out, S(28, 14), S(8, 6), 0.4);
   irisWedges(0, condenserY, 0.02, rIn, rOut, 12, irisHot ? 0.4 : 0.22, irisHot ? 0.55 : 0.23, irisHot ? 0.7 : 0.26, out);

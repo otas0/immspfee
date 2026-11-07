@@ -71,10 +71,34 @@ try {
   });
   await page.click('#micro-views [data-view="binocular"]').catch(() => {});
   await page.waitForTimeout(200);
+  const promoState = await page.evaluate(() => {
+    const rail = document.getElementById('micro-rail');
+    const bench = document.getElementById('bench');
+    const chips = [...document.querySelectorAll('#micro-views [data-view]')].map((el) => el.dataset.view);
+    const active = document.querySelector('#micro-views .micro-chip.is-active')?.dataset.view || '';
+    return {
+      labels: Number(window.__labCapture.getParams()?.showLabels) || 0,
+      railOpen: !!rail?.classList.contains('is-open'),
+      benchOpen: !!bench?.classList.contains('open'),
+      chips,
+      active,
+      view: window.__labCapture.getWebglStage?.()?.getCameraView?.() || '',
+    };
+  });
+  if (promoState.labels !== 0) throw new Error(`promo labels must be 0 got ${promoState.labels}`);
+  if (promoState.railOpen || promoState.benchOpen) {
+    throw new Error(`promo params must be closed ${JSON.stringify(promoState)}`);
+  }
+  if (promoState.active !== 'binocular' && promoState.view !== 'binocular') {
+    throw new Error(`promo must be binocular ${JSON.stringify(promoState)}`);
+  }
+  for (const id of ['lamp', 'condenser', 'side']) {
+    if (!promoState.chips.includes(id)) throw new Error(`promo missing chip ${id}`);
+  }
   const promo390 = path.join(root, 'docs/promo/micro-390-webkit-binocular.png');
   fs.mkdirSync(path.dirname(promo390), { recursive: true });
   await page.screenshot({ path: promo390, fullPage: false });
-  console.log('wrote', path.relative(root, promo390));
+  console.log('wrote', path.relative(root, promo390), JSON.stringify(promoState));
   console.log('test:micro-shots ok');
 } finally {
   await browser.close();
