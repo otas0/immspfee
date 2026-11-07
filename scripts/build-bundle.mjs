@@ -44,9 +44,8 @@ const result = await esbuild.build({
         namespace: 'palette-shell',
       }));
       build.onLoad({ filter: /.*/, namespace: 'palette-shell' }, () => ({
-        // Cold boot embeds free-fall (+ neutral) so the first frame never waits on
-        // the 500KB palettes.json. Full models hydrate after first paint.
-        // Node tests still import the JSON file directly and are unaffected.
+        // Safety net if anything still resolves data/palettes.json. Runtime theme
+        // imports data/palettes/cold-stub.json; domains hydrate after first paint.
         contents: `const doc = {
           neutral: { axis: '#5c6570', ground: '#6b7280', muted: '#94a3b8', theory: '#64748b', text: '#94a3b8', bg: '#000000', flash: 'rgba(255, 220, 100, 0.45)' },
           models: {

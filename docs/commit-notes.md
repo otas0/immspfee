@@ -233,10 +233,11 @@ Against live Pages (`PAGES_URL=https://otas0.github.io/immspfee/`):
 
 | Visit | readyMs | interactiveMs (boot) | firstHandP95 |
 |-------|---------|----------------------|--------------|
-| Cold (SW blocked) | ~1214 | ~1213 | ~2007 |
-| Warm (SW) | ~193 | ~96 | ~82 |
+| Cold (SW blocked) | ~1300 | ~1298 | ~1893 |
+| Warm (SW) | ~195 | ~104 | ~83 |
 
-Cold index ~65KB (names lazy). Palette shards max ~14KB. `fonts.css?v=` self-hosted.
+Cold index ~65KB (names lazy until search). Palette shards max ~6KB (数学/化学 by sub). `fonts.css?v=` self-hosted;
+CJK uses system stack (no Google). Optional self-hosted Noto SC subset (<200KB) deferred — full package download timed out.
 Trend: `npm run test:pages-tti-trend` → `artifacts/pages-tti-trend.json`.
 
 ### Real-device 4G / weak-net first gold frame

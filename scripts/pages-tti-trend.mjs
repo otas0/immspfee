@@ -51,4 +51,13 @@ fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(trendPath, `${JSON.stringify(trend, null, 2)}
 `);
 fs.copyFileSync(curPath, prevPath);
+const warmP95 = cur.warm?.firstHandP95 ?? 0;
+const warmWarn = Number(process.env.WARM_FIRST_HAND_P95_WARN_MS || 250);
+if (warmP95 > warmWarn) {
+  console.warn(`pages-tti-trend advisory: warm firstHandP95 ${warmP95}ms > ${warmWarn}ms`);
+}
+const warmDeltaWarn = Number(process.env.WARM_FIRST_HAND_P95_DELTA_WARN_MS || 80);
+if (trend.deltas && trend.deltas.warmFirstHandP95 > warmDeltaWarn) {
+  console.warn(`pages-tti-trend advisory: warm firstHandP95 rose by ${trend.deltas.warmFirstHandP95}ms`);
+}
 console.log(JSON.stringify(trend, null, 2));

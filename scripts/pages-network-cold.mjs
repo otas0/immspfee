@@ -151,6 +151,9 @@ if (fail) {
   if (js.some((r) => /chunk-microscopeWebgl/i.test(r.short))) {
     errors.push(`cold boot fetched microscope WebGL chunk: ${js.filter((r) => /microscopeWebgl/i.test(r.short)).map((r) => r.short).join(',')}`);
   }
+  if (json.some((r) => /domain-names\.json/i.test(r.short))) {
+    errors.push(`cold boot fetched domain-names.json before search: ${json.filter((r) => /domain-names/i.test(r.short)).map((r) => r.short).join(',')}`);
+  }
   if (errors.length) {
     console.error(errors.join('\n'));
     process.exit(1);

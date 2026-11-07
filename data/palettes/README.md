@@ -1,8 +1,9 @@
 # Palette shards
 
-`data/palettes.json` is **deprecated for browser cold/warm fetches**.
+Browser runtime **must not** fetch `data/palettes.json`.
 
-- Runtime: free-fall stub in `lab.js` + `data/palettes/domains/*.json` (keyed by domain, or `物理/<sub>`).
-- Map: `model-domain.json` (model id → shard key).
-- Shared: `shared.json` (neutral + hc).
-- Keep the monolith only for Node tests / `gen:palette-domains` source of truth until fully retired.
+- Cold: `data/palettes/cold-stub.json` (free-fall + neutral) via `js/utils/theme.js`
+- Lazy: `data/palettes/domains/*.json` (domain or `domain/sub` keys)
+- Map: `model-domain.json`
+- Shared: `shared.json`
+- `data/palettes.json` remains **gen-only source** for `npm run gen:palette-domains`

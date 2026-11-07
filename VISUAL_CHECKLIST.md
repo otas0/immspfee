@@ -2,7 +2,7 @@
 
 ## 裁切规范
 - **纯画布**：`shots/0N-*.png` = `#canvas` 的 `toDataURL`，黑底 + **分模型语义彩绘**，不含侧栏/工具栏。
-- **色板源**：`data/palettes.json`（`js/utils/theme.js` 加载）；`html.hc` 时降饱和。
+- **色板源**：冷 stub `data/palettes/cold-stub.json` + `data/palettes/domains/*`（`data/palettes.json` 仅 gen）；`html.hc` 时降饱和。
 - **尺寸**：随 DPR 变化；对比用 SHA-256（`shots/baseline/manifest.json`）。
 - **抓取**：`npm start`（另开终端）→ `npm run shots`。
 - **更新基线**：`npm run baseline:update`。

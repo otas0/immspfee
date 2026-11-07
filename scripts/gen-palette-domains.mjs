@@ -18,7 +18,7 @@ const byKey = {};
 const idToKey = {};
 for (const [id, colors] of Object.entries(pal.models || {})) {
   const meta = idMeta[id] || { domain: '其他', sub: '' };
-  const splitSubs = new Set(['物理', '工程', '计算机科学', '计算机工程']);
+  const splitSubs = new Set(['物理', '工程', '计算机科学', '计算机工程', '数学', '化学']);
   const key = splitSubs.has(meta.domain) && meta.sub
     ? `${meta.domain}/${meta.sub}`
     : meta.domain;

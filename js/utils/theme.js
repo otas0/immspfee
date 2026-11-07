@@ -1,12 +1,12 @@
 /**
- * 画布色板：UI 外壳黑白；模型语义色来自 data/palettes.json。
+ * 画布色板：UI 外壳黑白；冷 stub + data/palettes/domains/*（monolith 仅 gen 用）。
  * html.hc 时降饱和，便于高对比阅读。
  *
  * Browser bundle embeds free-fall so cold paint is not gated on palette JSON.
  * Other models hydrate per-domain shards under data/palettes/domains/.
  */
-/** @deprecated Browser uses free-fall stub + domain shards; this import is Node/tests only (esbuild shells it). */
-import paletteDoc from '../../data/palettes.json' with { type: 'json' };
+/** Cold-path stub only (free-fall + neutral). Domain shards hydrate lazily. */
+import paletteDoc from '../../data/palettes/cold-stub.json' with { type: 'json' };
 
 let activeModelId = 'free-fall';
 
