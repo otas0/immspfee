@@ -51,6 +51,7 @@
     "test:micro-magenta:390": "VIEWPORT=390x844 node scripts/micro-magenta-roi.mjs",
     "test:micro-oil": "node scripts/micro-oil-blend.mjs",
     "test:micro-oil:390": "VIEWPORT=390x844 node scripts/micro-oil-blend.mjs",
+    "test:micro-camera": "VIEWPORT=390x844 node scripts/micro-camera-contract.mjs",
     "test:micro-palette": "node scripts/micro-palette-assert.mjs",
     "test:micro-shots": "node scripts/micro-promo-shots.mjs",
     "sync:safari-proxy": "node scripts/sync-safari-proxy-asset.mjs",

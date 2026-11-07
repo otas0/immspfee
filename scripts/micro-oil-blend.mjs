@@ -5,7 +5,8 @@
  * oilVisible = blend > 0.02 (shader path). Mid-fall still tints the slide.
  * Requires lab server (LAB_URL, default http://127.0.0.1:8765/).
  */
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
+const useWebkit = process.env.MICRO_BROWSER === 'webkit';
 
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
 const url = `${base.replace(/\/?$/, '/')}?shell=lab-microscope3d&lang=en&_=${Date.now()}`;
@@ -36,7 +37,8 @@ function parseViewport() {
 }
 
 const viewport = parseViewport();
-const browser = await chromium.launch({ headless: true });
+console.log('micro-oil browser', useWebkit ? 'webkit' : 'chromium', `${viewport.width}x${viewport.height}`);
+const browser = await (useWebkit ? webkit : chromium).launch({ headless: true });
 const page = await browser.newPage({ viewport });
 
 try {

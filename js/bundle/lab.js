@@ -5806,11 +5806,11 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
     {
       const phoneTess = S(100, 8) < 65;
-      const threadN = phoneTess ? active ? 3 : 2 : active ? 6 : 4;
+      const threadN = phoneTess ? active ? 2 : 1 : active ? 6 : 4;
       const y0 = collarY - 0.016;
       const y1 = yNose + noseH * 0.2;
-      const threadR = S(24, 12);
-      const threadT = S(6, 6);
+      const threadR = phoneTess ? S(14, 8) : S(24, 12);
+      const threadT = phoneTess ? S(5, 5) : S(6, 6);
       for (let ti = 0; ti < threadN; ti += 1) {
         const u = (ti + 0.5) / threadN;
         const ty = y0 + (y1 - y0) * u;
@@ -6960,6 +6960,10 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       return cameraView;
     },
     handleCameraKey,
+    /** Held camera actions (blur / release contracts). */
+    getHeldCameraKeys() {
+      return [...heldKeys];
+    },
     getCameraState() {
       return {
         yaw,

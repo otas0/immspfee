@@ -170,6 +170,11 @@ jobs:
           npm run test:micro-oil:390 2>&1 | tee artifacts/micro-oil-390.log
           echo "micro-oil ok" >> artifacts/ci-summary.txt
 
+      - name: Microscope camera contract (WASD / blur / presets)
+        run: |
+          npm run test:micro-camera 2>&1 | tee artifacts/micro-camera.log
+          echo "micro-camera ok" >> artifacts/ci-summary.txt
+
       - name: Short SHA for artifacts
         if: always()
         id: short_sha
@@ -523,6 +528,11 @@ jobs:
         run: |
           npm run test:micro-magenta
           npm run test:micro-magenta:390
+      - name: WebKit camera contract (WASD / blur / presets / hover)
+        env:
+          MICRO_BROWSER: webkit
+          VIEWPORT: 390x844
+        run: npm run test:micro-camera
       - name: WebKit microscope promo shots
         env:
           MICRO_BROWSER: webkit

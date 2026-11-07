@@ -184,7 +184,7 @@ export const VIEW_HOTKEYS = {
 };
 
 /** Physical keys held for dolly / yaw / crane / pitch / strafe. Shift is separate. */
-const CAMERA_HOLD = {
+export const CAMERA_HOLD = {
   KeyW: 'dollyIn',
   ArrowUp: 'dollyIn',
   Equal: 'dollyIn',
@@ -1057,6 +1057,10 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       return cameraView;
     },
     handleCameraKey,
+    /** Held camera actions (blur / release contracts). */
+    getHeldCameraKeys() {
+      return [...heldKeys];
+    },
     getCameraState() {
       return {
         yaw,
