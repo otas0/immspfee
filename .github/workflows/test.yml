@@ -167,6 +167,7 @@ jobs:
       - name: Microscope oil blend
         run: |
           npm run test:micro-oil 2>&1 | tee artifacts/micro-oil.log
+          npm run test:micro-oil:390 2>&1 | tee artifacts/micro-oil-390.log
           echo "micro-oil ok" >> artifacts/ci-summary.txt
 
       - name: Short SHA for artifacts
@@ -526,13 +527,15 @@ jobs:
         env:
           MICRO_BROWSER: webkit
         run: npm run test:micro-shots
-      - name: Sync safari-proxy into docs/assets when drifted
+      - name: Sync safari-proxy + shell menu docs shots when drifted
         if: always()
         id: safari_proxy
         run: |
           set -o pipefail
           OUT=$(node scripts/sync-safari-proxy-asset.mjs | tee /dev/stderr)
+          OUT2=$(npm run sync:shell-docs 2>&1 | tee /dev/stderr)
           echo "$OUT" | grep -q 'DRIFTED=1' && echo "drifted=1" >> "$GITHUB_OUTPUT" || echo "drifted=0" >> "$GITHUB_OUTPUT"
+          echo "$OUT2" | grep -q 'DRIFTED=1' && echo "shell_docs_drifted=1" >> "$GITHUB_OUTPUT" || echo "shell_docs_drifted=0" >> "$GITHUB_OUTPUT"
       - name: Open / comment safari-proxy drift issue
         if: always() && steps.safari_proxy.outputs.drifted == '1'
         env:
@@ -549,8 +552,9 @@ jobs:
             echo
             echo '```bash'
             echo 'npm run sync:safari-proxy'
-            echo 'git add docs/assets/shell-projector-1000-safari-proxy.png'
-            echo 'git commit -m "chore(webkit): sync safari-proxy asset"'
+            echo 'npm run sync:shell-docs'
+            echo 'git add docs/assets/shell-projector-1000-safari-proxy.png docs/assets/shell-projector-1000-menu.png docs/assets/shell-micro-menu-390-webkit.png'
+            echo 'git commit -m "chore(webkit): sync safari-proxy + shell menu docs shots"'
             echo 'git push origin HEAD'
             echo '```'
             echo
@@ -574,6 +578,8 @@ jobs:
             shots/shell-micro-390-webkit.png
             shots/shell-micro-menu-390-webkit.png
             docs/assets/shell-projector-1000-safari-proxy.png
+            docs/assets/shell-projector-1000-menu.png
+            docs/assets/shell-micro-menu-390-webkit.png
           if-no-files-found: warn
 
   shots-extra:

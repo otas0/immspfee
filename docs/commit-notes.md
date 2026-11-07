@@ -80,8 +80,9 @@ Real-device Safari (incognito) checklist — fill after human confirm (do not in
 
 - [ ] Sidebar open / close + backdrop dismiss feel
 - [ ] Cache Storage shows only `immspfee-hashed-v7` after ⌘⇧R
-- [ ] VoiceOver: menu → focus lands in search, not Play
-- [ ] Heavy toast does not cover `.sidebar-foot`
+- [ ] VoiceOver: menu → focus lands in search, not Play (optional: short recording under `docs/` or a GH issue)
+- [ ] Heavy toast does not cover `.sidebar-foot` (incl. home-indicator safe area)
+- [ ] Landscape 844×390: backdrop strip still tappable (≥48px)
 - [ ] Hand-feel note: _pending_
 
 **Real-device Safari (pending human):** Incognito — sidebar open/close + backdrop

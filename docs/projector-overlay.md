@@ -41,7 +41,11 @@ buttons stacked Play/Reset/formula over the catalog (“全叠在一起”). Cla
 | `.lab-toast` | 90 | Above drawer + sticky `.sidebar-foot` |
 
 Asserted by `npm run test:narrow` (390 stack hit-test) and
-`npm run test:pages-mobile` (open-menu + tablet 1000 z-order).
+`npm run test:pages-mobile` (open-menu + tablet 1000 z-order + landscape 844×390 ≥48px strip).
+
+**Esc from search:** opening the catalog focuses `#filter-q` (VoiceOver). The first
+`Escape` while that field is focused **closes** the drawer/overlay (and blurs), so
+users and `test:shell` Escape gates are not stuck on a blur-only first press.
 
 ## RTL overlay edge
 

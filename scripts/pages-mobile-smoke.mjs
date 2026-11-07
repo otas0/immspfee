@@ -16,6 +16,14 @@ const base = (process.env.PAGES_URL || 'https://otas0.github.io/immspfee/').repl
 const outDir = path.join(root, 'artifacts');
 fs.mkdirSync(outDir, { recursive: true });
 
+/** Hard cap so a stuck CDN/goto cannot hang CI forever (default 4 min). */
+const overallMs = Math.max(60_000, Number(process.env.PAGES_MOBILE_TIMEOUT_MS || 240_000));
+const overallTimer = setTimeout(() => {
+  console.error(`pages-mobile overall timeout after ${overallMs}ms (CDN / navigation stuck?)`);
+  process.exit(2);
+}, overallMs);
+overallTimer.unref?.();
+
 const failures = [];
 const browser = await chromium.launch({ headless: true });
 
@@ -132,6 +140,25 @@ await withPage({ width: 390, height: 844 }, async (page) => {
   if (!dismissed) failures.push('pages-mobile 390 backdrop did not close sidebar');
 });
 
+// Landscape phone: drawer still leaves ≥48px backdrop strip.
+await withPage({ width: 844, height: 390 }, async (page) => {
+  await page.goto(`${base}?lang=en&shell=lab-classic#m=free-fall`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.waitForFunction(() => window.__labCapture?.switchModel, null, { timeout: 90000 });
+  await page.evaluate(async () => { await window.__labCapture.switchModel('free-fall'); });
+  await page.click('#btn-menu');
+  await page.waitForFunction(() => {
+    const side = document.getElementById('sidebar');
+    return !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open'));
+  }, null, { timeout: 10000 });
+  await page.waitForTimeout(150);
+  const land = await probeDrawerStack(page);
+  if (!land.open) failures.push('pages-mobile 844×390 drawer not open');
+  if (land.backdropStrip < 48 - 1) {
+    failures.push(`pages-mobile 844×390 backdrop strip ${land.backdropStrip}px < 48px`);
+  }
+  await page.screenshot({ path: path.join(root, 'shots', 'pages-landscape-844x390-menu.png') }).catch(() => {});
+});
+
 await withPage({ width: 1000, height: 700 }, async (page) => {
   await page.goto(`${base}?lang=en&shell=lab-classic#m=free-fall`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => window.__labCapture?.switchModel, null, { timeout: 90000 });
@@ -235,6 +262,7 @@ await withPage({ width: 390, height: 844 }, async (page) => {
 });
 
 await browser.close();
+clearTimeout(overallTimer);
 
 /** Attach TTI / network advisory lines (edge=) when prior CI steps wrote artifacts. */
 function readJson(name) {

@@ -1602,7 +1602,8 @@ html.hc .pot-dial.pot-reset-flash {
 .lab-toast {
   position: fixed;
   left: 50%;
-  bottom: 1.25rem;
+  /* Home-indicator phones: clear the safe area even when the drawer is closed. */
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%) translateY(120%);
   /* Above open sidebar (45) / projector overlay (60) / fixed menu (70). */
   z-index: 90;
