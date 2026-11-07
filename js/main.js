@@ -2012,16 +2012,30 @@ function domainsForFilter() {
 }
 
 async function refreshSidebar() {
-  if (app.filter.q.trim()) await ensureDomainNames();
-  if (app.filter.q.trim() || app.filter.tag || app.filter.formalism || app.filter.heavy) {
-    await loadIndex();
-    const domains = domainsForFilter();
-    await Promise.all(domains.map((domain) => loadDomain(domain)));
+  const q = app.filter.q.trim();
+  if (q) {
+    sidebar?.classList.add('is-names-loading');
+    sidebar?.setAttribute('aria-busy', 'true');
+    try { await ensureDomainNames(); } catch { /* ignore */ }
+  }
+  try {
+    if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
+      await loadIndex();
+      const domains = domainsForFilter();
+      await Promise.all(domains.map((domain) => loadDomain(domain)));
+    }
+  } finally {
+    sidebar?.classList.remove('is-names-loading');
+    sidebar?.removeAttribute('aria-busy');
   }
   buildSidebar();
 }
 filterQ.addEventListener('input', () => {
   app.filter.q = filterQ.value;
+  if (app.filter.q.trim()) {
+    sidebar?.classList.add('is-names-loading');
+    sidebar?.setAttribute('aria-busy', 'true');
+  }
   void refreshSidebar();
 });
 filterTag.addEventListener('change', () => {

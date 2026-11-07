@@ -28,7 +28,7 @@ When classic 1000 param drawer cannot open after retries, `scripts/shell-chrome.
 
 ## Parallel agents / file locks
 
-Read `docs/race-lock.md` before starting. Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
+Read `docs/race-lock.md` before starting — **`git pull --ff-only` before opening a parallel Agents Window**. Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
 
 If a microscope / WebKit agent and a mobile-drawer agent both touch `css/styles.css`, **rebase (or merge main) before push** — never overwrite classic phone drawer z-index rules with projector `position:fixed` menu/params.
 

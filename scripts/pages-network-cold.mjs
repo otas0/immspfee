@@ -158,4 +158,37 @@ if (fail) {
     console.error(errors.join('\n'));
     process.exit(1);
   }
+
+  // Positive path: domain-names.json must appear only after the user opens search.
+  const probeBrowser = await chromium.launch({ headless: true });
+  const probeCtx = await probeBrowser.newContext({ serviceWorkers: 'block' });
+  const probePage = await probeCtx.newPage();
+  const nameHits = [];
+  probePage.on('request', (req) => {
+    if (/domain-names\.json/i.test(req.url())) nameHits.push(req.url());
+  });
+  await probePage.goto(`${url}${url.includes('?') ? '&' : '?'}_=names-probe`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 90000,
+  });
+  await probePage.waitForFunction(() => window.__labCapture, null, { timeout: 90000 });
+  if (nameHits.length) {
+    console.error(`domain-names.json fetched before search: ${nameHits.join(',')}`);
+    await probeBrowser.close();
+    process.exit(1);
+  }
+  const pendingNames = probePage.waitForRequest((req) => /domain-names\.json/i.test(req.url()), { timeout: 15000 });
+  await probePage.fill('#filter-q', '玻尔');
+  try {
+    await pendingNames;
+  } catch {
+    if (!nameHits.length) {
+      console.error('domain-names.json was not fetched after opening search');
+      await probeBrowser.close();
+      process.exit(1);
+    }
+  }
+  await probeBrowser.close();
+  console.log('pages-network: domain-names deferred until search ok');
 }
+

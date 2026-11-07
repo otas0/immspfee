@@ -106,7 +106,8 @@ body {
 .sidebar > .filters {
   flex: 0 1 auto;
   min-height: 0;
-  max-height: min(38vh, 22rem);
+  /* Keep room for #micro3d-host zone at the top of #model-list. */
+  max-height: min(34vh, 18rem);
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -220,6 +221,15 @@ html.hc .pot-dial:focus-visible {
   flex-direction: column;
   gap: 0.2rem;
   background: var(--panel);
+  transition: opacity 0.18s ease;
+}
+/* Search path: hold list opacity while domain-names.json hydrates (avoid id→name flash). */
+.sidebar.is-names-loading .model-list {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.sidebar.is-names-loading .filter-count::after {
+  content: ' · …';
 }
 .domain-group {
   margin: 0.15rem 0.35rem 0.45rem;

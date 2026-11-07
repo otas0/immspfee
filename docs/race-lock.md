@@ -4,6 +4,7 @@ Two Agents Windows on this tree have repeatedly raced `js/main.js`, `css/styles.
 
 ## Rules
 
+0. **Pull first.** Before opening a second Agents Window (or starting a parallel task on this tree), run `git pull --ff-only` so you do not rebuild on a stale HEAD.
 1. **One writer.** Close any second Agents Window before touching this repo. Do not set macOS `uchg` on lab files.
 2. **Park foreign dirt.** If `git status` shows unexpected WIP you did not write, stash it with a dated message (`race-dirt-park-HHMMSS`) before your edit — do not discard another agent’s work silently.
 3. **Atomic rewrite + immediate commit.** For hot files (`shell-chrome.mjs`, `styles.css`, `main.js`), patch then `git add` + commit in the same shell turn so a peer cannot overwrite the buffer before HEAD moves.

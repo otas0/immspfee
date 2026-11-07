@@ -36,36 +36,8 @@ const result = await esbuild.build({
   target: ['es2022'],
   logLevel: 'info',
   metafile: true,
-  plugins: [{
-    name: 'palette-shell',
-    setup(build) {
-      build.onResolve({ filter: /\/palettes\.json$/ }, (args) => ({
-        path: args.path,
-        namespace: 'palette-shell',
-      }));
-      build.onLoad({ filter: /.*/, namespace: 'palette-shell' }, () => ({
-        // Safety net if anything still resolves data/palettes.json. Runtime theme
-        // imports data/palettes/cold-stub.json; domains hydrate after first paint.
-        contents: `const doc = {
-          neutral: { axis: '#5c6570', ground: '#6b7280', muted: '#94a3b8', theory: '#64748b', text: '#94a3b8', bg: '#000000', flash: 'rgba(255, 220, 100, 0.45)' },
-          models: {
-            'free-fall': {
-              swatch: '#f0b429',
-              body: '#f0b429',
-              body2: '#d97706',
-              accent: '#fb7185',
-              vector: '#2dd4bf',
-              trail: 'rgba(240, 180, 41, 0.4)',
-              legend: ['球 body', '速度 vector'],
-            },
-          },
-          hc: { saturationScale: 0.42, lightnessBoost: 0.08 },
-        };
-        export default doc;`,
-        loader: 'js',
-      }));
-    },
-  }],
+  // No palette-shell stub: theme imports data/palettes/cold-stub.json; gen scripts
+  // alone read data/palettes.json. Re-add a stub only if a browser import regresses.
 });
 
 const outputs = Object.keys(result.metafile.outputs)

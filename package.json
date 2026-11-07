@@ -50,6 +50,7 @@
     "test:micro-knobs": "node scripts/micro-knob-drag.mjs",
     "test:micro-knobs:390": "VIEWPORT=390x844 node scripts/micro-knob-drag.mjs",
     "test:micro-fps": "node scripts/micro-fps-probe.mjs",
+    "test:micro-fps-trend": "node scripts/micro-fps-trend.mjs",
     "test:micro-magenta": "node scripts/micro-magenta-roi.mjs",
     "test:micro-magenta:390": "VIEWPORT=390x844 node scripts/micro-magenta-roi.mjs",
     "test:micro-oil": "node scripts/micro-oil-blend.mjs",
