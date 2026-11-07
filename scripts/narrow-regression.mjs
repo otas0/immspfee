@@ -227,8 +227,8 @@ if (!(drawer.firstThree?.length >= 2) && !drawer.firstThreeInside) {
 }
 if (drawer.listH < 80) failures.push(`390px drawer list too short ${drawer.listH}`);
 
-const stack = await probeDrawerStack(page);
-failures.push(...assertDrawerStack(stack).map((m) => `390px ${m}`));
+const stack = await probeDrawerStack(page, { showToast: true });
+failures.push(...assertDrawerStack(stack, { requireToastClear: true }).map((m) => `390px ${m}`));
 if (stack.activeId !== 'filter-q') {
   failures.push(`390px open menu focus expected filter-q got ${stack.activeId}`);
 }

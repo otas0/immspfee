@@ -1651,12 +1651,23 @@ document.addEventListener('keydown', (e) => {
     }
   }
   if (e.key !== 'Escape') return;
+  const catalogOpen = sidebar.classList.contains('open')
+    || !!document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay');
+  if (inField && catalogOpen) {
+    // Open menu auto-focuses #filter-q for VoiceOver — first Esc must close the
+    // catalog (not only blur), or shell-chrome / projector Escape gates time out.
+    e.target.blur?.();
+    setSidebarOpen(false);
+    btnMenu?.focus();
+    e.preventDefault();
+    return;
+  }
   if (inField) {
-    // 输入框 Esc：先失焦，不关抽屉（二次 Esc 才关）
+    // Idle search field with catalog closed: blur only.
     e.target.blur?.();
     return;
   }
-  if (sidebar.classList.contains('open')) {
+  if (catalogOpen) {
     setSidebarOpen(false);
     btnMenu?.focus();
     e.preventDefault();

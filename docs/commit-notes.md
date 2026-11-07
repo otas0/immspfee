@@ -76,6 +76,19 @@ The test job no longer opens a bot PR (`GITHUB_TOKEN` cannot push
 
 ### Mobile / tablet perf budget (P0–P2)
 
+Real-device Safari (incognito) checklist — fill after human confirm (do not invent “OK”):
+
+- [ ] Sidebar open / close + backdrop dismiss feel
+- [ ] Cache Storage shows only `immspfee-hashed-v7` after ⌘⇧R
+- [ ] VoiceOver: menu → focus lands in search, not Play
+- [ ] Heavy toast does not cover `.sidebar-foot`
+- [ ] Hand-feel note: _pending_
+
+**Real-device Safari (pending human):** Incognito — sidebar open/close + backdrop
+dismiss feel; heavy toast does not cover `.sidebar-foot`; Cache Storage shows only
+`immspfee-hashed-v7` after ⌘⇧R; VoiceOver menu → focus lands on `#filter-q`.
+When confirmed, replace this paragraph with: `Real-device Safari feel OK (YYYY-MM-DD).`
+
 `js/utils/mobilePerf.js` clamps `maxSubSteps`, Mandelbrot/interference grids, particle
 `N`, field `n`, life gens, and microscope `dprCap` by viewport tier (`phone` ≤900 /
 short-height, `tablet` ≤1100, else `desktop`). Heavy ids (`data/perf-heavy.json` +

@@ -1,8 +1,23 @@
 /**
  * Shared open-menu stack probe (narrow + pages-mobile).
  * @param {import('playwright').Page} page
+ * @param {{ withToast?: boolean }} [opts]
  */
-export async function probeDrawerStack(page) {
+export async function probeDrawerStack(page, opts = {}) {
+  if (opts.withToast || opts.showToast) {
+    await page.evaluate(() => {
+      let el = document.getElementById('lab-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'lab-toast';
+        el.className = 'lab-toast';
+        document.body.appendChild(el);
+      }
+      el.textContent = 'Heavy model paused on this device – tap Play';
+      el.classList.add('show');
+    });
+    await page.waitForTimeout(50);
+  }
   return page.evaluate(() => {
     const side = document.getElementById('sidebar');
     const micro = document.querySelector('#micro3d-host .micro3d-entry, #micro3d-host');
@@ -30,22 +45,33 @@ export async function probeDrawerStack(page) {
     const sideZ = Number.parseFloat(getComputedStyle(side || document.body).zIndex) || 0;
     const shellZ = Number.parseFloat(getComputedStyle(document.querySelector('.model-shell') || document.body).zIndex) || 0;
     const toastZ = toast ? Number.parseFloat(getComputedStyle(toast).zIndex) || 0 : 0;
+    const toastShow = !!toast?.classList.contains('show');
+    const tr = toastShow ? toast.getBoundingClientRect() : null;
+    const fr = foot?.getBoundingClientRect();
+    const toastFootIntersect = !!(tr && fr && tr.width > 0 && fr.width > 0
+      && tr.left < fr.right && tr.right > fr.left
+      && tr.top < fr.bottom && tr.bottom > fr.top);
+    const backdropStrip = sr ? Math.max(0, window.innerWidth - sr.right) : 0;
     return {
       open: !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open')),
       sideZ,
       shellZ,
       toastZ,
+      toastShow,
+      toastFootIntersect,
+      backdropStrip,
       menuPos: menu ? getComputedStyle(menu).position : '',
       paramsPos: params ? getComputedStyle(params).position : '',
       activeId: document.activeElement?.id || document.activeElement?.tagName || '',
       sidebarTop: sr?.top || 0,
+      sidebarRight: sr?.right || 0,
       toolbarBottom: document.querySelector('.toolbar')?.getBoundingClientRect()?.bottom || 0,
       footSticky: foot ? getComputedStyle(foot).position : '',
       microHit: probe(micro),
       formulaOverSidebar: !!(formula && sr && (() => {
-        const fr = formula.getBoundingClientRect();
-        return fr.width > 0 && fr.left < sr.right - 8 && fr.right > sr.left + 8
-          && fr.top < sr.bottom - 8 && fr.bottom > sr.top + 8
+        const box = formula.getBoundingClientRect();
+        return box.width > 0 && box.left < sr.right - 8 && box.right > sr.left + 8
+          && box.top < sr.bottom - 8 && box.bottom > sr.top + 8
           && (Number.parseFloat(getComputedStyle(formula).zIndex) || 0) >= sideZ;
       })()),
     };
@@ -54,7 +80,7 @@ export async function probeDrawerStack(page) {
 
 /**
  * @param {Awaited<ReturnType<typeof probeDrawerStack>>} stack
- * @param {{ projector?: boolean }} [opts]
+ * @param {{ projector?: boolean, requireToastClear?: boolean }} [opts]
  * @returns {string[]}
  */
 export function assertDrawerStack(stack, opts = {}) {
@@ -72,6 +98,9 @@ export function assertDrawerStack(stack, opts = {}) {
   if (!opts.projector && stack.sidebarTop + 1 < stack.toolbarBottom - 8) {
     failures.push(`drawer overlaps toolbar band top=${stack.sidebarTop} toolbarBottom=${stack.toolbarBottom}`);
   }
+  if (!opts.projector && stack.backdropStrip < 48 - 1) {
+    failures.push(`backdrop dismiss strip ${stack.backdropStrip}px < 48px`);
+  }
   if (stack.microHit && !stack.microHit.inSidebar) {
     failures.push(`micro3d hit missed sidebar: ${JSON.stringify(stack.microHit)}`);
   }
@@ -80,6 +109,12 @@ export function assertDrawerStack(stack, opts = {}) {
   }
   if (stack.toastZ && !(stack.toastZ > stack.sideZ)) {
     failures.push(`toast z=${stack.toastZ} must beat sidebar z=${stack.sideZ}`);
+  }
+  if (opts.requireToastClear || stack.toastShow) {
+    if (!stack.toastShow) failures.push('toast expected .show for foot clearance check');
+    if (stack.toastFootIntersect) {
+      failures.push('lab-toast.show intersects .sidebar-foot');
+    }
   }
   return failures;
 }

@@ -108,8 +108,8 @@ await withPage({ width: 390, height: 844 }, async (page) => {
     return !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open'));
   }, null, { timeout: 10000 });
   await page.waitForTimeout(200);
-  const stack = await probeDrawerStack(page);
-  failures.push(...assertDrawerStack(stack).map((m) => `pages-mobile 390 ${m}`));
+  const stack = await probeDrawerStack(page, { showToast: true });
+  failures.push(...assertDrawerStack(stack, { requireToastClear: true }).map((m) => `pages-mobile 390 ${m}`));
   if (stack.activeId !== 'filter-q') {
     failures.push(`pages-mobile 390 focus expected filter-q got ${stack.activeId}`);
   }

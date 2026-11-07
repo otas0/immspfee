@@ -369,6 +369,28 @@ html.hc .domain-group .domain-count {
     gap: 0.2rem;
   }
 }
+/* Ultra-narrow (≤320): squeeze fold-bar / heavy chip another notch. */
+@media (max-width: 320px) {
+  .fold-bar {
+    margin: 0;
+    padding: 0.05rem 0 0;
+    gap: 0.15rem;
+  }
+  .fold-bar .btn {
+    min-height: 24px;
+    padding: 0.12rem 0.3rem;
+    font-size: 0.58rem;
+  }
+  .filter-chip {
+    padding: 0.14rem 0.35rem;
+    font-size: 0.58rem;
+  }
+  .filters .user-model-btn {
+    min-height: 28px;
+    padding: 0.2rem 0.35rem;
+    font-size: 0.6rem;
+  }
+}
 .user-model-dialog {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -1867,8 +1889,9 @@ html.shell-lab-projector body.drawer-open .toolbar,
     left: 4px;
     bottom: max(4px, env(safe-area-inset-bottom, 0px));
     right: auto;
-    width: min(92vw, 320px);
-    max-width: calc(100vw - 8px);
+    /* Keep ≥48px right strip so backdrop dismiss stays tappable. */
+    width: min(92vw, 320px, calc(100vw - 48px - 8px));
+    max-width: calc(100vw - 48px - 8px);
     transform: translateX(-110%);
     transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     border-radius: 12px;
