@@ -1019,21 +1019,34 @@ const wideHit = await menuHitTest(wideProj);
 if (!wideHit.ok) fail(`1440 projector menu not on top of dimmer ${JSON.stringify(wideHit)}`);
 console.log('menuHitTest wide ok', JSON.stringify(wideHit));
 
-// Catalog must scroll under the overlay; Escape closes it.
+// Catalog must scroll under the overlay (#model-list, not #sidebar — host stays pinned).
 await ensureCatalogRows(wideProj);
 const scrollInfo = await wideProj.evaluate(() => {
   const side = document.getElementById('sidebar');
-  if (!side) return { ok: false, reason: 'no-sidebar' };
-  // Physics-only rows may fit the tall overlay — clamp height so overflow:auto is exercised.
-  const prevMax = side.style.maxHeight;
-  side.style.maxHeight = '220px';
-  const before = side.scrollTop;
-  side.scrollTop = before + 160;
-  const after = side.scrollTop;
-  const ok = side.scrollHeight > side.clientHeight + 8 && after > before;
-  const overflow = getComputedStyle(side).overflowY;
-  side.style.maxHeight = prevMax;
-  return { ok, before, after, overflow, scrollHeight: side.scrollHeight, clientHeight: side.clientHeight };
+  const list = document.getElementById('model-list');
+  if (!side || !list) return { ok: false, reason: 'no-sidebar-or-list' };
+  const sideOverflow = getComputedStyle(side).overflowY || getComputedStyle(side).overflow;
+  if (sideOverflow === 'auto' || sideOverflow === 'scroll') {
+    return { ok: false, reason: 'sidebar-is-scrollport', sideOverflow };
+  }
+  // Physics-only rows may fit a tall overlay — clamp list height so overflow:auto is exercised.
+  const prevMax = list.style.maxHeight;
+  list.style.maxHeight = '160px';
+  const before = list.scrollTop;
+  list.scrollTop = before + 160;
+  const after = list.scrollTop;
+  const ok = list.scrollHeight > list.clientHeight + 8 && after > before;
+  const overflow = getComputedStyle(list).overflowY || getComputedStyle(list).overflow;
+  list.style.maxHeight = prevMax;
+  return {
+    ok,
+    before,
+    after,
+    overflow,
+    sideOverflow,
+    scrollHeight: list.scrollHeight,
+    clientHeight: list.clientHeight,
+  };
 });
 if (!scrollInfo.ok) fail(`1440 overlay catalog not scrollable ${JSON.stringify(scrollInfo)}`);
 await wideProj.keyboard.press('Escape');
