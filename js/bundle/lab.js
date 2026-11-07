@@ -1555,6 +1555,22 @@ var STRINGS = {
     "ui.microRailLabels": "\u4E09\u7EF4\u6807\u6CE8",
     "ui.microRailLabelsOn": "\u663E\u793A",
     "ui.microRailLabelsOff": "\u9690\u85CF",
+    "ui.microViewFree": "\u81EA\u7531",
+    "ui.microViewOverview": "\u603B\u89C8",
+    "ui.microViewBinocular": "\u53CC\u76EE",
+    "ui.microViewTurret": "\u8F6C\u76D8",
+    "ui.microViewStage": "\u8F7D\u7269\u53F0",
+    "ui.microKnobCoarse": "\u7C97\u8C03",
+    "ui.microKnobFine": "\u5FAE\u8C03",
+    "ui.microKnobStageX": "\u8F7D\u7269\u53F0 X",
+    "ui.microKnobStageY": "\u8F7D\u7269\u53F0 Y",
+    "ui.microKnobCondenser": "\u805A\u5149\u955C",
+    "ui.microKnobIris": "\u963F\u8D1D\u5149\u9611",
+    "ui.microKnobFieldIris": "\u89C6\u573A\u5149\u9611",
+    "ui.microKnobLamp": "\u706F",
+    "ui.microKnobIPD": "\u77B3\u8DDD",
+    "ui.microKnobOil": "\u6CB9",
+    "ui.microKnobClip": "\u5939\u7247",
     "ui.userModel": "\uFF0B \u81EA\u5EFA\u6A21\u578B",
     "ui.manual": "\u624B\u518C",
     "ui.ethics": "\u4F26\u7406",
@@ -1693,6 +1709,22 @@ var STRINGS = {
     "ui.microRailLabels": "3D labels",
     "ui.microRailLabelsOn": "Show",
     "ui.microRailLabelsOff": "Hide",
+    "ui.microViewFree": "Free",
+    "ui.microViewOverview": "Overview",
+    "ui.microViewBinocular": "Binocular",
+    "ui.microViewTurret": "Turret",
+    "ui.microViewStage": "Stage",
+    "ui.microKnobCoarse": "Coarse",
+    "ui.microKnobFine": "Fine",
+    "ui.microKnobStageX": "Stage X",
+    "ui.microKnobStageY": "Stage Y",
+    "ui.microKnobCondenser": "Condenser",
+    "ui.microKnobIris": "Abbe iris",
+    "ui.microKnobFieldIris": "Field iris",
+    "ui.microKnobLamp": "Lamp",
+    "ui.microKnobIPD": "IPD",
+    "ui.microKnobOil": "Oil",
+    "ui.microKnobClip": "Clip",
     "ui.userModel": "+ custom model",
     "ui.manual": "manual",
     "ui.ethics": "ethics",
@@ -1831,6 +1863,22 @@ var STRINGS = {
     "ui.microRailLabels": "3D\u30E9\u30D9\u30EB",
     "ui.microRailLabelsOn": "\u8868\u793A",
     "ui.microRailLabelsOff": "\u975E\u8868\u793A",
+    "ui.microViewFree": "\u81EA\u7531",
+    "ui.microViewOverview": "\u6982\u89B3",
+    "ui.microViewBinocular": "\u53CC\u773C",
+    "ui.microViewTurret": "\u30EC\u30DC\u30EB\u30D0\u30FC",
+    "ui.microViewStage": "\u30B9\u30C6\u30FC\u30B8",
+    "ui.microKnobCoarse": "\u7C97\u52D5",
+    "ui.microKnobFine": "\u5FAE\u52D5",
+    "ui.microKnobStageX": "\u30B9\u30C6\u30FC\u30B8 X",
+    "ui.microKnobStageY": "\u30B9\u30C6\u30FC\u30B8 Y",
+    "ui.microKnobCondenser": "\u30B3\u30F3\u30C7\u30F3\u30B5\u30FC",
+    "ui.microKnobIris": "\u30A2\u30C3\u30D9\u7D5E\u308A",
+    "ui.microKnobFieldIris": "\u8996\u91CE\u7D5E\u308A",
+    "ui.microKnobLamp": "\u30E9\u30F3\u30D7",
+    "ui.microKnobIPD": "\u77B3\u5B54\u9593",
+    "ui.microKnobOil": "\u6CB9",
+    "ui.microKnobClip": "\u30AF\u30EA\u30C3\u30D7",
     "ui.userModel": "\uFF0B \u72EC\u81EA\u30E2\u30C7\u30EB",
     "ui.manual": "\u30DE\u30CB\u30E5\u30A2\u30EB",
     "ui.ethics": "\u502B\u7406",
@@ -1931,6 +1979,22 @@ var STRINGS = {
     "ui.microRailLabels": "3D \uB77C\uBCA8",
     "ui.microRailLabelsOn": "\uD45C\uC2DC",
     "ui.microRailLabelsOff": "\uC228\uAE40",
+    "ui.microViewFree": "\uC790\uC720",
+    "ui.microViewOverview": "\uAC1C\uC694",
+    "ui.microViewBinocular": "\uC30D\uC548",
+    "ui.microViewTurret": "\uD68C\uC804\uD310",
+    "ui.microViewStage": "\uC7AC\uBB3C\uB300",
+    "ui.microKnobCoarse": "\uC870\uB3D9",
+    "ui.microKnobFine": "\uBBF8\uB3D9",
+    "ui.microKnobStageX": "\uC7AC\uBB3C\uB300 X",
+    "ui.microKnobStageY": "\uC7AC\uBB3C\uB300 Y",
+    "ui.microKnobCondenser": "\uCF58\uB374\uC11C",
+    "ui.microKnobIris": "\uC544\uBCA0 \uC870\uB9AC\uAC1C",
+    "ui.microKnobFieldIris": "\uC2DC\uC57C \uC870\uB9AC\uAC1C",
+    "ui.microKnobLamp": "\uB7A8\uD504",
+    "ui.microKnobIPD": "\uB3D9\uACF5\uAC04",
+    "ui.microKnobOil": "\uC624\uC77C",
+    "ui.microKnobClip": "\uD074\uB9BD",
     "ui.userModel": "+ \uC0AC\uC6A9\uC790 \uBAA8\uB378",
     "ui.manual": "\uB9E4\uB274\uC5BC",
     "ui.ethics": "\uC724\uB9AC",
@@ -2031,6 +2095,22 @@ var STRINGS = {
     "ui.microRailLabels": "Etiquetas 3D",
     "ui.microRailLabelsOn": "Mostrar",
     "ui.microRailLabelsOff": "Ocultar",
+    "ui.microViewFree": "Libre",
+    "ui.microViewOverview": "Vista general",
+    "ui.microViewBinocular": "Binocular",
+    "ui.microViewTurret": "Rev\xF3lver",
+    "ui.microViewStage": "Platina",
+    "ui.microKnobCoarse": "Grueso",
+    "ui.microKnobFine": "Fino",
+    "ui.microKnobStageX": "Platina X",
+    "ui.microKnobStageY": "Platina Y",
+    "ui.microKnobCondenser": "Condensador",
+    "ui.microKnobIris": "Iris de Abbe",
+    "ui.microKnobFieldIris": "Iris de campo",
+    "ui.microKnobLamp": "L\xE1mpara",
+    "ui.microKnobIPD": "DIP",
+    "ui.microKnobOil": "Aceite",
+    "ui.microKnobClip": "Pinza",
     "ui.userModel": "+ modelo propio",
     "ui.manual": "manual",
     "ui.ethics": "\xE9tica",
@@ -2131,6 +2211,22 @@ var STRINGS = {
     "ui.microRailLabels": "Libell\xE9s 3D",
     "ui.microRailLabelsOn": "Afficher",
     "ui.microRailLabelsOff": "Masquer",
+    "ui.microViewFree": "Libre",
+    "ui.microViewOverview": "Vue d'ensemble",
+    "ui.microViewBinocular": "Binoculaire",
+    "ui.microViewTurret": "Tourelle",
+    "ui.microViewStage": "Platine",
+    "ui.microKnobCoarse": "Grossi\xE8re",
+    "ui.microKnobFine": "Fine",
+    "ui.microKnobStageX": "Platine X",
+    "ui.microKnobStageY": "Platine Y",
+    "ui.microKnobCondenser": "Condenseur",
+    "ui.microKnobIris": "Iris d'Abbe",
+    "ui.microKnobFieldIris": "Iris de champ",
+    "ui.microKnobLamp": "Lampe",
+    "ui.microKnobIPD": "DIP",
+    "ui.microKnobOil": "Huile",
+    "ui.microKnobClip": "Valet",
     "ui.userModel": "+ mod\xE8le perso",
     "ui.manual": "manuel",
     "ui.ethics": "\xE9thique",
@@ -2231,6 +2327,22 @@ var STRINGS = {
     "ui.microRailLabels": "3D-Beschriftung",
     "ui.microRailLabelsOn": "An",
     "ui.microRailLabelsOff": "Aus",
+    "ui.microViewFree": "Frei",
+    "ui.microViewOverview": "\xDCbersicht",
+    "ui.microViewBinocular": "Binokular",
+    "ui.microViewTurret": "Revolver",
+    "ui.microViewStage": "Tisch",
+    "ui.microKnobCoarse": "Grob",
+    "ui.microKnobFine": "Fein",
+    "ui.microKnobStageX": "Tisch X",
+    "ui.microKnobStageY": "Tisch Y",
+    "ui.microKnobCondenser": "Kondensor",
+    "ui.microKnobIris": "Abbe-Blende",
+    "ui.microKnobFieldIris": "Leuchtfeldblende",
+    "ui.microKnobLamp": "Lampe",
+    "ui.microKnobIPD": "IPD",
+    "ui.microKnobOil": "\xD6l",
+    "ui.microKnobClip": "Klemme",
     "ui.userModel": "+ eigenes Modell",
     "ui.manual": "Handbuch",
     "ui.ethics": "Ethik",
@@ -5671,6 +5783,19 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
     torusY(ox, collarY, oz, 0.05 * k, 0.016, rr, rg, rb, out, S(72, 32), S(22, 12), 0.34);
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
+    {
+      const threadN = active ? 6 : 4;
+      const y0 = collarY - 0.016;
+      const y1 = yNose + noseH * 0.2;
+      const threadR = S(24, 12);
+      const threadT = S(6, 6);
+      for (let ti = 0; ti < threadN; ti += 1) {
+        const u = (ti + 0.5) / threadN;
+        const ty = y0 + (y1 - y0) * u;
+        const rad = (0.04 - u * 0.01) * k;
+        torusY(ox, ty, oz, rad, 32e-4, ...chromeDim, out, threadR, threadT, 0.34);
+      }
+    }
     cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(48, 20), true, 0.36);
     frustumY(ox, yNose, oz, 0.03 * k, 0.02 * k, noseH, ...chromeDim, out, S(48, 20), 0.3);
     cylinderY(ox, yFront, oz, 0.016 * k, 0.016, ...glass, out, S(36, 16), true, 0.45);
@@ -5763,6 +5888,10 @@ function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRing
   const rIn = 0.018 + irisOpen * 0.075;
   const rOut = 0.1;
   frustumY(0, condenserY + 0.055, 0.02, 0.07, 0.11, 0.08, ...chrome, out, S(32, 16), 0.34);
+  const lensBot = 0.04 + irisOpen * 0.04;
+  const lensTop = 0.055 + irisOpen * 0.03;
+  frustumY(0, condenserY + 0.02, 0.02, lensBot, lensTop, 0.035, ...glass, out, S(28, 14), 0.42);
+  torusY(0, condenserY + 0.02, 0.02, (lensBot + lensTop) * 0.5, 35e-4, ...glassHi, out, S(28, 14), S(8, 6), 0.4);
   irisWedges(0, condenserY, 0.02, rIn, rOut, 12, irisHot ? 0.4 : 0.22, irisHot ? 0.55 : 0.23, irisHot ? 0.7 : 0.26, out);
   torusY(0, condenserY, 0.02, 0.112, 0.016, ...irisHot ? hi : chrome, out, S(32, 16), S(10, 6), 0.36);
   cylinderX(0.15, condenserY, 0.02, 0.012, 0.08, ...chrome, out, S(14, 8), 0.32, true);
@@ -5815,7 +5944,8 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
     staticData,
     dynamicData,
     data,
-    oilStageY: layout.stageY + 0.05,
+    // Sit the immersion film on the cover slip (above the slide box) so the oil pass is visible.
+    oilStageY: layout.stageY + 0.066,
     oilActive: !!optics.immersion
   };
 }
@@ -5872,7 +6002,7 @@ uniform float uTime;
 uniform float uImmersion;
 varying vec2 vUv;
 void main(){
-  if (uImmersion < 0.5) discard;
+  if (uImmersion <= 0.02) discard;
   vec2 d = vUv - vec2(0.5);
   float r = length(d) * 2.0;
   if (r > 1.0) discard;
@@ -5880,9 +6010,9 @@ void main(){
   float edge = smoothstep(1.0, 0.42, r);
   float sheen = smoothstep(0.18, 0.0, abs(r - 0.32 - 0.1 * sin(uTime * 2.2)));
   float rim = smoothstep(0.92, 0.72, r) * smoothstep(0.55, 0.82, r);
-  vec3 col = mix(vec3(0.22, 0.55, 0.78), vec3(0.72, 0.92, 1.0), sheen);
+  vec3 col = mix(vec3(0.22, 0.55, 0.78), vec3(0.45, 0.72, 0.92), sheen * pulse);
   col = mix(col, vec3(0.95, 0.82, 0.35), rim * 0.55);
-  float alpha = edge * pulse * 0.88;
+  float alpha = edge * (0.62 + 0.38 * uImmersion);
   gl_FragColor = vec4(col, alpha);
 }`;
 function perspective(fovy, aspect, near, far) {
@@ -5968,6 +6098,13 @@ function project(mvp, x, y, z, width, height) {
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
+function overlayCaptionPolicy({ showLabels = 1, hot = false } = {}) {
+  const standing = Number(showLabels) !== 0;
+  return {
+    standing,
+    hoverCaption: !standing && !!hot
+  };
+}
 function createMicroscopeWebgl(canvas2, opts = {}) {
   const gl = canvas2.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true });
   if (!gl) return null;
@@ -6026,6 +6163,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   const OIL_FALL_SEC = 0.32;
   let oilBlend = 0;
   let oilRiseElapsed = 0;
+  let oilFallElapsed = 0;
   let oilAim = 0;
   let lastOilT = 0;
   let lastMvp = null;
@@ -6382,13 +6520,19 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     const dt = lastOilT ? Math.min(0.05, Math.max(0, tSec - lastOilT)) : 0.016;
     lastOilT = tSec;
     const oilTarget = oilActive ? 1 : 0;
-    if (oilTarget > oilAim) oilRiseElapsed = 0;
+    if (oilTarget > oilAim) {
+      oilRiseElapsed = 0;
+      oilFallElapsed = 0;
+    } else if (oilTarget < oilAim) {
+      oilFallElapsed = 0;
+    }
     oilAim = oilTarget;
     if (oilBlend < oilTarget) {
       oilBlend = Math.min(oilTarget, oilBlend + dt / OIL_RISE_SEC);
       oilRiseElapsed += dt;
     } else if (oilBlend > oilTarget) {
       oilBlend = Math.max(oilTarget, oilBlend - dt / OIL_FALL_SEC);
+      oilFallElapsed += dt;
       if (oilTarget === 0 && oilBlend <= 0) oilRiseElapsed = 0;
     }
     const hoverBusy = hoverHit && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
@@ -6407,7 +6551,6 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     lastLayout = layout;
     rebuildHits(mvp, view.width, view.height, layout);
     overlayLabels = [];
-    const showLabels = Number(params.showLabels) !== 0;
     const dragHot = dragMode === "part" && partHit ? partHit : null;
     const pointerHot = dragHot || hoverHit;
     const hotMatch = (kind, index = 0) => !!(pointerHot && pointerHot.kind === kind && (pointerHot.index == null || pointerHot.index === index));
@@ -6426,7 +6569,11 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       immersion: "Oil",
       clip: "Clip"
     };
-    if (showLabels) {
+    const caption = overlayCaptionPolicy({
+      showLabels: params.showLabels,
+      hot: !!pointerHot
+    });
+    if (caption.standing) {
       const tubeHit = layout.pts.find((row) => row.kind === "tubeL");
       const Lpt = tubeHit ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height) : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
       if (Lpt) {
@@ -6497,7 +6644,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
         }
       }
       overlayLabels = resolveLabelCollisions(overlayLabels);
-    } else if (pointerHot) {
+    } else if (caption.hoverCaption) {
       const p = (layout.pts || []).find((row) => hotMatch(row.kind, row.index));
       if (p) {
         const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
@@ -6558,6 +6705,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
+      gl.disable(gl.DEPTH_TEST);
       gl.useProgram(oilProg);
       gl.uniformMatrix4fv(oilUMVP, false, mvp);
       gl.uniform3f(oilUCenter, oilSlideX, oilStageY, oilSlideZ);
@@ -6568,6 +6716,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       gl.enableVertexAttribArray(oilAUv);
       gl.vertexAttribPointer(oilAUv, 2, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.enable(gl.DEPTH_TEST);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
     }
@@ -6598,11 +6747,32 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     getOilBlend() {
       return oilBlend;
     },
+    /** Oil film is drawn only while blend is above the shader discard. */
+    oilVisible() {
+      return oilBlend > 0.02;
+    },
+    /** CSS pixels of the immersion-film center from the last draw. */
+    getOilScreen() {
+      if (!lastMvp) return null;
+      const { width, height } = lastView;
+      const c = project(lastMvp, oilSlideX, oilStageY, oilSlideZ, width, height);
+      if (!c) return null;
+      const scale = 0.58 * (0.35 + 0.65 * oilBlend);
+      const edge = project(lastMvp, oilSlideX + scale * 0.5, oilStageY, oilSlideZ, width, height);
+      const r = edge ? Math.max(4, Math.hypot(edge.x - c.x, edge.y - c.y)) : 12;
+      return { x: c.x, y: c.y, r };
+    },
     getOilRiseSec() {
       return OIL_RISE_SEC;
     },
     getOilRiseElapsed() {
       return oilRiseElapsed;
+    },
+    getOilFallSec() {
+      return OIL_FALL_SEC;
+    },
+    getOilFallElapsed() {
+      return oilFallElapsed;
     },
     capturePng(state, view) {
       drawScene(state, view);
