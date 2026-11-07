@@ -63,6 +63,7 @@ try {
     `${root}?shell=lab-microscope3d&lang=en&_=${Date.now()}`,
     { width: 1920, height: 1080 },
   );
+  console.log('FPS gate tess: phone microTess 0.55 / tablet 0.72 (mobileBudget.microTess; desktop probe uses 1)');
   if (!(micro.fps > minFps)) {
     console.error('FAIL microscope FPS below gate', { fps: micro.fps, minFps });
     process.exit(1);

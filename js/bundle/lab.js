@@ -6105,9 +6105,17 @@ function overlayCaptionPolicy({ showLabels = 1, hot = false } = {}) {
     hoverCaption: !standing && !!hot
   };
 }
+var CAMERA_VIEWS = {
+  free: null,
+  overview: { yaw: 0.85, pitch: 0.22, radius: 7.5, lookY: 2.05 },
+  binocular: { yaw: 0.18, pitch: 0.58, radius: 4.35, lookY: 2.55 },
+  turret: { yaw: -Math.PI / 2, pitch: 0.36, radius: 5.4, lookY: 1.55 },
+  stage: { yaw: -Math.PI / 2 + 0.28, pitch: 0.82, radius: 4.7, lookY: 0.95 }
+};
 function createMicroscopeWebgl(canvas2, opts = {}) {
   const gl = canvas2.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true });
   if (!gl) return null;
+  const tFn = typeof opts.t === "function" ? opts.t : (k) => k;
   const prog = link(gl, VS, FS);
   const aPos = gl.getAttribLocation(prog, "aPos");
   const aCol = gl.getAttribLocation(prog, "aCol");
@@ -6141,16 +6149,45 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   let dynamicKey = "";
   let staticVertCount = 0;
   let dynamicVertCount = 0;
-  let yaw = 0.85;
-  let pitch = 0.22;
   const narrowStage = typeof matchMedia === "function" && matchMedia("(max-width: 480px)").matches;
+  let yaw = narrowStage ? -Math.PI / 2 : 0.85;
+  let pitch = narrowStage ? 0.32 : 0.22;
   let radius = narrowStage ? 9.4 : 7.5;
+  let lookY = 2.05;
+  let cameraView = "free";
+  let viewLocked = false;
   let dragMode = null;
   let partHit = null;
   let moved = false;
   let lastX = 0;
   let lastY = 0;
-  let autoSpin = 0.08;
+  let autoSpin = narrowStage ? 0 : 0.08;
+  function markFreeView() {
+    if (cameraView === "free" && !viewLocked) return;
+    cameraView = "free";
+    viewLocked = false;
+    opts.onCameraView?.("free");
+  }
+  function applyCameraView(id) {
+    const key = CAMERA_VIEWS[id] !== void 0 ? id : "free";
+    cameraView = key;
+    const preset = CAMERA_VIEWS[key];
+    if (!preset) {
+      viewLocked = false;
+      opts.onCameraView?.(key);
+      opts.onViewChange?.();
+      return key;
+    }
+    yaw = preset.yaw;
+    pitch = preset.pitch;
+    radius = narrowStage ? Math.max(preset.radius, 6.2) : preset.radius;
+    lookY = preset.lookY;
+    viewLocked = true;
+    autoSpin = 0;
+    opts.onCameraView?.(key);
+    opts.onViewChange?.();
+    return key;
+  }
   let hits = [];
   let lastView = { width: 1, height: 1 };
   let lastState = null;
@@ -6361,6 +6398,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       if (pinchDist > 1) {
         const delta = dist - pinchDist;
         radius = clamp(radius - delta * 0.012, 2.4, 12);
+        markFreeView();
         opts.onViewChange?.();
       }
       pinchDist = dist;
@@ -6377,6 +6415,9 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       return;
     }
     if (dragMode === "orbit") {
+      if (viewLocked) {
+        markFreeView();
+      }
       const dx = ev.clientX - lastX;
       const dy = ev.clientY - lastY;
       if (Math.hypot(dx, dy) > 3) moved = true;
@@ -6447,6 +6488,7 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     ev.preventDefault();
     autoSpin = 0;
     radius = clamp(radius + Math.sign(ev.deltaY) * 0.22, 2.4, 12);
+    markFreeView();
     opts.onViewChange?.();
   };
   canvas2.style.touchAction = "none";
@@ -6536,10 +6578,9 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       if (oilTarget === 0 && oilBlend <= 0) oilRiseElapsed = 0;
     }
     const hoverBusy = hoverHit && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
-    if (!dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
+    if (!viewLocked && !dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
       yaw += autoSpin * 0.016;
     }
-    const lookY = 2.05;
     const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
     const ey = Math.sin(pitch) * radius + 0.2;
     const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
@@ -6555,19 +6596,19 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     const pointerHot = dragHot || hoverHit;
     const hotMatch = (kind, index = 0) => !!(pointerHot && pointerHot.kind === kind && (pointerHot.index == null || pointerHot.index === index));
     const knobLabels = {
-      focusCoarse: "Coarse",
-      focusFine: "Fine",
-      stageX: "Stage X",
-      stageY: "Stage Y",
-      condenser: "Condenser",
-      iris: "Abbe iris",
-      fieldIris: "Field iris",
-      lamp: "Lamp",
+      focusCoarse: tFn("ui.microKnobCoarse"),
+      focusFine: tFn("ui.microKnobFine"),
+      stageX: tFn("ui.microKnobStageX"),
+      stageY: tFn("ui.microKnobStageY"),
+      condenser: tFn("ui.microKnobCondenser"),
+      iris: tFn("ui.microKnobIris"),
+      fieldIris: tFn("ui.microKnobFieldIris"),
+      lamp: tFn("ui.microKnobLamp"),
       tubeL: null,
       // L dimension already labeled when captions are standing
-      interpupillary: "IPD",
-      immersion: "Oil",
-      clip: "Clip"
+      interpupillary: tFn("ui.microKnobIPD"),
+      immersion: tFn("ui.microKnobOil"),
+      clip: tFn("ui.microKnobClip")
     };
     const caption = overlayCaptionPolicy({
       showLabels: params.showLabels,
@@ -6773,6 +6814,13 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     },
     getOilFallElapsed() {
       return oilFallElapsed;
+    },
+    /** Free orbit or named fixed viewpoint (`overview` / `binocular` / `turret` / `stage`). */
+    setCameraView(id) {
+      return applyCameraView(id);
+    },
+    getCameraView() {
+      return cameraView;
     },
     capturePng(state, view) {
       drawScene(state, view);
@@ -7393,6 +7441,10 @@ function createMicroscopeChrome(api) {
     if (exit) exit.textContent = api.t("ui.microExit");
     const params = document.getElementById("btn-micro-params");
     if (params) params.textContent = api.t("ui.microBench");
+    for (const chip of document.querySelectorAll("#micro-views [data-i18n]")) {
+      const key = chip.getAttribute("data-i18n");
+      if (key) chip.textContent = api.t(key);
+    }
     syncShellPicker(on);
     if (on) {
       api.setPaused(true);
@@ -7511,6 +7563,13 @@ function createMicroscopeChrome(api) {
   function refresh() {
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.paint();
   }
+  function syncCameraView(id) {
+    const host = document.getElementById("micro-views");
+    if (!host) return;
+    for (const chip of host.querySelectorAll("[data-view]")) {
+      chip.classList.toggle("is-active", chip.dataset.view === id);
+    }
+  }
   function syncOverlayLabels(labels) {
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.syncOverlayLabels(labels);
   }
@@ -7562,6 +7621,19 @@ function createMicroscopeChrome(api) {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
       stage.toggleRail();
     });
+    document.getElementById("micro-views")?.addEventListener("click", (ev) => {
+      const chip = ev.target?.closest?.("[data-view]");
+      if (!chip || api.getModelId() !== MICROSCOPE_MODEL_ID) return;
+      const id = chip.dataset.view;
+      const gl = api.getWebglStage?.();
+      if (gl && typeof gl.setCameraView === "function") {
+        gl.setCameraView(id);
+        syncCameraView(gl.getCameraView?.() || id);
+        api.paintFrame();
+      } else {
+        syncCameraView(id);
+      }
+    });
     document.addEventListener("wheel", onWheel, { capture: true, passive: false });
   }
   return {
@@ -7575,6 +7647,7 @@ function createMicroscopeChrome(api) {
     setTitle,
     bind,
     refresh,
+    syncCameraView,
     syncOverlayLabels,
     onKeydown,
     isMicroscopeShell: () => api.getActiveShellId() === MICROSCOPE_SHELL_ID,
@@ -8939,6 +9012,7 @@ function ensureWebglStage() {
   if (!canvasWebgl) return null;
   if (!webglStage) {
     webglStage = createMicroscopeWebgl(canvasWebgl, {
+      t,
       onPick: (_state, meta = {}) => {
         paintFrame({ skipMicroRefresh: true });
         microUi?.refresh();
@@ -8949,6 +9023,9 @@ function ensureWebglStage() {
       },
       onViewChange: () => {
         paintFrame({ skipMicroRefresh: true });
+      },
+      onCameraView: (id) => {
+        microUi?.syncCameraView?.(id);
       }
     });
   }
@@ -9882,6 +9959,7 @@ async function boot() {
   }
   microUi = createMicroscopeChrome({
     t,
+    getWebglStage: () => ensureWebglStage(),
     getActiveShellId: () => activeShellId,
     setActiveShellId: (id) => {
       activeShellId = id;

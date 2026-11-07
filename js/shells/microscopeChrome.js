@@ -33,6 +33,7 @@ import { mobileBudget } from '../utils/mobilePerf.js';
  *   onOpticsChange?: () => void,
  *   remountShellSelect?: (opts?: { microOnly?: boolean }) => void,
  *   captureWebglPng?: () => void,
+ *   getWebglStage?: () => { setCameraView?: (id: string) => string, getCameraView?: () => string } | null,
  * }} api
  */
 const RESUME_STORAGE_KEY = 'immspfee-micro-resume-v1';
@@ -132,6 +133,10 @@ export function createMicroscopeChrome(api) {
     if (exit) exit.textContent = api.t('ui.microExit');
     const params = document.getElementById('btn-micro-params');
     if (params) params.textContent = api.t('ui.microBench');
+    for (const chip of document.querySelectorAll('#micro-views [data-i18n]')) {
+      const key = chip.getAttribute('data-i18n');
+      if (key) chip.textContent = api.t(key);
+    }
     syncShellPicker(on);
     if (on) {
       // Keep the rAF paint loop alive for orbit/zoom; sim clock stays paused.
@@ -277,6 +282,14 @@ export function createMicroscopeChrome(api) {
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.paint();
   }
 
+  function syncCameraView(id) {
+    const host = document.getElementById('micro-views');
+    if (!host) return;
+    for (const chip of host.querySelectorAll('[data-view]')) {
+      chip.classList.toggle('is-active', chip.dataset.view === id);
+    }
+  }
+
   function syncOverlayLabels(labels) {
     if (api.getActiveShellId() === MICROSCOPE_SHELL_ID) stage.syncOverlayLabels(labels);
   }
@@ -337,6 +350,19 @@ export function createMicroscopeChrome(api) {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
       stage.toggleRail();
     });
+    document.getElementById('micro-views')?.addEventListener('click', (ev) => {
+      const chip = ev.target?.closest?.('[data-view]');
+      if (!chip || api.getModelId() !== MICROSCOPE_MODEL_ID) return;
+      const id = chip.dataset.view;
+      const gl = api.getWebglStage?.();
+      if (gl && typeof gl.setCameraView === 'function') {
+        gl.setCameraView(id);
+        syncCameraView(gl.getCameraView?.() || id);
+        api.paintFrame();
+      } else {
+        syncCameraView(id);
+      }
+    });
     document.addEventListener('wheel', onWheel, { capture: true, passive: false });
   }
 
@@ -351,6 +377,7 @@ export function createMicroscopeChrome(api) {
     setTitle,
     bind,
     refresh,
+    syncCameraView,
     syncOverlayLabels,
     onKeydown,
     isMicroscopeShell: () => api.getActiveShellId() === MICROSCOPE_SHELL_ID,

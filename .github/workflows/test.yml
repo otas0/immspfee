@@ -519,7 +519,9 @@ jobs:
       - name: WebKit magenta activity-ring ROI
         env:
           MICRO_BROWSER: webkit
-        run: npm run test:micro-magenta
+        run: |
+          npm run test:micro-magenta
+          npm run test:micro-magenta:390
       - name: WebKit microscope promo shots
         env:
           MICRO_BROWSER: webkit

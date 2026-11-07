@@ -55,8 +55,26 @@ last `draw()`. The collar sits at the DIN ring (`turY + OBJECTIVE_COLLAR_DY`, ab
 ## Oil blend
 
 `getOilBlend()` is 0..1 toward the real immersion flag (100×). Rise is linear over
-`getOilRiseSec()` (0.45 s); fall is linear over 0.32 s. `getOilRiseElapsed()` is
-seconds into the current rise. Assert with `npm run test:micro-oil`.
+`getOilRiseSec()` (0.45 s). Fall is linear over `getOilFallSec()` (0.32 s).
+`getOilRiseElapsed()` is seconds into the current rise (reset when immersion turns on).
+`getOilFallElapsed()` is seconds into the current fall (reset when immersion turns off).
+The oil shader path runs only while `oilVisible = getOilBlend() > 0.02`
+(`stage.oilVisible()`). `getOilScreen()` is the film center in CSS pixels from the
+last draw. Assert with `npm run test:micro-oil`.
+
+## Camera views
+
+`setCameraView('free'|'overview'|'binocular'|'turret'|'stage')` — free orbit or a
+fixed viewpoint (定点). Orbit / pinch / wheel unlocks back to `free`.
+`getCameraView()` returns the active id. Chrome chips live in `#micro-views`.
+Narrow (≤480px) defaults to yaw `−π/2` so the magenta activity collar faces the
+camera (active objective on −Z).
+
+## FPS gate
+
+`npm run test:micro-fps` requires the microscope WebGL stage above `MICRO_FPS_MIN`
+(default 25) on the desktop probe. Tessellation comes from `mobileBudget().microTess`:
+phone **0.55**, tablet **0.72**, desktop **1** (`js/utils/mobilePerf.js`).
 
 ## Related
 

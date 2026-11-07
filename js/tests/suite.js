@@ -37,7 +37,8 @@ import {
 } from '../models/microscopeOptics.js';
 import { createMicroscopeStage } from '../shells/microscopeStage.js';
 import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
-import { buildMicroscopeSolid } from '../viz/microscopeMeshBuild.js';
+import { buildMicroscopeSolid, digitStrokes } from '../viz/microscopeMeshBuild.js';
+import { overlayCaptionPolicy } from '../viz/microscopeWebgl.js';
 import { runModelContract } from './model-contract.js';
 import { validateUserModelDraft } from '../lab/userModels.js';
 import { runLab12 } from './lab12.js';
@@ -475,6 +476,57 @@ export function runSuite() {
       );
       const dynVerts = mesh.dynamicData.length / 6;
       assert('desktop tess=1 dynamic verts > 100k', dynVerts > 100000, `dyn=${dynVerts}`);
+
+      const strokeCounts = {
+        0: 6, 1: 2, 2: 5, 3: 5, 4: 4, 5: 5, 6: 6, 7: 3, 8: 7, 9: 6, '×': 2,
+      };
+      for (const [ch, n] of Object.entries(strokeCounts)) {
+        const got = digitStrokes(ch).length;
+        assert(`digitStrokes ${ch} → ${n}`, got === n, `got ${got}`);
+      }
+      assert(
+        'digitStrokes x/X match ×',
+        digitStrokes('x').length === 2 && digitStrokes('X').length === 2,
+        `x=${digitStrokes('x').length} X=${digitStrokes('X').length}`,
+      );
+
+      const hoverCap = overlayCaptionPolicy({ showLabels: 0, hot: true });
+      assert(
+        'showLabels=0 + hot → hover caption',
+        hoverCap.hoverCaption === true && hoverCap.standing === false,
+        JSON.stringify(hoverCap),
+      );
+      const standCap = overlayCaptionPolicy({ showLabels: 1, hot: true });
+      assert('showLabels=1 → standing captions', standCap.standing === true, JSON.stringify(standCap));
+
+      const oLow = opticsFromParams({ objective: '40x', eyepiece: '10x', tubeL_mm: 160, NA: 0.2, WD_mm: 0.6 });
+      const layLow = microscopeLayout(oLow, { focusZ_mm: 0.5, stageX_mm: 5, stageY_mm: -3, fieldIris: 0.4, lampOn: 1 });
+      assert(
+        'NA=0.65 vs NA=0.2 changes irisOpen',
+        Math.abs(lay.irisOpen - layLow.irisOpen) > 0.05,
+        `hi=${lay.irisOpen} lo=${layLow.irisOpen}`,
+      );
+      const meshShut = buildMicroscopeSolid(
+        o40, null, OBJECTIVES, EYEPIECES, objectiveRingColor,
+        { layout: { ...lay, irisOpen: 0.08 }, tess: 0.4, part: 'dynamic' },
+      );
+      const meshOpen = buildMicroscopeSolid(
+        o40, null, OBJECTIVES, EYEPIECES, objectiveRingColor,
+        { layout: { ...lay, irisOpen: lay.irisOpen }, tess: 0.4, part: 'dynamic' },
+      );
+      let lensDiff = meshShut.dynamicData.length !== meshOpen.dynamicData.length;
+      if (!lensDiff) {
+        const a = meshShut.dynamicData;
+        const b = meshOpen.dynamicData;
+        for (let i = 0; i < a.length; i += 3) {
+          if (a[i] !== b[i]) { lensDiff = true; break; }
+        }
+      }
+      assert(
+        'irisOpen scales condenser lens mesh',
+        lensDiff,
+        `verts ${meshOpen.dynamicData.length / 6} vs ${meshShut.dynamicData.length / 6}`,
+      );
     }
   }
 

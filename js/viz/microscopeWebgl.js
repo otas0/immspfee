@@ -70,7 +70,7 @@ uniform float uTime;
 uniform float uImmersion;
 varying vec2 vUv;
 void main(){
-  if (uImmersion < 0.5) discard;
+  if (uImmersion <= 0.02) discard;
   vec2 d = vUv - vec2(0.5);
   float r = length(d) * 2.0;
   if (r > 1.0) discard;
@@ -78,9 +78,9 @@ void main(){
   float edge = smoothstep(1.0, 0.42, r);
   float sheen = smoothstep(0.18, 0.0, abs(r - 0.32 - 0.1 * sin(uTime * 2.2)));
   float rim = smoothstep(0.92, 0.72, r) * smoothstep(0.55, 0.82, r);
-  vec3 col = mix(vec3(0.22, 0.55, 0.78), vec3(0.72, 0.92, 1.0), sheen);
+  vec3 col = mix(vec3(0.22, 0.55, 0.78), vec3(0.45, 0.72, 0.92), sheen * pulse);
   col = mix(col, vec3(0.95, 0.82, 0.35), rim * 0.55);
-  float alpha = edge * pulse * 0.88;
+  float alpha = edge * (0.62 + 0.38 * uImmersion);
   gl_FragColor = vec4(col, alpha);
 }`;
 
@@ -147,12 +147,35 @@ function clamp(v, lo, hi) {
 }
 
 /**
+ * Standing captions vs one temporary hover caption.
+ * showLabels off + a hot pick → hover caption only.
+ * showLabels on → standing captions.
+ */
+export function overlayCaptionPolicy({ showLabels = 1, hot = false } = {}) {
+  const standing = Number(showLabels) !== 0;
+  return {
+    standing,
+    hoverCaption: !standing && !!hot,
+  };
+}
+
+/** Named viewpoints — free orbit or snap-to-fixed (定点). */
+export const CAMERA_VIEWS = {
+  free: null,
+  overview: { yaw: 0.85, pitch: 0.22, radius: 7.5, lookY: 2.05 },
+  binocular: { yaw: 0.18, pitch: 0.58, radius: 4.35, lookY: 2.55 },
+  turret: { yaw: -Math.PI / 2, pitch: 0.36, radius: 5.4, lookY: 1.55 },
+  stage: { yaw: -Math.PI / 2 + 0.28, pitch: 0.82, radius: 4.7, lookY: 0.95 },
+};
+
+/**
  * @param {HTMLCanvasElement} canvas
- * @param {{ onPick?: (state: object) => void, onViewChange?: () => void }} [opts]
+ * @param {{ onPick?: (state: object) => void, onViewChange?: () => void, t?: (key: string) => string, onCameraView?: (id: string) => void }} [opts]
  */
 export function createMicroscopeWebgl(canvas, opts = {}) {
   const gl = canvas.getContext('webgl', { antialias: true, alpha: false, preserveDrawingBuffer: true });
   if (!gl) return null;
+  const tFn = typeof opts.t === 'function' ? opts.t : (k) => k;
   const prog = link(gl, VS, FS);
   const aPos = gl.getAttribLocation(prog, 'aPos');
   const aCol = gl.getAttribLocation(prog, 'aCol');
@@ -178,11 +201,16 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let dynamicKey = '';
   let staticVertCount = 0;
   let dynamicVertCount = 0;
-  let yaw = 0.85;
-  let pitch = 0.22;
   const narrowStage = typeof matchMedia === 'function'
     && matchMedia('(max-width: 480px)').matches;
+  // Narrow: face the −Z optical axis so the magenta activity collar fills the FOV.
+  let yaw = narrowStage ? -Math.PI / 2 : 0.85;
+  let pitch = narrowStage ? 0.32 : 0.22;
   let radius = narrowStage ? 9.4 : 7.5;
+  let lookY = 2.05;
+  /** @type {keyof typeof CAMERA_VIEWS} */
+  let cameraView = 'free';
+  let viewLocked = false;
   /** @type {'orbit' | 'part' | null} */
   let dragMode = null;
   /** @type {{ kind: string, index: number } | null} */
@@ -190,7 +218,35 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   let moved = false;
   let lastX = 0;
   let lastY = 0;
-  let autoSpin = 0.08;
+  let autoSpin = narrowStage ? 0 : 0.08;
+
+  function markFreeView() {
+    if (cameraView === 'free' && !viewLocked) return;
+    cameraView = 'free';
+    viewLocked = false;
+    opts.onCameraView?.('free');
+  }
+
+  function applyCameraView(id) {
+    const key = CAMERA_VIEWS[id] !== undefined ? id : 'free';
+    cameraView = key;
+    const preset = CAMERA_VIEWS[key];
+    if (!preset) {
+      viewLocked = false;
+      opts.onCameraView?.(key);
+      opts.onViewChange?.();
+      return key;
+    }
+    yaw = preset.yaw;
+    pitch = preset.pitch;
+    radius = narrowStage ? Math.max(preset.radius, 6.2) : preset.radius;
+    lookY = preset.lookY;
+    viewLocked = true;
+    autoSpin = 0;
+    opts.onCameraView?.(key);
+    opts.onViewChange?.();
+    return key;
+  }
   let hits = [];
   let lastView = { width: 1, height: 1 };
   let lastState = null;
@@ -205,6 +261,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
   const OIL_FALL_SEC = 0.32;
   let oilBlend = 0;
   let oilRiseElapsed = 0;
+  let oilFallElapsed = 0;
   /** Previous immersion aim (0 dry / 1 oil) so a new rise restarts the clock. */
   let oilAim = 0;
   let lastOilT = 0;
@@ -416,6 +473,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       if (pinchDist > 1) {
         const delta = dist - pinchDist;
         radius = clamp(radius - delta * 0.012, 2.4, 12);
+        markFreeView();
         opts.onViewChange?.();
       }
       pinchDist = dist;
@@ -432,6 +490,9 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       return;
     }
     if (dragMode === 'orbit') {
+      if (viewLocked) {
+        markFreeView();
+      }
       const dx = ev.clientX - lastX;
       const dy = ev.clientY - lastY;
       if (Math.hypot(dx, dy) > 3) moved = true;
@@ -504,6 +565,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     ev.preventDefault();
     autoSpin = 0;
     radius = clamp(radius + Math.sign(ev.deltaY) * 0.22, 2.4, 12);
+    markFreeView();
     opts.onViewChange?.();
   };
 
@@ -583,24 +645,28 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const dt = lastOilT ? Math.min(0.05, Math.max(0, tSec - lastOilT)) : 0.016;
     lastOilT = tSec;
     const oilTarget = oilActive ? 1 : 0;
-    if (oilTarget > oilAim) oilRiseElapsed = 0;
+    if (oilTarget > oilAim) {
+      oilRiseElapsed = 0;
+      oilFallElapsed = 0;
+    } else if (oilTarget < oilAim) {
+      oilFallElapsed = 0;
+    }
     oilAim = oilTarget;
     if (oilBlend < oilTarget) {
       oilBlend = Math.min(oilTarget, oilBlend + dt / OIL_RISE_SEC);
       oilRiseElapsed += dt;
     } else if (oilBlend > oilTarget) {
       oilBlend = Math.max(oilTarget, oilBlend - dt / OIL_FALL_SEC);
+      oilFallElapsed += dt;
       if (oilTarget === 0 && oilBlend <= 0) oilRiseElapsed = 0;
     }
 
     const hoverBusy = hoverHit
       && (DRAG_KINDS.has(hoverHit.kind) || CLICK_KINDS.has(hoverHit.kind));
-    if (!dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
+    if (!viewLocked && !dragMode && pointers.size < 2 && autoSpin && !hoverBusy) {
       yaw += autoSpin * 0.016;
     }
 
-    // Aim mid-head so Siedentopf ocular tips stay inside vertical FOV.
-    const lookY = 2.05;
     const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
     const ey = Math.sin(pitch) * radius + 0.2;
     const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
@@ -613,7 +679,6 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     rebuildHits(mvp, view.width, view.height, layout);
 
     overlayLabels = [];
-    const showLabels = Number(params.showLabels) !== 0;
     const dragHot = dragMode === 'part' && partHit ? partHit : null;
     const pointerHot = dragHot || hoverHit;
     const hotMatch = (kind, index = 0) => !!(
@@ -622,20 +687,24 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       && (pointerHot.index == null || pointerHot.index === index)
     );
     const knobLabels = {
-      focusCoarse: 'Coarse',
-      focusFine: 'Fine',
-      stageX: 'Stage X',
-      stageY: 'Stage Y',
-      condenser: 'Condenser',
-      iris: 'Abbe iris',
-      fieldIris: 'Field iris',
-      lamp: 'Lamp',
+      focusCoarse: tFn('ui.microKnobCoarse'),
+      focusFine: tFn('ui.microKnobFine'),
+      stageX: tFn('ui.microKnobStageX'),
+      stageY: tFn('ui.microKnobStageY'),
+      condenser: tFn('ui.microKnobCondenser'),
+      iris: tFn('ui.microKnobIris'),
+      fieldIris: tFn('ui.microKnobFieldIris'),
+      lamp: tFn('ui.microKnobLamp'),
       tubeL: null, // L dimension already labeled when captions are standing
-      interpupillary: 'IPD',
-      immersion: 'Oil',
-      clip: 'Clip',
+      interpupillary: tFn('ui.microKnobIPD'),
+      immersion: tFn('ui.microKnobOil'),
+      clip: tFn('ui.microKnobClip'),
     };
-    if (showLabels) {
+    const caption = overlayCaptionPolicy({
+      showLabels: params.showLabels,
+      hot: !!pointerHot,
+    });
+    if (caption.standing) {
       const tubeHit = layout.pts.find((row) => row.kind === 'tubeL');
       const Lpt = tubeHit
         ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height)
@@ -713,7 +782,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
         }
       }
       overlayLabels = resolveLabelCollisions(overlayLabels);
-    } else if (pointerHot) {
+    } else if (caption.hoverCaption) {
       // Standing captions are off; hover and knob-drag still get one temporary label.
       const p = (layout.pts || []).find((row) => hotMatch(row.kind, row.index));
       if (p) {
@@ -777,6 +846,8 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
+      // Film sits on the cover slip; draw it over the stage so the tint stays readable.
+      gl.disable(gl.DEPTH_TEST);
       gl.useProgram(oilProg);
       gl.uniformMatrix4fv(oilUMVP, false, mvp);
       gl.uniform3f(oilUCenter, oilSlideX, oilStageY, oilSlideZ);
@@ -787,6 +858,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       gl.enableVertexAttribArray(oilAUv);
       gl.vertexAttribPointer(oilAUv, 2, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.enable(gl.DEPTH_TEST);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
     }
@@ -818,11 +890,39 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     getOilBlend() {
       return oilBlend;
     },
+    /** Oil film is drawn only while blend is above the shader discard. */
+    oilVisible() {
+      return oilBlend > 0.02;
+    },
+    /** CSS pixels of the immersion-film center from the last draw. */
+    getOilScreen() {
+      if (!lastMvp) return null;
+      const { width, height } = lastView;
+      const c = project(lastMvp, oilSlideX, oilStageY, oilSlideZ, width, height);
+      if (!c) return null;
+      const scale = 0.58 * (0.35 + 0.65 * oilBlend);
+      const edge = project(lastMvp, oilSlideX + scale * 0.5, oilStageY, oilSlideZ, width, height);
+      const r = edge ? Math.max(4, Math.hypot(edge.x - c.x, edge.y - c.y)) : 12;
+      return { x: c.x, y: c.y, r };
+    },
     getOilRiseSec() {
       return OIL_RISE_SEC;
     },
     getOilRiseElapsed() {
       return oilRiseElapsed;
+    },
+    getOilFallSec() {
+      return OIL_FALL_SEC;
+    },
+    getOilFallElapsed() {
+      return oilFallElapsed;
+    },
+    /** Free orbit or named fixed viewpoint (`overview` / `binocular` / `turret` / `stage`). */
+    setCameraView(id) {
+      return applyCameraView(id);
+    },
+    getCameraView() {
+      return cameraView;
     },
     capturePng(state, view) {
       drawScene(state, view);

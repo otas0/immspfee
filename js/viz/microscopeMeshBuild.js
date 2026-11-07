@@ -302,7 +302,7 @@ export function meshDynamicKey(optics, hover, params = {}) {
  * Normalized [0,1]×[0,1], y = 0 at the top of the glyph: [x0,y0,x1,y1].
  * Segments a–g plus a diagonal pair for the × mark.
  */
-function digitStrokes(ch) {
+export function digitStrokes(ch) {
   const a = [0.16, 0.08, 0.84, 0.08];
   const b = [0.84, 0.12, 0.84, 0.46];
   const c = [0.84, 0.54, 0.84, 0.88];
@@ -633,6 +633,21 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
     cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
     // DIN magnification glyph on the enamel barrel (mesh strokes, not HUD text).
     drawMagGlyph(ox, yBar, oz, ang, obj.mag, 0.94, 0.92, 0.88, out, S);
+    // RMS thread: thin chrome rings stepped from the DIN collar down to the nose.
+    // Active barrels get a denser stack so the engaged objective reads as threaded.
+    {
+      const threadN = active ? 6 : 4;
+      const y0 = collarY - 0.016;
+      const y1 = yNose + noseH * 0.2;
+      const threadR = S(24, 12);
+      const threadT = S(6, 6);
+      for (let ti = 0; ti < threadN; ti += 1) {
+        const u = (ti + 0.5) / threadN;
+        const ty = y0 + (y1 - y0) * u;
+        const rad = (0.04 - u * 0.01) * k;
+        torusY(ox, ty, oz, rad, 0.0032, ...chromeDim, out, threadR, threadT, 0.34);
+      }
+    }
     cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(48, 20), true, 0.36);
     frustumY(ox, yNose, oz, 0.03 * k, 0.02 * k, noseH, ...chromeDim, out, S(48, 20), 0.3);
     cylinderY(ox, yFront, oz, 0.016 * k, 0.016, ...glass, out, S(36, 16), true, 0.45);
@@ -740,6 +755,11 @@ function buildDynamic(out, optics, hover, OBJECTIVES, EYEPIECES, objectiveRingCo
   const rIn = 0.018 + irisOpen * 0.075;
   const rOut = 0.1;
   frustumY(0, condenserY + 0.055, 0.02, 0.07, 0.11, 0.08, ...chrome, out, S(32, 16), 0.34);
+  // Second glass element: aperture tracks Abbe irisOpen (NA / NAcap). Wedges stay below.
+  const lensBot = 0.04 + irisOpen * 0.04;
+  const lensTop = 0.055 + irisOpen * 0.03;
+  frustumY(0, condenserY + 0.02, 0.02, lensBot, lensTop, 0.035, ...glass, out, S(28, 14), 0.42);
+  torusY(0, condenserY + 0.02, 0.02, (lensBot + lensTop) * 0.5, 0.0035, ...glassHi, out, S(28, 14), S(8, 6), 0.4);
   irisWedges(0, condenserY, 0.02, rIn, rOut, 12, irisHot ? 0.4 : 0.22, irisHot ? 0.55 : 0.23, irisHot ? 0.7 : 0.26, out);
   torusY(0, condenserY, 0.02, 0.112, 0.016, ...(irisHot ? hi : chrome), out, S(32, 16), S(10, 6), 0.36);
   cylinderX(0.15, condenserY, 0.02, 0.012, 0.08, ...chrome, out, S(14, 8), 0.32, true);
@@ -812,7 +832,8 @@ export function buildMicroscopeSolid(optics, hover, OBJECTIVES, EYEPIECES, objec
     staticData,
     dynamicData,
     data,
-    oilStageY: layout.stageY + 0.05,
+    // Sit the immersion film on the cover slip (above the slide box) so the oil pass is visible.
+    oilStageY: layout.stageY + 0.066,
     oilActive: !!optics.immersion,
   };
 }

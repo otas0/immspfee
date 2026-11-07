@@ -2,6 +2,7 @@
 /**
  * Capture WebKit promo stills for the microscope shell:
  *  - docs/promo/micro-1280-webkit-binocular.png (labels on, lamp on)
+ *  - docs/promo/micro-390-webkit-binocular.png (390×844; binocular if setCameraView)
  *  - docs/assets/shell-micro-1280-lamp-off-webkit.png (lamp off contrast)
  * Requires lab server + Playwright WebKit.
  */
@@ -50,6 +51,23 @@ try {
   fs.mkdirSync(path.dirname(lampOff), { recursive: true });
   await page.locator('#canvas-webgl').screenshot({ path: lampOff });
   console.log('wrote', path.relative(root, lampOff));
+
+  await page.click('[data-lamp="1"]').catch(() => {});
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.click('#micro-views [data-view="binocular"]').catch(() => {});
+  await page.evaluate(() => {
+    const stage = window.__labCapture.getWebglStage?.();
+    if (stage && typeof stage.setCameraView === 'function') stage.setCameraView('binocular');
+    const p = window.__labCapture.getParams?.() || {};
+    p.showLabels = 1;
+    p.lampOn = 1;
+    p.objective = '10x';
+    for (let i = 0; i < 6; i += 1) window.__labCapture.paintFrame?.();
+  });
+  const promo390 = path.join(root, 'docs/promo/micro-390-webkit-binocular.png');
+  fs.mkdirSync(path.dirname(promo390), { recursive: true });
+  await page.screenshot({ path: promo390, fullPage: false });
+  console.log('wrote', path.relative(root, promo390));
   console.log('test:micro-shots ok');
 } finally {
   await browser.close();

@@ -3,15 +3,16 @@
  * Catalog HUD / param bench / ODE strip stay off; only brand + WebGL + optical rail.
  */
 
+/* Brand black/white (matches lab :root OLED / phosphor — no blue chrome). */
 html.shell-lab-microscope3d,
 html.shell-lab-microscope3d body {
-  --micro-ink: #e8eef6;
-  --micro-muted: #8b97a8;
-  --micro-line: rgba(232, 238, 246, 0.14);
-  --micro-stage: #06080b;
-  --micro-rail: #0c1118;
-  --micro-accent: #6eb4ff;
-  --micro-oil: rgba(120, 190, 255, 0.28);
+  --micro-ink: #ffffff;
+  --micro-muted: #888888;
+  --micro-line: rgba(255, 255, 255, 0.14);
+  --micro-stage: #000000;
+  --micro-rail: #0a0a0a;
+  --micro-accent: #ffffff;
+  --micro-oil: rgba(255, 255, 255, 0.22);
   background: var(--micro-stage);
   color: var(--micro-ink);
 }
@@ -68,9 +69,7 @@ html.shell-lab-microscope3d .microscope-chrome {
   gap: 0.35rem 0.85rem;
   padding: 0.4rem 0.9rem 0.4rem;
   border-bottom: 1px solid var(--micro-line);
-  background:
-    radial-gradient(120% 80% at 0% 0%, rgba(110, 180, 255, 0.08), transparent 55%),
-    linear-gradient(180deg, #0c1016 0%, var(--micro-stage) 100%);
+  background: linear-gradient(180deg, #0a0a0a 0%, var(--micro-stage) 100%);
   z-index: 4;
 }
 
@@ -129,6 +128,31 @@ html.shell-lab-microscope3d .micro-actions {
   flex-wrap: wrap;
   gap: 0.35rem;
   justify-content: flex-end;
+  align-items: center;
+}
+
+html.shell-lab-microscope3d .micro-views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-right: 0.2rem;
+}
+
+html.shell-lab-microscope3d .micro-views .micro-chip {
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--micro-line);
+  background: transparent;
+  color: var(--micro-muted);
+  cursor: pointer;
+}
+
+html.shell-lab-microscope3d .micro-views .micro-chip.is-active {
+  color: var(--micro-ink);
+  border-color: var(--micro-ink);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 html.shell-lab-microscope3d .micro-actions .btn {
@@ -164,7 +188,7 @@ html.shell-lab-microscope3d .canvas-wrap {
   margin: 0;
   border: none;
   border-radius: 0;
-  background: #020406;
+  background: #000000;
   overflow: hidden;
 }
 
@@ -215,7 +239,7 @@ html.shell-lab-microscope3d .micro-readouts {
 
 html.shell-lab-microscope3d .micro-metric {
   border: 1px solid var(--micro-line);
-  background: rgba(12, 17, 24, 0.72);
+  background: rgba(0, 0, 0, 0.72);
   padding: 0.5rem 0.6rem 0.45rem;
   min-width: 0;
 }
@@ -249,7 +273,7 @@ html.shell-lab-microscope3d .micro-rail {
   width: min(18.5rem, 86vw);
   max-width: 100%;
   align-self: stretch;
-  background: linear-gradient(200deg, #10161f 0%, var(--micro-rail) 55%);
+  background: linear-gradient(200deg, #111111 0%, var(--micro-rail) 55%);
   border-left: 1px solid var(--micro-line);
   padding: 0.9rem 0.95rem 1.1rem;
   display: flex;
@@ -287,8 +311,8 @@ html.shell-lab-microscope3d .micro-rail-dirty {
   display: inline-block;
   margin-top: 0.35rem;
   padding: 0.22rem 0.4rem;
-  border: 1px solid rgba(110, 180, 255, 0.35);
-  background: rgba(110, 180, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--micro-accent);
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 0.58rem;
@@ -364,7 +388,7 @@ html.shell-lab-microscope3d .micro-gl-label.is-obj {
 
 html.shell-lab-microscope3d .micro-gl-label.is-eye {
   border-color: rgba(120, 200, 255, 0.45);
-  color: #b8e0ff;
+  color: #dddddd;
 }
 
 html.shell-lab-microscope3d .micro-gl-label.is-din {
@@ -387,7 +411,7 @@ html.shell-lab-microscope3d .micro-gl-label.is-knob {
   font-size: 0.58rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #c8d2de;
+  color: #bbbbbb;
   border-color: rgba(180, 200, 220, 0.28);
   background: rgba(6, 10, 16, 0.88);
 }
@@ -443,7 +467,7 @@ html.shell-lab-microscope3d .micro-chip {
 html.shell-lab-microscope3d .micro-chip.is-active {
   border-color: var(--micro-accent);
   color: var(--micro-accent);
-  background: rgba(110, 180, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 html.shell-lab-microscope3d .micro-slider-row {

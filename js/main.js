@@ -1478,6 +1478,7 @@ function ensureWebglStage() {
   if (!canvasWebgl) return null;
   if (!webglStage) {
     webglStage = createMicroscopeWebgl(canvasWebgl, {
+      t,
       onPick: (_state, meta = {}) => {
         paintFrame({ skipMicroRefresh: true });
         microUi?.refresh();
@@ -1485,6 +1486,9 @@ function ensureWebglStage() {
       },
       onViewChange: () => {
         paintFrame({ skipMicroRefresh: true });
+      },
+      onCameraView: (id) => {
+        microUi?.syncCameraView?.(id);
       },
     });
   }
@@ -2457,6 +2461,7 @@ async function boot() {
 
   microUi = createMicroscopeChrome({
     t,
+    getWebglStage: () => ensureWebglStage(),
     getActiveShellId: () => activeShellId,
     setActiveShellId: (id) => { activeShellId = id; },
     getModelId: () => app.model?.id,
