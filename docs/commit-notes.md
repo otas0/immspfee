@@ -243,7 +243,10 @@ Trend pair (same shape, different metrics):
 | Script | Artifact | Cross-run cache | Soft-fail |
 |--------|----------|-----------------|-----------|
 | `npm run test:pages-tti-trend` | `artifacts/pages-tti-trend.json` (+ `warmStreak`) | `pages-tti-prev-*` → `pages-tti-sw.prev.json` | warm `firstHandP95` >250ms for **2** consecutive runs (`WARM_FIRST_HAND_SOFT_FAIL`) |
-| `npm run test:micro-fps-trend` | `artifacts/micro-fps-trend.json` | `micro-fps-prev-*` → `micro-fps-advisory.prev.json` | advisory only (probe may omit JSON on some runners) |
+| `npm run test:micro-fps-trend` | `artifacts/micro-fps-trend.json` | `micro-fps-prev-*` → `micro-fps-advisory.prev.json` | advisory only |
+
+**warmStreak cross-run (confirmed):** `5f86997` lab-artifacts had `previous: true` and
+`warmStreak: { over: 0, lastP95: 49 }` vs prior run — cache restore works.
 
 **CDN jitter (cold `firstHandP95`):** a single cold hit can spike to ~8–11s when the edge is cold;
 `pages-tti-sw` retries once under `PAGES_TTI_HARD`. Do **not** treat a one-shot cold P95 spike as a
@@ -257,10 +260,17 @@ do **not** mix with the free-fall gold-frame TTI table above.
 |--------------|-----------------|-------|
 | 2026-11-07 ~08:52Z | ≈ 11818 | first post-deploy hand check |
 | 2026-11-07 ~09:35Z | ≈ 11536 | re-sample; wall ≈ 11.9s; title 玻尔模型 |
+| 2026-11-07 ~10:14Z | ≈ 12036 | 3rd sample; wall ≈ 12.3s; edge still cold-ish |
 
-**narrow soft-fail:** `test:narrow` is `continue-on-error` so micro contracts still run when Bohr/narrow flakes.
-On `9a2fc15` `ci-summary` showed `narrow-regression ok` — isolation is intentional, not a blanket skip.
-If it fails two runs in a row, treat as a real regression (do not widen further).
+**narrow soft-fail → hard after 2:** first fail is isolated (`continue-on-error`); streak cache
+`narrow-streak-*` hard-fails the job on the **second consecutive** failure. `5f86997` /
+`9a2fc15` both logged `narrow-regression ok`.
+
+**micro-fps advisory path:** never shadow repo `root` with the site URL when writing
+`artifacts/micro-fps-advisory.json` (writes to `process.cwd()/artifacts`).
+
+Search debounce is **200ms**; in-flight `ensureDomainNames` uses `AbortController` so a newer
+keystroke cancels the stale names fetch.
 
 ### Real-device 4G / weak-net first gold frame
 

@@ -2,45 +2,42 @@
 /**
  * Fail if browser sources import data/palettes.json (monolith).
  * Gen scripts under scripts/ may still read it; runtime must use cold-stub + domains.
+ * Pure Node walk — no ripgrep dependency (CI runners may lack `rg`).
  */
-import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-let out = '';
-try {
-  out = execFileSync(
-    'rg',
-    [
-      '-n',
-      '--glob', '!**/bundle/**',
-      '--glob', '!**/*.map',
-      String.raw`palettes\.json`,
-      'js',
-    ],
-    { cwd: root, encoding: 'utf8' },
-  );
-} catch (err) {
-  if (err.status === 1) {
-    console.log('assert-no-monolith-palette ok (no palettes.json under js/)');
-    process.exit(0);
+const jsRoot = path.join(root, 'js');
+const bad = [];
+
+function walk(dir) {
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (ent.name === 'bundle' || ent.name === 'node_modules') continue;
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) {
+      walk(full);
+      continue;
+    }
+    if (!/\.(js|mjs|cjs|ts)$/.test(ent.name)) continue;
+    const text = fs.readFileSync(full, 'utf8');
+    const rel = path.relative(root, full);
+    for (const [i, line] of text.split('\n').entries()) {
+      if (!/palettes\.json/.test(line)) continue;
+      const n = i + 1;
+      if (/import\s+.*palettes\.json|from\s+['"].*palettes\.json|fetch\([^)]*palettes\.json|new URL\([^)]*palettes\.json/.test(line)) {
+        bad.push(`${rel}:${n}:${line.trim()}`);
+        continue;
+      }
+      if (/data\/palettes\.json/.test(line) && !/must not|gen-only|deprecated|cold-stub|do not/.test(line)) {
+        bad.push(`${rel}:${n}:${line.trim()}`);
+      }
+    }
   }
-  console.error(err.stderr || err.message);
-  process.exit(err.status || 1);
 }
 
-const lines = out.trim().split('\n').filter(Boolean);
-const bad = lines.filter((line) => {
-  if (/import\s+.*palettes\.json|from\s+['"].*palettes\.json|fetch\([^)]*palettes\.json|new URL\([^)]*palettes\.json/.test(line)) {
-    return true;
-  }
-  if (/data\/palettes\.json/.test(line) && !/must not|gen-only|deprecated|cold-stub|do not/.test(line)) {
-    return true;
-  }
-  return false;
-});
-
+walk(jsRoot);
 if (bad.length) {
   console.error('Browser path must not reference data/palettes.json:\n' + bad.join('\n'));
   process.exit(1);

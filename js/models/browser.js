@@ -52,20 +52,27 @@ export function loadIndex() {
 }
 
 /** Lazy name pack for search / sidebar labels (not on cold index). */
-export function ensureDomainNames() {
+export function ensureDomainNames(signal) {
   if (domainNames) {
     applyNames(domainNames);
     return Promise.resolve(domainNames);
   }
+  if (signal?.aborted) {
+    const err = new Error('Aborted');
+    err.name = 'AbortError';
+    return Promise.reject(err);
+  }
   if (!namesPromise) {
-    namesPromise = fetch(endpoint('data/domain-names.json'))
+    namesPromise = fetch(endpoint('data/domain-names.json'), signal ? { signal } : undefined)
       .then((res) => (res.ok ? res.json() : []))
       .then((names) => {
         domainNames = Array.isArray(names) ? names : [];
         applyNames(domainNames);
         return domainNames;
       })
-      .catch(() => {
+      .catch((err) => {
+        namesPromise = null;
+        if (err?.name === 'AbortError') throw err;
         domainNames = domainNames || [];
         return domainNames;
       });
