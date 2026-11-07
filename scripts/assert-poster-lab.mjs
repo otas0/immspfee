@@ -45,7 +45,9 @@ for (const rel of files) {
     console.error(`assert-poster-lab: ${rel} missing IBM Plex Mono`);
     failed += 1;
   }
-  const imgs = [...text.matchAll(/<img\b[^>]*>/gi)];
+  // Ignore HTML/CSS comments so prose like "wordmark <img>" does not count.
+  const body = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  const imgs = [...body.matchAll(/<img\b[^>]*>/gi)];
   if (!imgs.length) {
     console.error(`assert-poster-lab: ${rel} missing logo <img>`);
     failed += 1;
@@ -56,7 +58,7 @@ for (const rel of files) {
       failed += 1;
     }
   }
-  if (/micro-webkit-3d|lab-qr\.svg/i.test(text)) {
+  if (/micro-webkit-3d|lab-qr\.svg/i.test(body)) {
     console.error(`assert-poster-lab: ${rel} must not embed stage still or QR image`);
     failed += 1;
   }
