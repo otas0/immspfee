@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Guard Lab posters against sibling-product / TE sheet markers.
- * Type + logo only: every <img> must be the IMMSPFEE wordmark.
+ * Allowed images: IMMSPFEE wordmark + lab-qr.svg only.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,6 +21,8 @@ const forbidden = [
   { re: /\bbuusdo\b/i, label: 'buusdo' },
   { re: /\bTE\s*\/\s*signal\b/i, label: 'TE/signal' },
 ];
+
+const allowedImg = /immspfee-logo\.svg|lab-qr\.svg/i;
 
 let failed = 0;
 for (const rel of files) {
@@ -45,21 +47,24 @@ for (const rel of files) {
     console.error(`assert-poster-lab: ${rel} missing IBM Plex Mono`);
     failed += 1;
   }
-  // Ignore HTML/CSS comments so prose like "wordmark <img>" does not count.
   const body = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
   const imgs = [...body.matchAll(/<img\b[^>]*>/gi)];
-  if (!imgs.length) {
+  if (!imgs.some(([tag]) => /immspfee-logo\.svg/i.test(tag))) {
     console.error(`assert-poster-lab: ${rel} missing logo <img>`);
     failed += 1;
   }
   for (const [tag] of imgs) {
-    if (!/immspfee-logo\.svg/i.test(tag)) {
-      console.error(`assert-poster-lab: ${rel} non-logo image: ${tag.slice(0, 120)}`);
+    if (!allowedImg.test(tag)) {
+      console.error(`assert-poster-lab: ${rel} disallowed image: ${tag.slice(0, 120)}`);
       failed += 1;
     }
   }
-  if (/micro-webkit-3d|lab-qr\.svg/i.test(body)) {
-    console.error(`assert-poster-lab: ${rel} must not embed stage still or QR image`);
+  if (/micro-webkit-3d|\.png/i.test(body)) {
+    console.error(`assert-poster-lab: ${rel} must not embed stage stills / PNGs`);
+    failed += 1;
+  }
+  if (!/14mm\s+16mm\s+12mm\s+14mm/.test(text)) {
+    console.error(`assert-poster-lab: ${rel} missing ≥14mm top/left sheet padding`);
     failed += 1;
   }
 }

@@ -9,195 +9,150 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     /*
-      IMMSPFEE Lab A4 — type + logo only.
-      No stage stills, no QR bitmap — only the wordmark <img>.
-      #evenbetterposter: one claim, whitespace, phrases, ≤2 typefaces.
-      ?lang=en|zh|both
+      IMMSPFEE Lab A4 — claim-first; logo + QR only as images.
+      Quiet pillars / rules; claim stays dominant. ?lang=en|zh|both
+      Brand clearspace: sheet padding top/left ≥14mm. Screen desk: white.
     */
     :root {
       --paper: #ffffff;
       --ink: #111111;
       --muted: #5a5a5a;
-      --hair: rgba(0, 0, 0, 0.12);
+      --hair: rgba(0, 0, 0, 0.1);
+      --wash: #f5f5f5;
       --font: "Sora", "Noto Sans SC", sans-serif;
       --mono: "IBM Plex Mono", ui-monospace, monospace;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body {
-      background: #d0d0d0;
+      background: #ffffff;
       color: var(--ink);
       font-family: var(--font);
       -webkit-font-smoothing: antialiased;
       font-feature-settings: "tnum" 1, "lnum" 1;
     }
-
     .screen-hint {
-      width: 210mm;
-      margin: 10px auto 8px;
-      font-family: var(--mono);
-      font-size: 9px;
-      text-align: center;
-      color: #444;
-      letter-spacing: 0.03em;
-      line-height: 1.45;
+      width: 210mm; margin: 8px auto 6px;
+      font-family: var(--mono); font-size: 9px; text-align: center;
+      color: #666; letter-spacing: 0.03em; line-height: 1.45;
     }
     .screen-hint a { color: inherit; }
-
     .sheet {
-      width: 210mm;
-      height: 297mm;
-      margin: 0 auto 14px;
-      padding: 16mm 18mm 14mm;
+      width: 210mm; height: 297mm; margin: 0 auto 10px;
+      padding: 14mm 16mm 12mm 14mm;
       background: var(--paper);
-      border-radius: 2px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      border: 1px solid var(--hair);
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
     }
-
-    .brand { margin-bottom: 14mm; }
-    .wordmark {
-      display: block;
-      height: 8mm;
-      width: auto;
-      max-width: 48mm;
+    .sheet::before {
+      content: ""; position: absolute; top: 0; right: 0;
+      width: 18mm; height: 18mm;
+      background: linear-gradient(225deg, var(--wash) 0 50%, transparent 50%);
+      pointer-events: none;
     }
+    .mast {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 8mm; margin-bottom: 9mm;
+    }
+    .brand { min-width: 0; }
+    .wordmark { display: block; height: 7.5mm; width: auto; max-width: 46mm; }
     .brand .sub {
-      margin-top: 2.5mm;
-      font-family: var(--mono);
-      font-size: 8px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
+      margin-top: 2mm; font-family: var(--mono); font-size: 8px;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
     }
-
     .claim {
-      font-size: 32px;
-      font-weight: 600;
-      letter-spacing: -0.04em;
-      line-height: 1.15;
-      max-width: 170mm;
-      margin-bottom: 12mm;
+      font-size: 28px; font-weight: 600; letter-spacing: -0.035em;
+      line-height: 1.16; max-width: 162mm; margin-bottom: 3mm;
     }
     .claim.zh {
       font-family: "Noto Sans SC", "PingFang SC", var(--font);
-      font-size: 28px;
-      letter-spacing: 0;
-      font-weight: 700;
-      line-height: 1.3;
+      font-size: 25px; letter-spacing: 0; font-weight: 700; line-height: 1.28;
     }
-    html[data-lang="both"] .claims {
-      display: grid;
-      gap: 5mm;
-      margin-bottom: 10mm;
+    .claim-rule {
+      width: 14mm; height: 2px; background: var(--ink); margin-bottom: 7mm; border: 0;
     }
-    html[data-lang="both"] .claim {
-      font-size: 20px;
-      margin-bottom: 0;
+    html[data-lang="both"] .claims { display: grid; gap: 3.5mm; margin-bottom: 2mm; }
+    html[data-lang="both"] .claim { font-size: 18px; margin-bottom: 0; max-width: none; }
+    html[data-lang="both"] .claim.zh { font-size: 17px; }
+    html[data-lang="both"] .claim-rule { margin-bottom: 6mm; }
+    .pillars {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; margin-bottom: 7mm;
     }
-    html[data-lang="both"] .claim.zh { font-size: 19px; }
-
-    .spine {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2mm 8mm;
-      padding: 5mm 0;
-      border-top: 1px solid var(--hair);
-      border-bottom: 1px solid var(--hair);
-      margin-bottom: 8mm;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: -0.015em;
+    .pillar {
+      padding: 3.5mm 3mm 3mm; background: var(--wash); border-top: 2px solid var(--ink);
     }
-    .spine span {
-      color: var(--muted);
-      font-weight: 400;
+    .pillar .k {
+      font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 1.5mm;
     }
-
+    .pillar .t { font-size: 12px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+    .pillar .d { margin-top: 1.5mm; font-size: 9px; line-height: 1.35; color: var(--muted); }
+    .pillar .d.zh { font-family: "Noto Sans SC", "PingFang SC", var(--font); }
     .steps {
-      list-style: none;
-      display: grid;
-      gap: 3.5mm;
-      margin-bottom: 10mm;
-      max-width: 150mm;
+      list-style: none; display: grid; gap: 0; border-top: 1px solid var(--hair);
+      margin-bottom: 5mm; max-width: 155mm;
     }
     .steps li {
-      display: grid;
-      grid-template-columns: 10mm 1fr;
-      gap: 2mm;
-      align-items: baseline;
-      font-size: 13px;
-      line-height: 1.4;
+      display: grid; grid-template-columns: 10mm 1fr; gap: 2.5mm; align-items: baseline;
+      font-size: 12.5px; line-height: 1.4; padding: 2.6mm 0; border-bottom: 1px solid var(--hair);
     }
-    .steps .n {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-    }
-    .steps.zh li {
-      font-family: "Noto Sans SC", "PingFang SC", var(--font);
-    }
-
+    .steps .n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .steps.zh li { font-family: "Noto Sans SC", "PingFang SC", var(--font); }
     html[data-lang="both"] .detail {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8mm;
-      margin-bottom: 8mm;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-bottom: 4mm;
     }
-    html[data-lang="both"] .detail .steps { margin-bottom: 0; }
-
-    .spacer { flex: 1 1 auto; min-height: 8mm; }
-
+    html[data-lang="both"] .detail .steps { margin-bottom: 0; max-width: none; }
+    .note {
+      margin: 1mm 0 0; padding: 4mm 4mm 3.5mm;
+      background: var(--wash); border-left: 2px solid var(--ink);
+    }
+    .note .k {
+      font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 1.5mm;
+    }
+    .note p { font-size: 11px; line-height: 1.4; max-width: 155mm; }
+    .note p.zh { font-family: "Noto Sans SC", "PingFang SC", var(--font); }
+    html[data-lang="both"] .note {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5mm;
+    }
+    html[data-lang="both"] .note .k { grid-column: 1 / -1; }
+    .spacer { flex: 1 1 auto; min-height: 2mm; }
     .foot {
-      padding-top: 5mm;
-      border-top: 1px solid var(--hair);
+      display: grid; grid-template-columns: 1fr auto; gap: 6mm; align-items: end;
+      padding-top: 5mm; border-top: 1px solid var(--hair);
     }
+    .foot-copy { min-width: 0; }
     .foot a {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink);
-      word-break: break-all;
-      text-underline-offset: 2px;
-      line-height: 1.4;
+      font-family: var(--mono); font-size: 11px; color: var(--ink);
+      word-break: break-all; text-underline-offset: 2px; line-height: 1.4;
     }
-    .foot .hint {
-      margin-top: 2mm;
-      font-size: 10px;
-      color: var(--muted);
-      line-height: 1.4;
+    .foot .hint { margin-top: 2mm; font-size: 9.5px; color: var(--muted); line-height: 1.4; max-width: 130mm; }
+    .foot .hint.zh { font-family: "Noto Sans SC", "PingFang SC", var(--font); }
+    .qr {
+      flex: 0 0 auto; width: 22mm; display: grid; gap: 1.2mm; justify-items: center; z-index: 1;
     }
-    .foot .hint.zh {
-      font-family: "Noto Sans SC", "PingFang SC", var(--font);
+    .qr img {
+      width: 22mm; height: 22mm; display: block;
+      border: 1px solid var(--hair); padding: 1.5mm; background: #fff;
     }
-
+    .qr span {
+      font-family: var(--mono); font-size: 7px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+    }
     html[data-lang="en"] .lang-zh { display: none !important; }
     html[data-lang="zh"] .lang-en { display: none !important; }
     html[data-lang="both"] .single-only { display: none !important; }
     html:not([data-lang="both"]) .both-only { display: none !important; }
-
     @media print {
       html, body {
-        background: #fff !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 210mm;
-        height: 297mm;
-        overflow: hidden;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        background: #fff !important; margin: 0 !important; padding: 0 !important;
+        width: 210mm; height: 297mm; overflow: hidden;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
       }
       .screen-hint { display: none !important; }
       .sheet {
-        width: 210mm !important;
-        height: 297mm !important;
-        margin: 0 !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        page-break-after: avoid;
-        break-after: avoid;
+        width: 210mm !important; height: 297mm !important; margin: 0 !important;
+        border: 0 !important; box-shadow: none !important;
+        page-break-after: avoid; break-after: avoid;
       }
       @page { size: A4 portrait; margin: 0; }
     }
@@ -208,37 +163,45 @@
     IMMSPFEE Lab · A4 · Print 100% · Margins None ·
     <a href="?lang=en">en</a> · <a href="?lang=zh">zh</a> · <a href="?lang=both">both</a>
   </p>
-
   <article class="sheet" data-poster-sheet>
-    <header class="brand">
-      <img class="wordmark" src="./assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
-      <p class="sub">Lab · teaching &amp; industrial</p>
+    <header class="mast">
+      <div class="brand">
+        <img class="wordmark" src="./assets/immspfee-logo.svg" alt="IMMSPFEE" width="454" height="70" />
+        <p class="sub">Lab · teaching &amp; industrial</p>
+      </div>
     </header>
-
     <div class="claims single-only">
-      <h1 class="claim lang-en">
-        You can open a shared model contract in the browser and steer it live—no install.
-      </h1>
-      <h1 class="claim zh lang-zh">
-        在浏览器里打开统一模型接口，即时调参、读数——无需安装。
-      </h1>
+      <h1 class="claim lang-en">You can open a shared model contract in the browser and steer it live—no install.</h1>
+      <h1 class="claim zh lang-zh">在浏览器里打开统一模型接口，即时调参、读数——无需安装。</h1>
     </div>
     <div class="claims both-only">
-      <h1 class="claim lang-en">
-        You can open a shared model contract in the browser and steer it live—no install.
-      </h1>
-      <h1 class="claim zh lang-zh">
-        在浏览器里打开统一模型接口，即时调参、读数——无需安装。
-      </h1>
+      <h1 class="claim lang-en">You can open a shared model contract in the browser and steer it live—no install.</h1>
+      <h1 class="claim zh lang-zh">在浏览器里打开统一模型接口，即时调参、读数——无需安装。</h1>
     </div>
-
-    <p class="spine lang-en">
-      Catalog <span>·</span> Stage <span>·</span> Param bench
-    </p>
-    <p class="spine lang-zh">
-      目录 <span>·</span> 舞台 <span>·</span> 参数台
-    </p>
-
+    <hr class="claim-rule" aria-hidden="true" />
+    <section class="pillars" aria-label="Lab chassis">
+      <div class="pillar">
+        <p class="k">01</p>
+        <p class="t lang-en">Catalog</p>
+        <p class="t lang-zh">目录</p>
+        <p class="d lang-en">1500+ models · domains · search</p>
+        <p class="d zh lang-zh">分域检索 · 折叠目录</p>
+      </div>
+      <div class="pillar">
+        <p class="k">02</p>
+        <p class="t lang-en">Stage</p>
+        <p class="t lang-zh">舞台</p>
+        <p class="d lang-en">Canvas · one WebGL shell</p>
+        <p class="d zh lang-zh">Canvas · 单一 WebGL 壳</p>
+      </div>
+      <div class="pillar">
+        <p class="k">03</p>
+        <p class="t lang-en">Param bench</p>
+        <p class="t lang-zh">参数台</p>
+        <p class="d lang-en">Live / Reinit · schema · HUD</p>
+        <p class="d zh lang-zh">即时 / 重置 · 读数</p>
+      </div>
+    </section>
     <div class="detail single-only">
       <ol class="steps lang-en">
         <li><span class="n">01</span><span>Open the live URL → pick a model</span></li>
@@ -263,7 +226,6 @@
         <li><span class="n">03</span><span>读数 · 暂停 · 深链分享状态</span></li>
       </ol>
     </div>
-
     <aside class="note single-only">
       <p class="k lang-en">What it is</p>
       <p class="k lang-zh">它是什么</p>
@@ -275,24 +237,24 @@
       <p class="lang-en">Shared model contract · Canvas stage · param bench — classroom demos and industrial-grade paths in one chassis.</p>
       <p class="zh lang-zh">统一模型接口 · Canvas 舞台 · 参数台——同一套机身覆盖课堂演示与工业级路径。</p>
     </aside>
-
     <div class="spacer" aria-hidden="true"></div>
-
     <footer class="foot">
-      <a class="lab-url" href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a>
-      <p class="hint lang-en">Browser simulation workbench · physics, CS, CE, engineering</p>
-      <p class="hint zh lang-zh">浏览器仿真工作台 · 物理 / CS / CE / 工程</p>
+      <div class="foot-copy">
+        <a class="lab-url" href="https://otas0.github.io/immspfee/">otas0.github.io/immspfee</a>
+        <p class="hint lang-en">Browser simulation workbench · physics, CS, CE, engineering</p>
+        <p class="hint zh lang-zh">浏览器仿真工作台 · 物理 / CS / CE / 工程</p>
+      </div>
+      <div class="qr">
+        <img class="lab-qr" src="./docs/promo/lab-qr.svg" alt="QR to IMMSPFEE Lab" width="120" height="120" />
+        <span>scan</span>
+      </div>
     </footer>
   </article>
-
   <script type="module">
     const params = new URLSearchParams(location.search);
     const raw = (params.get('lang') || 'en').toLowerCase();
-    const lang = raw === 'zh' || raw === 'zh-cn' || raw === 'zh-hans'
-      ? 'zh'
-      : raw === 'both' || raw === 'all'
-        ? 'both'
-        : 'en';
+    const lang = raw === 'zh' || raw === 'zh-cn' || raw === 'zh-hans' ? 'zh'
+      : raw === 'both' || raw === 'all' ? 'both' : 'en';
     document.documentElement.dataset.lang = lang;
     document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'en';
     for (const el of document.querySelectorAll('.lang-en, .lang-zh')) {
@@ -301,7 +263,6 @@
       else if (lang === 'zh') el.hidden = !isZh;
       else el.hidden = isZh;
     }
-
     const base = 'https://otas0.github.io/immspfee/';
     let stamped = base;
     try {
@@ -311,8 +272,7 @@
         const v = stamp.js || stamp.docsAssets || '';
         if (v) stamped = `${base}?v=${encodeURIComponent(v)}`;
       }
-    } catch (_) { /* offline print still works */ }
-
+    } catch (_) {}
     for (const a of document.querySelectorAll('a.lab-url')) {
       a.href = stamped;
       a.textContent = stamped.replace(/^https:\/\//, '');
