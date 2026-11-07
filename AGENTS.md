@@ -16,21 +16,7 @@
 
 Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
 
-If a microscope / WebKit agent and a mobile-drawer agent both touch `css/styles.css`, **rebase (or merge) before push** — never overwrite classic phone drawer z-index rules with projector `position:fixed` menu/params. Canonical table: `docs/projector-overlay.md` § Menu above dimmer, mirrored below.
-
-## Classic phone drawer vs Projector overlay (z-index)
-
-| Layer | Classic ≤900 | Projector overlay |
-| --- | --- | --- |
-| Backdrop | 24 | 24 |
-| Toolbar (in stage) | 32 | 50 (stage/toolbar) |
-| Open catalog | `.sidebar` **45** (clears toolbar band; ≥48px right strip) | overlay sidebar **60** |
-| `#btn-menu` / `#btn-params` | **relative** 50 — never `position:fixed` | **`position:fixed` 70** |
-| `.lab-toast` | **90** (above sticky `.sidebar-foot`) | 90 |
-
-Do **not** reapply `body.drawer-open #btn-menu { position:fixed }` to classic drawers — that stacked Play/Reset over the catalog.
-
-If a microscope / WebKit branch also edits `css/styles.css`, **rebase (or merge main) before pushing** so classic phone drawer z-index rules are not reverted. Do not reintroduce `body.drawer-open #btn-menu { position: fixed }` for classic shells — Projector-only (see below).
+If a microscope / WebKit agent and a mobile-drawer agent both touch `css/styles.css`, **rebase (or merge main) before push** — never overwrite classic phone drawer z-index rules with projector `position:fixed` menu/params.
 
 ## Classic phone drawer vs Projector overlay (z-index)
 
@@ -42,7 +28,7 @@ If a microscope / WebKit branch also edits `css/styles.css`, **rebase (or merge 
 | `#btn-menu` / `#btn-params` | relative 50 — **never `position:fixed`** | `position:fixed; z-index:70` |
 | `.lab-toast` | 90 (above sticky `.sidebar-foot`) | 90 |
 
-Full write-up: `docs/projector-overlay.md` § Menu above dimmer. Asserted by `test:narrow` + `test:pages-mobile` (`scripts/drawer-stack-probe.mjs`).
+Do **not** reapply `body.drawer-open #btn-menu { position:fixed }` to classic drawers — that stacked Play/Reset over the catalog. Full write-up: `docs/projector-overlay.md` § Menu above dimmer. Asserted by `test:narrow` + `test:pages-mobile` (`scripts/drawer-stack-probe.mjs`).
 
 ## Lab bundle (`js/bundle/`)
 
