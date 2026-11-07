@@ -95,6 +95,9 @@ jobs:
       - name: Phone toolbar hit + contrast (390)
         run: npm run test:toolbar-hit
 
+      - name: Names-loading filters stay interactive
+        run: npm run test:names-loading
+
       - name: Restore narrow-fail streak
         if: always()
         continue-on-error: true

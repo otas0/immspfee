@@ -5051,11 +5051,3173 @@ function buildTopicModel(spec) {
   return keywordModel(spec) || familyFallback(spec);
 }
 
-// js/models/factory.js
+// js/models/famPhysics.js
+var G = 9.81;
+var EPS0 = 8854187817e-21;
+var KE = 1 / (4 * Math.PI * EPS0);
+var MU0 = Math.PI * 4e-7;
+var SIGMA = 5670374419e-17;
+var R_GAS = 8.314462618;
+var C_LIGHT = 299792458;
+var LAMBDA_C_PM = 2.42631023867;
+var HC_KEV_PM = 1239.84193;
+var QE = 1602176634e-28;
+var ME = 91093837e-38;
+function clamp(x, a, b) {
+  return Math.max(a, Math.min(b, x));
+}
+function pos(x, floor = 1e-9) {
+  const v = Number(x);
+  if (!Number.isFinite(v) || v < floor) return floor;
+  return v;
+}
+function finiteOr(v, fallback = 0) {
+  return Number.isFinite(v) ? v : fallback;
+}
 function schemaNum(label, group, unit, min, max) {
   return { label, group, unit, min, max };
 }
+function knobs(spec, initialKeys) {
+  const dimList = Array.isArray(spec.dims) ? spec.dims : [];
+  const defaults = spec.defaults && typeof spec.defaults === "object" ? spec.defaults : {};
+  const params = { ...defaults };
+  const paramSchema = {};
+  for (const d of dimList) {
+    if (!d?.key) continue;
+    if (params[d.key] === void 0) params[d.key] = d.value ?? d.min ?? 1;
+    paramSchema[d.key] = schemaNum(
+      d.label || d.key,
+      "dynamics",
+      d.unit || "\u2014",
+      Number.isFinite(d.min) ? d.min : 0,
+      Number.isFinite(d.max) ? d.max : 100
+    );
+  }
+  const initSet = new Set(initialKeys || []);
+  for (const k of initSet) {
+    if (paramSchema[k]) paramSchema[k] = { ...paramSchema[k], group: "initial" };
+  }
+  return { params, paramSchema };
+}
 function baseMeta(spec) {
+  return {
+    id: spec.id,
+    name: spec.name,
+    tags: [spec.domain, spec.sub].filter(Boolean),
+    formula: spec.formula || "",
+    description: spec.description || "",
+    sub: spec.sub || "",
+    perfClass: perfClassFor(spec.id),
+    governing: true
+  };
+}
+function paint(ctx, state, view, name) {
+  const W = view?.width || 320;
+  const H = view?.height || 200;
+  const m = 36;
+  const top = 46;
+  const l = m;
+  const r = W - m;
+  const t = top;
+  const b = H - m;
+  const w = Math.max(1, r - l);
+  const h = Math.max(1, b - t);
+  ctx.fillStyle = C.muted || "#666";
+  ctx.font = "600 13px IBM Plex Mono, monospace";
+  ctx.fillText(String(name || ""), 14, 26);
+  ctx.strokeStyle = C.axis || "#888";
+  ctx.strokeRect(l, t, w, h);
+  const series = Array.isArray(state.curve) && state.curve.length > 1 ? state.curve : state.hist;
+  if (!Array.isArray(series) || series.length < 2) {
+    ctx.fillStyle = C.accent || "#c45";
+    ctx.font = "13px IBM Plex Mono, monospace";
+    ctx.fillText(formatNum(state.val, 3), l + 8, t + 18);
+    return;
+  }
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const v of series) {
+    if (!Number.isFinite(v)) continue;
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return;
+  const span = Math.max(1e-9, hi - lo);
+  ctx.beginPath();
+  ctx.strokeStyle = C.body || "#222";
+  ctx.lineWidth = 1.5;
+  let started = false;
+  for (let i = 0; i < series.length; i += 1) {
+    const v = series[i];
+    if (!Number.isFinite(v)) continue;
+    const x = l + i / Math.max(1, series.length - 1) * w;
+    const y = t + (1 - (v - lo) / span) * h;
+    if (!started) {
+      ctx.moveTo(x, y);
+      started = true;
+    } else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.fillStyle = C.accent || "#c45";
+  ctx.font = "13px IBM Plex Mono, monospace";
+  ctx.fillText(formatNum(state.val, 3), l + 8, t + 18);
+}
+function algebraic(spec, def) {
+  const { params, paramSchema } = knobs(spec, def.initial);
+  const readRows = def.rows || [["val", "val"]];
+  return {
+    ...baseMeta(spec),
+    equation: def.equation,
+    authority: def.authority || "",
+    assumptions: def.assumptions || "",
+    params,
+    paramSchema,
+    init(state) {
+      state.t = 0;
+      state.hist = [];
+      state.curve = null;
+      if (def.reset) def.reset(state);
+      this.step(state, 0);
+    },
+    step(state, dt) {
+      const frame = Number(dt);
+      const advance = Number.isFinite(frame) && frame > 0 ? frame : 0;
+      const p = state.params || {};
+      let out;
+      if (def.integrate) {
+        out = def.eval(p, state.t || 0, state, advance) || {};
+        if (advance > 0) state.t = (state.t || 0) + advance;
+      } else {
+        if (advance > 0) state.t = (state.t || 0) + advance;
+        out = def.eval(p, state.t || 0, state, 0) || {};
+      }
+      for (const [k, v] of Object.entries(out)) {
+        if (k === "params" || k === "hist" || k === "t") continue;
+        if (typeof v === "number" && Number.isNaN(v)) state[k] = 0;
+        else state[k] = v;
+      }
+      state.val = finiteOr(out.val, 0);
+      if (advance > 0) {
+        if (!state.hist) state.hist = [];
+        state.hist.push(state.val);
+        if (state.hist.length > 160) state.hist.shift();
+      }
+    },
+    draw(ctx, state, view) {
+      paint(ctx, state, view, spec.name);
+    },
+    getReadouts(state, opts = {}) {
+      const d = opts.digits ?? 3;
+      return readRows.map(([label, key, unit]) => ({
+        label,
+        value: unit ? `${formatNum(state[key], d)} ${unit}` : formatNum(state[key], d)
+      }));
+    }
+  };
+}
+function linspace(n, fn) {
+  const out = new Array(n);
+  for (let i = 0; i < n; i += 1) out[i] = fn(i / Math.max(1, n - 1));
+  return out;
+}
+var PRIMES = (() => {
+  const n = 65536;
+  const c = new Uint8Array(n + 1);
+  const p = [];
+  for (let i = 2; i <= n; i += 1) {
+    if (c[i]) continue;
+    p.push(i);
+    if (i <= 256) {
+      for (let j = i * i; j <= n; j += i) c[j] = 1;
+    } else {
+      for (let j = i * i; j <= n; j += i) c[j] = 1;
+    }
+  }
+  return p;
+})();
+function primeAtMost(x) {
+  let lo = 0;
+  let hi = PRIMES.length - 1;
+  let ans = 2;
+  while (lo <= hi) {
+    const mid = lo + hi >> 1;
+    if (PRIMES[mid] <= x) {
+      ans = PRIMES[mid];
+      lo = mid + 1;
+    } else hi = mid - 1;
+  }
+  return ans;
+}
+function modPow(base, exp, mod) {
+  let b = BigInt(base) % BigInt(mod);
+  let e = BigInt(exp);
+  const m = BigInt(mod);
+  let r = 1n;
+  while (e > 0n) {
+    if (e & 1n) r = r * b % m;
+    b = b * b % m;
+    e >>= 1n;
+  }
+  return Number(r);
+}
+function fnv1a(len, byte) {
+  let h = 2166136261;
+  const n = Math.max(0, Math.min(1e4, Math.round(len)));
+  const b = byte & 255;
+  for (let i = 0; i < n; i += 1) {
+    h ^= b;
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function projectileEval(p, t) {
+  const g = pos(P(p, "g", G), 1e-6);
+  const v0 = P(p, "v0", 0);
+  const th = P(p, "theta", 0) * Math.PI / 180;
+  const k = Math.max(0, P(p, "k", 0));
+  const c = Math.cos(th);
+  const s = Math.sin(th);
+  const vx0 = v0 * c;
+  const vy0 = v0 * s;
+  let x;
+  let y;
+  let vx;
+  let vy;
+  if (k < 1e-10) {
+    vx = vx0;
+    vy = vy0 - g * t;
+    x = vx0 * t;
+    y = vy0 * t - 0.5 * g * t * t;
+  } else {
+    const e = Math.exp(-k * t);
+    vx = vx0 * e;
+    vy = (vy0 + g / k) * e - g / k;
+    x = vx0 / k * (1 - e);
+    y = (vy0 + g / k) / k * (1 - e) - g / k * t;
+  }
+  const curve = linspace(48, (u) => {
+    const tt = u * Math.max(t, 0.8);
+    if (k < 1e-10) return vy0 * tt - 0.5 * g * tt * tt;
+    const e = Math.exp(-k * tt);
+    return (vy0 + g / k) / k * (1 - e) - g / k * tt;
+  });
+  return { val: y, x, y, vx, vy, curve };
+}
+function inclinedEval(p, t) {
+  const th = P(p, "theta", 15) * Math.PI / 180;
+  const mu = Math.max(0, P(p, "mu", 0));
+  const m = pos(P(p, "m", 1), 1e-9);
+  const a = G * (Math.sin(th) - mu * Math.cos(th));
+  const v0 = P(p, "v0", 0);
+  const v = v0 + a * t;
+  const s = v0 * t + 0.5 * a * t * t;
+  const N = m * G * Math.cos(th);
+  return { val: a, a, v, s, N };
+}
+function atwoodEval(p) {
+  const m1 = pos(P(p, "mRatio", 0.5), 1e-9);
+  const m2 = 1;
+  const a = (m1 - m2) / (m1 + m2) * G;
+  return { val: a, a, m1, m2 };
+}
+function circularEval(p, t) {
+  const r = pos(P(p, "r", 1), 1e-9);
+  const w = P(p, "omega", 1);
+  const ac = w * w * r;
+  return {
+    val: ac,
+    ac,
+    x: r * Math.cos(w * t),
+    y: r * Math.sin(w * t),
+    curve: linspace(64, (u) => r * Math.sin(2 * Math.PI * u))
+  };
+}
+function collisionEval(p) {
+  const e = clamp(P(p, "e", 0), 0, 1);
+  const m1 = pos(P(p, "mRatio", 0.5), 1e-9);
+  const m2 = 1;
+  const ang = P(p, "angle", 0) * Math.PI / 180;
+  const u1n = Math.cos(ang);
+  const u1t = Math.sin(ang);
+  const v1n = (m1 - e * m2) / (m1 + m2) * u1n;
+  const v2n = m1 * (1 + e) / (m1 + m2) * u1n;
+  const v1 = Math.hypot(v1n, u1t);
+  const v2 = Math.abs(v2n);
+  return { val: v2, e, v1, v2, v1n, v2n };
+}
+function rocketEval(p, t) {
+  const u = P(p, "uRel", 50);
+  const mdot = Math.max(0, P(p, "dmdt", 0));
+  const m0 = 1;
+  const m = Math.max(0.05, m0 - mdot * Math.max(0, t));
+  const v = -u * Math.log(m / m0);
+  const a0 = u * mdot / m0;
+  return { val: a0, v, a0, m };
+}
+function noninertialEval(p) {
+  const aFrame = P(p, "aFrame", 0);
+  const w = P(p, "omega", 0);
+  const ay = -2 * w * 1;
+  const ax = aFrame;
+  return { val: ay, ax, ay, aMag: Math.hypot(ax, ay) };
+}
+function pendulumReset(state) {
+  state.theta = void 0;
+  state.omega = void 0;
+}
+function pendulumEval(p, t, state, dt) {
+  const L = pos(P(p, "L", 1), 1e-6);
+  const m = pos(P(p, "m", 1), 1e-9);
+  const th0 = P(p, "theta0", 15) * Math.PI / 180;
+  if (!Number.isFinite(state.theta)) {
+    state.theta = th0;
+    state.omega = 0;
+  }
+  const accel = (th) => -(G / L) * Math.sin(th);
+  if (dt > 0) {
+    let left = Math.min(dt, 0.5);
+    while (left > 1e-8) {
+      const h = Math.min(0.02, left);
+      const a1 = accel(state.theta);
+      state.theta += state.omega * h + 0.5 * a1 * h * h;
+      const a2 = accel(state.theta);
+      state.omega += 0.5 * (a1 + a2) * h;
+      left -= h;
+    }
+  }
+  const alpha = accel(state.theta);
+  const E = m * G * L * (1 - Math.cos(state.theta)) + 0.5 * m * (L * state.omega) ** 2;
+  return {
+    val: alpha,
+    alpha,
+    thetaDeg: state.theta * 180 / Math.PI,
+    E
+  };
+}
+function orbitEval(p) {
+  const M = pos(P(p, "M", 1), 1e-9);
+  const r0 = pos(P(p, "r0", 1), 1e-6);
+  const v0 = P(p, "v0", 0);
+  const eReq = Math.max(0, P(p, "e", 0));
+  const h = r0 * v0;
+  const eps = 0.5 * v0 * v0 - M / r0;
+  const disc = 1 + 2 * eps * h * h / (M * M);
+  const eOsc = Math.sqrt(Math.max(0, disc));
+  const ac = M / (r0 * r0);
+  const unbound = eReq >= 1 ? 1 : 0;
+  const rA = eReq < 0.999 ? r0 * (1 + eReq) / (1 - eReq) : r0;
+  const vPeri = Math.sqrt(M * (1 + Math.min(eReq, 10)) / r0);
+  return { val: ac, ac, eOsc, rA, vPeri, unbound };
+}
+function shoEval(p, t) {
+  const k = pos(P(p, "k", 1), 1e-12);
+  const m = pos(P(p, "m", 1), 1e-12);
+  const x0 = P(p, "x0", 1);
+  const w = Math.sqrt(k / m);
+  const x = x0 * Math.cos(w * t);
+  const v = -x0 * w * Math.sin(w * t);
+  const a = -(k / m) * x;
+  return {
+    val: a,
+    x,
+    v,
+    a,
+    omega: w,
+    curve: linspace(64, (u) => x0 * Math.cos(2 * Math.PI * u))
+  };
+}
+function dampedEval(p, t) {
+  const k = pos(P(p, "k", 1), 1e-12);
+  const c = Math.max(0, P(p, "c", 0));
+  const w0 = Math.sqrt(k);
+  const alpha = c / 2;
+  const zeta = c / (2 * w0);
+  let x;
+  if (Math.abs(zeta - 1) < 1e-6) {
+    x = Math.exp(-alpha * t) * (1 + alpha * t);
+  } else if (zeta < 1) {
+    const wd = w0 * Math.sqrt(1 - zeta * zeta);
+    x = Math.exp(-alpha * t) * (Math.cos(wd * t) + alpha / wd * Math.sin(wd * t));
+  } else {
+    const beta = w0 * Math.sqrt(zeta * zeta - 1);
+    x = Math.exp(-alpha * t) * (Math.cosh(beta * t) + alpha / beta * Math.sinh(beta * t));
+  }
+  return { val: zeta, x: finiteOr(x), zeta, omega0: w0 };
+}
+function forcedEval(p) {
+  const F0 = P(p, "F0", 0);
+  const f = P(p, "fDrive", 0.5);
+  const c = Math.max(0, P(p, "c", 0));
+  const w = 2 * Math.PI * f;
+  const re = 1 - w * w;
+  const im = c * w;
+  const A = F0 / Math.sqrt(re * re + im * im);
+  const phi = Math.atan2(im, re);
+  return { val: A, A, phi };
+}
+function coupledEval(p) {
+  const N = Math.max(2, Math.min(12, Math.round(P(p, "N", 2))));
+  const kappa = Math.max(0, P(p, "kappa", 0));
+  const q = N * Math.PI / (N + 1);
+  const w2 = 1 + 4 * kappa * Math.sin(q / 2) ** 2;
+  const a1 = -(1 + 2 * kappa);
+  return { val: Math.sqrt(Math.max(0, w2)), omegaMax: Math.sqrt(Math.max(0, w2)), a1, N };
+}
+function duffingReset(state) {
+  state.x = void 0;
+  state.v = void 0;
+}
+function duffingEval(p, t, state, dt) {
+  const beta = P(p, "beta", 0);
+  const drive = P(p, "drive", 0);
+  if (!Number.isFinite(state.x)) {
+    state.x = 1;
+    state.v = 0;
+  }
+  const accel = (x, time) => -x - beta * x * x * x + drive * Math.cos(time);
+  if (dt > 0) {
+    let left = Math.min(dt, 0.5);
+    let time = t;
+    while (left > 1e-8) {
+      const h = Math.min(0.02, left);
+      const a1 = accel(state.x, time);
+      state.x += state.v * h + 0.5 * a1 * h * h;
+      const a2 = accel(state.x, time + h);
+      state.v += 0.5 * (a1 + a2) * h;
+      if (!Number.isFinite(state.x) || Math.abs(state.x) > 1e3) {
+        state.x = clamp(state.x || 0, -1e3, 1e3);
+        state.v = 0;
+        break;
+      }
+      time += h;
+      left -= h;
+    }
+  }
+  const a = accel(state.x, t + (dt || 0));
+  return { val: a, a, x: state.x, v: state.v };
+}
+function wave1dEval(p, t) {
+  const c = pos(P(p, "c", 1), 1e-9);
+  const f = pos(P(p, "f", 1), 1e-9);
+  const w = 2 * Math.PI * f;
+  const k = w / c;
+  const lam = c / f;
+  const yProbe = Math.sin(k * 1 - w * t);
+  return {
+    val: lam,
+    lam,
+    k,
+    yProbe,
+    curve: linspace(64, (u) => Math.sin(k * u * 4 - w * t))
+  };
+}
+function wave2dEval(p, t) {
+  const tension = pos(P(p, "T", 1), 1e-12);
+  const rho = pos(P(p, "rho", 1), 1e-12);
+  const c = Math.sqrt(tension / rho);
+  const omega = Math.PI * c * Math.SQRT2;
+  const yMid = Math.cos(omega * t);
+  return { val: c, c, omega, yMid };
+}
+function interfereEval(p) {
+  const d = pos(P(p, "d", 1), 1e-9);
+  const phi = P(p, "phi", 0);
+  const lam = pos(P(p, "lam", 1), 1e-9);
+  const I = Math.cos(phi / 2) ** 2;
+  const beta = lam / d;
+  return { val: I, I, beta };
+}
+function diffractEval(p) {
+  const a = pos(P(p, "a", 0.1), 1e-9);
+  const lam = pos(P(p, "lam", 0.4), 1e-12);
+  const L = pos(P(p, "L", 1), 1e-9);
+  const yMin = L * lam / a;
+  const beta = Math.PI * a / Math.max(lam, 1e-12);
+  const I0 = 1;
+  return { val: yMin, yMin, beta, I0 };
+}
+function dopplerEval(p) {
+  const vs = clamp(P(p, "vs", 0), -0.95, 0.95);
+  const vo = clamp(P(p, "vo", 0), -0.95, 0.95);
+  const ang = P(p, "ang", 0) * Math.PI / 180;
+  const cs = Math.cos(ang);
+  const den = 1 - vs * cs;
+  const num = 1 + vo * cs;
+  const ratio = Math.abs(den) < 1e-3 ? num / (den < 0 ? -1e-3 : 1e-3) : num / den;
+  return { val: ratio, ratio };
+}
+function snellEval(p) {
+  const th = P(p, "theta", 0) * Math.PI / 180;
+  const n = pos(P(p, "n", 1), 1e-6);
+  const s = Math.sin(th) / n;
+  const tir = Math.abs(s) > 1 ? 1 : 0;
+  const th2 = tir ? 90 : Math.asin(clamp(s, -1, 1)) * 180 / Math.PI;
+  return { val: th2, theta2: th2, tir };
+}
+function lensEval(p) {
+  const f = P(p, "f", 10);
+  const u = P(p, "u", -20);
+  const h = P(p, "h", 1);
+  const den = (Math.abs(f) < 1e-8 ? 0 : 1 / f) - (Math.abs(u) < 1e-8 ? 0 : 1 / u);
+  const v = Math.abs(den) < 1e-10 ? 0 : 1 / den;
+  const m = Math.abs(u) < 1e-8 ? 0 : -v / u;
+  return { val: v, v, m, hi: m * h };
+}
+function prismEval(p) {
+  const A = P(p, "A", 30);
+  const n = P(p, "nF", 1.5);
+  const delta = (n - 1) * A;
+  const Ar = A * Math.PI / 180;
+  const arg = clamp(n * Math.sin(Ar / 2), -1, 1);
+  const deltaMin = (2 * Math.asin(arg) - Ar) * 180 / Math.PI;
+  return { val: delta, delta, deltaMin: finiteOr(deltaMin) };
+}
+function optInterfereEval(p) {
+  const dMm = pos(P(p, "d", 0.1), 1e-9);
+  const lamNm = pos(P(p, "lam", 550), 1e-9);
+  const betaMm = lamNm * 1e-6 / dMm;
+  return { val: betaMm, betaMm };
+}
+function optDiffractEval(p) {
+  const aMm = pos(P(p, "a", 0.05), 1e-9);
+  const lamNm = pos(P(p, "lam", 500), 1e-9);
+  const L = pos(P(p, "L", 1), 1e-9);
+  const yMm = lamNm * L / aMm * 1e-3;
+  return { val: yMm, yMm };
+}
+function malusEval(p) {
+  const th = P(p, "ang", 0) * Math.PI / 180;
+  const I = Math.cos(th) ** 2;
+  const dphi = P(p, "dphi", 0);
+  return { val: I, I, dphi };
+}
+function fiberEval(p) {
+  const n1 = P(p, "nCore", 1.45);
+  const n2 = P(p, "nClad", 1.4);
+  const na2 = n1 * n1 - n2 * n2;
+  const NA = na2 > 0 ? Math.sqrt(na2) : 0;
+  const crit = n1 > 0 ? Math.asin(clamp(n2 / n1, -1, 1)) * 180 / Math.PI : 0;
+  return { val: NA, NA, thetaC: crit };
+}
+function laserEval(p) {
+  const L = pos(P(p, "L", 0.1), 1e-6);
+  const g = P(p, "g", 0);
+  const loss = P(p, "loss", 0);
+  const net = g * L - loss;
+  return { val: net, net, gL: g * L };
+}
+function nloEval(p) {
+  const chi = P(p, "chi", 0);
+  const dk = P(p, "dk", 0);
+  const x = dk / 2;
+  const sinc = Math.abs(x) < 1e-8 ? 1 : Math.sin(x) / x;
+  const eta = chi * chi * sinc * sinc;
+  return { val: eta, eta };
+}
+function qopticsEval(p) {
+  const r = P(p, "r", 0);
+  const alpha = P(p, "alpha", 0);
+  const V = Math.exp(-2 * r);
+  const nbar = alpha * alpha + Math.sinh(r) ** 2;
+  return { val: V, V, nbar: finiteOr(nbar) };
+}
+function idealGasEval(p) {
+  const n = P(p, "n", 1);
+  const T0 = P(p, "T0", 300);
+  const pRatio = 2 ** -n;
+  const T2 = T0 * 2 ** (1 - n);
+  return { val: pRatio, pRatio, T2: finiteOr(T2) };
+}
+function heatEngineEval(p) {
+  const TR = pos(P(p, "TR", 2), 1e-6);
+  const r = pos(P(p, "r", 4), 1e-6);
+  const etaC = 1 - 1 / TR;
+  const etaO = 1 - r ** (1 - 1.4);
+  return { val: etaC, etaC, etaO };
+}
+function convectionEval(p) {
+  const h = P(p, "h", 10);
+  const U = Math.max(0, P(p, "U", 0));
+  const q = h * 1;
+  const Re = U * 1 / 15e-6;
+  const Nu = 0.664 * Math.sqrt(Re) * 0.7 ** (1 / 3);
+  const hBl = Nu * 0.026 / 1;
+  return { val: q, q, hBl };
+}
+function radiationEval(p) {
+  const eps = clamp(P(p, "eps", 1), 0, 1);
+  const T = P(p, "T", 300);
+  const q = eps * SIGMA * T ** 4;
+  return { val: q, q };
+}
+function kineticEval(p) {
+  const T = pos(P(p, "T", 300), 1e-9);
+  const M = pos(P(p, "mMol", 28), 1e-9) * 1e-3;
+  const vrms = Math.sqrt(3 * R_GAS * T / M);
+  const vp = Math.sqrt(2 * R_GAS * T / M);
+  return { val: vrms, vrms, vp };
+}
+function brownianEval(p) {
+  const D = Math.max(0, P(p, "D", 0));
+  const tau = Math.max(0, P(p, "dt", 0));
+  const msd = 2 * D * tau;
+  return { val: msd, msd };
+}
+function isingEval(p) {
+  const J = P(p, "J", 1);
+  const T = pos(P(p, "T", 1), 1e-6);
+  const H = P(p, "H", 0);
+  let m = 0.5;
+  const z = 4;
+  for (let i = 0; i < 80; i += 1) {
+    const m2 = Math.tanh((z * J * m + H) / T);
+    if (Math.abs(m2 - m) < 1e-12) {
+      m = m2;
+      break;
+    }
+    m = m2;
+  }
+  return { val: finiteOr(m), m: finiteOr(m) };
+}
+function percolationEval(p) {
+  const prob = clamp(P(p, "p", 0.5), 0, 0.999999);
+  const S2 = (1 + prob) / (1 - prob);
+  return { val: S2, S: S2 };
+}
+function entropyEval(p) {
+  const x = clamp(P(p, "xA", 0.5), 1e-12, 1 - 1e-12);
+  const sOverR = -x * Math.log(x) - (1 - x) * Math.log(1 - x);
+  const gOverR = P(p, "T", 300) * -sOverR;
+  return { val: sOverR, sOverR, gOverR };
+}
+function coulombEval(p) {
+  const q = P(p, "q", 1);
+  const r = pos(P(p, "geom", 1), 1e-6);
+  const E = KE * q / (r * r);
+  return { val: E, E };
+}
+function dipoleEval(p) {
+  const moment = P(p, "p", 1);
+  const r = pos(P(p, "sep", 1), 1e-4);
+  const E = KE * 2 * moment / r ** 3;
+  return { val: E, E };
+}
+function gaussEval(p) {
+  const rho = P(p, "rho", 1);
+  const R = pos(P(p, "R", 1), 1e-9);
+  const E = rho * R / (3 * EPS0);
+  const Q = rho * (4 / 3) * Math.PI * R ** 3;
+  return { val: E, E, Q };
+}
+function capacitorEval(p) {
+  const er = P(p, "eps", 1);
+  const d = pos(P(p, "d", 0.1), 1e-9);
+  const A = pos(P(p, "A", 0.1), 1e-12);
+  const C2 = er * EPS0 * A / d;
+  return { val: C2, C: C2 };
+}
+function dcEval(p) {
+  const R = pos(P(p, "R", 1), 1e-9);
+  const E = P(p, "E", 0);
+  const I = E / R;
+  return { val: I, I, V: E };
+}
+function rlcEval(p) {
+  const R = Math.max(0, P(p, "R", 1));
+  const L = pos(P(p, "L", 1e-3), 1e-12);
+  const C2 = pos(P(p, "C", 1e-6), 1e-18);
+  const w0 = 1 / Math.sqrt(L * C2);
+  const alpha = R / (2 * L);
+  const disc = w0 * w0 - alpha * alpha;
+  const wd = disc > 0 ? Math.sqrt(disc) : 0;
+  return { val: w0, w0, alpha, wd };
+}
+function acEval(p) {
+  const f = pos(P(p, "f", 50), 1e-6);
+  const phi = clamp(P(p, "phi", 0), -89.9, 89.9) * Math.PI / 180;
+  const Z = 1 / Math.cos(phi);
+  const X = Math.tan(phi);
+  const Leq = X / (2 * Math.PI * f);
+  return { val: Math.abs(Z), Z: Math.abs(Z), Leq };
+}
+function biotEval(p) {
+  const I = P(p, "I", 1);
+  const R = pos(P(p, "geom", 1), 1e-6);
+  const B = MU0 * I / (2 * R);
+  return { val: B, B };
+}
+function lorentzEval(p) {
+  const E = P(p, "E", 0);
+  const B = P(p, "B", 0);
+  const v = P(p, "v", 0);
+  const FE = E;
+  const FB = Math.abs(v * B);
+  const rC = Math.abs(B) > 1e-12 ? Math.abs(v / B) : 0;
+  return { val: FE, FE, FB, rC };
+}
+function faradayEval(p) {
+  const dPhi = P(p, "dPhi", 0);
+  const N = P(p, "N", 1);
+  const emf = -N * dPhi;
+  return { val: emf, emf };
+}
+function mutualEval(p) {
+  const L = Math.max(0, P(p, "L", 0));
+  const k = clamp(P(p, "k", 0), 0, 1);
+  const M = k * L;
+  return { val: M, M };
+}
+function maxwellEval(p) {
+  const f = pos(P(p, "f", 1e9), 1);
+  const mode = Math.max(1, P(p, "mode", 1));
+  const lam = C_LIGHT / f;
+  const fCav = C_LIGHT / 2 * Math.sqrt(1 + mode * mode);
+  return { val: lam, lam, fCav };
+}
+function tlineEval(p) {
+  const Z0 = P(p, "Z0", 50);
+  const len = Math.max(0, P(p, "len", 1));
+  const delay = len / C_LIGHT;
+  return { val: Z0, Z0, delay };
+}
+function antennaEval(p) {
+  const len = P(p, "len", 0.5);
+  const d = P(p, "d", 0.5);
+  const delta = P(p, "phi", 0) * Math.PI / 180;
+  const elem = 1 - Math.cos(Math.PI * len);
+  const psi = 2 * Math.PI * d + delta;
+  const AF = Math.abs(Math.cos(psi / 2));
+  return { val: AF, AF, elem: elem * elem };
+}
+function wellEval(p) {
+  const a = pos(P(p, "a", 1), 1e-9);
+  const E1 = Math.PI ** 2 / (2 * a * a);
+  const V0 = P(p, "V0", 0);
+  return { val: E1, E1, above: E1 < V0 ? 1 : 0 };
+}
+function tunnelEval(p) {
+  const V0 = P(p, "V0", 1);
+  const E = P(p, "E", 0);
+  const w = Math.max(0, P(p, "w", 0));
+  if (E >= V0) return { val: 1, T: 1, kappa: 0 };
+  const kappa = Math.sqrt(2 * (V0 - E));
+  const T = Math.exp(-2 * kappa * w);
+  return { val: T, T, kappa };
+}
+function qhoEval(p) {
+  const w = pos(P(p, "omega", 1), 1e-9);
+  const coup = Math.max(0, P(p, "coup", 0));
+  const E0 = 0.5 * w;
+  const wPlus = w * Math.sqrt(1 + coup);
+  return { val: E0, E0, wPlus };
+}
+function hydrogenEval(p) {
+  const n = Math.max(1, Math.round(P(p, "n", 1)));
+  const l = Math.max(0, Math.round(P(p, "l", 0)));
+  const m = Math.round(P(p, "m", 0));
+  const E = -13.6 / (n * n);
+  const valid = l <= n - 1 && Math.abs(m) <= l ? 1 : 0;
+  return { val: E, E, valid };
+}
+function angmomEval(p) {
+  const j = pos(P(p, "j", 0.5), 1e-6);
+  const coup = P(p, "coup", 0);
+  const l = Math.max(0, j - 0.5);
+  const s = 0.5;
+  const jj = j * (j + 1);
+  const gJ = 1 + (jj + s * (s + 1) - l * (l + 1)) / (2 * jj);
+  const LS = 0.5 * (jj - l * (l + 1) - s * (s + 1));
+  return { val: gJ, gJ: finiteOr(gJ), Efs: coup * LS };
+}
+function entangleEval(p) {
+  const Cq = clamp(P(p, "conc", 0), 0, 1);
+  const th = P(p, "basis", 0) * Math.PI / 180;
+  const S2 = 2 * Math.sqrt(1 + Cq * Cq);
+  const corr = -Cq * Math.cos(th);
+  return { val: S2, S: S2, corr };
+}
+function qgateEval(p) {
+  const th = P(p, "theta", 0) * Math.PI / 180;
+  const P1 = Math.sin(th / 2) ** 2;
+  const flipped = Math.round(P(p, "ctrl", 0)) !== 0 ? 1 : 0;
+  return { val: P1, P1, flipped };
+}
+function groverEval(p) {
+  const nBits = Math.max(1, Math.min(12, Math.round(P(p, "nBits", 2))));
+  const k = Math.max(0, Math.round(P(p, "iters", 1)));
+  const N = 2 ** nBits;
+  const th = Math.asin(1 / Math.sqrt(N));
+  const prob = Math.sin((2 * k + 1) * th) ** 2;
+  return { val: prob, prob, N };
+}
+function packetEval(p, t) {
+  const sigma = pos(P(p, "sigma", 1), 1e-6);
+  const V = P(p, "V", 0);
+  const spread = sigma * Math.sqrt(1 + (t / (2 * sigma * sigma)) ** 2);
+  const E = 1 / (8 * sigma * sigma) + V;
+  return { val: E, E, sigmaT: finiteOr(spread) };
+}
+function relKinEval(p) {
+  const beta = clamp(Math.abs(P(p, "beta", 0)), 0, 0.999999);
+  const gamma2 = 1 / Math.sqrt(1 - beta * beta);
+  return { val: gamma2, gamma: gamma2, contract: 1 / gamma2 };
+}
+function relDynEval(p) {
+  const E = P(p, "E", 1);
+  const mom = P(p, "p", 0);
+  const disc = E * E - mom * mom;
+  const m = disc > 0 ? Math.sqrt(disc) : 0;
+  return { val: m, m, timelike: disc > 0 ? 1 : 0 };
+}
+function comptonEval(p) {
+  const th = P(p, "theta", 0) * Math.PI / 180;
+  const E = pos(P(p, "E", 50), 1e-9);
+  const dLam = LAMBDA_C_PM * (1 - Math.cos(th));
+  const lam = HC_KEV_PM / E;
+  const Ep = HC_KEV_PM / (lam + dLam);
+  return { val: dLam, dLam, Ep };
+}
+function decayEval(p, t) {
+  const lam = Math.max(0, P(p, "lam", 0));
+  const N0 = Math.max(0, P(p, "N0", 0));
+  const N = N0 * Math.exp(-lam * Math.max(0, t));
+  const A = lam * N;
+  const half = lam > 1e-15 ? Math.LN2 / lam : 0;
+  return { val: N, N, A, half };
+}
+function axialEval(p) {
+  const A = pos(P(p, "A", 1), 1e-15);
+  const F = P(p, "F", 0);
+  const sigma = F / A;
+  return { val: sigma, sigma };
+}
+function beamBendEval(p) {
+  const L = pos(P(p, "L", 1), 1e-9);
+  const EI = pos(P(p, "EI", 1), 1e-9);
+  const load = P(p, "P", 0);
+  const M = load * L / 4;
+  const delta = load * L ** 3 / (48 * EI);
+  return { val: M, M, delta, curvature: M / EI };
+}
+function beamDeflEval(p) {
+  const delta = P(p, "delta", 0);
+  const theta = P(p, "theta", 0);
+  const residual = delta - theta / 2;
+  return { val: residual, residual, delta, theta };
+}
+function bucklingEval(p) {
+  const L = pos(P(p, "L", 1), 1e-9);
+  const EI = pos(P(p, "EI", 1), 1e-9);
+  const Pcr = Math.PI ** 2 * EI / (L * L);
+  return { val: Pcr, Pcr };
+}
+function torsionEval(p) {
+  const d = pos(P(p, "d", 0.05), 1e-9);
+  const T = P(p, "T", 0);
+  const tau = 16 * T / (Math.PI * d ** 3);
+  return { val: tau, tau };
+}
+function combinedEval(p) {
+  const N = P(p, "N", 0);
+  const M = P(p, "M", 0);
+  const T = P(p, "T", 0);
+  const sx = N + M;
+  const s1 = sx / 2 + Math.sqrt((sx / 2) ** 2 + T * T);
+  return { val: s1, s1, sx };
+}
+function trussEval(p) {
+  const j = Math.round(P(p, "nodes", 3));
+  const b = Math.round(P(p, "bars", 3));
+  const indeterminacy = b - (2 * j - 3);
+  return { val: indeterminacy, indeterminacy };
+}
+function frameEval(p) {
+  const k = pos(P(p, "k", 1), 1e-9);
+  const span = P(p, "span", 1);
+  const story = pos(P(p, "story", 1), 1e-9);
+  return { val: 1 / k, drift: 1 / k, aspect: span / story };
+}
+function sdofEval(p) {
+  const m = pos(P(p, "m", 1), 1e-12);
+  const k = pos(P(p, "k", 1), 1e-12);
+  const c = Math.max(0, P(p, "c", 0));
+  const wn = Math.sqrt(k / m);
+  const zeta = c / (2 * Math.sqrt(k * m));
+  return { val: wn, wn, zeta };
+}
+function seismicEval(p) {
+  const pga = P(p, "pga", 0);
+  const zeta = pos(P(p, "zeta", 0.05), 1e-6);
+  const amp = pga / (2 * zeta);
+  return { val: amp, amp };
+}
+function bernoulliEval(p) {
+  const v = P(p, "v", 0);
+  const A = Math.max(0, P(p, "A", 0));
+  const q = 0.5 * 1e3 * v * v;
+  const Q = A * v;
+  return { val: q, q, Q };
+}
+function poiseuilleEval(p) {
+  const mu = pos(P(p, "mu", 0.01), 1e-12);
+  const U = P(p, "U", 0);
+  const D = pos(P(p, "D", 0.01), 1e-9);
+  const R = D / 2;
+  const Q = Math.PI * R ** 4 / (8 * mu);
+  const tau = mu * U / D;
+  return { val: Q, Q, tau };
+}
+function blasiusEval(p) {
+  const Re = pos(P(p, "Re", 100), 1e-9);
+  const rough = Math.max(0, P(p, "rough", 0));
+  const cf = 0.664 / Math.sqrt(Re);
+  const delta = 5 / Math.sqrt(Re);
+  return { val: cf, cf, delta, ReEps: Re * rough };
+}
+function darcyEval(p) {
+  const Re = pos(P(p, "Re", 1e3), 1e-9);
+  const eps = Math.max(0, P(p, "eps", 0));
+  let f;
+  if (Re < 2300) f = 64 / Re;
+  else {
+    const arg = eps / 3.7 + 5.74 / Re ** 0.9;
+    const log = Math.log10(Math.max(arg, 1e-15));
+    f = 0.25 / (log * log);
+  }
+  return { val: f, f };
+}
+function manningEval(p) {
+  const n = pos(P(p, "n", 0.013), 1e-9);
+  const S2 = pos(P(p, "S", 1e-3), 1e-15);
+  const Q = Math.max(0, P(p, "Q", 0));
+  const y = (Q * n / Math.sqrt(S2)) ** (3 / 5);
+  return { val: finiteOr(y), y: finiteOr(y) };
+}
+function weirEval(p) {
+  const H = Math.max(0, P(p, "H", 0));
+  const b = Math.max(0, P(p, "a", 0));
+  const Q = 2 / 3 * b * Math.sqrt(2 * G) * H ** 1.5;
+  return { val: Q, Q };
+}
+function pumpEval(p) {
+  const rpm = P(p, "rpm", 1450);
+  const units = Math.max(0, P(p, "units", 1));
+  const speed = rpm / 1450;
+  const Q = units * speed;
+  const H = speed * speed;
+  return { val: Q, Q, H };
+}
+function hxEval(p) {
+  const U = P(p, "U", 0);
+  const A = P(p, "A", 0);
+  return { val: U * A, UA: U * A };
+}
+function turbEval(p) {
+  const Cmu = P(p, "Cmu", 0.09);
+  const grid = P(p, "grid", 0);
+  return { val: Cmu, Cmu, Delta: grid };
+}
+function capillaryEval(p) {
+  const sigma = Math.max(0, P(p, "sigma", 0));
+  const drho = pos(P(p, "drho", 1), 1e-9);
+  const lam = Math.sqrt(sigma / (drho * G));
+  return { val: lam, lam };
+}
+function plasmaEval(p) {
+  const B = P(p, "B", 0);
+  const n = pos(P(p, "n", 1e14), 1);
+  const TeV = Math.max(0, P(p, "T", 1));
+  const wp = Math.sqrt(n * QE * QE / (EPS0 * ME));
+  const wc = QE * Math.abs(B) / ME;
+  const lamD = Math.sqrt(EPS0 * TeV * QE / (n * QE * QE));
+  return { val: wp, wp, wc, lamD };
+}
+function superconEval(p) {
+  const lam = P(p, "lam", 1);
+  const xi = pos(P(p, "xi", 1), 1e-9);
+  const kappa = lam / xi;
+  return { val: kappa, kappa, typeII: kappa > 1 / Math.SQRT2 ? 1 : 0 };
+}
+function magnetismEval(p) {
+  const J = P(p, "J", 1);
+  const K = P(p, "K", 0);
+  const Tc = 2 / 3 * 6 * J * 0.5 * 1.5;
+  return { val: Tc, Tc, K };
+}
+function semiconductorEval(p) {
+  const Nd = pos(P(p, "Nd", 1e15), 1);
+  const dE = P(p, "dE", 0);
+  const ni = 1e10;
+  const VT = 0.025851;
+  const Vbi = VT * Math.log(Nd * Nd / (ni * ni));
+  return { val: Vbi, Vbi, dE };
+}
+function topoEval(p) {
+  const Cq = P(p, "Chern", 0);
+  const bc = P(p, "bc", 0) > 0 ? 1 : 0;
+  const edge = bc ? Math.abs(Cq) : 0;
+  return { val: Cq, sigma: Cq, edge };
+}
+function convEngEval(p) {
+  return convectionEval(p);
+}
+function radEngEval(p) {
+  return radiationEval(p);
+}
+function thermoCycleEval(p) {
+  const Pbar = pos(P(p, "P", 1), 1e-9);
+  const T = pos(P(p, "T", 300), 1e-9);
+  const rp = Pbar;
+  const etaB = 1 - rp ** ((1 - 1.4) / 1.4);
+  const etaC = 1 - 298.15 / T;
+  return { val: etaB, etaB, etaC };
+}
+function combustionEval(p) {
+  const phi = pos(P(p, "phi", 1), 1e-6);
+  const excess = 1 / phi - 1;
+  return { val: phi, phi, excess, T: P(p, "T", 300) };
+}
+function motorDcEval(p) {
+  const V = P(p, "V", 0);
+  const TL = P(p, "TL", 0);
+  const omega = V - TL;
+  return { val: omega, omega, I: TL };
+}
+function motorIndEval(p) {
+  const f = P(p, "f", 50);
+  const V = P(p, "V", 0);
+  const ns = 120 * f / 4;
+  return { val: ns, ns, V };
+}
+function motorSyncEval(p) {
+  const If = P(p, "If", 1);
+  const delta = P(p, "delta", 0) * Math.PI / 180;
+  const Ppu = If * Math.sin(delta);
+  return { val: Ppu, Ppu };
+}
+function transformerEval(p) {
+  const a = P(p, "a", 1);
+  const load = P(p, "load", 0);
+  const ratio = Math.abs(a) < 1e-9 ? 0 : 1 / a;
+  return { val: ratio, ratio, Ipu: load };
+}
+function buckEval(p) {
+  const fs = pos(P(p, "fs", 1e3), 1e-9);
+  const D = clamp(P(p, "duty", 0.5), 0, 1);
+  const ripple = D * (1 - D) / fs;
+  return { val: D, duty: D, ripple };
+}
+function powerflowEval(p) {
+  const n = Math.max(2, Math.min(40, Math.round(P(p, "n", 3))));
+  const load = P(p, "load", 0);
+  let theta = 0;
+  for (let k = 1; k < n; k += 1) {
+    const flow = (n - k) * load;
+    theta += flow * 0.1;
+  }
+  return { val: theta, theta, Ptot: n * load };
+}
+function swingEval(p) {
+  const fault = P(p, "fault", 0);
+  const clear = Math.max(0, P(p, "clear", 0));
+  const d0 = Math.asin(0.8);
+  const delta = fault > 0 ? d0 + 0.4 * clear * clear : d0;
+  return { val: delta, delta };
+}
+function renewableEval(p) {
+  const irr = Math.max(0, P(p, "irr", 0));
+  const wind = Math.max(0, P(p, "wind", 0));
+  const Ppv = irr * 0.2;
+  const Pwind = 0.5 * 1.225 * 1 * wind ** 3 * 0.4;
+  return { val: Ppv, Ppv, Pwind };
+}
+function storageEval(p) {
+  const E = P(p, "E", 0);
+  const power = pos(P(p, "P", 1), 1e-9);
+  const hours = E / power;
+  return { val: hours, hours };
+}
+function cstrEval(p) {
+  const V = Math.max(0, P(p, "V", 0));
+  const v = pos(P(p, "v", 1), 1e-12);
+  const k = Math.max(0, P(p, "k", 0));
+  const tau = V / v;
+  const kt = k * tau;
+  const Xc = kt / (1 + kt);
+  const Xp = 1 - Math.exp(-kt);
+  return { val: Xc, Xc, Xp };
+}
+function fenskeEval(p) {
+  const N = pos(P(p, "N", 1), 1e-9);
+  const feed = P(p, "feed", 1);
+  const xD = 0.95;
+  const xB = 0.05;
+  const alpha = 2.5;
+  const Nmin = Math.log(xD / (1 - xD) * ((1 - xB) / xB)) / Math.log(alpha);
+  return { val: feed / N, feedFrac: feed / N, Nmin };
+}
+function absorbEval(p) {
+  const A = Math.max(0, P(p, "LGq", 0));
+  const frac = A / (1 + A);
+  return { val: frac, frac, T: P(p, "T", 300) };
+}
+function extractEval(p) {
+  const N = Math.max(0, Math.round(P(p, "stages", 1)));
+  const S2 = pos(P(p, "S", 1), 1e-9);
+  let frac;
+  if (Math.abs(S2 - 1) < 1e-8) frac = N / (N + 1);
+  else {
+    const Sp = S2 ** (N + 1);
+    frac = (Sp - S2) / (Sp - 1);
+  }
+  return { val: finiteOr(frac), frac: finiteOr(frac) };
+}
+function pinchEval(p) {
+  const Q = P(p, "Q", 0);
+  const dT = pos(P(p, "dT", 1), 1e-9);
+  return { val: Q / dT, UA: Q / dT };
+}
+function dryingEval(p) {
+  const TK = P(p, "T", 330);
+  const RH = clamp(P(p, "RH", 0), 0, 1);
+  const TC = TK - 273.15;
+  const logP = 8.07131 - 1730.63 / (TC + 233.426);
+  const psat = 10 ** logP;
+  const drive = psat * (1 - RH);
+  return { val: finiteOr(drive), drive: finiteOr(drive) };
+}
+function fluidbedEval(p) {
+  const dp = pos(P(p, "dp", 50), 1e-6) * 1e-6;
+  const Ug = P(p, "Ug", 0);
+  const rhoG = 1.2;
+  const mu = 181e-7;
+  const rhoS = 2500;
+  const Ar = dp ** 3 * rhoG * (rhoS - rhoG) * G / (mu * mu);
+  const ReMf = Math.sqrt(33.7 ** 2 + 0.0408 * Ar) - 33.7;
+  const Umf = ReMf * mu / (rhoG * dp);
+  return { val: Umf, Umf, above: Ug > Umf ? 1 : 0 };
+}
+function crystalEval(p) {
+  const S2 = pos(P(p, "S", 1), 1e-9);
+  return { val: Math.log(S2), lnS: Math.log(S2), T: P(p, "T", 300) };
+}
+function insertionComps(n, sortedness) {
+  const N = Math.max(1, Math.min(256, Math.round(n)));
+  const a = [];
+  for (let i = 0; i < N; i += 1) a.push(i);
+  const rev = clamp(Math.round((1 - clamp(sortedness, 0, 1)) * N), 0, N);
+  for (let i = 0, j = rev - 1; i < j; i += 1, j -= 1) {
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+  let comps = 0;
+  for (let i = 1; i < N; i += 1) {
+    const key = a[i];
+    let j = i - 1;
+    while (j >= 0) {
+      comps += 1;
+      if (a[j] <= key) break;
+      a[j + 1] = a[j];
+      j -= 1;
+    }
+    a[j + 1] = key;
+  }
+  return comps;
+}
+function searchProbes(n, strategy) {
+  const N = Math.max(1, Math.round(n));
+  const s = Math.round(strategy);
+  if (s <= 0) return N;
+  if (s === 1) return Math.floor(Math.log2(N)) + 1;
+  if (N < 3) return 1;
+  return Math.floor(Math.log2(Math.log2(N))) + 1;
+}
+function bfsDist(n, pEdge) {
+  const N = Math.max(2, Math.min(48, Math.round(n)));
+  const extras = clamp(Math.floor(Math.max(0, pEdge) * (N - 2)), 0, N - 2);
+  const adj = Array.from({ length: N }, () => []);
+  const link = (a, b) => {
+    adj[a].push(b);
+    adj[b].push(a);
+  };
+  for (let i = 0; i < N - 1; i += 1) link(i, i + 1);
+  for (let i = 0; i < extras; i += 1) link(i, i + 2);
+  const dist = new Array(N).fill(-1);
+  dist[0] = 0;
+  const q = [0];
+  for (let qi = 0; qi < q.length; qi += 1) {
+    const u = q[qi];
+    for (const v of adj[u]) {
+      if (dist[v] >= 0) continue;
+      dist[v] = dist[u] + 1;
+      q.push(v);
+    }
+  }
+  return dist[N - 1];
+}
+function dijkstraDist(n, wSpread) {
+  const N = Math.max(2, Math.min(48, Math.round(n)));
+  const w = Math.max(0, wSpread);
+  const dist = new Array(N).fill(Infinity);
+  const used = new Array(N).fill(false);
+  dist[0] = 0;
+  for (let iter = 0; iter < N; iter += 1) {
+    let u = -1;
+    let best = Infinity;
+    for (let i = 0; i < N; i += 1) {
+      if (!used[i] && dist[i] < best) {
+        best = dist[i];
+        u = i;
+      }
+    }
+    if (u < 0) break;
+    used[u] = true;
+    if (u + 1 < N) dist[u + 1] = Math.min(dist[u + 1], dist[u] + w);
+  }
+  return finiteOr(dist[N - 1], 0);
+}
+function mstWeight(n, pEdge) {
+  const N = Math.max(2, Math.min(40, Math.round(n)));
+  const extras = clamp(Math.floor(Math.max(0, pEdge) * (N - 2)), 0, N - 2);
+  const edges = [];
+  for (let i = 0; i < N - 1; i += 1) edges.push([3, i, i + 1]);
+  for (let i = 0; i < extras; i += 1) edges.push([1, i, i + 2]);
+  edges.sort((a, b) => a[0] - b[0]);
+  const parent = Array.from({ length: N }, (_, i) => i);
+  const find = (x) => {
+    let r = x;
+    while (parent[r] !== r) r = parent[r];
+    let y = x;
+    while (parent[y] !== r) {
+      const nxp = parent[y];
+      parent[y] = r;
+      y = nxp;
+    }
+    return r;
+  };
+  let total = 0;
+  let used = 0;
+  for (const [w, a, b] of edges) {
+    const pa = find(a);
+    const pb = find(b);
+    if (pa === pb) continue;
+    parent[pa] = pb;
+    total += w;
+    used += 1;
+    if (used === N - 1) break;
+  }
+  return total;
+}
+function kmpComparisons(m, n) {
+  const M = Math.max(1, Math.min(48, Math.round(m)));
+  const N = Math.max(1, Math.min(500, Math.round(n)));
+  const pat = new Array(M);
+  for (let i = 0; i < M; i += 1) pat[i] = i === M - 1 ? 1 : 0;
+  const text = new Array(N).fill(0);
+  const pi = new Array(M).fill(0);
+  let comps = 0;
+  let len = 0;
+  for (let i = 1; i < M; i += 1) {
+    while (len > 0 && pat[len] !== pat[i]) {
+      comps += 1;
+      len = pi[len - 1];
+    }
+    comps += 1;
+    if (pat[len] === pat[i]) {
+      len += 1;
+      pi[i] = len;
+    } else pi[i] = 0;
+  }
+  let q = 0;
+  for (let i = 0; i < N; i += 1) {
+    while (q > 0 && pat[q] !== text[i]) {
+      comps += 1;
+      q = pi[q - 1];
+    }
+    comps += 1;
+    if (pat[q] === text[i]) q += 1;
+    if (q === M) q = pi[q - 1];
+  }
+  return comps;
+}
+function knapsack(n, cap) {
+  const N = Math.max(1, Math.min(32, Math.round(n)));
+  const C2 = Math.max(0, Math.min(80, Math.round(cap)));
+  const dp = new Array(C2 + 1).fill(0);
+  for (let i = 0; i < N; i += 1) {
+    const w = i % 5 + 1;
+    const v = i % 3 + 1;
+    for (let c = C2; c >= w; c -= 1) dp[c] = Math.max(dp[c], dp[c - w] + v);
+  }
+  return dp[C2];
+}
+function treeHeights(n, order) {
+  const N = Math.max(1, Math.round(n));
+  const t = Math.max(2, Math.round(order));
+  const hBst = N - 1;
+  const hAvl = Math.ceil(Math.log2(N + 1));
+  const hB = Math.ceil(Math.log((N + 1) / 2) / Math.log(t));
+  return { hBst, hAvl, hB: finiteOr(hB) };
+}
+function heapComps(n) {
+  const N = Math.max(1, Math.min(300, Math.round(n)));
+  const a = [];
+  for (let i = 0; i < N; i += 1) a.push(N - i);
+  let comps = 0;
+  const sift = (start, heapN) => {
+    let i = start;
+    while (true) {
+      const left = 2 * i + 1;
+      const right = left + 1;
+      let s = i;
+      if (left < heapN) {
+        comps += 1;
+        if (a[left] > a[s]) s = left;
+      }
+      if (right < heapN) {
+        comps += 1;
+        if (a[right] > a[s]) s = right;
+      }
+      if (s === i) break;
+      const tmp = a[i];
+      a[i] = a[s];
+      a[s] = tmp;
+      i = s;
+    }
+  };
+  for (let i = Math.floor(N / 2) - 1; i >= 0; i -= 1) sift(i, N);
+  return comps;
+}
+function ufOps(n) {
+  const N = Math.max(1, Math.min(400, Math.round(n)));
+  const parent = Array.from({ length: N }, (_, i) => i);
+  const rank = new Array(N).fill(0);
+  let ops = 0;
+  const find = (x) => {
+    let r = x;
+    while (parent[r] !== r) {
+      ops += 1;
+      r = parent[r];
+    }
+    let y = x;
+    while (parent[y] !== r) {
+      const nxt = parent[y];
+      parent[y] = r;
+      y = nxt;
+      ops += 1;
+    }
+    return r;
+  };
+  for (let i = 0; i < N - 1; i += 1) {
+    const a = find(i);
+    const b = find(i + 1);
+    if (a === b) continue;
+    if (rank[a] < rank[b]) parent[a] = b;
+    else if (rank[a] > rank[b]) parent[b] = a;
+    else {
+      parent[b] = a;
+      rank[a] += 1;
+    }
+  }
+  return ops;
+}
+function cacheHitRate(cap, block, assoc) {
+  const B = Math.max(1, Math.round(block));
+  const A = Math.max(1, Math.round(assoc));
+  const bytes = Math.max(B * A, Math.round(cap));
+  const sets = Math.max(1, Math.floor(bytes / (B * A)));
+  const lines = sets * A;
+  const nRef = Math.min(2048, Math.max(1, lines * B));
+  const slots = Array.from({ length: sets }, () => []);
+  let hits = 0;
+  for (let addr = 0; addr < nRef; addr += 1) {
+    const blockId = Math.floor(addr / B);
+    const set = blockId % sets;
+    const tag = Math.floor(blockId / sets);
+    const slot = slots[set];
+    const idx = slot.indexOf(tag);
+    if (idx >= 0) {
+      hits += 1;
+      slot.splice(idx, 1);
+      slot.push(tag);
+    } else {
+      if (slot.length >= A) slot.shift();
+      slot.push(tag);
+    }
+  }
+  return hits / nRef;
+}
+function branchMisrate(hist, table) {
+  const H = Math.max(1, Math.min(32, Math.round(hist)));
+  const T = Math.max(1, Math.min(4096, Math.round(table)));
+  const sites = 64;
+  const period = H + 1;
+  const reps = 4;
+  const ctr = new Array(T).fill(1);
+  let mis = 0;
+  let n = 0;
+  for (let rep = 0; rep < reps; rep += 1) {
+    for (let step = 0; step < period; step += 1) {
+      for (let pc = 0; pc < sites; pc += 1) {
+        const taken = (step + pc) % period !== H;
+        const idx = pc % T;
+        const pred = ctr[idx] >= 2;
+        if (pred !== taken) mis += 1;
+        ctr[idx] = taken ? Math.min(3, ctr[idx] + 1) : Math.max(0, ctr[idx] - 1);
+        n += 1;
+      }
+    }
+  }
+  return mis / n;
+}
+function zipfEntropy(dict) {
+  const n = Math.max(1, Math.min(512, Math.round(dict)));
+  let z = 0;
+  for (let i = 1; i <= n; i += 1) z += 1 / i;
+  let H = 0;
+  for (let i = 1; i <= n; i += 1) {
+    const prob = 1 / (i * z);
+    H -= prob * Math.log2(prob);
+  }
+  return H;
+}
+function kmeansInertia(k, metric) {
+  const pts = [0, 1, 2, 3, 10, 11, 12, 13];
+  const K = Math.max(1, Math.min(pts.length, Math.round(k)));
+  const centers = [];
+  for (let i = 0; i < K; i += 1) {
+    centers.push(pts[Math.floor(i * (pts.length - 1) / Math.max(1, K - 1))]);
+  }
+  const assign = new Array(pts.length).fill(0);
+  for (let iter = 0; iter < 24; iter += 1) {
+    for (let i = 0; i < pts.length; i += 1) {
+      let best = 0;
+      let bd = Infinity;
+      for (let c = 0; c < K; c += 1) {
+        const d = Math.abs(pts[i] - centers[c]);
+        const cost = metric >= 1 ? d : d * d;
+        if (cost < bd) {
+          bd = cost;
+          best = c;
+        }
+      }
+      assign[i] = best;
+    }
+    for (let c = 0; c < K; c += 1) {
+      const mem = [];
+      for (let i = 0; i < pts.length; i += 1) if (assign[i] === c) mem.push(pts[i]);
+      if (!mem.length) continue;
+      if (metric >= 1) {
+        mem.sort((a, b) => a - b);
+        centers[c] = mem[Math.floor((mem.length - 1) / 2)];
+      } else centers[c] = mem.reduce((s, v) => s + v, 0) / mem.length;
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < pts.length; i += 1) {
+    const d = pts[i] - centers[assign[i]];
+    inertia += metric >= 1 ? Math.abs(d) : d * d;
+  }
+  return inertia;
+}
+function pcaFraction(k, nn) {
+  const n = Math.max(2, Math.min(40, Math.round(nn)));
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  let mx = 0;
+  let my = 0;
+  const xs = [];
+  const ys = [];
+  for (let i = 1; i <= n; i += 1) {
+    xs.push(i);
+    ys.push(0.2 * i + (i % 3 - 1));
+    mx += i;
+    my += ys[ys.length - 1];
+  }
+  mx /= n;
+  my /= n;
+  for (let i = 0; i < n; i += 1) {
+    const x = xs[i] - mx;
+    const y = ys[i] - my;
+    sxx += x * x;
+    syy += y * y;
+    sxy += x * y;
+  }
+  sxx /= n;
+  syy /= n;
+  sxy /= n;
+  const tr = sxx + syy;
+  const disc = Math.sqrt(Math.max(0, (sxx - syy) ** 2 + 4 * sxy * sxy));
+  const l1 = (tr + disc) / 2;
+  const kk = Math.max(1, Math.min(2, Math.round(k)));
+  const kept = kk >= 2 ? tr : l1;
+  return tr > 0 ? kept / tr : 0;
+}
+function nnForward(layers, width, act) {
+  const L = Math.max(1, Math.min(8, Math.round(layers)));
+  const W = Math.max(1, Math.min(48, Math.round(width)));
+  let a = 1;
+  for (let i = 0; i < L; i += 1) {
+    const z = clamp(0.1 * W * a, -40, 40);
+    if (act < 0.5) a = Math.max(0, z);
+    else if (act < 1.5) a = Math.tanh(z);
+    else if (act < 2.5) a = 1 / (1 + Math.exp(-z));
+    else a = z;
+  }
+  return a;
+}
+function caPopulation(rule, seed) {
+  const W = 24;
+  let cur = new Array(W).fill(0);
+  const s = Math.round(Math.abs(seed)) || 1;
+  for (let i = 0; i < 8; i += 1) cur[8 + i] = s >> i & 1;
+  const r = Math.round(rule) & 255;
+  for (let step = 0; step < 8; step += 1) {
+    const nxt = new Array(W).fill(0);
+    for (let i = 0; i < W; i += 1) {
+      const left = cur[(i + W - 1) % W];
+      const mid = cur[i];
+      const right = cur[(i + 1) % W];
+      const idx = left << 2 | mid << 1 | right;
+      nxt[i] = r >> idx & 1;
+    }
+    cur = nxt;
+  }
+  return cur.reduce((s0, v) => s0 + v, 0);
+}
+function sandTopples(prob, thresh) {
+  const n = 16;
+  const h = new Array(n).fill(0);
+  const T = Math.max(1, Math.round(thresh));
+  const openN = clamp(Math.floor(clamp(prob, 0, 1) * n), 0, n);
+  for (let i = 0; i < openN; i += 1) h[i] = T;
+  h[0] += 1;
+  let topples = 0;
+  for (let guard = 0; guard < 400; guard += 1) {
+    let moved = false;
+    for (let i = 0; i < n; i += 1) {
+      if (h[i] > T) {
+        h[i] -= 2;
+        if (i > 0) h[i - 1] += 1;
+        if (i < n - 1) h[i + 1] += 1;
+        topples += 1;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return topples;
+}
+function binaryEntropy2(prob) {
+  const p0 = clamp(prob, 0, 1);
+  if (p0 <= 0 || p0 >= 1) return 0;
+  return -p0 * Math.log2(p0) - (1 - p0) * Math.log2(1 - p0);
+}
+function fcfsWait(arrival, burst) {
+  const n = 4;
+  const b = Math.max(0, burst);
+  const gap = Math.max(0, arrival);
+  let time = 0;
+  let wait = 0;
+  for (let i = 0; i < n; i += 1) {
+    const arr = i * gap;
+    if (time < arr) time = arr;
+    wait += time - arr;
+    time += b;
+  }
+  return wait / n;
+}
+function tcpMbps(bw, rttMs, loss) {
+  if (!(loss > 0)) return bw;
+  const rtt = Math.max(rttMs, 0.1) / 1e3;
+  const mssBits = 1460 * 8;
+  const mathis = mssBits / rtt * Math.sqrt(1.5 / loss) / 1e6;
+  return Math.min(bw, mathis);
+}
+var BUILDERS = {
+  projectile: (spec) => algebraic(spec, {
+    equation: "x=v0 cos\u03B8 t, y=v0 sin\u03B8 t\u2212\xBD g t\xB2; linear drag k=b/m",
+    assumptions: "Plane motion. k=0 is the vacuum parabola. k>0 is linear drag with k=b/m. The curve is not stopped at y=0.",
+    initial: ["v0", "theta"],
+    rows: [["y", "y", "m"], ["x", "x", "m"], ["vx", "vx", "m/s"], ["vy", "vy", "m/s"]],
+    eval: projectileEval
+  }),
+  inclined: (spec) => algebraic(spec, {
+    equation: "a=g(sin\u03B8\u2212\u03BC cos\u03B8), g=9.81",
+    assumptions: "Constant g=9.81 m/s\xB2. +s is down the plane. Friction points up the plane, which is the catalog formula. N=m g cos\u03B8.",
+    initial: ["v0"],
+    rows: [["a", "a", "m/s\xB2"], ["v", "v", "m/s"], ["s", "s", "m"], ["N", "N", "N"]],
+    eval: inclinedEval
+  }),
+  atwood: (spec) => algebraic(spec, {
+    equation: "a=(m1\u2212m2)/(m1+m2)\xB7g, m1=mRatio, m2=1 kg",
+    assumptions: "Ideal vertical Atwood machine, g=9.81. \u03BC does not enter: a vertical string has no surface for Coulomb friction.",
+    rows: [["a", "a", "m/s\xB2"], ["m1", "m1", "kg"], ["m2", "m2", "kg"]],
+    eval: (p) => atwoodEval(p)
+  }),
+  circular: (spec) => algebraic(spec, {
+    equation: "a=\u03C9\xB2 r",
+    assumptions: "Uniform circular motion.",
+    rows: [["a", "ac", "m/s\xB2"], ["x", "x", "m"], ["y", "y", "m"]],
+    eval: circularEval
+  }),
+  "rigid-plane": (spec) => algebraic(spec, {
+    equation: "I \u03B1 = torque; rolling a=g sin\u03B8/(1+I/(m r\xB2)) with m=r=1",
+    assumptions: "Goldstein rigid body. Slope is in degrees. I is about the center. No slip: a=g sin\u03B8 / (1+I).",
+    rows: [["a", "a", "m/s\xB2"]],
+    eval: (p) => {
+      const I = Math.max(0, P(p, "I", 0.5));
+      const slope = P(p, "slope", 0) * Math.PI / 180;
+      const a = G * Math.sin(slope) / (1 + I);
+      return { val: a, a };
+    }
+  }),
+  collision: (spec) => algebraic(spec, {
+    equation: "v1n=(m1\u2212e m2)/(m1+m2)\xB7u1n, v2n=m1(1+e)/(m1+m2)\xB7u1n",
+    assumptions: "m2=1, u1=1, u2=0. e is the normal restitution. Tangential velocity is unchanged. angle is the impact normal.",
+    rows: [["v1", "v1", "m/s"], ["v2", "v2", "m/s"], ["e", "e"]],
+    eval: (p) => collisionEval(p)
+  }),
+  "variable-mass": (spec) => algebraic(spec, {
+    equation: "v=\u2212u ln(m/m0), m0=1 kg, a(0)=u \u1E41/m0",
+    assumptions: "Tsiolkovsky, no gravity, no external force. \u1E41 is the propellant mass-loss rate. m is held at or above 0.05 kg.",
+    rows: [["a0", "a0", "m/s\xB2"], ["v", "v", "m/s"], ["m", "m", "kg"]],
+    eval: rocketEval
+  }),
+  noninertial: (spec) => algebraic(spec, {
+    equation: "a=a_frame\u22122 \u03C9\xD7v, v0=(1,0) m/s",
+    assumptions: "Horizontal frame. \u03C9 is vertical. The initial velocity is 1 m/s along x so the Coriolis term is defined.",
+    rows: [["ay", "ay", "m/s\xB2"], ["ax", "ax", "m/s\xB2"], ["|a|", "aMag", "m/s\xB2"]],
+    eval: (p) => noninertialEval(p)
+  }),
+  "pendulum-chain": (spec) => algebraic(spec, {
+    equation: "\u03B8''=\u2212(g/L) sin\u03B8",
+    assumptions: "Simple pendulum. Mass cancels in the acceleration and remains in the energy. g=9.81.",
+    initial: ["theta0"],
+    rows: [["\u03B1", "alpha", "rad/s\xB2"], ["\u03B8", "thetaDeg", "\xB0"], ["E", "E", "J"]],
+    reset: pendulumReset,
+    integrate: true,
+    eval: pendulumEval
+  }),
+  orbit: (spec) => algebraic(spec, {
+    equation: "a=M/r\xB2 (G=1); r_a=r_p(1+e)/(1\u2212e) for e<1",
+    assumptions: "G=1. a_c uses r0. e_osc is the osculating eccentricity of a perpendicular launch at speed v0. r_a uses the eccentricity knob with periapsis r0.",
+    initial: ["v0", "r0"],
+    rows: [["a", "ac"], ["e_osc", "eOsc"], ["r_a", "rA"], ["v_peri", "vPeri"]],
+    eval: (p) => orbitEval(p)
+  }),
+  sho: (spec) => algebraic(spec, {
+    equation: "x''=\u2212(k/m) x",
+    assumptions: "Closed form x=x0 cos(\u03C9 t), \u03C9=sqrt(k/m), from t=0.",
+    initial: ["x0"],
+    rows: [["a", "a", "m/s\xB2"], ["x", "x", "m"], ["\u03C9", "omega", "rad/s"]],
+    eval: shoEval
+  }),
+  damped: (spec) => algebraic(spec, {
+    equation: "m x''+c x'+k x=0, m=1, x(0)=1, v(0)=0",
+    assumptions: "Mass is 1 kg. \u03B6=c/(2\u221Ak). The closed form covers under-, critical, and over-damping.",
+    rows: [["\u03B6", "zeta"], ["x", "x", "m"], ["\u03C90", "omega0", "rad/s"]],
+    eval: dampedEval
+  }),
+  forced: (spec) => algebraic(spec, {
+    equation: "x''+c x'+x=F0 cos(2\u03C0 f t), m=k=1",
+    assumptions: "Steady-state amplitude. \u03C90=1 because k=m=1. fDrive is in hertz.",
+    rows: [["A", "A", "m"], ["\u03C6", "phi", "rad"]],
+    eval: (p) => forcedEval(p)
+  }),
+  coupled: (spec) => algebraic(spec, {
+    equation: "x_i''=\u2212x_i+\u03BA(x_{i\u22121}\u22122x_i+x_{i+1}), fixed ends",
+    assumptions: "Unit on-site springs. Highest-mode \u03C9^2=1+4\u03BA sin^2(q/2), q=N\u03C0/(N+1).",
+    rows: [["\u03C9_max", "omegaMax", "rad/s"], ["a1", "a1", "m/s\xB2"], ["N", "N"]],
+    eval: (p) => coupledEval(p)
+  }),
+  "nonlinear-osc": (spec) => algebraic(spec, {
+    equation: "x''+x+\u03B2 x\xB3=F cos(t), x(0)=1, v(0)=0",
+    assumptions: "Undamped driven Duffing with \u03C9=1. No van der Pol term: the knobs are \u03B2 and the drive.",
+    rows: [["a", "a"], ["x", "x"], ["v", "v"]],
+    reset: duffingReset,
+    integrate: true,
+    eval: duffingEval
+  }),
+  wave1d: (spec) => algebraic(spec, {
+    equation: "y=sin(kx\u2212\u03C9t), \u03C9=2\u03C0f, k=\u03C9/c, A=1",
+    assumptions: "Unit amplitude. \u03BB=c/f.",
+    rows: [["\u03BB", "lam"], ["k", "k"], ["y(1)", "yProbe"]],
+    eval: wave1dEval
+  }),
+  wave2d: (spec) => algebraic(spec, {
+    equation: "c=\u221A(T/\u03C1), \u03C9_11=\u03C0 c \u221A2 on the unit square",
+    assumptions: "Linear membrane, mode (1,1). Pain.",
+    rows: [["c", "c"], ["\u03C9", "omega", "rad/s"], ["y", "yMid"]],
+    eval: wave2dEval
+  }),
+  interfere: (spec) => algebraic(spec, {
+    equation: "I/I0=cos\xB2(\u03C6/2), \u03B2=\u03BB/d",
+    assumptions: "Equal amplitudes. On-axis phase is the phi knob. Screen distance L=1 for the fringe spacing.",
+    rows: [["I", "I"], ["\u03B2", "beta"]],
+    eval: (p) => interfereEval(p)
+  }),
+  diffract: (spec) => algebraic(spec, {
+    equation: "y_min=\u03BB L/a",
+    assumptions: "Paraxial single-slit first minimum. Same length unit for a, \u03BB, and L.",
+    rows: [["y1", "yMin"], ["\u03B2", "beta"]],
+    eval: (p) => diffractEval(p)
+  }),
+  doppler: (spec) => algebraic(spec, {
+    equation: "f'/f=(1+vo cos\u03B8)/(1\u2212vs cos\u03B8)",
+    assumptions: "vs and vo are fractions of the wave speed. Positive vs is toward the observer. Positive vo is toward the source.",
+    rows: [["f'/f", "ratio"]],
+    eval: (p) => dopplerEval(p)
+  }),
+  "ideal-gas": (spec) => algebraic(spec, {
+    equation: "P2/P0=2^{\u2212n}, T2=T0\xB72^{1\u2212n}",
+    assumptions: "Polytropic ideal gas probed at V/V0=2. \xC7engel & Boles.",
+    rows: [["P2/P0", "pRatio"], ["T2", "T2", "K"]],
+    eval: (p) => idealGasEval(p)
+  }),
+  "heat-engine": (spec) => algebraic(spec, {
+    equation: "\u03B7_C=1\u22121/TR, \u03B7_Otto=1\u2212r^{1\u2212\u03B3}, \u03B3=1.4",
+    assumptions: "TR=Th/Tc. Otto uses cold air \u03B3=1.4.",
+    rows: [["\u03B7_C", "etaC"], ["\u03B7_Otto", "etaO"]],
+    eval: (p) => heatEngineEval(p)
+  }),
+  convection: (spec) => algebraic(spec, {
+    equation: "q=h\xB71 K; Nu=0.664 Re^{1/2} Pr^{1/3}",
+    assumptions: "Newton cooling per kelvin. Blasius flat plate, L=1 m, air \u03BD=1.5e\u22125, Pr=0.7, k=0.026.",
+    rows: [["q", "q", "W/m\xB2"], ["h_Bl", "hBl", "W/(m\xB2K)"]],
+    eval: (p) => convectionEval(p)
+  }),
+  radiation: (spec) => algebraic(spec, {
+    equation: "q=\u03B5 \u03C3 T\u2074",
+    assumptions: "Surface exitance. \u03C3=5.670374419e\u22128. No incoming irradiation.",
+    rows: [["q", "q", "W/m\xB2"]],
+    eval: (p) => radiationEval(p)
+  }),
+  "kinetic-gas": (spec) => algebraic(spec, {
+    equation: "v_rms=\u221A(3 R T / M)",
+    assumptions: "Ideal gas. mMol is the molar mass in g/mol. R=8.314 J/(mol\xB7K).",
+    rows: [["v_rms", "vrms", "m/s"], ["v_p", "vp", "m/s"]],
+    eval: (p) => kineticEval(p)
+  }),
+  brownian: (spec) => algebraic(spec, {
+    equation: "<x\xB2>=2 D \u03C4",
+    assumptions: "Ensemble mean-square displacement in one dimension. \u03C4 is the time knob. No random path is drawn.",
+    rows: [["<x\xB2>", "msd"]],
+    eval: (p) => brownianEval(p)
+  }),
+  ising: (spec) => algebraic(spec, {
+    equation: "m=tanh((4 J m+H)/T)",
+    assumptions: "Mean-field Ising, coordination 4. Negative J is not a staggered antiferromagnet in this scalar equation.",
+    rows: [["m", "m"]],
+    eval: (p) => isingEval(p)
+  }),
+  percolation: (spec) => algebraic(spec, {
+    equation: "S=(1+p)/(1\u2212p)",
+    assumptions: "Exact one-dimensional site percolation. Not a 2D random lattice.",
+    rows: [["S", "S"]],
+    eval: (p) => percolationEval(p)
+  }),
+  "entropy-mix": (spec) => algebraic(spec, {
+    equation: "\u0394s/R=\u2212x ln x\u2212(1\u2212x) ln(1\u2212x)",
+    assumptions: "Ideal binary mixture, one mole. Temperature cancels in \u0394s and remains in \u0394g=\u2212T \u0394s.",
+    rows: [["\u0394s/R", "sOverR"], ["\u0394g/R", "gOverR", "K"]],
+    eval: (p) => entropyEval(p)
+  }),
+  electrostatic: (spec) => algebraic(spec, {
+    equation: "E=q/(4 \u03C0 \u03B50 r\xB2)",
+    assumptions: "Point charge in SI. r is the geometry knob. Griffiths Ch. 2.",
+    rows: [["E", "E", "N/C"]],
+    eval: (p) => coulombEval(p)
+  }),
+  fieldlines: (spec) => algebraic(spec, {
+    equation: "E_axis=(1/(4\u03C0\u03B50)) 2p/r\xB3",
+    assumptions: "Ideal dipole on axis. r is the separation knob. Griffiths Ch. 3.",
+    rows: [["E", "E", "N/C"]],
+    eval: (p) => dipoleEval(p)
+  }),
+  gauss: (spec) => algebraic(spec, {
+    equation: "E(R)=\u03C1 R/(3 \u03B50)",
+    assumptions: "Uniform ball, field at the surface. Griffiths Ch. 2.",
+    rows: [["E", "E", "N/C"], ["Q", "Q", "C"]],
+    eval: (p) => gaussEval(p)
+  }),
+  capacitor: (spec) => algebraic(spec, {
+    equation: "C=\u03B5_r \u03B50 A/d",
+    assumptions: "Parallel plate. eps is the relative permittivity.",
+    rows: [["C", "C", "F"]],
+    eval: (p) => capacitorEval(p)
+  }),
+  "dc-network": (spec) => algebraic(spec, {
+    equation: "I=E/R",
+    assumptions: "Single-loop Ohm law. Nilsson.",
+    rows: [["I", "I", "A"], ["V", "V", "V"]],
+    eval: (p) => dcEval(p)
+  }),
+  rlc: (spec) => algebraic(spec, {
+    equation: "\u03C90=1/\u221A(LC), \u03B1=R/(2L)",
+    assumptions: "Series RLC. wd=sqrt(\u03C90\xB2\u2212\u03B1\xB2) when underdamped, otherwise 0.",
+    rows: [["\u03C90", "w0", "rad/s"], ["\u03B1", "alpha", "1/s"], ["\u03C9d", "wd", "rad/s"]],
+    eval: (p) => rlcEval(p)
+  }),
+  ac: (spec) => algebraic(spec, {
+    equation: "|Z|=sec \u03C6 for R=1 \u03A9; L_eq=tan\u03C6 / \u03C9",
+    assumptions: "phi is the impedance angle. Frequency enters the inductance that would produce that angle.",
+    rows: [["|Z|", "Z", "\u03A9"], ["L_eq", "Leq", "H"]],
+    eval: (p) => acEval(p)
+  }),
+  magnetostat: (spec) => algebraic(spec, {
+    equation: "B=\u03BC0 I/(2 R)",
+    assumptions: "Center of a current loop. Griffiths Ch. 5.",
+    rows: [["B", "B", "T"]],
+    eval: (p) => biotEval(p)
+  }),
+  lorentz: (spec) => algebraic(spec, {
+    equation: "F_E=q E, r_c=m v/(|q| B), q=m=1",
+    assumptions: "Normalized charge and mass. Magnetic force magnitude is |q| v B for v perpendicular to B.",
+    rows: [["F_E", "FE", "N"], ["F_B", "FB", "N"], ["r_c", "rC", "m"]],
+    eval: (p) => lorentzEval(p)
+  }),
+  induction: (spec) => algebraic(spec, {
+    equation: "\u03B5=\u2212N d\u03A6/dt",
+    assumptions: "The dPhi knob is the flux derivative. Griffiths Ch. 7.",
+    rows: [["\u03B5", "emf", "V"]],
+    eval: (p) => faradayEval(p)
+  }),
+  inductance: (spec) => algebraic(spec, {
+    equation: "M=k L",
+    assumptions: "L1=L2=L, so M=k sqrt(L1 L2)=k L.",
+    rows: [["M", "M", "H"]],
+    eval: (p) => mutualEval(p)
+  }),
+  maxwell: (spec) => algebraic(spec, {
+    equation: "\u03BB=c/f",
+    assumptions: "Vacuum plane wave. The cavity comparison uses a 1 m cube and mode index n: f=(c/2)sqrt(1+n\xB2).",
+    rows: [["\u03BB", "lam", "m"], ["f_cav", "fCav", "Hz"]],
+    eval: (p) => maxwellEval(p)
+  }),
+  tline: (spec) => algebraic(spec, {
+    equation: "\u03C4=len/c, Z=Z0",
+    assumptions: "Lossless TEM line at vacuum speed. Length is in meters.",
+    rows: [["Z0", "Z0", "\u03A9"], ["\u03C4", "delay", "s"]],
+    eval: (p) => tlineEval(p)
+  }),
+  antenna: (spec) => algebraic(spec, {
+    equation: "AF=|cos((2\u03C0 d+\u03B4)/2)| at endfire",
+    assumptions: "Balanis. len and d are in wavelengths. phi is the inter-element phase in degrees. Element factor (1\u2212cos(\u03C0 len))\xB2 at broadside.",
+    rows: [["AF", "AF"], ["F", "elem"]],
+    eval: (p) => antennaEval(p)
+  }),
+  "geo-optics": (spec) => algebraic(spec, {
+    equation: "n1 sin\u03B81=n2 sin\u03B82, n1=1",
+    assumptions: "Snell. tir=1 when the ray is totally reflected. Hecht.",
+    rows: [["\u03B82", "theta2", "\xB0"], ["TIR", "tir"]],
+    eval: (p) => snellEval(p)
+  }),
+  lens: (spec) => algebraic(spec, {
+    equation: "1/u+1/v=1/f",
+    assumptions: "Signed distances as stored. Lateral magnification m=\u2212v/u.",
+    rows: [["v", "v", "cm"], ["m", "m"], ["h_i", "hi", "cm"]],
+    eval: (p) => lensEval(p)
+  }),
+  prism: (spec) => algebraic(spec, {
+    equation: "\u03B4\u2248(n\u22121)A",
+    assumptions: "Thin-prism limit, A in degrees. deltaMin is the exact symmetric minimum deviation.",
+    rows: [["\u03B4", "delta", "\xB0"], ["\u03B4_min", "deltaMin", "\xB0"]],
+    eval: (p) => prismEval(p)
+  }),
+  "opt-interfere": (spec) => algebraic(spec, {
+    equation: "\u03B2=\u03BB L/d, L=1 m",
+    assumptions: "Young. d is in mm, \u03BB in nm. Hecht.",
+    rows: [["\u03B2", "betaMm", "mm"]],
+    eval: (p) => optInterfereEval(p)
+  }),
+  "opt-diffract": (spec) => algebraic(spec, {
+    equation: "y=\u03BB L/a",
+    assumptions: "Fraunhofer slit. a in mm, \u03BB in nm, L in m.",
+    rows: [["y", "yMm", "mm"]],
+    eval: (p) => optDiffractEval(p)
+  }),
+  polarization: (spec) => algebraic(spec, {
+    equation: "I=I0 cos\xB2\u03B8",
+    assumptions: "Malus. I0=1. dphi is retarder phase in degrees and does not change this intensity.",
+    rows: [["I", "I"], ["\u03B4", "dphi", "\xB0"]],
+    eval: (p) => malusEval(p)
+  }),
+  fiber: (spec) => algebraic(spec, {
+    equation: "NA=\u221A(n_core\xB2\u2212n_clad\xB2)",
+    assumptions: "Step-index acceptance. Hecht.",
+    rows: [["NA", "NA"], ["\u03B8_c", "thetaC", "\xB0"]],
+    eval: (p) => fiberEval(p)
+  }),
+  laser: (spec) => algebraic(spec, {
+    equation: "net=g L\u2212loss",
+    assumptions: "g is a gain coefficient (1/m) and loss is a dimensionless single-pass loss. Siegman.",
+    rows: [["net", "net"], ["gL", "gL"]],
+    eval: (p) => laserEval(p)
+  }),
+  nlo: (spec) => algebraic(spec, {
+    equation: "\u03B7\u221D\u03C7\xB2 sinc\xB2(\u0394k/2), L=1",
+    assumptions: "Plane-wave second harmonic, Boyd. L=1 in the knob units.",
+    rows: [["\u03B7", "eta"]],
+    eval: (p) => nloEval(p)
+  }),
+  qoptics: (spec) => algebraic(spec, {
+    equation: "V=e^{\u22122r}, n\u0304=|\u03B1|\xB2+sinh\xB2 r",
+    assumptions: "Single-mode squeezed state. Gerry & Knight.",
+    rows: [["V", "V"], ["n", "nbar"]],
+    eval: (p) => qopticsEval(p)
+  }),
+  well1d: (spec) => algebraic(spec, {
+    equation: "E1=\u03C0\xB2/(2 a\xB2), \u210F=m=1",
+    assumptions: "Infinite square well, n=1. V0 is only a comparison with the finite-well depth.",
+    rows: [["E1", "E1"], ["E1<V0", "above"]],
+    eval: (p) => wellEval(p)
+  }),
+  tunnel: (spec) => algebraic(spec, {
+    equation: "T\u2248exp(\u22122 \u03BA w), \u03BA=\u221A(2(V0\u2212E))",
+    assumptions: "Thick-barrier estimate, \u210F=m=1. T=1 when E\u2265V0. Griffiths QM.",
+    rows: [["T", "T"], ["\u03BA", "kappa"]],
+    eval: (p) => tunnelEval(p)
+  }),
+  qho: (spec) => algebraic(spec, {
+    equation: "E0=\u210F\u03C9/2, \u03C9_+=\u03C9\u221A(1+coup)",
+    assumptions: "\u210F=1. The coupling raises one normal frequency of two oscillators.",
+    rows: [["E0", "E0"], ["\u03C9+", "wPlus"]],
+    eval: (p) => qhoEval(p)
+  }),
+  hydrogen: (spec) => algebraic(spec, {
+    equation: "E=\u221213.6 eV/n\xB2",
+    assumptions: "n, l, m are rounded to integers. valid=1 when 0\u2264l\u2264n\u22121 and |m|\u2264l.",
+    rows: [["E", "E", "eV"], ["valid", "valid"]],
+    eval: (p) => hydrogenEval(p)
+  }),
+  angmom: (spec) => algebraic(spec, {
+    equation: "g_J=1+[j(j+1)+s(s+1)\u2212l(l+1)]/(2j(j+1))",
+    assumptions: "s=1/2 and l=j\u22121/2. Fine-structure shift is coup\xB7L\xB7S.",
+    rows: [["g_J", "gJ"], ["E_fs", "Efs"]],
+    eval: (p) => angmomEval(p)
+  }),
+  entangle: (spec) => algebraic(spec, {
+    equation: "S=2\u221A(1+C\xB2)",
+    assumptions: "Two-qubit CHSH maximum for concurrence C. The correlator uses the measurement angle.",
+    rows: [["S", "S"], ["E", "corr"]],
+    eval: (p) => entangleEval(p)
+  }),
+  qgate: (spec) => algebraic(spec, {
+    equation: "P(1)=sin\xB2(\u03B8/2)",
+    assumptions: "Ry on |0>. flipped=1 when the control knob is nonzero.",
+    rows: [["P1", "P1"], ["flip", "flipped"]],
+    eval: (p) => qgateEval(p)
+  }),
+  qalgo: (spec) => algebraic(spec, {
+    equation: "P=sin\xB2((2k+1)\u03B8), sin\u03B8=1/\u221AN",
+    assumptions: "Grover on N=2^{nBits} with one marked item. Nielsen & Chuang.",
+    rows: [["P", "prob"], ["N", "N"]],
+    eval: (p) => groverEval(p)
+  }),
+  wavepacket: (spec) => algebraic(spec, {
+    equation: "E=1/(8\u03C3\xB2)+V, \u03C3(t)=\u03C3\u221A(1+(t/(2\u03C3\xB2))\xB2)",
+    assumptions: "Free Gaussian packet plus a constant potential. \u210F=m=1. Griffiths QM.",
+    rows: [["E", "E"], ["\u03C3(t)", "sigmaT"]],
+    eval: packetEval
+  }),
+  "rel-kin": (spec) => algebraic(spec, {
+    equation: "\u03B3=1/\u221A(1\u2212\u03B2\xB2)",
+    assumptions: "Special relativity, French. \u03B2 is clamped below 1.",
+    rows: [["\u03B3", "gamma"], ["1/\u03B3", "contract"]],
+    eval: (p) => relKinEval(p)
+  }),
+  "rel-dyn": (spec) => algebraic(spec, {
+    equation: "m c\xB2=\u221A(E\xB2\u2212p\xB2 c\xB2), c=1",
+    assumptions: "Timelike interval. A spacelike pair reports m=0 and timelike=0.",
+    rows: [["m", "m"], ["timelike", "timelike"]],
+    eval: (p) => relDynEval(p)
+  }),
+  compton: (spec) => algebraic(spec, {
+    equation: "\u0394\u03BB=\u03BB_C(1\u2212cos\u03B8)",
+    assumptions: "Electron at rest. \u0394\u03BB is in pm. E is in keV. \u03BB_C=2.42631023867 pm.",
+    rows: [["\u0394\u03BB", "dLam", "pm"], ["E'", "Ep", "keV"]],
+    eval: (p) => comptonEval(p)
+  }),
+  radioactive: (spec) => algebraic(spec, {
+    equation: "N=N0 e^{\u2212\u03BB t}",
+    assumptions: "Single exponential. Krane. Activity A=\u03BB N.",
+    rows: [["N", "N"], ["A", "A"], ["t_half", "half"]],
+    eval: decayEval
+  }),
+  "ideal-fluid": (spec) => algebraic(spec, {
+    equation: "q=\xBD \u03C1 v\xB2, Q=A v, \u03C1=1000",
+    assumptions: "Water. One section, so the Bernoulli term shown is the dynamic pressure.",
+    rows: [["q", "q", "Pa"], ["Q", "Q", "m\xB3/s"]],
+    eval: (p) => bernoulliEval(p)
+  }),
+  viscous: (spec) => algebraic(spec, {
+    equation: "Q=\u03C0 R\u2074 \u0394P/(8 \u03BC L), \u0394P/L=1; \u03C4=\u03BC U/D",
+    assumptions: "Reference pressure gradient 1 Pa/m. Couette gap equals D.",
+    rows: [["Q", "Q", "m\xB3/s"], ["\u03C4", "tau", "Pa"]],
+    eval: (p) => poiseuilleEval(p)
+  }),
+  "boundary-layer": (spec) => algebraic(spec, {
+    equation: "c_f=0.664/\u221ARe, \u03B4/x=5/\u221ARe",
+    assumptions: "Smooth-plate Blasius. rough is \u03B5/L and enters only Re_\u03B5=Re\xB7rough.",
+    rows: [["cf", "cf"], ["\u03B4/x", "delta"], ["Re_\u03B5", "ReEps"]],
+    eval: (p) => blasiusEval(p)
+  }),
+  turbulence: (spec) => algebraic(spec, {
+    equation: "\u03BD_t=C\u03BC k\xB2/\u03B5",
+    assumptions: "C\u03BC and the filter width are the supplied closure parameters. k and \u03B5 are not invented.",
+    rows: [["C\u03BC", "Cmu"], ["\u0394", "Delta"]],
+    eval: (p) => turbEval(p)
+  }),
+  multiphase: (spec) => algebraic(spec, {
+    equation: "\u03BB_c=\u221A(\u03C3/(\u0394\u03C1 g))",
+    assumptions: "g=9.81. White capillary length.",
+    rows: [["\u03BB_c", "lam", "m"]],
+    eval: (p) => capillaryEval(p)
+  }),
+  plasma: (spec) => algebraic(spec, {
+    equation: "\u03C9_p=\u221A(n e\xB2/(\u03B50 m)), \u03C9_c=eB/m",
+    assumptions: "Electron mass. T is in eV for the Debye length. Chen.",
+    rows: [["\u03C9_p", "wp", "rad/s"], ["\u03C9_c", "wc", "rad/s"], ["\u03BB_D", "lamD", "m"]],
+    eval: (p) => plasmaEval(p)
+  }),
+  supercon: (spec) => algebraic(spec, {
+    equation: "\u03BA=\u03BB/\u03BE",
+    assumptions: "Ginzburg\u2013Landau. typeII=1 when \u03BA>1/\u221A2. Tinkham.",
+    rows: [["\u03BA", "kappa"], ["II", "typeII"]],
+    eval: (p) => superconEval(p)
+  }),
+  magnetism: (spec) => algebraic(spec, {
+    equation: "kT_C=(2/3) z J S(S+1), z=6, S=1/2",
+    assumptions: "k_B=1. Anisotropy K is reported separately and is not folded into T_C.",
+    rows: [["T_C", "Tc"], ["K", "K"]],
+    eval: (p) => magnetismEval(p)
+  }),
+  semiconductor: (spec) => algebraic(spec, {
+    equation: "V_bi=(kT/q) ln(Nd\xB2/ni\xB2)",
+    assumptions: "300 K, Na=Nd, ni=1e10 cm^{\u22123}. Nd is in cm^{\u22123}. dE is the band offset in eV.",
+    rows: [["Vbi", "Vbi", "V"], ["\u0394E", "dE", "eV"]],
+    eval: (p) => semiconductorEval(p)
+  }),
+  topo: (spec) => algebraic(spec, {
+    equation: "\u03C3_xy/(e\xB2/h)=C",
+    assumptions: "Integer quantum Hall. Edge channels equal |C| only when the boundary knob is on.",
+    rows: [["\u03C3", "sigma"], ["edge", "edge"]],
+    eval: (p) => topoEval(p)
+  }),
+  sort: (spec) => algebraic(spec, {
+    equation: "insertion-sort comparisons",
+    assumptions: "CLRS insertion sort. The array is 0..n\u22121 with a reversed prefix of length (1\u2212sortedness)\xB7n. n is capped at 256.",
+    rows: [["comps", "comps"]],
+    eval: (p) => {
+      const comps = insertionComps(P(p, "n", 16), P(p, "sortedness", 0));
+      return { val: comps, comps };
+    }
+  }),
+  search: (spec) => algebraic(spec, {
+    equation: "probes: linear n, binary \u230Alog2 n\u230B+1, interpolation \u230Alog2 log2 n\u230B+1",
+    assumptions: "collide selects the strategy: 0 linear worst case, 1 binary worst case, 2 interpolation average for uniform keys (CLRS).",
+    rows: [["probes", "probes"]],
+    eval: (p) => {
+      const probes = searchProbes(P(p, "n", 32), P(p, "collide", 0));
+      return { val: probes, probes };
+    }
+  }),
+  "graph-trav": (spec) => algebraic(spec, {
+    equation: "BFS distance on a path plus p-controlled chords",
+    assumptions: "CLRS BFS. Nodes are capped at 48. Chord i\u2014i+2 exists for the first floor(p(n\u22122)) vertices.",
+    rows: [["dist", "dist"]],
+    eval: (p) => {
+      const dist = bfsDist(P(p, "n", 10), P(p, "p", 0));
+      return { val: dist, dist };
+    }
+  }),
+  shortest: (spec) => algebraic(spec, {
+    equation: "Dijkstra on a path of weight wSpread",
+    assumptions: "CLRS Dijkstra. Nonnegative weights. Distance to the last node is (n\u22121)\xB7w, computed by the algorithm.",
+    rows: [["dist", "dist"]],
+    eval: (p) => {
+      const dist = dijkstraDist(P(p, "n", 10), P(p, "wSpread", 1));
+      return { val: dist, dist };
+    }
+  }),
+  mst: (spec) => algebraic(spec, {
+    equation: "Kruskal weight",
+    assumptions: "CLRS Kruskal. Path edges weigh 3. Chords i\u2014i+2 weigh 1 for the first floor(p(n\u22122)) indices. n\u226440.",
+    rows: [["weight", "weight"]],
+    eval: (p) => {
+      const weight = mstWeight(P(p, "n", 12), P(p, "p", 0));
+      return { val: weight, weight };
+    }
+  }),
+  "string-match": (spec) => algebraic(spec, {
+    equation: "KMP comparison count",
+    assumptions: "CLRS KMP. Pattern is a\u2026ab of length m. Text is a\u2026a of length n. Lengths are capped.",
+    rows: [["comps", "comps"]],
+    eval: (p) => {
+      const comps = kmpComparisons(P(p, "m", 4), P(p, "n", 50));
+      return { val: comps, comps };
+    }
+  }),
+  dp: (spec) => algebraic(spec, {
+    equation: "0/1 knapsack",
+    assumptions: "CLRS. Item i has weight (i mod 5)+1 and value (i mod 3)+1. n\u226432, capacity\u226480.",
+    rows: [["value", "value"]],
+    eval: (p) => {
+      const value = knapsack(P(p, "n", 8), P(p, "cap", 10));
+      return { val: value, value };
+    }
+  }),
+  "tree-ds": (spec) => algebraic(spec, {
+    equation: "h_BST=n\u22121, h_AVL=\u2308log2(n+1)\u2309",
+    assumptions: "Sequential insertion degenerates a BST. AVL height is the balanced bound. B-tree minimum degree is `order` (CLRS).",
+    rows: [["h_BST", "hBst"], ["h_AVL", "hAvl"], ["h_B", "hB"]],
+    eval: (p) => {
+      const h = treeHeights(P(p, "n", 20), P(p, "order", 2));
+      return { val: h.hAvl, ...h };
+    }
+  }),
+  hashtable: (spec) => algebraic(spec, {
+    equation: "E[probes]=1+\u03B1/2",
+    assumptions: "CLRS chaining, successful search. \u03B1 is the load knob. Keys=\u03B1\xB7capacity.",
+    rows: [["E", "probes"], ["keys", "keys"]],
+    eval: (p) => {
+      const cap = Math.max(0, P(p, "cap", 16));
+      const load = Math.max(0, P(p, "load", 0));
+      return { val: 1 + load / 2, probes: 1 + load / 2, keys: load * cap };
+    }
+  }),
+  uf: (spec) => algebraic(spec, {
+    equation: "union-by-rank with path compression",
+    assumptions: "CLRS. Unions join i with i+1. The readout is the parent-access count.",
+    rows: [["ops", "ops"]],
+    eval: (p) => {
+      const ops = ufOps(P(p, "n", 32));
+      return { val: ops, ops };
+    }
+  }),
+  heap: (spec) => algebraic(spec, {
+    equation: "build-heap comparisons",
+    assumptions: "CLRS sift-down heapify of n, n\u22121, \u2026, 1. n\u2264300.",
+    rows: [["comps", "comps"]],
+    eval: (p) => {
+      const comps = heapComps(P(p, "n", 20));
+      return { val: comps, comps };
+    }
+  }),
+  segtree: (spec) => algebraic(spec, {
+    equation: "point-query depth = \u2308log2 n\u2309",
+    assumptions: "CLRS segment tree. A point query walks one root-to-leaf path.",
+    rows: [["depth", "depth"]],
+    eval: (p) => {
+      const n = Math.max(1, P(p, "n", 2));
+      const depth = Math.ceil(Math.log2(n));
+      return { val: depth, depth };
+    }
+  }),
+  fa: (spec) => algebraic(spec, {
+    equation: "|\u03B4|=|Q|\xB7|\u03A3|",
+    assumptions: "Complete DFA. Hopcroft, Motwani, Ullman.",
+    rows: [["transitions", "transitions"]],
+    eval: (p) => {
+      const transitions = Math.round(P(p, "states", 1)) * Math.round(P(p, "alpha", 1));
+      return { val: transitions, transitions };
+    }
+  }),
+  pda: (spec) => algebraic(spec, {
+    equation: "|\u03B4| bound = |Q|\xB7|\u0393|\xB7|\u03A3|, |\u03A3|=2",
+    assumptions: "Upper bound on a complete PDA transition relation. Not a particular grammar.",
+    rows: [["bound", "bound"]],
+    eval: (p) => {
+      const bound = Math.round(P(p, "states", 1)) * Math.round(P(p, "stackA", 1)) * 2;
+      return { val: bound, bound };
+    }
+  }),
+  tm: (spec) => algebraic(spec, {
+    equation: "|Q|\xB7|\u0393|",
+    assumptions: "Sipser. Count of state/symbol pairs, not a universal simulator.",
+    rows: [["pairs", "pairs"]],
+    eval: (p) => {
+      const pairs = Math.round(P(p, "states", 1)) * Math.round(P(p, "alpha", 1));
+      return { val: pairs, pairs };
+    }
+  }),
+  regex: (spec) => algebraic(spec, {
+    equation: "Thompson NFA states \u2248 2\xB7len+2\xB7complexity",
+    assumptions: "Size of a Thompson NFA for `complexity` alternations plus a literal of length `len`. Hopcroft.",
+    rows: [["states", "states"]],
+    eval: (p) => {
+      const states = 2 * Math.round(P(p, "len", 1)) + 2 * Math.round(P(p, "complexity", 1));
+      return { val: states, states };
+    }
+  }),
+  grammar: (spec) => algebraic(spec, {
+    equation: "yield=min(steps, size)",
+    assumptions: "A grammar whose productions are each used at most once. The yield grows by one terminal per used production.",
+    rows: [["yield", "yield"]],
+    eval: (p) => {
+      const yieldLen = Math.min(Math.max(0, P(p, "steps", 0)), Math.max(0, P(p, "size", 0)));
+      return { val: yieldLen, yield: yieldLen };
+    }
+  }),
+  computability: (spec) => algebraic(spec, {
+    equation: "counter halts in `input` steps",
+    assumptions: "Sipser. This is a total counter machine. It does not decide the halting problem. encoding selects a G\xF6del convention index and is reported as that index.",
+    rows: [["steps", "steps"], ["encoding", "encoding"]],
+    eval: (p) => ({
+      val: P(p, "input", 0),
+      steps: P(p, "input", 0),
+      encoding: P(p, "encoding", 0)
+    })
+  }),
+  complexity: (spec) => algebraic(spec, {
+    equation: "log2(n!) via Stirling",
+    assumptions: "CLRS comparison-sort decision-tree lower bound. Stirling series through the \xBD log term.",
+    rows: [["bound", "bound"]],
+    eval: (p) => {
+      const n = Math.max(1, P(p, "n", 2));
+      const bound = n < 2 ? 0 : (n * Math.log(n) - n + 0.5 * Math.log(2 * Math.PI * n)) / Math.LN2;
+      return { val: bound, bound };
+    }
+  }),
+  ca: (spec) => algebraic(spec, {
+    equation: "elementary CA rule",
+    assumptions: "Wolfram. Width 24, eight steps, periodic boundaries. seed sets the initial bits.",
+    initial: ["seed"],
+    rows: [["pop", "pop"]],
+    eval: (p) => {
+      const pop = caPopulation(P(p, "rule", 0), P(p, "seed", 1));
+      return { val: pop, pop };
+    }
+  }),
+  "ca-app": (spec) => algebraic(spec, {
+    equation: "1D sandpile topples",
+    assumptions: "Height above thresh sends one grain to each neighbor. The first floor(p\xB716) sites start at threshold.",
+    rows: [["topples", "topples"]],
+    eval: (p) => {
+      const topples = sandTopples(P(p, "p", 0), P(p, "thresh", 2));
+      return { val: topples, topples };
+    }
+  }),
+  "linear-model": (spec) => algebraic(spec, {
+    equation: "\u03B2=(\u03A3 x y)/(\u03A3 x\xB2+\u03BB); one GD step \u03B2=lr\xB7mean(x y)",
+    assumptions: "Design x=1..8, y=2x. Ridge has no intercept. One gradient step starts at \u03B2=0. Not a fitted dataset.",
+    rows: [["\u03B2_ridge", "ridge"], ["\u03B2_gd", "gd"]],
+    eval: (p) => {
+      let sxx = 0;
+      let sxy = 0;
+      for (let i = 1; i <= 8; i += 1) {
+        sxx += i * i;
+        sxy += i * (2 * i);
+      }
+      const reg = Math.max(0, P(p, "reg", 0));
+      const lr = P(p, "lr", 0.1);
+      const ridge = sxy / (sxx + reg);
+      const gd = lr * (sxy / 8);
+      return { val: ridge, ridge, gd };
+    }
+  }),
+  "tree-model": (spec) => algebraic(spec, {
+    equation: "leaves=trees\xB7min(2^{depth}, n_rows)",
+    assumptions: "Capacity of an ensemble, not an accuracy. n_rows=max(2, round(8\xB7sample)). Depth is capped at 8 in the leaf count.",
+    rows: [["leaves", "leaves"]],
+    eval: (p) => {
+      const trees = Math.max(1, Math.round(P(p, "trees", 1)));
+      const depth = Math.max(1, Math.round(P(p, "depth", 1)));
+      const rows = Math.max(2, Math.round(8 * clamp(P(p, "sample", 1), 0, 1)));
+      const leaves = trees * Math.min(2 ** Math.min(depth, 8), rows);
+      return { val: leaves, leaves };
+    }
+  }),
+  kernel: (spec) => algebraic(spec, {
+    equation: "k=exp(\u2212\u03B3 \u2016x\u2212y\u2016\xB2), \u2016x\u2212y\u2016=1",
+    assumptions: "RBF kernel between two stated points a unit apart. C is the SVM box constraint. Bishop / Sch\xF6lkopf.",
+    rows: [["k", "k"], ["C", "C"]],
+    eval: (p) => {
+      const gamma2 = P(p, "gamma", 1);
+      const Cbox = P(p, "C", 1);
+      const k = Math.exp(-gamma2);
+      return { val: k, k, C: Cbox };
+    }
+  }),
+  cluster: (spec) => algebraic(spec, {
+    equation: "Lloyd k-means inertia",
+    assumptions: "Eight fixed 1D points. metric 0 is squared distance, metric\u22651 is absolute distance with a median update.",
+    rows: [["inertia", "inertia"]],
+    eval: (p) => {
+      const inertia = kmeansInertia(P(p, "k", 2), P(p, "metric", 0));
+      return { val: inertia, inertia };
+    }
+  }),
+  dimred: (spec) => algebraic(spec, {
+    equation: "PCA retained variance",
+    assumptions: "2\xD72 covariance of a stated cloud. k\u22652 keeps both components. nn is the sample count. t-SNE is not computed.",
+    rows: [["fraction", "fraction"]],
+    eval: (p) => {
+      const fraction = pcaFraction(P(p, "k", 2), P(p, "nn", 10));
+      return { val: fraction, fraction };
+    }
+  }),
+  nn: (spec) => algebraic(spec, {
+    equation: "a \u2190 act(0.1\xB7width\xB7a), input 1",
+    assumptions: "Identical weights 0.1. act 0 ReLU, 1 tanh, 2 sigmoid, else linear. Not a trained model.",
+    rows: [["y", "y"]],
+    eval: (p) => {
+      const y = nnForward(P(p, "layers", 1), P(p, "width", 4), P(p, "act", 0));
+      return { val: y, y };
+    }
+  }),
+  conv: (spec) => algebraic(spec, {
+    equation: "MACs=L_out\xB7k\xB7channels, L_out=\u230A(8\u2212k)/stride\u230B+1",
+    assumptions: "Valid convolution of a length-8 input. No feature values are invented.",
+    rows: [["MACs", "macs"]],
+    eval: (p) => {
+      const k = Math.max(1, Math.round(P(p, "k", 1)));
+      const stride = Math.max(1, Math.round(P(p, "stride", 1)));
+      const ch = Math.max(1, Math.round(P(p, "ch", 1)));
+      const out = Math.max(0, Math.floor((8 - k) / stride) + 1);
+      const macs = out * k * ch;
+      return { val: macs, macs };
+    }
+  }),
+  attention: (spec) => algebraic(spec, {
+    equation: "softmax(q\xB7k/\u221Ad_k)",
+    assumptions: "Vaswani et al. 2017. Two tokens, scores \u221Ad_k and 0. Parameter count is heads\xB7d_k.",
+    rows: [["w0", "w0"], ["params", "params"]],
+    eval: (p) => {
+      const dk = Math.max(1, P(p, "dk", 1));
+      const s0 = Math.sqrt(dk);
+      const e0 = Math.exp(s0 - s0);
+      const e1 = Math.exp(0 - s0);
+      const w0 = e0 / (e0 + e1);
+      const params = Math.max(1, Math.round(P(p, "heads", 1))) * dk;
+      return { val: w0, w0, params };
+    }
+  }),
+  rl: (spec) => algebraic(spec, {
+    equation: "V=1/(1\u2212\u03B3)",
+    assumptions: "Sutton & Barto. One-state continuing task with reward 1. One TD step from 0 is the learning rate.",
+    rows: [["V", "V"], ["td", "td"]],
+    eval: (p) => {
+      const gamma2 = clamp(P(p, "gamma", 0.9), 0, 0.999999);
+      const V = 1 / (1 - gamma2);
+      const td = P(p, "lr", 0);
+      return { val: V, V, td };
+    }
+  }),
+  "opt-algo": (spec) => algebraic(spec, {
+    equation: "GD on f=x\xB2/2 with momentum",
+    assumptions: "Eight steps from x=1. Velocity update v\u2190mom\xB7v+\u2207f, x\u2190x\u2212lr\xB7v.",
+    rows: [["x", "x"]],
+    eval: (p) => {
+      let x = 1;
+      let v = 0;
+      const lr = P(p, "lr", 0.1);
+      const mom = clamp(P(p, "mom", 0), 0, 0.999);
+      for (let i = 0; i < 8; i += 1) {
+        v = mom * v + x;
+        x -= lr * v;
+        if (!Number.isFinite(x)) {
+          x = 0;
+          break;
+        }
+        x = clamp(x, -1e6, 1e6);
+      }
+      return { val: x, x };
+    }
+  }),
+  evo: (spec) => algebraic(spec, {
+    equation: "deterministic \xB1mut/i trials on x\xB2",
+    assumptions: "Not a random GA. Offspring are accepted only when the square decreases. Trial count is pop/5, at most 40.",
+    rows: [["f", "f"]],
+    eval: (p) => {
+      let x = 1;
+      let f = 1;
+      const mut = Math.max(0, P(p, "mut", 0));
+      const trials = Math.max(1, Math.min(40, Math.round(P(p, "pop", 20) / 5)));
+      for (let i = 1; i <= trials; i += 1) {
+        const step = mut / i;
+        for (const cand of [x + step, x - step]) {
+          const fc = cand * cand;
+          if (fc < f) {
+            f = fc;
+            x = cand;
+          }
+        }
+      }
+      return { val: f, f };
+    }
+  }),
+  pgm: (spec) => algebraic(spec, {
+    equation: "P=c^{n\u22121}, c=\u03BB/(1+|\u03BB|)",
+    assumptions: "Koller & Friedman chain rule for a chain that copies its parent with probability c. \u03BB is the params knob.",
+    rows: [["P", "prob"]],
+    eval: (p) => {
+      const nodes = Math.max(1, Math.round(P(p, "nodes", 2)));
+      const lam = P(p, "params", 0.5);
+      const c = Math.abs(lam) / (1 + Math.abs(lam));
+      const prob = c ** Math.max(0, nodes - 1);
+      return { val: prob, prob };
+    }
+  }),
+  "classical-cipher": (spec) => algebraic(spec, {
+    equation: "shift=keyspace mod 26; bits=log2(keyspace)",
+    assumptions: "Caesar shift on a 26-letter alphabet. The bit count is the key-space logarithm, not an attack.",
+    rows: [["shift", "shift"], ["bits", "bits"]],
+    eval: (p) => {
+      const keyspace = Math.max(1, P(p, "keyspace", 26));
+      return { val: Math.log2(keyspace), shift: Math.round(keyspace) % 26, bits: Math.log2(keyspace) };
+    }
+  }),
+  "sym-enc": (spec) => algebraic(spec, {
+    equation: "AES-128/192/256 rounds = keyBits/32+6",
+    assumptions: "FIPS-197 round count only when the key size is 128, 192, or 256. Other sizes report 0. No ciphertext is produced. mode is ECB/CBC/CTR as an index.",
+    rows: [["rounds", "rounds"], ["mode", "mode"]],
+    eval: (p) => {
+      const bits = Math.round(P(p, "keyBits", 128));
+      const rounds = bits === 128 || bits === 192 || bits === 256 ? bits / 32 + 6 : 0;
+      return { val: rounds, rounds, mode: P(p, "mode", 0) };
+    }
+  }),
+  pubkey: (spec) => algebraic(spec, {
+    equation: "c=m^e mod n, toy primes",
+    assumptions: "Classroom RSA. Primes are the largest primes at most 2^{k} and the next lower prime, k=clamp(bits/4,8,16). e=65537, m=42. Not a secure key.",
+    rows: [["c", "c"], ["n", "n"]],
+    eval: (p) => {
+      const bits = P(p, "bits", 64);
+      const k = clamp(Math.round(bits / 4), 8, 16);
+      const hi = primeAtMost(2 ** k);
+      const lo = primeAtMost(hi - 1);
+      const n = hi * lo;
+      const c = modPow(42, 65537, n);
+      return { val: c, c, n };
+    }
+  }),
+  hash: (spec) => algebraic(spec, {
+    equation: "FNV-1a 32-bit of len bytes 0x61",
+    assumptions: "Not MD5 or SHA. Public-domain FNV-1a of a repeated letter.",
+    rows: [["h", "h"]],
+    eval: (p) => {
+      const h = fnv1a(P(p, "len", 16), 97);
+      return { val: h, h };
+    }
+  }),
+  mac: (spec) => algebraic(spec, {
+    equation: "FNV-1a tag of `msg` bytes set to key mod 256",
+    assumptions: "A teaching tag, not HMAC. Katz & Lindell discuss MAC length; this readout is only the FNV tag.",
+    rows: [["tag", "tag"]],
+    eval: (p) => {
+      const tag = fnv1a(P(p, "msg", 1), Math.round(P(p, "key", 0)));
+      return { val: tag, tag };
+    }
+  }),
+  "ecc-code": (spec) => algebraic(spec, {
+    equation: "Hamming n=2^m\u22121, m=K",
+    assumptions: "Binary Hamming code with m parity bits. The rate knob is compared with k/n, k=n\u2212m.",
+    rows: [["n", "n"], ["gap", "gap"]],
+    eval: (p) => {
+      const m = clamp(Math.round(P(p, "K", 3)), 2, 12);
+      const n = 2 ** m - 1;
+      const k = n - m;
+      const rateH = k / n;
+      const gap = Math.abs(P(p, "rate", 0) - rateH);
+      return { val: n, n, gap };
+    }
+  }),
+  infotheory: (spec) => algebraic(spec, {
+    equation: "H=\u2212p log2 p\u2212(1\u2212p) log2(1\u2212p); C=\xBD log2(1+snr)",
+    assumptions: "Cover & Thomas. Binary entropy. Real AWGN spectral efficiency at the stated SNR in dB, bandwidth 1 Hz.",
+    rows: [["H", "H", "bit"], ["C", "C", "bit"]],
+    eval: (p) => {
+      const H = binaryEntropy2(P(p, "p", 0.5));
+      const snr = 10 ** (P(p, "snr", 0) / 10);
+      const cap = 0.5 * Math.log2(1 + snr);
+      return { val: H, H, C: cap };
+    }
+  }),
+  compress: (spec) => algebraic(spec, {
+    equation: "H \u2264 L < H+1",
+    assumptions: "Zipf masses \u221D1/i. Huffman redundancy is less than 1 bit (Cover & Thomas). n=min(dict,512).",
+    rows: [["H", "H", "bit"], ["L_hi", "Lhi", "bit"]],
+    eval: (p) => {
+      const H = zipfEntropy(P(p, "dict", 16));
+      return { val: H, H, Lhi: H + 1 };
+    }
+  }),
+  zkp: (spec) => algebraic(spec, {
+    equation: "soundness error = 2^{\u2212rounds}",
+    assumptions: "Honest completeness 1 and a public one-bit challenge. Not a production proof system. Goldwasser, Micali, Rackoff.",
+    rows: [["\u03B5", "eps"]],
+    eval: (p) => {
+      const rounds = Math.max(0, Math.round(P(p, "rounds", 1)));
+      const eps = 2 ** -rounds;
+      return { val: eps, eps };
+    }
+  }),
+  sched: (spec) => algebraic(spec, {
+    equation: "FCFS average wait, 4 jobs",
+    assumptions: "Job i arrives at i\xB7arrival and runs for `burst`. Silberschatz.",
+    rows: [["wait", "wait"]],
+    eval: (p) => {
+      const wait = fcfsWait(P(p, "arrival", 0), P(p, "burst", 1));
+      return { val: wait, wait };
+    }
+  }),
+  mem: (spec) => algebraic(spec, {
+    equation: "compulsory faults = \u2308refs / page\u2309",
+    assumptions: "One sequential pass. Each new page faults once. page is the page size in address units.",
+    rows: [["faults", "faults"]],
+    eval: (p) => {
+      const page = pos(P(p, "page", 1), 1e-9);
+      const refs = Math.max(0, P(p, "refs", 0));
+      const faults = Math.ceil(refs / page);
+      return { val: faults, faults };
+    }
+  }),
+  deadlock: (spec) => algebraic(spec, {
+    equation: "Banker's algorithm, need_i=nProc, available=nRes",
+    assumptions: "Allocation is zero. Each process still needs nProc units of one resource type. Safe when nRes\u2265nProc.",
+    rows: [["safe", "safe"]],
+    eval: (p) => {
+      const nProc = Math.max(1, Math.round(P(p, "nProc", 1)));
+      const nRes = Math.max(0, Math.round(P(p, "nRes", 0)));
+      const safe = nRes >= nProc ? 1 : 0;
+      return { val: safe, safe };
+    }
+  }),
+  fs: (spec) => algebraic(spec, {
+    equation: "blocks=\u2308fsize/block\u2309",
+    assumptions: "inode direct block count is 12. indirect=1 when more blocks are required. Silberschatz.",
+    rows: [["blocks", "blocks"], ["indirect", "indirect"]],
+    eval: (p) => {
+      const block = pos(P(p, "block", 1), 1e-9);
+      const blocks = Math.ceil(Math.max(0, P(p, "fsize", 0)) / block);
+      return { val: blocks, blocks, indirect: blocks > 12 ? 1 : 0 };
+    }
+  }),
+  netproto: (spec) => algebraic(spec, {
+    equation: "min(bw, (MSS/RTT) \u221A(3/(2p)))",
+    assumptions: "Mathis et al. 1997, MSS=1460 bytes, bw in Mbps, rtt in ms. Zero loss returns bw.",
+    rows: [["rate", "rate", "Mbps"]],
+    eval: (p) => {
+      const rate = tcpMbps(P(p, "bw", 1), P(p, "rtt", 20), P(p, "loss", 0));
+      return { val: rate, rate };
+    }
+  }),
+  routing: (spec) => algebraic(spec, {
+    equation: "Dijkstra distance (n\u22121)\xB7cost",
+    assumptions: "Path graph, every hop weighs `cost`. CLRS.",
+    rows: [["dist", "dist"]],
+    eval: (p) => {
+      const dist = dijkstraDist(P(p, "n", 6), P(p, "cost", 1));
+      return { val: dist, dist };
+    }
+  }),
+  queueing: (spec) => algebraic(spec, {
+    equation: "L=\u03C1/(1\u2212\u03C1), \u03C1=\u03BB/\u03BC",
+    assumptions: "M/M/1, Gross & Harris. L is undefined for \u03C1\u22651 and is reported as 0 with stable=0.",
+    rows: [["L", "L"], ["\u03C1", "rho"], ["stable", "stable"]],
+    eval: (p) => {
+      const lam = Math.max(0, P(p, "lam", 0));
+      const mu = pos(P(p, "mu", 1), 1e-12);
+      const rho = lam / mu;
+      const stable = rho < 1 ? 1 : 0;
+      const L = stable ? rho / (1 - rho) : 0;
+      return { val: L, L, rho, stable };
+    }
+  }),
+  consensus: (spec) => algebraic(spec, {
+    equation: "quorum=\u230An/2\u230B+1; Byzantine f=\u230A(n\u22121)/3\u230B",
+    assumptions: "fault 0 or 1 uses crash tolerance \u230A(n\u22121)/2\u230B (Raft majority). fault\u22652 uses Byzantine \u230A(n\u22121)/3\u230B (Lamport).",
+    rows: [["quorum", "quorum"], ["f_max", "fMax"]],
+    eval: (p) => {
+      const n = Math.max(1, Math.round(P(p, "n", 3)));
+      const fault = P(p, "fault", 0);
+      const quorum = Math.floor(n / 2) + 1;
+      const fMax = fault >= 2 ? Math.floor((n - 1) / 3) : Math.floor((n - 1) / 2);
+      return { val: quorum, quorum, fMax };
+    }
+  }),
+  gates: (spec) => algebraic(spec, {
+    equation: "AND, OR, XOR of the low bits of combo",
+    assumptions: "Mano. combo is a bit field. The readout is the XOR of bits 0 and 1.",
+    rows: [["xor", "xor"], ["and", "andv"], ["or", "orv"]],
+    eval: (p) => {
+      const combo = Math.round(P(p, "combo", 0));
+      const a = combo & 1;
+      const b = combo >> 1 & 1;
+      return { val: a ^ b, xor: a ^ b, andv: a & b, orv: a | b };
+    }
+  }),
+  combo: (spec) => algebraic(spec, {
+    equation: "(5+3) mod 2^{width}; select bits=\u2308log2(inputs)\u2309",
+    assumptions: "Width-masked sum of the constants 5 and 3. MUX select width is the ceiling log of the input count.",
+    rows: [["sum", "sum"], ["sel", "sel"]],
+    eval: (p) => {
+      const width = clamp(Math.round(P(p, "width", 4)), 1, 30);
+      const inputs = Math.max(1, Math.round(P(p, "inputs", 2)));
+      const sum = (5 + 3) % 2 ** width;
+      const sel = Math.ceil(Math.log2(inputs));
+      return { val: sum, sum, sel };
+    }
+  }),
+  seq: (spec) => algebraic(spec, {
+    equation: "Q=init",
+    assumptions: "D flip-flop holding the initial bit. Mano.",
+    initial: ["init"],
+    rows: [["Q", "Q"]],
+    eval: (p) => {
+      const Q = Math.round(P(p, "init", 0)) ? 1 : 0;
+      return { val: Q, Q };
+    }
+  }),
+  reg: (spec) => algebraic(spec, {
+    equation: "states=2^{width}",
+    assumptions: "Width is capped at 40 so the integer stays inside the mantissa.",
+    rows: [["states", "states"]],
+    eval: (p) => {
+      const width = clamp(Math.round(P(p, "width", 8)), 0, 40);
+      const states = 2 ** width;
+      return { val: states, states };
+    }
+  }),
+  counter: (spec) => algebraic(spec, {
+    equation: "step \u2261 dir (mod modulus)",
+    assumptions: "One count step. dir is the direction knob. The modulus is the design parameter.",
+    rows: [["mod", "mod"], ["step", "step"]],
+    eval: (p) => {
+      const mod = Math.max(1, Math.round(P(p, "mod", 2)));
+      const dir = Math.round(P(p, "dir", 1));
+      const step = (dir % mod + mod) % mod;
+      return { val: mod, mod, step };
+    }
+  }),
+  "fsm-ce": (spec) => algebraic(spec, {
+    equation: "transitions=states\xB7alphabet",
+    assumptions: "Complete Moore machine. Hopcroft.",
+    rows: [["transitions", "transitions"]],
+    eval: (p) => {
+      const transitions = Math.round(P(p, "states", 1)) * Math.round(P(p, "alpha", 1));
+      return { val: transitions, transitions };
+    }
+  }),
+  minimize: (spec) => algebraic(spec, {
+    equation: "onset=min(minterms, 2^{vars})",
+    assumptions: "The onset is the first minterms of a vars-bit space, clipped to the cube. Quine\u2013McCluskey is not run above that count.",
+    rows: [["onset", "onset"]],
+    eval: (p) => {
+      const vars = clamp(Math.round(P(p, "vars", 2)), 0, 12);
+      const onset = Math.min(Math.max(0, Math.round(P(p, "minterms", 0))), 2 ** vars);
+      return { val: onset, onset };
+    }
+  }),
+  pld: (spec) => algebraic(spec, {
+    equation: "connections=inputs\xB7products",
+    assumptions: "PLA crosspoint count. Mano.",
+    rows: [["connections", "connections"]],
+    eval: (p) => {
+      const connections = Math.round(P(p, "inputs", 1)) * Math.round(P(p, "products", 1));
+      return { val: connections, connections };
+    }
+  }),
+  isa: (spec) => algebraic(spec, {
+    equation: "cycles=nInst, CPI=1",
+    assumptions: "Single-cycle RISC. Addressing-mode count is the addr knob and does not add cycles. Hennessy & Patterson.",
+    rows: [["cycles", "cycles"], ["modes", "modes"]],
+    eval: (p) => ({
+      val: P(p, "nInst", 0),
+      cycles: P(p, "nInst", 0),
+      modes: P(p, "addr", 0)
+    })
+  }),
+  datapath: (spec) => algebraic(spec, {
+    equation: "bits=width, controls=ctrl",
+    assumptions: "The datapath width and the control-signal count are the catalog inputs.",
+    rows: [["bits", "bits"], ["ctrl", "ctrl"]],
+    eval: (p) => ({
+      val: P(p, "width", 0),
+      bits: P(p, "width", 0),
+      ctrl: P(p, "ctrl", 0)
+    })
+  }),
+  pipeline: (spec) => algebraic(spec, {
+    equation: "CPI=1/issue, latency=stages",
+    assumptions: "Ideal pipeline, no hazards. Hennessy & Patterson.",
+    rows: [["CPI", "cpi"], ["latency", "latency"]],
+    eval: (p) => {
+      const issue = pos(P(p, "issue", 1), 1e-9);
+      const latency = P(p, "stages", 1);
+      return { val: 1 / issue, cpi: 1 / issue, latency };
+    }
+  }),
+  cache: (spec) => algebraic(spec, {
+    equation: "LRU hit rate on a sequential scan",
+    assumptions: "Hennessy & Patterson. Capacity, block, and associativity define the sets. The scan is at most 2048 references.",
+    rows: [["hit", "hit"]],
+    eval: (p) => {
+      const hit = cacheHitRate(P(p, "cap", 16), P(p, "block", 4), P(p, "assoc", 1));
+      return { val: hit, hit };
+    }
+  }),
+  vmem: (spec) => algebraic(spec, {
+    equation: "TLB reach=entries\xB7page",
+    assumptions: "Hennessy & Patterson. page and tlb use the catalog units.",
+    rows: [["reach", "reach"]],
+    eval: (p) => {
+      const reach = P(p, "tlb", 0) * P(p, "page", 0);
+      return { val: reach, reach };
+    }
+  }),
+  branch: (spec) => algebraic(spec, {
+    equation: "2-bit counter mispredict rate",
+    assumptions: "Smith 2-bit counters on 64 phase-shifted loops. hist is the taken-run length. A table smaller than 64 aliases PCs.",
+    rows: [["mis", "mis"]],
+    eval: (p) => {
+      const mis = branchMisrate(P(p, "hist", 2), P(p, "table", 64));
+      return { val: mis, mis };
+    }
+  }),
+  bus: (spec) => algebraic(spec, {
+    equation: "share=bw/masters",
+    assumptions: "Equal share of a stated bandwidth.",
+    rows: [["share", "share"]],
+    eval: (p) => {
+      const masters = pos(P(p, "masters", 1), 1e-9);
+      const share = P(p, "bw", 0) / masters;
+      return { val: share, share };
+    }
+  }),
+  memhier: (spec) => algebraic(spec, {
+    equation: "t_stream=capacity/bandwidth, t_rand=latency",
+    assumptions: "Streaming time is size/bandwidth. Random latency is the lat knob.",
+    rows: [["t_stream", "tStream"], ["t_rand", "tRand"]],
+    eval: (p) => {
+      const tStream = P(p, "cap", 0) / pos(P(p, "bw", 1), 1e-9);
+      const tRand = P(p, "lat", 0);
+      return { val: tRand, tStream, tRand };
+    }
+  }),
+  multicore: (spec) => algebraic(spec, {
+    equation: "Amdahl S=1/(0.05+0.95/cores); protocol state count",
+    assumptions: "Stated parallel fraction 0.95, not a measured workload. proto 0 MSI (3), 1 MESI (4), 2 MOESI (5), else MESIF (5).",
+    rows: [["S", "S"], ["states", "states"]],
+    eval: (p) => {
+      const cores = pos(P(p, "cores", 1), 1e-9);
+      const proto = Math.round(P(p, "proto", 0));
+      const table = [3, 4, 5, 5];
+      const states = table[clamp(proto, 0, 3)];
+      const S2 = 1 / (0.05 + 0.95 / cores);
+      return { val: S2, S: S2, states };
+    }
+  }),
+  gpio: (spec) => algebraic(spec, {
+    equation: "mask=1<<priority, sense=trigger",
+    assumptions: "Priority is clamped to 0..15. trig 0 is level, 1 is edge.",
+    rows: [["mask", "mask"], ["sense", "sense"]],
+    eval: (p) => {
+      const prio = clamp(Math.round(P(p, "prio", 0)), 0, 15);
+      return { val: 1 << prio, mask: 1 << prio, sense: Math.round(P(p, "trig", 0)) };
+    }
+  }),
+  pwm: (spec) => algebraic(spec, {
+    equation: "f=f_clk/(prescale\xB7period), f_clk=1 MHz",
+    assumptions: "Stated timer clock of 1 MHz. The period knob is the timer period register.",
+    rows: [["f", "f", "Hz"]],
+    eval: (p) => {
+      const prescale = pos(P(p, "prescale", 1), 1e-9);
+      const period = pos(P(p, "period", 1), 1e-9);
+      const f = 1e6 / (prescale * period);
+      return { val: f, f };
+    }
+  }),
+  adc: (spec) => algebraic(spec, {
+    equation: "SQNR=6.0206 N+1.7609 dB",
+    assumptions: "Full-scale sine quantization. Nyquist frequency is fs/2. Oppenheim & Schafer.",
+    rows: [["SQNR", "sqnr", "dB"], ["f_N", "fN", "Hz"]],
+    eval: (p) => {
+      const bits = P(p, "bits", 8);
+      const sqnr = 6.0206 * bits + 1.7609;
+      const fN = P(p, "fs", 0) / 2;
+      return { val: sqnr, sqnr, fN };
+    }
+  }),
+  serial: (spec) => algebraic(spec, {
+    equation: "byte rate=baud/frame bits",
+    assumptions: "Frame 0 is 8N1 (10 bits), 1 is 8E1 (11), 2 is 8N2 (11), else 8E2 (12).",
+    rows: [["Bps", "bps"], ["bits", "bits"]],
+    eval: (p) => {
+      const frame = clamp(Math.round(P(p, "frame", 0)), 0, 3);
+      const bits = [10, 11, 11, 12][frame];
+      const bps = P(p, "baud", 0) / bits;
+      return { val: bps, bps, bits };
+    }
+  }),
+  dma: (spec) => algebraic(spec, {
+    equation: "beats=size",
+    assumptions: "One beat per unit of the size knob. prio is the channel priority.",
+    rows: [["beats", "beats"], ["prio", "prio"]],
+    eval: (p) => ({
+      val: P(p, "size", 0),
+      beats: P(p, "size", 0),
+      prio: P(p, "prio", 0)
+    })
+  }),
+  wdt: (spec) => algebraic(spec, {
+    equation: "timeout",
+    assumptions: "The timeout knob is the watchdog period. wake is the wake-source index.",
+    rows: [["t", "timeout", "s"], ["wake", "wake"]],
+    eval: (p) => ({
+      val: P(p, "timeout", 0),
+      timeout: P(p, "timeout", 0),
+      wake: P(p, "wake", 0)
+    })
+  }),
+  rtsched: (spec) => algebraic(spec, {
+    equation: "U=exec/period",
+    assumptions: "One task. Liu & Layland: the task is schedulable when U\u22641. RM and EDF agree for one task.",
+    rows: [["U", "U"], ["ok", "ok"]],
+    eval: (p) => {
+      const U = P(p, "exec", 0) / pos(P(p, "period", 1), 1e-9);
+      return { val: U, U, ok: U <= 1 ? 1 : 0 };
+    }
+  }),
+  "irq-nest": (spec) => algebraic(spec, {
+    equation: "depth=levels",
+    assumptions: "Nesting depth is bounded by the priority-level count. rate is the interrupt rate.",
+    rows: [["depth", "depth"], ["rate", "rate"]],
+    eval: (p) => ({
+      val: P(p, "levels", 0),
+      depth: P(p, "levels", 0),
+      rate: P(p, "rate", 0)
+    })
+  }),
+  "sample-quant": (spec) => algebraic(spec, {
+    equation: "SQNR=6.0206 N+1.7609; Nyquist fs\u22652 f0",
+    assumptions: "Same sine quantization formula as the ADC. alias=1 when fs<2 f0.",
+    rows: [["SQNR", "sqnr", "dB"], ["alias", "alias"]],
+    eval: (p) => {
+      const sqnr = 6.0206 * P(p, "N", 8) + 1.7609;
+      const alias = P(p, "fs", 0) < 2 * P(p, "f0", 0) ? 1 : 0;
+      return { val: sqnr, sqnr, alias };
+    }
+  }),
+  fft: (spec) => algebraic(spec, {
+    equation: "|X[k0]|=(N/2)\xB7cg, cg=1, 0.5, 0.54",
+    assumptions: "Bin-centered cosine. Window 0 rectangular, 1 Hann (coherent gain 0.5), else Hamming (0.54). Oppenheim & Schafer.",
+    rows: [["|X|", "mag"]],
+    eval: (p) => {
+      const N = Math.max(1, P(p, "N", 64));
+      const win = Math.round(P(p, "win", 0));
+      const cg = win <= 0 ? 1 : win === 1 ? 0.5 : 0.54;
+      const mag = N / 2 * cg;
+      return { val: mag, mag };
+    }
+  }),
+  filter: (spec) => algebraic(spec, {
+    equation: "|H(f)|=1/\u221A(1+(f/fc)^{2n})",
+    assumptions: "Analog Butterworth magnitude. Evaluated at f=min(0.45, 2 fc). Oppenheim & Schafer.",
+    rows: [["|H|", "H"]],
+    eval: (p) => {
+      const n = Math.max(1, Math.round(P(p, "order", 1)));
+      const fc = pos(P(p, "fc", 0.1), 1e-6);
+      const f = Math.min(0.45, 2 * fc);
+      const H = 1 / Math.sqrt(1 + (f / fc) ** (2 * n));
+      return { val: H, H };
+    }
+  }),
+  mod: (spec) => algebraic(spec, {
+    equation: "P/P_c=1+m\xB2/2",
+    assumptions: "Conventional AM tone. The carrier frequency is reported separately. Stremler / Proakis.",
+    rows: [["P/Pc", "Pr"], ["fc", "fc", "Hz"]],
+    eval: (p) => {
+      const m = P(p, "m", 0);
+      const Pr = 1 + m * m / 2;
+      return { val: Pr, Pr, fc: P(p, "fc", 0) };
+    }
+  }),
+  linecode: (spec) => algebraic(spec, {
+    equation: "line rate=rate/efficiency",
+    assumptions: "Efficiency: NRZ 1, Manchester 1/2, 4B5B 4/5, 8B10B 4/5. code selects the index.",
+    rows: [["line", "line"]],
+    eval: (p) => {
+      const code = clamp(Math.round(P(p, "code", 0)), 0, 3);
+      const eff = [1, 0.5, 0.8, 0.8][code];
+      const line = P(p, "rate", 0) / eff;
+      return { val: line, line };
+    }
+  }),
+  chancode: (spec) => algebraic(spec, {
+    equation: "states=2^{K\u22121}",
+    assumptions: "Binary convolutional encoder. Lin & Costello. rate is the code rate.",
+    rows: [["states", "states"], ["rate", "rate"]],
+    eval: (p) => {
+      const K = Math.max(1, Math.round(P(p, "K", 3)));
+      const states = 2 ** Math.max(0, K - 1);
+      return { val: states, states, rate: P(p, "rate", 0) };
+    }
+  }),
+  equalize: (spec) => algebraic(spec, {
+    equation: "misadjustment\u2248\u03BC\xB7taps/2",
+    assumptions: "Widrow. Unit-power regressor. The factor 1/2 is the standard LMS excess-MSE approximation.",
+    rows: [["M", "M"]],
+    eval: (p) => {
+      const M = P(p, "mu", 0) * Math.max(0, P(p, "taps", 0)) / 2;
+      return { val: M, M };
+    }
+  }),
+  sync: (spec) => algebraic(spec, {
+    equation: "\u03C4=1/bw",
+    assumptions: "First-order loop time constant. jitter is the supplied rms and is not converted into a variance model.",
+    rows: [["\u03C4", "tau"], ["jitter", "jitter"]],
+    eval: (p) => {
+      const tau = 1 / pos(P(p, "bw", 0.01), 1e-9);
+      return { val: tau, tau, jitter: P(p, "jitter", 0) };
+    }
+  }),
+  axial: (spec) => algebraic(spec, {
+    equation: "\u03C3=F/A",
+    assumptions: "Uniform uniaxial stress. Hibbeler.",
+    rows: [["\u03C3", "sigma", "Pa"]],
+    eval: (p) => axialEval(p)
+  }),
+  "beam-bend": (spec) => algebraic(spec, {
+    equation: "M=P L/4, \u03B4=P L\xB3/(48 EI)",
+    assumptions: "Simply supported, center point load, Euler\u2013Bernoulli.",
+    rows: [["M", "M", "N\xB7m"], ["\u03B4", "delta", "m"], ["M/EI", "curvature", "1/m"]],
+    eval: (p) => beamBendEval(p)
+  }),
+  "beam-defl": (spec) => algebraic(spec, {
+    equation: "residual=\u03B4\u2212\u03B8/2 on a unit length",
+    assumptions: "Pure end moment on a beam of length 1: the tip values satisfy \u03B4=\u03B8 L/2. The residual is that check.",
+    rows: [["resid", "residual"], ["\u03B4", "delta"], ["\u03B8", "theta"]],
+    eval: (p) => beamDeflEval(p)
+  }),
+  buckling: (spec) => algebraic(spec, {
+    equation: "Pcr=\u03C0\xB2 EI/L\xB2",
+    assumptions: "Pinned\u2013pinned Euler column. Hibbeler.",
+    rows: [["Pcr", "Pcr", "N"]],
+    eval: (p) => bucklingEval(p)
+  }),
+  torsion: (spec) => algebraic(spec, {
+    equation: "\u03C4=16 T/(\u03C0 d\xB3)",
+    assumptions: "Solid circular shaft. Hibbeler.",
+    rows: [["\u03C4", "tau", "Pa"]],
+    eval: (p) => torsionEval(p)
+  }),
+  combined: (spec) => algebraic(spec, {
+    equation: "\u03C31=\u03C3x/2+\u221A((\u03C3x/2)\xB2+\u03C4\xB2), \u03C3x=N+M, \u03C4=T",
+    assumptions: "Section moduli normalized to 1 in the catalog units.",
+    rows: [["\u03C31", "s1"], ["\u03C3x", "sx"]],
+    eval: (p) => combinedEval(p)
+  }),
+  truss: (spec) => algebraic(spec, {
+    equation: "i=b\u2212(2j\u22123)",
+    assumptions: "Plane-truss Maxwell count. Positive i is indeterminate; negative i is a mechanism.",
+    rows: [["i", "indeterminacy"]],
+    eval: (p) => trussEval(p)
+  }),
+  frame: (spec) => algebraic(spec, {
+    equation: "drift=1/k under a unit load",
+    assumptions: "Stated story stiffness. Aspect ratio is span/story.",
+    rows: [["drift", "drift"], ["aspect", "aspect"]],
+    eval: (p) => frameEval(p)
+  }),
+  "struct-dyn": (spec) => algebraic(spec, {
+    equation: "\u03C9n=\u221A(k/m), \u03B6=c/(2\u221A(km))",
+    assumptions: "Viscously damped SDOF. Chopra / Hibbeler.",
+    rows: [["\u03C9n", "wn", "rad/s"], ["\u03B6", "zeta"]],
+    eval: (p) => sdofEval(p)
+  }),
+  seismic: (spec) => algebraic(spec, {
+    equation: "u_amp=pga/(2\u03B6)",
+    assumptions: "Harmonic base acceleration at resonance. Not a design spectrum. Chopra.",
+    rows: [["amp", "amp"]],
+    eval: (p) => seismicEval(p)
+  }),
+  "pipe-flow": (spec) => algebraic(spec, {
+    equation: "f=64/Re (laminar) or Swamee\u2013Jain",
+    assumptions: "Darcy friction factor. eps is relative roughness \u03B5/D. Laminar below Re=2300.",
+    rows: [["f", "f"]],
+    eval: (p) => darcyEval(p)
+  }),
+  "open-channel": (spec) => algebraic(spec, {
+    equation: "y=(Q n / \u221AS)^{3/5}",
+    assumptions: "SI Manning, unit width, hydraulic radius equal to depth.",
+    rows: [["y", "y", "m"]],
+    eval: (p) => manningEval(p)
+  }),
+  weir: (spec) => algebraic(spec, {
+    equation: "Q=(2/3) b \u221A(2g) H^{3/2}",
+    assumptions: "Ideal sharp-crested weir, Cd=1. b is the opening knob. g=9.81.",
+    rows: [["Q", "Q", "m\xB3/s"]],
+    eval: (p) => weirEval(p)
+  }),
+  "pump-fan": (spec) => algebraic(spec, {
+    equation: "Q/Qref=(rpm/1450)\xB7units, H/Href=(rpm/1450)\xB2",
+    assumptions: "Affinity laws about 1450 rpm. Qref=1 per machine.",
+    rows: [["Q", "Q"], ["H", "H"]],
+    eval: (p) => pumpEval(p)
+  }),
+  hx: (spec) => algebraic(spec, {
+    equation: "UA=U A",
+    assumptions: "Terminal temperatures are not in the catalog, so LMTD is not invented. The conductance is UA.",
+    rows: [["UA", "UA", "W/K"]],
+    eval: (p) => hxEval(p)
+  }),
+  "conv-eng": (spec) => algebraic(spec, {
+    equation: "q=h\xB71 K; Nu=0.664 Re^{1/2} Pr^{1/3}",
+    assumptions: "Same Newton and Blasius relations as the convection family. Incropera.",
+    rows: [["q", "q", "W/m\xB2"], ["h_Bl", "hBl", "W/(m\xB2K)"]],
+    eval: (p) => convEngEval(p)
+  }),
+  "rad-eng": (spec) => algebraic(spec, {
+    equation: "q=\u03B5 \u03C3 T\u2074, F12=1",
+    assumptions: "Infinite parallel plates, view factor 1, enclosure at 0 K. Incropera.",
+    rows: [["q", "q", "W/m\xB2"]],
+    eval: (p) => radEngEval(p)
+  }),
+  "thermo-cycle": (spec) => algebraic(spec, {
+    equation: "\u03B7=1\u2212rp^{(1\u2212\u03B3)/\u03B3}, rp=P/(1 bar), \u03B3=1.4",
+    assumptions: "Ideal-gas Brayton with the low side at 1 bar. Carnot uses Tc=298.15 K. Not a steam table.",
+    rows: [["\u03B7_B", "etaB"], ["\u03B7_C", "etaC"]],
+    eval: (p) => thermoCycleEval(p)
+  }),
+  combustion: (spec) => algebraic(spec, {
+    equation: "excess air=1/\u03C6\u22121",
+    assumptions: "Turns. \u03C6>1 is fuel-rich and the excess-air term is negative. T is the reactant temperature, not an adiabatic flame temperature.",
+    rows: [["\u03C6", "phi"], ["excess", "excess"]],
+    eval: (p) => combustionEval(p)
+  }),
+  "dc-motor": (spec) => algebraic(spec, {
+    equation: "\u03C9=(V\u2212TL Ra)/K, Ra=K=1",
+    assumptions: "Steady separately excited machine in normalized units. Chapman.",
+    rows: [["\u03C9", "omega", "rad/s"], ["I", "I", "A"]],
+    eval: (p) => motorDcEval(p)
+  }),
+  "ind-motor": (spec) => algebraic(spec, {
+    equation: "n_s=120 f/4",
+    assumptions: "Four poles. Voltage is reported and does not set the synchronous speed. Chapman.",
+    rows: [["n_s", "ns", "rpm"], ["V", "V", "V"]],
+    eval: (p) => motorIndEval(p)
+  }),
+  "sync-motor": (spec) => algebraic(spec, {
+    equation: "P_pu=If\xB7sin \u03B4",
+    assumptions: "Per-unit V=Xs=1 and Ea proportional to field current. Chapman.",
+    rows: [["P", "Ppu"]],
+    eval: (p) => motorSyncEval(p)
+  }),
+  transformer: (spec) => algebraic(spec, {
+    equation: "V2/V1=1/a",
+    assumptions: "Ideal transformer. load is the per-unit secondary current and does not change the voltage ratio.",
+    rows: [["V2/V1", "ratio"], ["I_pu", "Ipu"]],
+    eval: (p) => transformerEval(p)
+  }),
+  pe: (spec) => algebraic(spec, {
+    equation: "Vout/Vin=D, \u0394i\u221DD(1\u2212D)/fs",
+    assumptions: "Ideal buck converter. Erickson. Inductance in the ripple factor is 1 H.",
+    rows: [["D", "duty"], ["ripple", "ripple"]],
+    eval: (p) => buckEval(p)
+  }),
+  powerflow: (spec) => algebraic(spec, {
+    equation: "DC power flow, X=0.1 pu",
+    assumptions: "Radial feeder, equal bus injections. Angle is in radians.",
+    rows: [["\u03B8", "theta", "rad"], ["P", "Ptot"]],
+    eval: (p) => powerflowEval(p)
+  }),
+  stability: (spec) => algebraic(spec, {
+    equation: "\u03B4=asin(0.8)+\xBD\xB70.8\xB7t_clear\xB2 during a fault",
+    assumptions: "Classical machine, Pm=0.8, Pe=0 while the fault knob is positive, M=1. fault=0 keeps the pre-fault angle.",
+    rows: [["\u03B4", "delta", "rad"]],
+    eval: (p) => swingEval(p)
+  }),
+  renewable: (spec) => algebraic(spec, {
+    equation: "P_pv=0.2\xB7irr\xB71 m\xB2; P_wind=\xBD\xB71.225\xB7v\xB3\xB70.4",
+    assumptions: "Stated efficiency 0.2 and Cp=0.4. Cp is below the Betz limit 16/27. Not a measured turbine curve.",
+    rows: [["P_pv", "Ppv", "W"], ["P_wind", "Pwind", "W"]],
+    eval: (p) => renewableEval(p)
+  }),
+  storage: (spec) => algebraic(spec, {
+    equation: "hours=E/P",
+    assumptions: "E in kWh and P in kW, so the ratio is hours.",
+    rows: [["t", "hours", "h"]],
+    eval: (p) => storageEval(p)
+  }),
+  reactor: (spec) => algebraic(spec, {
+    equation: "X=k\u03C4/(1+k\u03C4), \u03C4=V/v",
+    assumptions: "Isothermal irreversible first-order reaction. Fogler. Xp is the PFR conversion.",
+    rows: [["X_cstr", "Xc"], ["X_pfr", "Xp"]],
+    eval: (p) => cstrEval(p)
+  }),
+  distill: (spec) => algebraic(spec, {
+    equation: "Nmin=ln[(xD/(1\u2212xD))((1\u2212xB)/xB)]/ln \u03B1",
+    assumptions: "Fenske for \u03B1=2.5, xD=0.95, xB=0.05. feed/N is the relative feed location.",
+    rows: [["feed/N", "feedFrac"], ["Nmin", "Nmin"]],
+    eval: (p) => fenskeEval(p)
+  }),
+  absorb: (spec) => algebraic(spec, {
+    equation: "fraction=A/(1+A), A=L/G",
+    assumptions: "Single equilibrium stage, equilibrium slope m=1. Temperature is recorded and does not change m.",
+    rows: [["abs", "frac"], ["T", "T", "K"]],
+    eval: (p) => absorbEval(p)
+  }),
+  extract: (spec) => algebraic(spec, {
+    equation: "Kremser fraction (S^{N+1}\u2212S)/(S^{N+1}\u22121)",
+    assumptions: "Extraction factor S, distribution ratio 1. At S=1 the fraction is N/(N+1).",
+    rows: [["frac", "frac"]],
+    eval: (p) => extractEval(p)
+  }),
+  hen: (spec) => algebraic(spec, {
+    equation: "UA=Q/\u0394T_min",
+    assumptions: "Pinch conductance scale. Linnhoff. No stream set is invented.",
+    rows: [["UA", "UA"]],
+    eval: (p) => pinchEval(p)
+  }),
+  drying: (spec) => algebraic(spec, {
+    equation: "\u0394p=p_sat(T)(1\u2212RH)",
+    assumptions: "Antoine water constants A=8.07131, B=1730.63, C=233.426, P in mmHg. The fit is for about 1\u2013100 \xB0C.",
+    rows: [["\u0394p", "drive", "mmHg"]],
+    eval: (p) => dryingEval(p)
+  }),
+  fluidbed: (spec) => algebraic(spec, {
+    equation: "Re_mf=\u221A(33.7\xB2+0.0408 Ar)\u221233.7",
+    assumptions: "Wen & Yu 1966. Air and sand \u03C1s=2500 kg/m\xB3. dp is in \u03BCm.",
+    rows: [["Umf", "Umf", "m/s"], ["above", "above"]],
+    eval: (p) => fluidbedEval(p)
+  }),
+  crystal: (spec) => algebraic(spec, {
+    equation: "ln S",
+    assumptions: "Supersaturation ratio. No nucleation prefactor. Mullin.",
+    rows: [["ln S", "lnS"], ["T", "T", "K"]],
+    eval: (p) => crystalEval(p)
+  })
+};
+var sineWarned = /* @__PURE__ */ new Set();
+function warnDecorativeSine(spec) {
+  let debug = false;
+  if (typeof globalThis !== "undefined" && globalThis.DEBUG) debug = true;
+  if (typeof process !== "undefined" && process.env && process.env.DEBUG) debug = true;
+  if (!debug) return;
+  const key = String(spec?.variantOf || spec?.id || "");
+  if (sineWarned.has(key)) return;
+  sineWarned.add(key);
+  console.debug(`[fam] decorative sine fallback for ${key}`);
+}
+function buildFamPhysics(spec) {
+  const of = String(spec?.variantOf || "");
+  const build = BUILDERS[of];
+  if (!build) return null;
+  return build(spec);
+}
+var FAM_PHYSICS_KEYS = Object.keys(BUILDERS);
+
+// js/models/factory.js
+function schemaNum2(label, group, unit, min, max) {
+  return { label, group, unit, min, max };
+}
+function baseMeta2(spec) {
   return {
     id: spec.id,
     name: spec.name,
@@ -5240,7 +8402,7 @@ function variantKnobs(spec) {
   for (const d of dimList) {
     if (!d?.key) continue;
     if (params[d.key] === void 0) params[d.key] = d.value ?? d.min ?? 1;
-    paramSchema[d.key] = schemaNum(
+    paramSchema[d.key] = schemaNum2(
       d.label || d.key,
       "dynamics",
       d.unit || "\u2014",
@@ -5265,20 +8427,20 @@ function buildPhotoelectricVariant(spec) {
   const { params, paramSchema } = variantKnobs(spec);
   if (params.nu === void 0 && params.freq === void 0 && params.hf === void 0) {
     params.nu = 3;
-    paramSchema.nu = schemaNum("\u03BD", "dynamics", "eV", 0, 12);
+    paramSchema.nu = schemaNum2("\u03BD", "dynamics", "eV", 0, 12);
   }
   if (params.W === void 0 && params.workFunc === void 0) {
     params.W = 2;
-    paramSchema.W = schemaNum("W", "dynamics", "eV", 0, 10);
+    paramSchema.W = schemaNum2("W", "dynamics", "eV", 0, 10);
   }
   if (params.I === void 0 && params.intensity === void 0) {
     params.I = 1;
-    paramSchema.I = schemaNum("I", "dynamics", "\u2014", 0, 10);
+    paramSchema.I = schemaNum2("I", "dynamics", "\u2014", 0, 10);
   }
   if (paramSchema.nu) paramSchema.nu = { ...paramSchema.nu, unit: paramSchema.nu.unit === "\u2014" ? "eV" : paramSchema.nu.unit };
   if (paramSchema.W) paramSchema.W = { ...paramSchema.W, unit: paramSchema.W.unit === "\u2014" ? "eV" : paramSchema.W.unit };
   params.h = params.h ?? 1;
-  paramSchema.h = schemaNum("h", "dynamics", "\u2014", 0, 10);
+  paramSchema.h = schemaNum2("h", "dynamics", "\u2014", 0, 10);
   const photonEnergy = (p) => {
     if (p.hf !== void 0 && p.nu === void 0 && p.freq === void 0) return P(p, "hf", 0);
     const h = P(p, "h", 1);
@@ -5286,10 +8448,11 @@ function buildPhotoelectricVariant(spec) {
     return h * nu;
   };
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     equation: "K_max = max(0, h\u03BD \u2212 W); R \u221D I only if K_max>0",
     authority: "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield \u221D I above threshold)",
     assumptions: "h\u03BD and W share one energy unit (h=1 when the frequency knob is already an energy); no space charge; R is a relative yield",
+    governing: true,
     params,
     paramSchema,
     init(state) {
@@ -5374,27 +8537,28 @@ function buildHeatConductionVariant(spec) {
   const { params, paramSchema } = variantKnobs(spec);
   if (params.k === void 0) params.k = 1;
   const kPrev = paramSchema.k;
-  paramSchema.k = schemaNum("\u03BA", "dynamics", "W/(m\xB7K)", kPrev?.min ?? 0.02, kPrev?.max ?? 400);
+  paramSchema.k = schemaNum2("\u03BA", "dynamics", "W/(m\xB7K)", kPrev?.min ?? 0.02, kPrev?.max ?? 400);
   if (params.thk === void 0) {
     params.L = params.L ?? 0.1;
-    paramSchema.L = schemaNum("L", "dynamics", "m", 1e-3, 5);
+    paramSchema.L = schemaNum2("L", "dynamics", "m", 1e-3, 5);
   } else if (paramSchema.thk) {
     paramSchema.thk = { ...paramSchema.thk, label: paramSchema.thk.label || "L", unit: "m" };
   }
   params.Th = params.Th ?? params.T0 ?? 100;
-  paramSchema.Th = schemaNum("T(0)", "dynamics", "\xB0C", -50, 800);
+  paramSchema.Th = schemaNum2("T(0)", "dynamics", "\xB0C", -50, 800);
   if (params.Tb === void 0 && params.Tc === void 0) params.Tb = 0;
   if (!paramSchema.Tb && params.Tc === void 0) {
-    paramSchema.Tb = schemaNum("T(L)", "dynamics", "\xB0C", -50, 800);
+    paramSchema.Tb = schemaNum2("T(L)", "dynamics", "\xB0C", -50, 800);
   } else if (paramSchema.Tb) {
     paramSchema.Tb = { ...paramSchema.Tb, label: "T(L)" };
   }
   const wallLength = (p) => p.thk !== void 0 ? Math.max(P(p, "thk", 0.01), 1e-9) : Math.max(P(p, "L", 0.1), 1e-9);
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     equation: "q = \u2212\u03BA (T(L) \u2212 T(0)) / L",
     authority: "Incropera, Fundamentals of Heat and Mass Transfer, Fourier law q=\u2212\u03BA \u0394T/L (plane wall)",
     assumptions: "Steady plane wall, constant \u03BA, no generation; \u0394T = T(L)\u2212T(0). Single layer when only one thickness is set.",
+    governing: true,
     params,
     paramSchema,
     init(state) {
@@ -5494,16 +8658,19 @@ function buildHeatConductionVariant(spec) {
 function buildVariant(spec) {
   if (isPhotoelectricSpec(spec)) return buildPhotoelectricVariant(spec);
   if (isHeatConductionSpec(spec)) return buildHeatConductionVariant(spec);
+  const physics = buildFamPhysics(spec);
+  if (physics) return physics;
+  warnDecorativeSine(spec);
   const dimList = Array.isArray(spec.dims) ? spec.dims : [];
   const defaults = spec.defaults && typeof spec.defaults === "object" ? spec.defaults : {};
   const params = { speed: 1, ...defaults };
   const paramSchema = {
-    speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 8)
+    speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 8)
   };
   for (const d of dimList) {
     if (!d?.key) continue;
     if (params[d.key] === void 0) params[d.key] = d.value ?? d.min ?? 1;
-    paramSchema[d.key] = schemaNum(
+    paramSchema[d.key] = schemaNum2(
       d.label || d.key,
       "dynamics",
       d.unit || "\u2014",
@@ -5515,14 +8682,15 @@ function buildVariant(spec) {
     params.amplitude = params.amplitude ?? 1;
     params.offset = params.offset ?? 0.5;
     params.phase = params.phase ?? 0;
-    paramSchema.amplitude = schemaNum("\u632F\u5E45", "dynamics", "\u2014", 0, 20);
-    paramSchema.offset = schemaNum("\u504F\u7F6E", "dynamics", "\u2014", -10, 10);
-    paramSchema.phase = schemaNum("\u76F8\u4F4D", "dynamics", "rad", -6.28, 6.28);
+    paramSchema.amplitude = schemaNum2("\u632F\u5E45", "dynamics", "\u2014", 0, 20);
+    paramSchema.offset = schemaNum2("\u504F\u7F6E", "dynamics", "\u2014", -10, 10);
+    paramSchema.phase = schemaNum2("\u76F8\u4F4D", "dynamics", "rad", -6.28, 6.28);
   }
   const axisLabels = Array.isArray(spec.axes) ? spec.axes : [];
   const keys = Object.keys(params).filter((k) => k !== "speed");
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
+    governing: false,
     params,
     paramSchema,
     init(state) {
@@ -5629,19 +8797,19 @@ function buildOde1d(spec) {
   const inclined = spec.id === "inclined-plane";
   const drag = spec.id === "drag-fall";
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: inclined ? { g: 9.81, theta: 30, mu: 0.2, m: 1, s0: 0 } : { g: 9.81, m: 1, b: 0.8, h: 8 },
     paramSchema: inclined ? {
-      g: schemaNum("g", "dynamics", "m/s\xB2", 0, 40),
-      theta: schemaNum("\u03B8", "dynamics", "\xB0", 0, 80),
-      mu: schemaNum("\u03BC", "dynamics", "\u2014", 0, 1),
-      m: schemaNum("m", "dynamics", "kg", 0.01, 100),
-      s0: schemaNum("s\u2080", "initial", "m", 0, 20)
+      g: schemaNum2("g", "dynamics", "m/s\xB2", 0, 40),
+      theta: schemaNum2("\u03B8", "dynamics", "\xB0", 0, 80),
+      mu: schemaNum2("\u03BC", "dynamics", "\u2014", 0, 1),
+      m: schemaNum2("m", "dynamics", "kg", 0.01, 100),
+      s0: schemaNum2("s\u2080", "initial", "m", 0, 20)
     } : {
-      g: schemaNum("g", "dynamics", "m/s\xB2", 0, 40),
-      m: schemaNum("m", "dynamics", "kg", 0.01, 100),
-      b: schemaNum("b", "dynamics", "kg/s", 0, 20),
-      h: schemaNum("h\u2080", "initial", "m", 0, 40)
+      g: schemaNum2("g", "dynamics", "m/s\xB2", 0, 40),
+      m: schemaNum2("m", "dynamics", "kg", 0.01, 100),
+      b: schemaNum2("b", "dynamics", "kg/s", 0, 20),
+      h: schemaNum2("h\u2080", "initial", "m", 0, 40)
     },
     init(state) {
       state.t = 0;
@@ -5754,17 +8922,17 @@ function buildOde1d(spec) {
 }
 function buildOde2d(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { q: 1, m: 1, Ex: 2, Ey: 0, vx0: 2, vy0: 3, x0: -2, y0: 0 },
     paramSchema: {
-      q: schemaNum("q", "dynamics", "C", -5, 5),
-      m: schemaNum("m", "dynamics", "kg", 0.01, 20),
-      Ex: schemaNum("Ex", "dynamics", "N/C", -10, 10),
-      Ey: schemaNum("Ey", "dynamics", "N/C", -10, 10),
-      vx0: schemaNum("vx\u2080", "initial", "m/s", -20, 20),
-      vy0: schemaNum("vy\u2080", "initial", "m/s", -20, 20),
-      x0: schemaNum("x\u2080", "initial", "m", -5, 5),
-      y0: schemaNum("y\u2080", "initial", "m", -5, 5)
+      q: schemaNum2("q", "dynamics", "C", -5, 5),
+      m: schemaNum2("m", "dynamics", "kg", 0.01, 20),
+      Ex: schemaNum2("Ex", "dynamics", "N/C", -10, 10),
+      Ey: schemaNum2("Ey", "dynamics", "N/C", -10, 10),
+      vx0: schemaNum2("vx\u2080", "initial", "m/s", -20, 20),
+      vy0: schemaNum2("vy\u2080", "initial", "m/s", -20, 20),
+      x0: schemaNum2("x\u2080", "initial", "m", -5, 5),
+      y0: schemaNum2("y\u2080", "initial", "m", -5, 5)
     },
     init(state) {
       state.t = 0;
@@ -5829,12 +8997,12 @@ function buildOde2d(spec) {
 }
 function buildCircular(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { R: 2, omega: 1.5, m: 1 },
     paramSchema: {
-      R: schemaNum("R", "dynamics", "m", 0.2, 8),
-      omega: schemaNum("\u03C9", "dynamics", "rad/s", 0.1, 8),
-      m: schemaNum("m", "dynamics", "kg", 0.01, 50)
+      R: schemaNum2("R", "dynamics", "m", 0.2, 8),
+      omega: schemaNum2("\u03C9", "dynamics", "rad/s", 0.1, 8),
+      m: schemaNum2("m", "dynamics", "kg", 0.01, 50)
     },
     init(state) {
       state.t = 0;
@@ -5889,15 +9057,15 @@ function buildCircular(spec) {
 function buildParticles(spec) {
   const isGas = /ideal-gas|entropy|sph|collision-2d/.test(spec.id);
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { N: 40, T: 300, seed: 7, viscosity: 0.2, g: 2, e: 0.9 },
     paramSchema: {
-      N: schemaNum("N", "numerics", "\u2014", 8, 120),
-      T: schemaNum("T", "dynamics", "K", 50, 1e3),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 9999),
-      viscosity: schemaNum("\u7C98\u5EA6", "dynamics", "\u2014", 0, 2),
-      g: schemaNum("g", "dynamics", "m/s\xB2", 0, 20),
-      e: schemaNum("e", "dynamics", "\u2014", 0, 1)
+      N: schemaNum2("N", "numerics", "\u2014", 8, 120),
+      T: schemaNum2("T", "dynamics", "K", 50, 1e3),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 9999),
+      viscosity: schemaNum2("\u7C98\u5EA6", "dynamics", "\u2014", 0, 2),
+      g: schemaNum2("g", "dynamics", "m/s\xB2", 0, 20),
+      e: schemaNum2("e", "dynamics", "\u2014", 0, 1)
     },
     init(state) {
       const cap = mobileBudget().particleNCap;
@@ -6027,15 +9195,15 @@ function buildParticles(spec) {
 }
 function buildNbody(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { G: 1.2, m1: 12, m2: 8, m3: 1, soft: 1.1, seed: 3 },
     paramSchema: {
-      G: schemaNum("G", "dynamics", "\u2014", 0.1, 5),
-      m1: schemaNum("m1", "dynamics", "\u2014", 0.1, 40),
-      m2: schemaNum("m2", "dynamics", "\u2014", 0.1, 40),
-      m3: schemaNum("m3", "dynamics", "\u2014", 0.01, 20),
-      soft: schemaNum("soft", "numerics", "\u2014", 0.05, 2),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 99)
+      G: schemaNum2("G", "dynamics", "\u2014", 0.1, 5),
+      m1: schemaNum2("m1", "dynamics", "\u2014", 0.1, 40),
+      m2: schemaNum2("m2", "dynamics", "\u2014", 0.1, 40),
+      m3: schemaNum2("m3", "dynamics", "\u2014", 0.01, 20),
+      soft: schemaNum2("soft", "numerics", "\u2014", 0.05, 2),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 99)
     },
     init(state) {
       const binary = spec.id === "binary-stars";
@@ -6062,7 +9230,7 @@ function buildNbody(spec) {
       state.trails = state.bodies.map(() => []);
     },
     step(state, dt) {
-      const G = P(state.params, "G", 1.2);
+      const G2 = P(state.params, "G", 1.2);
       const soft = P(state.params, "soft", 0.2);
       const n = state.bodies.length;
       const acc = state.bodies.map(() => ({ ax: 0, ay: 0 }));
@@ -6073,7 +9241,7 @@ function buildNbody(spec) {
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           const r2 = dx * dx + dy * dy + soft * soft;
-          const inv = G / (r2 * Math.sqrt(r2));
+          const inv = G2 / (r2 * Math.sqrt(r2));
           acc[i].ax += inv * b.m * dx;
           acc[i].ay += inv * b.m * dy;
           acc[j].ax -= inv * a.m * dx;
@@ -6125,15 +9293,15 @@ function buildNbody(spec) {
 }
 function buildEuler(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { I1: 1, I2: 1.4, I3: 2, wx: 1.2, wy: 0.2, wz: 0.1 },
     paramSchema: {
-      I1: schemaNum("I\u2081", "dynamics", "\u2014", 0.2, 5),
-      I2: schemaNum("I\u2082", "dynamics", "\u2014", 0.2, 5),
-      I3: schemaNum("I\u2083", "dynamics", "\u2014", 0.2, 5),
-      wx: schemaNum("\u03C9x", "initial", "rad/s", -5, 5),
-      wy: schemaNum("\u03C9y", "initial", "rad/s", -5, 5),
-      wz: schemaNum("\u03C9z", "initial", "rad/s", -5, 5)
+      I1: schemaNum2("I\u2081", "dynamics", "\u2014", 0.2, 5),
+      I2: schemaNum2("I\u2082", "dynamics", "\u2014", 0.2, 5),
+      I3: schemaNum2("I\u2083", "dynamics", "\u2014", 0.2, 5),
+      wx: schemaNum2("\u03C9x", "initial", "rad/s", -5, 5),
+      wy: schemaNum2("\u03C9y", "initial", "rad/s", -5, 5),
+      wz: schemaNum2("\u03C9z", "initial", "rad/s", -5, 5)
     },
     init(state) {
       state.t = 0;
@@ -6197,13 +9365,13 @@ function buildEuler(spec) {
 }
 function buildBuoyancy(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { rhoObj: 700, rhoFluid: 1e3, V: 0.02, g: 9.81 },
     paramSchema: {
-      rhoObj: schemaNum("\u03C1\u7269\u4F53", "dynamics", "kg/m\xB3", 100, 2e3),
-      rhoFluid: schemaNum("\u03C1\u6DB2\u4F53", "dynamics", "kg/m\xB3", 200, 2e3),
-      V: schemaNum("V", "dynamics", "m\xB3", 1e-3, 0.1),
-      g: schemaNum("g", "dynamics", "m/s\xB2", 1, 40)
+      rhoObj: schemaNum2("\u03C1\u7269\u4F53", "dynamics", "kg/m\xB3", 100, 2e3),
+      rhoFluid: schemaNum2("\u03C1\u6DB2\u4F53", "dynamics", "kg/m\xB3", 200, 2e3),
+      V: schemaNum2("V", "dynamics", "m\xB3", 1e-3, 0.1),
+      g: schemaNum2("g", "dynamics", "m/s\xB2", 1, 40)
     },
     init(state) {
       state.t = 0;
@@ -6262,14 +9430,14 @@ function buildBuoyancy(spec) {
 }
 function buildFlow(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { Q: 2, D1: 1.2, D2: 0.6, mu: 0.05, rho: 1 },
     paramSchema: {
-      Q: schemaNum("\u6D41\u91CF Q", "dynamics", "\u2014", 0.2, 8),
-      D1: schemaNum("D\u2081", "dynamics", "\u2014", 0.3, 3),
-      D2: schemaNum("D\u2082", "dynamics", "\u2014", 0.2, 2),
-      mu: schemaNum("\u7C98\u5EA6 \u03BC", "dynamics", "\u2014", 1e-3, 1),
-      rho: schemaNum("\u03C1", "dynamics", "\u2014", 0.2, 5)
+      Q: schemaNum2("\u6D41\u91CF Q", "dynamics", "\u2014", 0.2, 8),
+      D1: schemaNum2("D\u2081", "dynamics", "\u2014", 0.3, 3),
+      D2: schemaNum2("D\u2082", "dynamics", "\u2014", 0.2, 2),
+      mu: schemaNum2("\u7C98\u5EA6 \u03BC", "dynamics", "\u2014", 1e-3, 1),
+      rho: schemaNum2("\u03C1", "dynamics", "\u2014", 0.2, 5)
     },
     init(state) {
       state.t = 0;
@@ -6330,17 +9498,17 @@ function buildFlow(spec) {
 }
 function buildWave1d(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { f: 1.2, A: 1, c: 1.5, L: 1, nMode: 2, barrierH: 4, barrierW: 0.15, E: 2 },
     paramSchema: {
-      f: schemaNum("f", "dynamics", "Hz", 0.1, 8),
-      A: schemaNum("A", "dynamics", "\u2014", 0.1, 3),
-      c: schemaNum("c", "dynamics", "\u2014", 0.2, 5),
-      L: schemaNum("L", "dynamics", "\u2014", 0.3, 3),
-      nMode: schemaNum("mode n", "dynamics", "\u2014", 1, 6),
-      barrierH: schemaNum("\u52BF\u5792\u9AD8", "dynamics", "\u2014", 0, 12),
-      barrierW: schemaNum("\u52BF\u5792\u5BBD", "dynamics", "\u2014", 0.02, 0.5),
-      E: schemaNum("E", "dynamics", "\u2014", 0.1, 10)
+      f: schemaNum2("f", "dynamics", "Hz", 0.1, 8),
+      A: schemaNum2("A", "dynamics", "\u2014", 0.1, 3),
+      c: schemaNum2("c", "dynamics", "\u2014", 0.2, 5),
+      L: schemaNum2("L", "dynamics", "\u2014", 0.3, 3),
+      nMode: schemaNum2("mode n", "dynamics", "\u2014", 1, 6),
+      barrierH: schemaNum2("\u52BF\u5792\u9AD8", "dynamics", "\u2014", 0, 12),
+      barrierW: schemaNum2("\u52BF\u5792\u5BBD", "dynamics", "\u2014", 0.02, 0.5),
+      E: schemaNum2("E", "dynamics", "\u2014", 0.1, 10)
     },
     init(state) {
       state.t = 0;
@@ -6428,13 +9596,13 @@ function buildWave1d(spec) {
 }
 function buildDoppler(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { f: 2, v: 1.2, vs: 0.6, c: 2 },
     paramSchema: {
-      f: schemaNum("f", "dynamics", "Hz", 0.2, 8),
-      vs: schemaNum("\u6E90\u901F", "dynamics", "\u2014", -2, 2),
-      c: schemaNum("\u6CE2\u901F", "dynamics", "\u2014", 0.5, 5),
-      v: schemaNum("\u89C2\u5BDF\u8005", "dynamics", "\u2014", -2, 2)
+      f: schemaNum2("f", "dynamics", "Hz", 0.2, 8),
+      vs: schemaNum2("\u6E90\u901F", "dynamics", "\u2014", -2, 2),
+      c: schemaNum2("\u6CE2\u901F", "dynamics", "\u2014", 0.5, 5),
+      v: schemaNum2("\u89C2\u5BDF\u8005", "dynamics", "\u2014", -2, 2)
     },
     init(state) {
       state.t = 0;
@@ -6492,14 +9660,14 @@ function buildDoppler(spec) {
 }
 function buildInterference(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { f: 2, phase: 0, d: 0.25, lambda: 0.18, slit: 0.12 },
     paramSchema: {
-      f: schemaNum("f", "dynamics", "Hz", 0.2, 8),
-      phase: schemaNum("\u0394\u03C6", "dynamics", "rad", -3.14, 3.14),
-      d: schemaNum("\u95F4\u8DDD d", "dynamics", "\u2014", 0.05, 0.6),
-      lambda: schemaNum("\u03BB", "dynamics", "\u2014", 0.05, 0.5),
-      slit: schemaNum("\u7F1D\u5BBD", "dynamics", "\u2014", 0.02, 0.4)
+      f: schemaNum2("f", "dynamics", "Hz", 0.2, 8),
+      phase: schemaNum2("\u0394\u03C6", "dynamics", "rad", -3.14, 3.14),
+      d: schemaNum2("\u95F4\u8DDD d", "dynamics", "\u2014", 0.05, 0.6),
+      lambda: schemaNum2("\u03BB", "dynamics", "\u2014", 0.05, 0.5),
+      slit: schemaNum2("\u7F1D\u5BBD", "dynamics", "\u2014", 0.02, 0.4)
     },
     init(state) {
       state.t = 0;
@@ -6554,13 +9722,13 @@ function buildInterference(spec) {
 }
 function buildField2d(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { alpha: 0.15, n: 24, tension: 1, excite: 0.5 },
     paramSchema: {
-      alpha: schemaNum("\u03B1", "dynamics", "\u2014", 0.01, 0.5),
-      n: schemaNum("n", "numerics", "\u2014", 12, 48),
-      tension: schemaNum("\u5F20\u529B", "dynamics", "\u2014", 0.2, 4),
-      excite: schemaNum("\u6FC0\u52B1", "initial", "\u2014", 0, 1)
+      alpha: schemaNum2("\u03B1", "dynamics", "\u2014", 0.01, 0.5),
+      n: schemaNum2("n", "numerics", "\u2014", 12, 48),
+      tension: schemaNum2("\u5F20\u529B", "dynamics", "\u2014", 0.2, 4),
+      excite: schemaNum2("\u6FC0\u52B1", "initial", "\u2014", 0, 1)
     },
     init(state) {
       const cap = mobileBudget().fieldNCap;
@@ -6628,13 +9796,13 @@ function buildField2d(spec) {
 }
 function buildPiston(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { T: 300, V: 1, n: 1, R: 0.082 },
     paramSchema: {
-      T: schemaNum("T", "dynamics", "K", 100, 800),
-      V: schemaNum("V", "dynamics", "L", 0.2, 5),
-      n: schemaNum("n", "dynamics", "mol", 0.1, 5),
-      R: schemaNum("R", "dynamics", "\u2014", 0.05, 0.2)
+      T: schemaNum2("T", "dynamics", "K", 100, 800),
+      V: schemaNum2("V", "dynamics", "L", 0.2, 5),
+      n: schemaNum2("n", "dynamics", "mol", 0.1, 5),
+      R: schemaNum2("R", "dynamics", "\u2014", 0.05, 0.2)
     },
     init(state) {
       state.t = 0;
@@ -6675,14 +9843,14 @@ function buildPiston(spec) {
 function buildCycle(spec) {
   const dragTs = /rankine|vapor-compression|heat-pump|brayton|otto|carnot/i.test(spec.id);
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { Th: 500, Tc: 300, phaseSpeed: 0.4, sHot: 0.72, sCold: 0.28 },
     paramSchema: {
-      Th: schemaNum("Th", "dynamics", "K", 250, 900),
-      Tc: schemaNum("Tc", "dynamics", "K", 100, 600),
-      phaseSpeed: schemaNum("\u901F\u7387", "dynamics", "\u2014", 0.05, 2),
-      sHot: schemaNum("s_hot", "dynamics", "\u2014", 0.15, 0.9),
-      sCold: schemaNum("s_cold", "dynamics", "\u2014", 0.1, 0.85)
+      Th: schemaNum2("Th", "dynamics", "K", 250, 900),
+      Tc: schemaNum2("Tc", "dynamics", "K", 100, 600),
+      phaseSpeed: schemaNum2("\u901F\u7387", "dynamics", "\u2014", 0.05, 2),
+      sHot: schemaNum2("s_hot", "dynamics", "\u2014", 0.15, 0.9),
+      sCold: schemaNum2("s_cold", "dynamics", "\u2014", 0.1, 0.85)
     },
     init(state) {
       state.t = 0;
@@ -6803,13 +9971,13 @@ function buildCycle(spec) {
 }
 function buildFieldlines(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { q1: 1, q2: -1, x1: -1.2, x2: 1.2 },
     paramSchema: {
-      q1: schemaNum("q1", "dynamics", "C", -5, 5),
-      q2: schemaNum("q2", "dynamics", "C", -5, 5),
-      x1: schemaNum("x1", "initial", "\u2014", -3, 3),
-      x2: schemaNum("x2", "initial", "\u2014", -3, 3)
+      q1: schemaNum2("q1", "dynamics", "C", -5, 5),
+      q2: schemaNum2("q2", "dynamics", "C", -5, 5),
+      x1: schemaNum2("x1", "initial", "\u2014", -3, 3),
+      x2: schemaNum2("x2", "initial", "\u2014", -3, 3)
     },
     init(state) {
       state.t = 0;
@@ -6881,17 +10049,17 @@ function buildFieldlines(spec) {
 function buildCircuit(spec) {
   const rl = spec.id === "rl-circuit";
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: rl ? { R: 10, L: 0.5, Vin: 5, I0: 0 } : { V: 5, R: 100, series: 1 },
     paramSchema: rl ? {
-      R: schemaNum("R", "dynamics", "\u03A9", 1, 200),
-      L: schemaNum("L", "dynamics", "H", 0.01, 5),
-      Vin: schemaNum("Vin", "dynamics", "V", 0, 20),
-      I0: schemaNum("I\u2080", "initial", "A", -5, 5)
+      R: schemaNum2("R", "dynamics", "\u03A9", 1, 200),
+      L: schemaNum2("L", "dynamics", "H", 0.01, 5),
+      Vin: schemaNum2("Vin", "dynamics", "V", 0, 20),
+      I0: schemaNum2("I\u2080", "initial", "A", -5, 5)
     } : {
-      V: schemaNum("V", "dynamics", "V", 0, 24),
-      R: schemaNum("R", "dynamics", "\u03A9", 1, 1e3),
-      series: schemaNum("\u4E32/\u5E76 1/0", "dynamics", "\u2014", 0, 1)
+      V: schemaNum2("V", "dynamics", "V", 0, 24),
+      R: schemaNum2("R", "dynamics", "\u03A9", 1, 1e3),
+      series: schemaNum2("\u4E32/\u5E76 1/0", "dynamics", "\u2014", 0, 1)
     },
     init(state) {
       state.t = 0;
@@ -6946,12 +10114,12 @@ function buildCircuit(spec) {
 }
 function buildInduction(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { v: 1.2, N: 40, B: 0.8 },
     paramSchema: {
-      v: schemaNum("\u78C1\u94C1\u901F\u5EA6", "dynamics", "\u2014", 0.1, 5),
-      N: schemaNum("\u531D\u6570", "dynamics", "\u2014", 1, 200),
-      B: schemaNum("B", "dynamics", "T", 0.05, 3)
+      v: schemaNum2("\u78C1\u94C1\u901F\u5EA6", "dynamics", "\u2014", 0.1, 5),
+      N: schemaNum2("\u531D\u6570", "dynamics", "\u2014", 1, 200),
+      B: schemaNum2("B", "dynamics", "T", 0.05, 3)
     },
     init(state) {
       state.t = 0;
@@ -7016,17 +10184,17 @@ function lensOptics(params) {
 }
 function buildRays(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     capabilities: spec.id === "lens" ? { pointer: true, interaction: "canvas", hint: "\u62D6\u7269\u6216\u62D6\u50CF\uFF1A\u50CF\u4FA7\u53CD\u63A8\u7269\u8DDD\uFF08\u53CC\u5411\u8054\u52A8\uFF09\uFF1B\u865A\u50CF\u865A\u7EBF" } : { interaction: "knobs", hint: "\u8C03\u8282\u5165\u5C04\u89D2\u4E0E\u6298\u5C04\u7387" },
     params: { theta: 35, n1: 1, n2: 1.5, u: 4, f: 2, h: 1.2, scale: 28 },
     paramSchema: {
-      theta: schemaNum("\u5165\u5C04\u89D2", "dynamics", "\xB0", 0, 89),
-      n1: schemaNum("n\u2081", "dynamics", "\u2014", 1, 3),
-      n2: schemaNum("n\u2082", "dynamics", "\u2014", 1, 3),
-      u: schemaNum("\u7269\u8DDD u", "dynamics", "\u2014", 0.2, 30),
-      f: schemaNum("\u7126\u8DDD f", "dynamics", "\u2014", 0.2, 20),
-      h: schemaNum("\u7269\u9AD8 h", "dynamics", "\u2014", 0.05, 8),
-      scale: schemaNum("\u663E\u793A\u6BD4\u4F8B", "dynamics", "\u2014", 8, 60)
+      theta: schemaNum2("\u5165\u5C04\u89D2", "dynamics", "\xB0", 0, 89),
+      n1: schemaNum2("n\u2081", "dynamics", "\u2014", 1, 3),
+      n2: schemaNum2("n\u2082", "dynamics", "\u2014", 1, 3),
+      u: schemaNum2("\u7269\u8DDD u", "dynamics", "\u2014", 0.2, 30),
+      f: schemaNum2("\u7126\u8DDD f", "dynamics", "\u2014", 0.2, 20),
+      h: schemaNum2("\u7269\u9AD8 h", "dynamics", "\u2014", 0.05, 8),
+      scale: schemaNum2("\u663E\u793A\u6BD4\u4F8B", "dynamics", "\u2014", 8, 60)
     },
     init(state) {
       state.t = 0;
@@ -7324,10 +10492,10 @@ function buildGauge(spec) {
     photoelectric: {
       params: { freq: 2.2, intensity: 1, workFunc: 1.5, speed: 1 },
       schema: {
-        freq: schemaNum("hf", "dynamics", "eV", 0.1, 20),
-        intensity: schemaNum("\u5149\u5F3A I", "dynamics", "\u2014", 0, 10),
-        workFunc: schemaNum("\u9038\u51FA\u529F W", "dynamics", "eV", 0.1, 10),
-        speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
+        freq: schemaNum2("hf", "dynamics", "eV", 0.1, 20),
+        intensity: schemaNum2("\u5149\u5F3A I", "dynamics", "\u2014", 0, 10),
+        workFunc: schemaNum2("\u9038\u51FA\u529F W", "dynamics", "eV", 0.1, 10),
+        speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
       },
       step(state, dt) {
         state.t += dt * P(state.params, "speed", 1);
@@ -7339,9 +10507,9 @@ function buildGauge(spec) {
     "time-dilation": {
       params: { beta: 0.6, properTime: 1, speed: 1 },
       schema: {
-        beta: schemaNum("\u03B2=v/c", "dynamics", "\u2014", 0, 0.999),
-        properTime: schemaNum("\u56FA\u6709\u65F6 \u0394\u03C4", "dynamics", "s", 0.1, 100),
-        speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
+        beta: schemaNum2("\u03B2=v/c", "dynamics", "\u2014", 0, 0.999),
+        properTime: schemaNum2("\u56FA\u6709\u65F6 \u0394\u03C4", "dynamics", "s", 0.1, 100),
+        speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
       },
       step(state, dt) {
         state.t += dt * P(state.params, "speed", 1);
@@ -7352,10 +10520,10 @@ function buildGauge(spec) {
     polarization: {
       params: { angle: 45, plates: 1, I0: 1, speed: 1 },
       schema: {
-        angle: schemaNum("\u504F\u632F\u89D2", "dynamics", "\xB0", 0, 180),
-        plates: schemaNum("\u504F\u632F\u7247\u6570", "dynamics", "\u2014", 1, 6),
-        I0: schemaNum("\u5165\u5C04\u5149\u5F3A", "dynamics", "\u2014", 0, 10),
-        speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
+        angle: schemaNum2("\u504F\u632F\u89D2", "dynamics", "\xB0", 0, 180),
+        plates: schemaNum2("\u504F\u632F\u7247\u6570", "dynamics", "\u2014", 1, 6),
+        I0: schemaNum2("\u5165\u5C04\u5149\u5F3A", "dynamics", "\u2014", 0, 10),
+        speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 4)
       },
       step(state, dt) {
         state.t += dt * P(state.params, "speed", 1);
@@ -7367,13 +10535,13 @@ function buildGauge(spec) {
   };
   const preset = presets[spec.id];
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: preset?.params || { amplitude: 1, offset: 0.5, phase: 0, speed: 1 },
     paramSchema: preset?.schema || {
-      amplitude: schemaNum("\u632F\u5E45", "dynamics", "\u2014", 0, 20),
-      offset: schemaNum("\u504F\u7F6E", "dynamics", "\u2014", -10, 10),
-      phase: schemaNum("\u76F8\u4F4D", "dynamics", "rad", -6.28, 6.28),
-      speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 8)
+      amplitude: schemaNum2("\u632F\u5E45", "dynamics", "\u2014", 0, 20),
+      offset: schemaNum2("\u504F\u7F6E", "dynamics", "\u2014", -10, 10),
+      phase: schemaNum2("\u76F8\u4F4D", "dynamics", "rad", -6.28, 6.28),
+      speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 8)
     },
     init(state) {
       state.t = 0;
@@ -7423,11 +10591,11 @@ function buildGauge(spec) {
 }
 function buildBohr(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { n: 3, n2: 2 },
     paramSchema: {
-      n: schemaNum("n\u4E0A", "dynamics", "\u2014", 1, 8),
-      n2: schemaNum("n\u4E0B", "dynamics", "\u2014", 1, 7)
+      n: schemaNum2("n\u4E0A", "dynamics", "\u2014", 1, 8),
+      n2: schemaNum2("n\u4E0B", "dynamics", "\u2014", 1, 7)
     },
     init(state) {
       state.t = 0;
@@ -7472,11 +10640,11 @@ function buildBohr(spec) {
 }
 function buildDecay(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { halfLife: 4, N0: 200 },
     paramSchema: {
-      halfLife: schemaNum("\u534A\u8870\u671F", "dynamics", "s", 0.5, 30),
-      N0: schemaNum("N\u2080", "initial", "\u2014", 10, 500)
+      halfLife: schemaNum2("\u534A\u8870\u671F", "dynamics", "s", 0.5, 30),
+      N0: schemaNum2("N\u2080", "initial", "\u2014", 10, 500)
     },
     init(state) {
       state.t = 0;
@@ -7526,7 +10694,7 @@ function buildDecay(spec) {
 }
 function buildDiscrete(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: {
       n: 16,
       target: 7,
@@ -7537,10 +10705,10 @@ function buildDiscrete(spec) {
       capacityKnapsack: 10
     },
     paramSchema: {
-      n: schemaNum("n", "numerics", "\u2014", 4, 48),
-      target: schemaNum("\u76EE\u6807", "dynamics", "\u2014", 0, 64),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 999),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.02, 0.5),
+      n: schemaNum2("n", "numerics", "\u2014", 4, 48),
+      target: schemaNum2("\u76EE\u6807", "dynamics", "\u2014", 0, 64),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 999),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.02, 0.5),
       algo: {
         group: "dynamics",
         unit: "",
@@ -7549,8 +10717,8 @@ function buildDiscrete(spec) {
         max: 3,
         options: spec.id === "binary-search" ? [{ value: 0, label: "binary" }] : [{ value: 0, label: "mode A" }, { value: 1, label: "mode B" }]
       },
-      capacity: schemaNum("\u5BB9\u91CF", "dynamics", "\u2014", 2, 32),
-      capacityKnapsack: schemaNum("\u80CC\u5305\u5BB9\u91CF", "dynamics", "\u2014", 2, 40)
+      capacity: schemaNum2("\u5BB9\u91CF", "dynamics", "\u2014", 2, 32),
+      capacityKnapsack: schemaNum2("\u80CC\u5305\u5BB9\u91CF", "dynamics", "\u2014", 2, 40)
     },
     init(state) {
       const n = Math.max(4, Math.floor(P(state.params, "n", 16)));
@@ -7640,15 +10808,15 @@ function buildDiscrete(spec) {
 }
 function buildGraph(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { nodes: 8, seed: 5, start: 0, goal: 7, stepDt: 0.15, algo: 0, layoutSteps: 40 },
     paramSchema: {
-      nodes: schemaNum("\u8282\u70B9\u6570", "numerics", "\u2014", 4, 16),
-      seed: schemaNum("\u968F\u673A\u79CD\u5B50", "initial", "\u2014", 1, 99),
-      start: schemaNum("\u8D77\u70B9", "initial", "\u2014", 0, 15),
-      goal: schemaNum("\u7EC8\u70B9", "initial", "\u2014", 0, 15),
-      stepDt: schemaNum("\u6B65\u8FDB\u95F4\u9694", "dynamics", "s", 0.05, 0.5),
-      layoutSteps: schemaNum("\u529B\u5BFC\u5411\u6B65\u6570", "numerics", "\u2014", 0, 120),
+      nodes: schemaNum2("\u8282\u70B9\u6570", "numerics", "\u2014", 4, 16),
+      seed: schemaNum2("\u968F\u673A\u79CD\u5B50", "initial", "\u2014", 1, 99),
+      start: schemaNum2("\u8D77\u70B9", "initial", "\u2014", 0, 15),
+      goal: schemaNum2("\u7EC8\u70B9", "initial", "\u2014", 0, 15),
+      stepDt: schemaNum2("\u6B65\u8FDB\u95F4\u9694", "dynamics", "s", 0.05, 0.5),
+      layoutSteps: schemaNum2("\u529B\u5BFC\u5411\u6B65\u6570", "numerics", "\u2014", 0, 120),
       algo: {
         group: "dynamics",
         unit: "\u2014",
@@ -7763,12 +10931,12 @@ function buildGraph(spec) {
 }
 function buildTree(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { seed: 4, n: 12, stepDt: 0.2 },
     paramSchema: {
-      seed: schemaNum("seed", "initial", "\u2014", 1, 99),
-      n: schemaNum("n", "numerics", "\u2014", 4, 24),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.05, 0.6)
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 99),
+      n: schemaNum2("n", "numerics", "\u2014", 4, 24),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.05, 0.6)
     },
     init(state) {
       const r = rnd(P(state.params, "seed", 4));
@@ -7835,11 +11003,11 @@ function buildTree(spec) {
 }
 function buildFsm(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { input: 10110, stepDt: 0.35 },
     paramSchema: {
-      input: schemaNum("\u8F93\u5165\u4E32(\u5341\u8FDB\u5236\u793A\u610F)", "initial", "\u2014", 0, 111111),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.1, 1)
+      input: schemaNum2("\u8F93\u5165\u4E32(\u5341\u8FDB\u5236\u793A\u610F)", "initial", "\u2014", 0, 111111),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.1, 1)
     },
     init(state) {
       state.states = ["q0", "q1", "q2", "q3"];
@@ -7906,11 +11074,11 @@ function buildFsm(spec) {
 }
 function buildTuring(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { tape: 1001101, stepDt: 0.25 },
     paramSchema: {
-      tape: schemaNum("\u7EB8\u5E26\u521D\u503C", "initial", "\u2014", 0, 11111111),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.05, 1)
+      tape: schemaNum2("\u7EB8\u5E26\u521D\u503C", "initial", "\u2014", 0, 11111111),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.05, 1)
     },
     init(state) {
       state.tape = String(Math.floor(P(state.params, "tape", 1001101))).padStart(16, "0").split("");
@@ -7962,15 +11130,15 @@ function buildTuring(spec) {
 }
 function buildCrypto(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { key: 3, p: 17, q: 11, e: 7, msg: 42, g: 3 },
     paramSchema: {
-      key: schemaNum("key", "dynamics", "\u2014", 0, 25),
-      p: schemaNum("p", "dynamics", "\u2014", 5, 97),
-      q: schemaNum("q", "dynamics", "\u2014", 5, 97),
-      e: schemaNum("e", "dynamics", "\u2014", 3, 40),
-      msg: schemaNum("msg", "initial", "\u2014", 0, 200),
-      g: schemaNum("g", "dynamics", "\u2014", 2, 20)
+      key: schemaNum2("key", "dynamics", "\u2014", 0, 25),
+      p: schemaNum2("p", "dynamics", "\u2014", 5, 97),
+      q: schemaNum2("q", "dynamics", "\u2014", 5, 97),
+      e: schemaNum2("e", "dynamics", "\u2014", 3, 40),
+      msg: schemaNum2("msg", "initial", "\u2014", 0, 200),
+      g: schemaNum2("g", "dynamics", "\u2014", 2, 20)
     },
     init(state) {
       state.t = 0;
@@ -8024,13 +11192,13 @@ function buildCrypto(spec) {
 }
 function buildMl(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { lr: 0.05, k: 3, seed: 2, steps: 1 },
     paramSchema: {
-      lr: schemaNum("\u5B66\u4E60\u7387", "dynamics", "\u2014", 1e-3, 1),
-      k: schemaNum("k/\u5BBD\u5EA6", "dynamics", "\u2014", 1, 8),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 99),
-      steps: schemaNum("\u6BCF\u5E27\u6B65\u6570", "dynamics", "\u2014", 1, 20)
+      lr: schemaNum2("\u5B66\u4E60\u7387", "dynamics", "\u2014", 1e-3, 1),
+      k: schemaNum2("k/\u5BBD\u5EA6", "dynamics", "\u2014", 1, 8),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 99),
+      steps: schemaNum2("\u6BCF\u5E27\u6B65\u6570", "dynamics", "\u2014", 1, 20)
     },
     init(state) {
       const r = rnd(P(state.params, "seed", 2));
@@ -8139,16 +11307,16 @@ function buildMl(spec) {
 }
 function buildOpt(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { pop: 20, mutate: 0.1, temp: 5, cool: 0.98, ants: 12, evaporate: 0.1, seed: 1 },
     paramSchema: {
-      pop: schemaNum("\u79CD\u7FA4", "dynamics", "\u2014", 4, 60),
-      mutate: schemaNum("\u53D8\u5F02\u7387", "dynamics", "\u2014", 0, 1),
-      temp: schemaNum("\u6E29\u5EA6", "dynamics", "\u2014", 0.1, 20),
-      cool: schemaNum("\u964D\u6E29", "dynamics", "\u2014", 0.8, 0.999),
-      ants: schemaNum("\u8682\u8681\u6570", "dynamics", "\u2014", 2, 40),
-      evaporate: schemaNum("\u6325\u53D1", "dynamics", "\u2014", 0.01, 0.5),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 99)
+      pop: schemaNum2("\u79CD\u7FA4", "dynamics", "\u2014", 4, 60),
+      mutate: schemaNum2("\u53D8\u5F02\u7387", "dynamics", "\u2014", 0, 1),
+      temp: schemaNum2("\u6E29\u5EA6", "dynamics", "\u2014", 0.1, 20),
+      cool: schemaNum2("\u964D\u6E29", "dynamics", "\u2014", 0.8, 0.999),
+      ants: schemaNum2("\u8682\u8681\u6570", "dynamics", "\u2014", 2, 40),
+      evaporate: schemaNum2("\u6325\u53D1", "dynamics", "\u2014", 0.01, 0.5),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 99)
     },
     init(state) {
       const r = rnd(P(state.params, "seed", 1));
@@ -8225,12 +11393,12 @@ function buildOpt(spec) {
 }
 function buildLogic(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { a: 1, b: 0, clk: 1, mode: 0 },
     paramSchema: {
-      a: schemaNum("A", "dynamics", "\u2014", 0, 1),
-      b: schemaNum("B", "dynamics", "\u2014", 0, 1),
-      clk: schemaNum("CLK", "dynamics", "\u2014", 0, 1),
+      a: schemaNum2("A", "dynamics", "\u2014", 0, 1),
+      b: schemaNum2("B", "dynamics", "\u2014", 0, 1),
+      clk: schemaNum2("CLK", "dynamics", "\u2014", 0, 1),
       mode: {
         group: "dynamics",
         unit: "",
@@ -8301,13 +11469,13 @@ function buildLogic(spec) {
 }
 function buildArch(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { pc: 0, stepDt: 0.3, pages: 8, cacheLines: 4 },
     paramSchema: {
-      pc: schemaNum("PC", "initial", "\u2014", 0, 32),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.05, 1),
-      pages: schemaNum("\u9875\u6570", "numerics", "\u2014", 2, 32),
-      cacheLines: schemaNum("cache\u884C", "numerics", "\u2014", 2, 16)
+      pc: schemaNum2("PC", "initial", "\u2014", 0, 32),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.05, 1),
+      pages: schemaNum2("\u9875\u6570", "numerics", "\u2014", 2, 32),
+      cacheLines: schemaNum2("cache\u884C", "numerics", "\u2014", 2, 16)
     },
     init(state) {
       state.t = 0;
@@ -8358,13 +11526,13 @@ function buildArch(spec) {
 }
 function buildEmbed(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { duty: 0.4, freq: 2, bits: 4, rate: 8 },
     paramSchema: {
-      duty: schemaNum("\u5360\u7A7A\u6BD4", "dynamics", "\u2014", 0.05, 0.95),
-      freq: schemaNum("\u9891\u7387", "dynamics", "Hz", 0.2, 10),
-      bits: schemaNum("\u4F4D\u6570", "dynamics", "\u2014", 2, 12),
-      rate: schemaNum("\u91C7\u6837\u7387", "dynamics", "Hz", 1, 40)
+      duty: schemaNum2("\u5360\u7A7A\u6BD4", "dynamics", "\u2014", 0.05, 0.95),
+      freq: schemaNum2("\u9891\u7387", "dynamics", "Hz", 0.2, 10),
+      bits: schemaNum2("\u4F4D\u6570", "dynamics", "\u2014", 2, 12),
+      rate: schemaNum2("\u91C7\u6837\u7387", "dynamics", "Hz", 1, 40)
     },
     init(state) {
       state.t = 0;
@@ -8415,14 +11583,14 @@ function buildEmbed(spec) {
 }
 function buildComm(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { fc: 8, fm: 1, beta: 1.5, data: 181, errBit: 3 },
     paramSchema: {
-      fc: schemaNum("\u8F7D\u6CE2 f", "dynamics", "Hz", 1, 20),
-      fm: schemaNum("\u8C03\u5236 f", "dynamics", "Hz", 0.2, 5),
-      beta: schemaNum("\u8C03\u5236\u6307\u6570", "dynamics", "\u2014", 0.1, 5),
-      data: schemaNum("\u6570\u636E", "initial", "\u2014", 0, 255),
-      errBit: schemaNum("\u9519\u8BEF\u4F4D", "dynamics", "\u2014", 0, 15)
+      fc: schemaNum2("\u8F7D\u6CE2 f", "dynamics", "Hz", 1, 20),
+      fm: schemaNum2("\u8C03\u5236 f", "dynamics", "Hz", 0.2, 5),
+      beta: schemaNum2("\u8C03\u5236\u6307\u6570", "dynamics", "\u2014", 0.1, 5),
+      data: schemaNum2("\u6570\u636E", "initial", "\u2014", 0, 255),
+      errBit: schemaNum2("\u9519\u8BEF\u4F4D", "dynamics", "\u2014", 0, 15)
     },
     init(state) {
       state.t = 0;
@@ -8469,12 +11637,12 @@ function buildComm(spec) {
 }
 function buildNet(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { loss: 0.1, delay: 0.2, stepDt: 0.35 },
     paramSchema: {
-      loss: schemaNum("\u4E22\u5305\u7387", "dynamics", "\u2014", 0, 0.8),
-      delay: schemaNum("\u5EF6\u8FDF", "dynamics", "s", 0, 2),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.1, 1)
+      loss: schemaNum2("\u4E22\u5305\u7387", "dynamics", "\u2014", 0, 0.8),
+      delay: schemaNum2("\u5EF6\u8FDF", "dynamics", "s", 0, 2),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.1, 1)
     },
     init(state) {
       state.t = 0;
@@ -8531,7 +11699,7 @@ function buildNet(spec) {
 }
 function buildOs(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { algo: 0, quantum: 2, n: 4, seed: 2 },
     paramSchema: {
       algo: {
@@ -8542,9 +11710,9 @@ function buildOs(spec) {
         max: 2,
         options: [{ value: 0, label: "FCFS" }, { value: 1, label: "RR" }, { value: 2, label: "Priority" }]
       },
-      quantum: schemaNum("\u65F6\u95F4\u7247", "dynamics", "\u2014", 1, 10),
-      n: schemaNum("\u8FDB\u7A0B\u6570", "numerics", "\u2014", 2, 8),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 99)
+      quantum: schemaNum2("\u65F6\u95F4\u7247", "dynamics", "\u2014", 1, 10),
+      n: schemaNum2("\u8FDB\u7A0B\u6570", "numerics", "\u2014", 2, 8),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 99)
     },
     init(state) {
       const r = rnd(P(state.params, "seed", 2));
@@ -8608,11 +11776,11 @@ function buildOs(spec) {
 }
 function buildCompile(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { src: 0, stepDt: 0.25 },
     paramSchema: {
-      src: schemaNum("\u6837\u4F8B\u6E90\u7801#", "initial", "\u2014", 0, 3),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.05, 1)
+      src: schemaNum2("\u6837\u4F8B\u6E90\u7801#", "initial", "\u2014", 0, 3),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.05, 1)
     },
     init(state) {
       const samples = [
@@ -8665,13 +11833,13 @@ function buildCompile(spec) {
 }
 function buildDist(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { nodes: 5, partition: 0, shards: 4, stepDt: 0.3 },
     paramSchema: {
-      nodes: schemaNum("\u8282\u70B9\u6570", "numerics", "\u2014", 3, 9),
-      partition: schemaNum("\u5206\u533A", "dynamics", "\u2014", 0, 1),
-      shards: schemaNum("\u5206\u7247", "numerics", "\u2014", 1, 12),
-      stepDt: schemaNum("stepDt", "dynamics", "s", 0.1, 1)
+      nodes: schemaNum2("\u8282\u70B9\u6570", "numerics", "\u2014", 3, 9),
+      partition: schemaNum2("\u5206\u533A", "dynamics", "\u2014", 0, 1),
+      shards: schemaNum2("\u5206\u7247", "numerics", "\u2014", 1, 12),
+      stepDt: schemaNum2("stepDt", "dynamics", "s", 0.1, 1)
     },
     init(state) {
       const n = Math.floor(P(state.params, "nodes", 5));
@@ -8739,14 +11907,14 @@ function buildDist(spec) {
 }
 function buildStruct(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { load: 10, span: 6, EI: 1, pos: 0.5, shape: 1 },
     paramSchema: {
-      load: schemaNum("\u8F7D\u8377 P", "dynamics", "kN", 0, 100),
-      span: schemaNum("\u8DE8\u5EA6 L", "dynamics", "m", 1, 40),
-      EI: schemaNum("EI", "dynamics", "\u2014", 0.1, 50),
-      pos: schemaNum("\u8F7D\u8377\u4F4D\u7F6E", "dynamics", "\u2014", 0.05, 0.95),
-      shape: schemaNum("\u622A\u9762\u7CFB\u6570", "dynamics", "\u2014", 0.2, 5)
+      load: schemaNum2("\u8F7D\u8377 P", "dynamics", "kN", 0, 100),
+      span: schemaNum2("\u8DE8\u5EA6 L", "dynamics", "m", 1, 40),
+      EI: schemaNum2("EI", "dynamics", "\u2014", 0.1, 50),
+      pos: schemaNum2("\u8F7D\u8377\u4F4D\u7F6E", "dynamics", "\u2014", 0.05, 0.95),
+      shape: schemaNum2("\u622A\u9762\u7CFB\u6570", "dynamics", "\u2014", 0.2, 5)
     },
     init(state) {
       state.t = 0;
@@ -8848,16 +12016,16 @@ function buildStruct(spec) {
 }
 function buildControl(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { K: 1, zeta: 0.4, wn: 2, Kp: 1.2, Ki: 0.4, Kd: 0.08, speed: 1 },
     paramSchema: {
-      K: schemaNum("K", "dynamics", "\u2014", 0.1, 10),
-      zeta: schemaNum("\u03B6", "dynamics", "\u2014", 0.05, 2),
-      wn: schemaNum("\u03C9\u2099", "dynamics", "rad/s", 0.2, 20),
-      Kp: schemaNum("Kp", "dynamics", "\u2014", 0, 20),
-      Ki: schemaNum("Ki", "dynamics", "\u2014", 0, 20),
-      Kd: schemaNum("Kd", "dynamics", "\u2014", 0, 5),
-      speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.2, 4)
+      K: schemaNum2("K", "dynamics", "\u2014", 0.1, 10),
+      zeta: schemaNum2("\u03B6", "dynamics", "\u2014", 0.05, 2),
+      wn: schemaNum2("\u03C9\u2099", "dynamics", "rad/s", 0.2, 20),
+      Kp: schemaNum2("Kp", "dynamics", "\u2014", 0, 20),
+      Ki: schemaNum2("Ki", "dynamics", "\u2014", 0, 20),
+      Kd: schemaNum2("Kd", "dynamics", "\u2014", 0, 5),
+      speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.2, 4)
     },
     init(state) {
       state.t = 0;
@@ -8934,21 +12102,21 @@ function buildControl(spec) {
 function buildChaos(spec) {
   const isMandel = spec.id === "mandelbrot-julia";
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: isMandel ? { iter: 40, cx: -0.7, cy: 0.27, zoom: 1.2 } : { sigma: 10, rho: 28, beta: 2.67, a: 0.2, b: 0.2, c: 5.7, speed: 1, proj: 0 },
     paramSchema: isMandel ? {
-      iter: schemaNum("\u8FED\u4EE3", "numerics", "\u2014", 10, 120),
-      cx: schemaNum("c\u1D63", "dynamics", "\u2014", -2, 1),
-      cy: schemaNum("c\u1D62", "dynamics", "\u2014", -1.5, 1.5),
-      zoom: schemaNum("\u7F29\u653E", "dynamics", "\u2014", 0.3, 8)
+      iter: schemaNum2("\u8FED\u4EE3", "numerics", "\u2014", 10, 120),
+      cx: schemaNum2("c\u1D63", "dynamics", "\u2014", -2, 1),
+      cy: schemaNum2("c\u1D62", "dynamics", "\u2014", -1.5, 1.5),
+      zoom: schemaNum2("\u7F29\u653E", "dynamics", "\u2014", 0.3, 8)
     } : {
-      sigma: schemaNum("\u03C3", "dynamics", "\u2014", 1, 30),
-      rho: schemaNum("\u03C1", "dynamics", "\u2014", 1, 50),
-      beta: schemaNum("\u03B2", "dynamics", "\u2014", 0.5, 8),
-      a: schemaNum("a", "dynamics", "\u2014", 0.05, 1),
-      b: schemaNum("b", "dynamics", "\u2014", 0.05, 1),
-      c: schemaNum("c", "dynamics", "\u2014", 1, 20),
-      speed: schemaNum("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.2, 4),
+      sigma: schemaNum2("\u03C3", "dynamics", "\u2014", 1, 30),
+      rho: schemaNum2("\u03C1", "dynamics", "\u2014", 1, 50),
+      beta: schemaNum2("\u03B2", "dynamics", "\u2014", 0.5, 8),
+      a: schemaNum2("a", "dynamics", "\u2014", 0.05, 1),
+      b: schemaNum2("b", "dynamics", "\u2014", 0.05, 1),
+      c: schemaNum2("c", "dynamics", "\u2014", 1, 20),
+      speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.2, 4),
       proj: {
         label: "\u6295\u5F71",
         group: "display",
@@ -9148,15 +12316,15 @@ function buildChaos(spec) {
 }
 function buildTraffic(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { density: 0.25, pSlow: 0.2, vmax: 5, green: 0.55, cycle: 30, seed: 7 },
     paramSchema: {
-      density: schemaNum("\u5BC6\u5EA6", "dynamics", "\u2014", 0.05, 0.9),
-      pSlow: schemaNum("\u968F\u673A\u6162\u5316", "dynamics", "\u2014", 0, 0.8),
-      vmax: schemaNum("vmax", "dynamics", "\u2014", 1, 8),
-      green: schemaNum("\u7EFF\u4FE1\u6BD4", "dynamics", "\u2014", 0.2, 0.9),
-      cycle: schemaNum("\u5468\u671F", "dynamics", "s", 10, 90),
-      seed: schemaNum("seed", "initial", "\u2014", 1, 9999)
+      density: schemaNum2("\u5BC6\u5EA6", "dynamics", "\u2014", 0.05, 0.9),
+      pSlow: schemaNum2("\u968F\u673A\u6162\u5316", "dynamics", "\u2014", 0, 0.8),
+      vmax: schemaNum2("vmax", "dynamics", "\u2014", 1, 8),
+      green: schemaNum2("\u7EFF\u4FE1\u6BD4", "dynamics", "\u2014", 0.2, 0.9),
+      cycle: schemaNum2("\u5468\u671F", "dynamics", "s", 10, 90),
+      seed: schemaNum2("seed", "initial", "\u2014", 1, 9999)
     },
     init(state) {
       const n = 60;
@@ -9253,17 +12421,17 @@ function buildTraffic(spec) {
 }
 function buildReactor(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { tau: 2, k: 0.8, order: 1, cin: 1, T: 350, P: 1, reflux: 1.5, z: 0.5 },
     paramSchema: {
-      tau: schemaNum("\u505C\u7559 \u03C4", "dynamics", "s", 0.2, 20),
-      k: schemaNum("\u901F\u7387 k", "dynamics", "1/s", 0, 5),
-      order: schemaNum("\u7EA7\u6570", "dynamics", "\u2014", 1, 2),
-      cin: schemaNum("\u8FDB\u6599 c\u1D62\u2099", "dynamics", "\u2014", 0, 5),
-      T: schemaNum("T", "dynamics", "K", 250, 600),
-      P: schemaNum("P", "dynamics", "bar", 0.2, 20),
-      reflux: schemaNum("\u56DE\u6D41\u6BD4", "dynamics", "\u2014", 0.5, 8),
-      z: schemaNum("\u8FDB\u6599\u7EC4\u6210", "dynamics", "\u2014", 0.05, 0.95)
+      tau: schemaNum2("\u505C\u7559 \u03C4", "dynamics", "s", 0.2, 20),
+      k: schemaNum2("\u901F\u7387 k", "dynamics", "1/s", 0, 5),
+      order: schemaNum2("\u7EA7\u6570", "dynamics", "\u2014", 1, 2),
+      cin: schemaNum2("\u8FDB\u6599 c\u1D62\u2099", "dynamics", "\u2014", 0, 5),
+      T: schemaNum2("T", "dynamics", "K", 250, 600),
+      P: schemaNum2("P", "dynamics", "bar", 0.2, 20),
+      reflux: schemaNum2("\u56DE\u6D41\u6BD4", "dynamics", "\u2014", 0.5, 8),
+      z: schemaNum2("\u8FDB\u6599\u7EC4\u6210", "dynamics", "\u2014", 0.05, 0.95)
     },
     init(state) {
       state.t = 0;
@@ -9363,16 +12531,16 @@ function buildReactor(spec) {
 }
 function buildAero(spec) {
   return {
-    ...baseMeta(spec),
+    ...baseMeta2(spec),
     params: { alpha: 5, AR: 8, sweep: 20, camber: 0.04, Re: 1e6, thrust: 1.2, mass: 1 },
     paramSchema: {
-      alpha: schemaNum("\u653B\u89D2 \u03B1", "dynamics", "\xB0", -5, 25),
-      AR: schemaNum("\u5C55\u5F26\u6BD4", "dynamics", "\u2014", 2, 20),
-      sweep: schemaNum("\u540E\u63A0\u89D2", "dynamics", "\xB0", 0, 45),
-      camber: schemaNum("\u5F2F\u5EA6", "dynamics", "\u2014", 0, 0.15),
-      Re: schemaNum("Re/10\u2076", "dynamics", "\u2014", 0.1, 10),
-      thrust: schemaNum("\u63A8\u529B", "dynamics", "\u2014", 0.2, 5),
-      mass: schemaNum("\u8D28\u91CF", "dynamics", "\u2014", 0.2, 10)
+      alpha: schemaNum2("\u653B\u89D2 \u03B1", "dynamics", "\xB0", -5, 25),
+      AR: schemaNum2("\u5C55\u5F26\u6BD4", "dynamics", "\u2014", 2, 20),
+      sweep: schemaNum2("\u540E\u63A0\u89D2", "dynamics", "\xB0", 0, 45),
+      camber: schemaNum2("\u5F2F\u5EA6", "dynamics", "\u2014", 0, 0.15),
+      Re: schemaNum2("Re/10\u2076", "dynamics", "\u2014", 0.1, 10),
+      thrust: schemaNum2("\u63A8\u529B", "dynamics", "\u2014", 0.2, 5),
+      mass: schemaNum2("\u8D28\u91CF", "dynamics", "\u2014", 0.2, 10)
     },
     init(state) {
       state.t = 0;

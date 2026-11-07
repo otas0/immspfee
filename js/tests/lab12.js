@@ -147,7 +147,8 @@ export function runLab12() {
   assert('格子玻尔兹曼先于玻尔兹曼', translateCatalogText('en', '格子玻尔兹曼') === 'lattice Boltzmann', translateCatalogText('en', '格子玻尔兹曼'));
   assert('卡诺不是 card promise', translateCatalogText('en', '卡诺') === 'Carnot', translateCatalogText('en', '卡诺'));
   assert('电路不是 electric path', translateCatalogText('en', '电路') === 'circuit', translateCatalogText('en', '电路'));
-  assert('短语未覆盖时不回落到单字', translatePhrasesOnly('en', '液滴撞击') == null, String(translatePhrasesOnly('en', '液滴撞击')));
+  assert('液滴撞击整词翻译', translatePhrasesOnly('en', '液滴撞击') === 'droplet impact', String(translatePhrasesOnly('en', '液滴撞击')));
+  assert('短语未覆盖时不回落到单字', translatePhrasesOnly('en', '麒麟占位句') == null, String(translatePhrasesOnly('en', '麒麟占位句')));
 
   const eCharge = 1.602176634e-19;
   const phraseEn = {

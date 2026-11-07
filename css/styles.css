@@ -323,11 +323,14 @@ html.hc .domain-group .domain-count {
   display: inline-flex;
   width: 100%;
   margin-top: 0.15rem;
-  justify-content: center;
+  margin-left: 0;
+  margin-right: 0;
+  /* Label starts with #fold-bar「全部展开」, not centered in the full-width control. */
+  justify-content: flex-start;
   font-size: 0.68rem;
   min-height: 34px;
   line-height: 1.15;
-  padding: 0.4rem 0.55rem;
+  padding: 0.4rem 0.55rem 0.4rem 0.45rem;
 }
 @media (max-width: 560px) {
   /* 勿被窄屏「图标盒」规则压成 44×44 */
@@ -415,7 +418,8 @@ html.hc .domain-group .domain-count {
   }
   .filters .user-model-btn {
     min-height: 28px;
-    padding: 0.2rem 0.35rem;
+    /* Keep the same inline start as .btn.quiet「全部展开」(0.45rem). */
+    padding: 0.2rem 0.35rem 0.2rem 0.45rem;
     font-size: 0.6rem;
   }
 }
@@ -911,6 +915,21 @@ html.hc .model-item.active { background: #fff; color: #000; }
   border-color: color-mix(in srgb, #c45c26 45%, var(--line));
   background: color-mix(in srgb, #c45c26 12%, var(--panel));
 }
+/* Narrow: #c45c26 on a near-white chip is ~4.3:1 and the mixed border fades into --line. */
+@media (max-width: 900px) {
+  .filter-chip.is-active,
+  .filter-chip[aria-pressed='true'] {
+    color: #8a3410;
+    border-color: #8a3410;
+    background: #fff4ee;
+  }
+  html.hc .filter-chip.is-active,
+  html.hc .filter-chip[aria-pressed='true'] {
+    color: #ffb089;
+    border-color: #ffb089;
+    background: #2a1208;
+  }
+}
 .model-item.active .tag {
   color: inherit;
   background: rgba(255,255,255,0.15);
@@ -1066,6 +1085,18 @@ html.hc .btn.primary {
   color: var(--muted);
   padding: 0.28rem 0.45rem;
   min-height: 32px;
+}
+/* Beats later .btn padding/centering so #btn-user-model stays flush with
+   #fold-bar .btn and #filter-heavy (filters content edge, label start 0.45rem). */
+.filters > #btn-user-model.user-model-btn {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  justify-content: flex-start;
+  text-align: start;
+  padding-left: 0.45rem;
 }
 .btn.quiet:hover { color: var(--ink); background: var(--accent-soft); border-color: var(--line); }
 .btn.quiet.shell-safe:not([hidden]) {

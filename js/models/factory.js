@@ -10,6 +10,7 @@ import { familyCapabilities } from '../lab/formalism.js';
 import { applyLowInkStrokeBoost } from '../lab/lowInkIds.js';
 import { forceGraphStep, mapNormToScreen, paintGraph } from '../utils/graphLayout.js';
 import { buildTopicModel } from '../lab/topicModel.js';
+import { buildFamPhysics, warnDecorativeSine } from './famPhysics.js';
 import {
   createRingTrail,
   ensureRingCap,
@@ -300,6 +301,7 @@ function buildPhotoelectricVariant(spec) {
     equation: 'K_max = max(0, hν − W); R ∝ I only if K_max>0',
     authority: 'Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield ∝ I above threshold)',
     assumptions: 'hν and W share one energy unit (h=1 when the frequency knob is already an energy); no space charge; R is a relative yield',
+    governing: true,
     params,
     paramSchema,
     init(state) {
@@ -419,6 +421,7 @@ function buildHeatConductionVariant(spec) {
     equation: 'q = −κ (T(L) − T(0)) / L',
     authority: 'Incropera, Fundamentals of Heat and Mass Transfer, Fourier law q=−κ ΔT/L (plane wall)',
     assumptions: 'Steady plane wall, constant κ, no generation; ΔT = T(L)−T(0). Single layer when only one thickness is set.',
+    governing: true,
     params,
     paramSchema,
     init(state) {
@@ -524,6 +527,9 @@ function buildHeatConductionVariant(spec) {
 function buildVariant(spec) {
   if (isPhotoelectricSpec(spec)) return buildPhotoelectricVariant(spec);
   if (isHeatConductionSpec(spec)) return buildHeatConductionVariant(spec);
+  const physics = buildFamPhysics(spec);
+  if (physics) return physics;
+  warnDecorativeSine(spec);
   const dimList = Array.isArray(spec.dims) ? spec.dims : [];
   const defaults = spec.defaults && typeof spec.defaults === 'object' ? spec.defaults : {};
   const params = { speed: 1, ...defaults };
@@ -554,6 +560,7 @@ function buildVariant(spec) {
 
   return {
     ...baseMeta(spec),
+    governing: false,
     params,
     paramSchema,
     init(state) {

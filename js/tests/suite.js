@@ -856,6 +856,210 @@ export function runSuite() {
       hc.step(st, 0);
       assert('fam-heat-cond κ 线性进入热流', Math.abs(st.q - 2 * q0) < 1e-9, `q=${st.q}`);
     }
+    {
+      const fam = models.filter((m) => String(m.id).startsWith('fam-'));
+      const decorative = fam.filter((m) => m.governing !== true);
+      assert(
+        'fam-* 不再使用装饰正弦',
+        fam.length >= 198 && decorative.length === 0,
+        `n=${fam.length} sine=${decorative.map((m) => m.id).join(',')}`,
+      );
+      const boot = (id, patch = {}) => {
+        const model = models.find((m) => m.id === id);
+        const st = { params: { ...model.params, ...patch } };
+        model.init(st);
+        return { model, st };
+      };
+      const shown = (model, st, label) => parseFloat(model.getReadouts(st).find((r) => r.label === label)?.value);
+      const authOf = (id) => models.find((m) => m.id === id).authority;
+      assert(
+        'fam-wave2d 权威为 Pain',
+        /Pain/.test(authOf('fam-wave2d-v01')) && !/Electrodynamics/.test(authOf('fam-wave2d-v01')),
+        authOf('fam-wave2d-v01'),
+      );
+      assert(
+        'fam-kinetic-gas 权威为 Reif',
+        /Reif/.test(authOf('fam-kinetic-gas-v01')) && !/Electrodynamics/.test(authOf('fam-kinetic-gas-v01')),
+        authOf('fam-kinetic-gas-v01'),
+      );
+      assert(
+        'fam-collision 权威为 Thornton',
+        /Thornton/.test(authOf('fam-collision-v01')) && !/Electrodynamics/.test(authOf('fam-collision-v01')),
+        authOf('fam-collision-v01'),
+      );
+      assert(
+        'fam-compton 权威为 Compton',
+        /Compton, Phys\. Rev/.test(authOf('fam-compton-v01')) && !/Electrodynamics/.test(authOf('fam-compton-v01')),
+        authOf('fam-compton-v01'),
+      );
+      assert(
+        'fam-convection 权威为 Incropera',
+        /Incropera/.test(authOf('fam-convection-v01')) && !/White, Fluid/.test(authOf('fam-convection-v01')),
+        authOf('fam-convection-v01'),
+      );
+      assert(
+        'fam-reactor 权威为 Fogler',
+        /Fogler/.test(authOf('fam-reactor-v01')) && !/Lamarsh/.test(authOf('fam-reactor-v01')),
+        authOf('fam-reactor-v01'),
+      );
+
+      const EPS0 = 8.854187817e-12;
+      {
+        const { model, st } = boot('fam-projectile-v01', { g: 9.81, v0: 10, theta: 45, k: 0 });
+        model.step(st, 1);
+        const yVac = 10 * Math.sin(Math.PI / 4) - 0.5 * 9.81;
+        assert('fam-projectile 真空抛物线', almostEqual(st.y, yVac, 1e-9, 1e-9), `y=${st.y}`);
+        const yRead = shown(model, st, 'y');
+        st.params.g = 20;
+        model.step(st, 0);
+        assert('fam-projectile g 改变落体读数', shown(model, st, 'y') !== yRead && st.y < yVac, `y=${st.y}`);
+        st.params.g = 9.81;
+        st.params.k = 0.4;
+        model.step(st, 0);
+        assert('fam-projectile 线性阻力改变 y', !almostEqual(st.y, yVac, 1e-4, 1e-4), `y=${st.y}`);
+      }
+      {
+        const { model, st } = boot('fam-inclined-v01', { mu: 0.2, theta: 30, m: 2, v0: 0 });
+        const a = 9.81 * (Math.sin(Math.PI / 6) - 0.2 * Math.cos(Math.PI / 6));
+        assert('fam-inclined a=g(sinθ−μ cosθ)', almostEqual(st.a, a, 1e-12, 1e-12), `a=${st.a}`);
+        const aRead = shown(model, st, 'a');
+        st.params.mu = 0;
+        model.step(st, 0);
+        assert('fam-inclined μ 改变加速度', shown(model, st, 'a') !== aRead && st.a > a, `a=${st.a}`);
+      }
+      {
+        const { model, st } = boot('fam-atwood-v01', { mRatio: 3, mu: 0 });
+        const a = ((3 - 1) / (3 + 1)) * 9.81;
+        assert('fam-atwood a=(m1−m2)/(m1+m2)·g', almostEqual(st.a, a, 1e-12, 1e-12), `a=${st.a}`);
+        st.params.mu = 0.8;
+        model.step(st, 0);
+        assert('fam-atwood 竖直机 μ 不进入 a', almostEqual(st.a, a, 1e-12, 1e-12), `a=${st.a}`);
+      }
+      {
+        const { st } = boot('fam-circular-v01', { r: 2, omega: 3 });
+        assert('fam-circular a=ω²r', almostEqual(st.ac, 18, 1e-12, 1e-12), `a=${st.ac}`);
+      }
+      {
+        const { model, st } = boot('fam-collision-v01', { e: 1, mRatio: 1, angle: 0 });
+        assert('fam-collision 等质量弹性交换', almostEqual(st.v1, 0, 1e-12, 1e-12) && almostEqual(st.v2, 1, 1e-12, 1e-12), `v=${st.v1},${st.v2}`);
+        st.params.e = 0;
+        model.step(st, 0);
+        assert('fam-collision e 改变出射速度', !almostEqual(st.v2, 1, 1e-6, 1e-6), `v2=${st.v2}`);
+      }
+      {
+        const { model, st } = boot('fam-sho-v01', { k: 5, m: 0.5, x0: -1 });
+        assert('fam-sho a=−(k/m)x', almostEqual(st.a, 10, 1e-9, 1e-9), `a=${st.a}`);
+        st.params.k = 10;
+        model.step(st, 0);
+        assert('fam-sho k 改变加速度', almostEqual(st.a, 20, 1e-9, 1e-9), `a=${st.a}`);
+      }
+      {
+        const { model, st } = boot('fam-pendulum-chain-v01', { L: 1, m: 2, theta0: 90 });
+        assert('fam-pendulum α=−(g/L)sinθ', almostEqual(st.alpha, -9.81, 1e-9, 1e-9), `α=${st.alpha}`);
+        st.params.L = 2;
+        model.step(st, 0);
+        assert('fam-pendulum L 改变角加速度', almostEqual(st.alpha, -4.905, 1e-9, 1e-9), `α=${st.alpha}`);
+      }
+      {
+        const { model, st } = boot('fam-radioactive-v01', { lam: Math.LN2, N0: 100 });
+        assert('fam-radioactive A=λN', almostEqual(st.A, Math.LN2 * 100, 1e-9, 1e-9), `A=${st.A}`);
+        model.step(st, 1);
+        assert('fam-radioactive 一个半衰期 N=N0/2', almostEqual(st.N, 50, 1e-8, 1e-8), `N=${st.N}`);
+      }
+      {
+        const { model, st } = boot('fam-lens-v01', { f: -10, u: -20, h: 1 });
+        assert('fam-lens 1/v=1/f−1/u', almostEqual(st.v, -20, 1e-9, 1e-9), `v=${st.v}`);
+        const vRead = shown(model, st, 'v');
+        st.params.f = -5;
+        model.step(st, 0);
+        assert('fam-lens f 改变像距', almostEqual(st.v, -20 / 3, 1e-9, 1e-9) && shown(model, st, 'v') !== vRead, `v=${st.v}`);
+      }
+      {
+        const { model, st } = boot('fam-polarization-v01', { ang: 60, dphi: 0 });
+        assert('fam-polarization Malus I=cos²θ', almostEqual(st.I, 0.25, 1e-12, 1e-12), `I=${st.I}`);
+        st.params.dphi = 90;
+        model.step(st, 0);
+        assert('fam-polarization 延迟相位不改变 I', almostEqual(st.I, 0.25, 1e-12, 1e-12), `I=${st.I}`);
+      }
+      {
+        const { model, st } = boot('fam-axial-v01', { A: 0.01, F: 1000 });
+        assert('fam-axial σ=F/A', almostEqual(st.sigma, 1e5, 1e-9, 1e-6), `σ=${st.sigma}`);
+        const sRead = shown(model, st, 'σ');
+        st.params.F = 2000;
+        model.step(st, 0);
+        assert('fam-axial F 线性进入应力', almostEqual(st.sigma, 2e5, 1e-9, 1e-6) && shown(model, st, 'σ') !== sRead, `σ=${st.sigma}`);
+      }
+      {
+        const { model, st } = boot('fam-heat-engine-v01', { r: 8, TR: 2 });
+        const otto = 1 - 8 ** (1 - 1.4);
+        assert('fam-heat-engine Carnot η=1−1/TR', almostEqual(st.etaC, 0.5, 1e-12, 1e-12), `η=${st.etaC}`);
+        assert('fam-heat-engine Otto η=1−r^{1−γ}', almostEqual(st.etaO, otto, 1e-12, 1e-12), `η=${st.etaO}`);
+        st.params.TR = 4;
+        model.step(st, 0);
+        assert('fam-heat-engine TR 改变卡诺效率', almostEqual(st.etaC, 0.75, 1e-12, 1e-12), `η=${st.etaC}`);
+      }
+      {
+        const { st } = boot('fam-buckling-v01', { L: 2, EI: 10000 });
+        const Pcr = (Math.PI ** 2) * 10000 / 4;
+        assert('fam-buckling Pcr=π²EI/L²', almostEqual(st.Pcr, Pcr, 1e-12, 1e-6), `P=${st.Pcr}`);
+      }
+      {
+        const { st } = boot('fam-gauss-v01', { rho: 1, R: 0.5 });
+        const E = 0.5 / (3 * EPS0);
+        assert('fam-gauss E=ρR/(3ε0)', almostEqual(st.E, E, 1e-9, 1), `E=${st.E}`);
+      }
+      {
+        const { st } = boot('fam-capacitor-v01', { eps: 2, d: 0.1, A: 0.2 });
+        const C = 2 * EPS0 * 0.2 / 0.1;
+        assert('fam-capacitor C=εA/d', almostEqual(st.C, C, 1e-9, 1e-18), `C=${st.C}`);
+      }
+      {
+        const { model, st } = boot('fam-queueing-v01', { lam: 1, mu: 2 });
+        assert('fam-queueing L=ρ/(1−ρ)', almostEqual(st.L, 1, 1e-12, 1e-12) && st.stable === 1, `L=${st.L}`);
+        st.params.lam = 3;
+        model.step(st, 0);
+        assert('fam-queueing ρ≥1 报告不稳定', st.stable === 0 && st.L === 0, `L=${st.L}`);
+      }
+      {
+        const { model, st } = boot('fam-well1d-v01', { a: 0.5, V0: 5 });
+        const E = (Math.PI ** 2) / (2 * 0.25);
+        assert('fam-well1d E∝1/a²', almostEqual(st.E1, E, 1e-12, 1e-9), `E=${st.E1}`);
+        st.params.a = 1;
+        model.step(st, 0);
+        assert('fam-well1d 加倍宽度能级降为 1/4', almostEqual(st.E1, E / 4, 1e-12, 1e-9), `E=${st.E1}`);
+      }
+      {
+        const { st } = boot('fam-doppler-v01', { vs: 0.5, vo: 0, ang: 0 });
+        assert('fam-doppler f\'/f=(1)/(1−vs)', almostEqual(st.ratio, 2, 1e-12, 1e-12), `r=${st.ratio}`);
+      }
+      {
+        const { model, st } = boot('fam-compton-v01', { theta: 0, E: 50 });
+        assert('fam-compton θ=0 时 Δλ=0', almostEqual(st.dLam, 0, 1e-12, 1e-12), `dλ=${st.dLam}`);
+        st.params.theta = 180;
+        model.step(st, 0);
+        assert('fam-compton θ=180 时 Δλ=2λc', almostEqual(st.dLam, 2 * 2.42631023867, 1e-9, 1e-9), `dλ=${st.dLam}`);
+      }
+      {
+        const { model, st } = boot('fam-pipe-flow-v01', { Re: 1000, eps: 0.01 });
+        assert('fam-pipe-flow 层流 f=64/Re', almostEqual(st.f, 0.064, 1e-12, 1e-12), `f=${st.f}`);
+        st.params.Re = 500;
+        model.step(st, 0);
+        assert('fam-pipe-flow Re 改变摩阻', almostEqual(st.f, 0.128, 1e-12, 1e-12), `f=${st.f}`);
+      }
+      {
+        const { st } = boot('fam-entropy-mix-v01', { xA: 0.5, T: 300 });
+        assert('fam-entropy-mix Δs/R=ln2', almostEqual(st.sOverR, Math.LN2, 1e-12, 1e-12), `s=${st.sOverR}`);
+      }
+      {
+        const { st } = boot('fam-tunnel-v01', { V0: 5, w: 0.3, E: 2 });
+        const T = Math.exp(-2 * Math.sqrt(6) * 0.3);
+        assert('fam-tunnel T≈exp(−2κw)', almostEqual(st.T, T, 1e-12, 1e-12), `T=${st.T}`);
+      }
+      {
+        const { st } = boot('fam-prism-v01', { nF: 1.5, A: 10 });
+        assert('fam-prism δ≈(n−1)A', almostEqual(st.delta, 5, 1e-12, 1e-12), `δ=${st.delta}`);
+      }
+    }
     assert('catalog has beam-sfd-bmd', ids.has('beam-sfd-bmd'));
     assert('catalog has pid-tune', ids.has('pid-tune'));
     assert('catalog has lorenz', ids.has('lorenz'));

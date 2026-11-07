@@ -15,6 +15,7 @@
     "test:narrow:bohr-slow": "NARROW_BOHR_MS=180000 node scripts/narrow-regression.mjs",
     "test:shell": "node scripts/shell-chrome.mjs",
     "test:toolbar-hit": "node scripts/toolbar-hit-contrast.mjs",
+    "test:names-loading": "node scripts/names-loading-smoke.mjs",
     "test:shell-first-paint": "node scripts/shell-first-paint.mjs",
     "test:boot": "node scripts/boot-reload.mjs && node scripts/sw-cache.mjs && node scripts/boot-follow.mjs",
     "test:boot-timing": "node scripts/boot-timing.mjs",

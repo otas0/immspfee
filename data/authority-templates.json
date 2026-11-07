@@ -367,6 +367,176 @@
       "fidelity": "engineering",
       "authority": "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity; yield ∝ I above threshold)",
       "assumptions": "h*nu and W share one energy unit (h = 1 when the frequency knob is already an energy); no space charge; R is a relative yield and does not change K_max."
+    },
+    "fam-collision-v01": {
+      "fidelity": "principle",
+      "authority": "Thornton & Marion, Classical Dynamics of Particles and Systems, impact and the coefficient of restitution",
+      "assumptions": "1D normal impact. Tangential velocity is unchanged. m1=mRatio, m2=1 kg, u1=1 m/s, u2=0."
+    },
+    "fam-wave2d-v01": {
+      "fidelity": "principle",
+      "authority": "Pain, The Physics of Vibrations and Waves, two-dimensional membrane",
+      "assumptions": "Linear membrane. Wave speed c=sqrt(T/rho). The readout is the (1,1) mode."
+    },
+    "fam-kinetic-gas-v01": {
+      "fidelity": "principle",
+      "authority": "Reif, Fundamentals of Statistical and Thermal Physics, Maxwell speed distribution",
+      "assumptions": "Ideal gas. mMol is the molar mass in g/mol. v_rms=sqrt(3 R T / M)."
+    },
+    "fam-brownian-v01": {
+      "fidelity": "principle",
+      "authority": "Einstein, Ann. Phys. 17, 549 (1905); Reif, diffusion",
+      "assumptions": "Ensemble mean-square displacement in one dimension, <x^2>=2 D t. Not a random path."
+    },
+    "fam-entropy-mix-v01": {
+      "fidelity": "principle",
+      "authority": "Cengel & Boles, Thermodynamics, entropy of mixing of ideal gases",
+      "assumptions": "Ideal binary mixture, one mole. Delta s/R = -sum x ln x. Temperature cancels in Delta s."
+    },
+    "fam-compton-v01": {
+      "fidelity": "principle",
+      "authority": "Compton, Phys. Rev. 21, 483 (1923); Eisberg & Resnick, Quantum Physics",
+      "assumptions": "Electron at rest. Photon energy E is in keV. Delta lambda is in pm. lambda_C=2.42631023867 pm."
+    },
+    "fam-rel-dyn-v01": {
+      "fidelity": "principle",
+      "authority": "French, Special Relativity, energy-momentum relation",
+      "assumptions": "c=1. Rest mass m=sqrt(E^2-p^2) when the interval is timelike; otherwise m=0."
+    },
+    "fam-multiphase-v01": {
+      "fidelity": "principle",
+      "authority": "White, Fluid Mechanics, capillary length",
+      "assumptions": "Capillary length lambda_c=sqrt(sigma/(Delta rho * g)) with g=9.81 m/s^2."
+    },
+    "fam-plasma-v01": {
+      "fidelity": "principle",
+      "authority": "Chen, Introduction to Plasma Physics and Controlled Fusion, plasma frequency and cyclotron frequency",
+      "assumptions": "Electron mass. Temperature is in eV. Classroom frequencies only; no device design."
+    },
+    "fam-supercon-v01": {
+      "fidelity": "principle",
+      "authority": "Tinkham, Introduction to Superconductivity, Ginzburg-Landau parameter",
+      "assumptions": "kappa=lambda/xi. Type II when kappa>1/sqrt(2)."
+    },
+    "fam-magnetism-v01": {
+      "fidelity": "principle",
+      "authority": "Kittel, Introduction to Solid State Physics, mean-field Curie temperature",
+      "assumptions": "k_B=1, coordination z=6, spin S=1/2. Anisotropy is reported separately and is not folded into T_C."
+    },
+    "fam-topo-v01": {
+      "fidelity": "principle",
+      "authority": "Thouless, Kohmoto, Nightingale and den Nijs, Phys. Rev. Lett. 49, 405 (1982)",
+      "assumptions": "Integer quantum Hall. sigma_xy/(e^2/h) equals the Chern number."
+    },
+    "fam-well1d-v01": {
+      "fidelity": "engineering",
+      "authority": "Griffiths, Introduction to Quantum Mechanics, infinite square well",
+      "assumptions": "hbar=m=1. Ground state E_1=pi^2/(2 a^2). V0 is only a comparison with a finite well."
+    },
+    "fam-tunnel-v01": {
+      "fidelity": "engineering",
+      "authority": "Griffiths, Introduction to Quantum Mechanics, thick-barrier tunneling",
+      "assumptions": "hbar=m=1. T is approximately exp(-2 kappa w), kappa=sqrt(2(V0-E)). T=1 when E>=V0."
+    },
+    "fam-qho-v01": {
+      "fidelity": "engineering",
+      "authority": "Griffiths, Introduction to Quantum Mechanics, harmonic oscillator",
+      "assumptions": "hbar=1. Ground energy is omega/2. Coupling raises one normal frequency of two oscillators."
+    },
+    "fam-wavepacket-v01": {
+      "fidelity": "engineering",
+      "authority": "Griffiths, Introduction to Quantum Mechanics, free Gaussian wave packet",
+      "assumptions": "hbar=m=1. Free Gaussian packet plus a constant potential."
+    },
+    "fam-convection-v01": {
+      "fidelity": "principle",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Newton's law of cooling and the laminar flat-plate correlation",
+      "assumptions": "Newton cooling per kelvin. The Blasius plate uses L=1 m and air properties nu=1.5e-5, Pr=0.7, k=0.026."
+    },
+    "fam-conv-eng-v01": {
+      "fidelity": "principle",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Newton's law of cooling",
+      "assumptions": "Same Newton cooling and laminar flat-plate correlation as the classroom convection model."
+    },
+    "fam-radiation-v01": {
+      "fidelity": "engineering",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Stefan-Boltzmann law",
+      "assumptions": "Surface exitance q=epsilon sigma T^4. sigma=5.670374419e-8. No incoming irradiation."
+    },
+    "fam-rad-eng-v01": {
+      "fidelity": "engineering",
+      "authority": "Incropera, Fundamentals of Heat and Mass Transfer, Stefan-Boltzmann exchange",
+      "assumptions": "View factor 1 and a 0 K enclosure, so the net flux is the surface exitance epsilon sigma T^4."
+    },
+    "fam-polarization-v01": {
+      "fidelity": "engineering",
+      "authority": "Hecht, Optics, Malus's law",
+      "assumptions": "I=I0 cos^2(theta) with I0=1. The retarder phase does not change this intensity."
+    },
+    "fam-maxwell-v01": {
+      "fidelity": "engineering",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 9, electromagnetic plane waves",
+      "assumptions": "Vacuum plane wave. Wavelength lambda=c/f."
+    },
+    "fam-lorentz-v01": {
+      "fidelity": "principle",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 5, the Lorentz force",
+      "assumptions": "Normalized charge and mass. The magnetic force magnitude is |q| v B for v perpendicular to B."
+    },
+    "fam-magnetostat-v01": {
+      "fidelity": "principle",
+      "authority": "Griffiths, Introduction to Electrodynamics, Ch. 5, Biot-Savart law at the center of a loop",
+      "assumptions": "B=mu0 I/(2 R) at the center of a circular loop."
+    },
+    "fam-antenna-v01": {
+      "fidelity": "principle",
+      "authority": "Balanis, Antenna Theory, array factor",
+      "assumptions": "Two-element array. Length and spacing are in wavelengths. This is not an electrostatics model."
+    },
+    "fam-ising-v01": {
+      "fidelity": "engineering",
+      "authority": "Pathria and Beale, Statistical Mechanics, mean-field Ising model",
+      "assumptions": "Mean-field Ising with coordination number 4. Not the Onsager solution."
+    },
+    "fam-percolation-v01": {
+      "fidelity": "engineering",
+      "authority": "Stauffer and Aharony, Introduction to Percolation Theory, one-dimensional site percolation",
+      "assumptions": "Exact 1D site percolation. Mean finite-cluster size (1+p)/(1-p). Not a 2D Monte Carlo lattice."
+    },
+    "fam-queueing-v01": {
+      "fidelity": "principle",
+      "authority": "Gross, Shortle, Thompson and Harris, Fundamentals of Queueing Theory, M/M/1",
+      "assumptions": "rho=lambda/mu. Mean system size L=rho/(1-rho) when rho<1. An unstable queue reports L=0 and stable=0."
+    },
+    "fam-infotheory-v01": {
+      "fidelity": "engineering",
+      "authority": "Cover and Thomas, Elements of Information Theory, Shannon entropy",
+      "assumptions": "Binary entropy H=-p log2(p)-(1-p) log2(1-p), plus AWGN spectral efficiency at the stated SNR."
+    },
+    "fam-combustion-v01": {
+      "fidelity": "principle",
+      "authority": "Turns, An Introduction to Combustion, equivalence ratio",
+      "assumptions": "Equivalence ratio only. The temperature knob is the reactant temperature, not a computed flame temperature."
+    },
+    "fam-reactor-v01": {
+      "fidelity": "principle",
+      "authority": "Fogler, Elements of Chemical Reaction Engineering, isothermal first-order CSTR and PFR",
+      "assumptions": "Isothermal irreversible first-order kinetics. Not a nuclear point-reactor model."
+    },
+    "fam-distill-v01": {
+      "fidelity": "principle",
+      "authority": "McCabe, Smith and Harriott, Unit Operations of Chemical Engineering, Fenske equation",
+      "assumptions": "Binary example with constant relative volatility alpha=2.5, xD=0.95, xB=0.05."
+    },
+    "fam-absorb-v01": {
+      "fidelity": "principle",
+      "authority": "McCabe, Smith and Harriott, Unit Operations of Chemical Engineering, absorption factor",
+      "assumptions": "Single equilibrium stage with equilibrium slope m=1. Not a nuclear engineering model."
+    },
+    "fam-extract-v01": {
+      "fidelity": "principle",
+      "authority": "McCabe, Smith and Harriott, Unit Operations of Chemical Engineering, Kremser equation",
+      "assumptions": "Extraction factor S with distribution ratio 1. Not a nuclear engineering model."
     }
   }
 }
