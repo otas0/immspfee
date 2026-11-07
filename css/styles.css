@@ -95,12 +95,11 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* Only #model-list (and capped .filters) scroll — brand + #micro3d-host stay pinned. */
+  /* Only #model-list (and capped .filters) scroll — brand stays put. */
   overflow: hidden;
   z-index: 30; /* 高于 drawer-backdrop(24)，否则打开后被遮罩盖住看不见 */
 }
 .sidebar > .brand,
-.sidebar > .micro3d-host,
 .sidebar > .sidebar-foot {
   flex-shrink: 0;
 }
@@ -374,11 +373,12 @@ html.hc .domain-group .domain-count {
   .brand-logo img {
     max-height: 20px;
   }
-  .micro3d-host {
-    padding: 0.2rem 0.45rem 0.25rem;
+  .model-list > .micro3d-host {
+    margin: 0.1rem 0.1rem 0.3rem;
   }
   .micro3d-strip {
     gap: 0.2rem;
+    padding: 0.4rem 0.4rem 0.5rem;
   }
 }
 /* Ultra-narrow (≤320): squeeze fold-bar / heavy chip another notch. */
@@ -499,21 +499,20 @@ html.hc .domain-group .domain-count {
   .user-model-grid .span-2 { grid-column: auto; }
 }
 /*
- * Pinned host under brand (above filters + scrolling catalog).
- * Must stay outside #model-list overflow — and the sidebar itself must NOT be
- * the scroll container (projector overlay previously used overflow:auto on
- * .sidebar, which dragged this host away with the catalog).
+ * Dedicated 3D zone inside #model-list (after filter-count, before domain folds).
+ * Same scrollport as the catalog — not mixed into 物理/光学 domain-groups.
  */
-.micro3d-host {
-  flex-shrink: 0;
+.model-list > .micro3d-host {
+  flex: 0 0 auto;
   position: relative;
-  padding: 0.35rem 0.55rem 0.45rem;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line-soft);
-  z-index: 3;
+  margin: 0.15rem 0.15rem 0.45rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  z-index: 1;
 }
 
-/* Isolated 3D stage entry — above every domain fold, never inside 物理/光学. */
+/* Isolated 3D stage entry — own zone, never a sibling of .model-item inside a fold. */
 .micro3d-strip {
   position: static;
   display: flex;
@@ -2198,7 +2197,7 @@ html.shell-lab-projector .icon-btn.ghost,
   bottom: 0;
   width: min(280px, 86vw);
   z-index: 40;
-  /* Flex column + hidden overflow: #micro3d-host stays pinned; list scrolls. */
+  /* Flex column + hidden overflow: brand/filters stay put; #model-list scrolls. */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2213,9 +2212,6 @@ html.shell-lab-projector .icon-btn.ghost,
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-}
-.chassis.shell-hide-sidebar.shell-sidebar-overlay > .sidebar .micro3d-host {
-  flex-shrink: 0;
 }
 /* Stage (not just the button) must beat the overlay catalog z-index:40, otherwise
    the sidebar logo wins elementFromPoint over #btn-menu. */

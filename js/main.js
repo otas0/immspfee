@@ -1062,16 +1062,13 @@ function paintSidebar() {
     announce('筛选已空');
   });
   modelListEl.appendChild(countEl);
-  // 3D stage entry is pinned under brand in #micro3d-host (never inside #model-list).
-  const microHost = document.getElementById('micro3d-host');
-  if (microHost) {
-    microHost.replaceChildren(renderMicro3dStrip());
-  } else {
-    // Fallback: keep entry out of the scrolling list even if the host node is missing.
-    const strip = renderMicro3dStrip();
-    strip.dataset.orphanPin = '1';
-    modelListEl.parentElement?.insertBefore(strip, modelListEl);
-  }
+  // Own catalog zone at the top of #model-list — with models, never inside a domain fold.
+  const microHost = document.createElement('section');
+  microHost.id = 'micro3d-host';
+  microHost.className = 'micro3d-host';
+  microHost.setAttribute('aria-label', t('ui.micro3dSection'));
+  microHost.appendChild(renderMicro3dStrip());
+  modelListEl.appendChild(microHost);
   if (foldBarEl) {
     foldBarEl.innerHTML = '';
     const btnExpand = document.createElement('button');

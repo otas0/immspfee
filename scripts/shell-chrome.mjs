@@ -562,24 +562,19 @@ const strip = await desk.evaluate(() => {
   const btn = document.getElementById('btn-micro3d-entry');
   const stripEl = document.querySelector('.micro3d-strip');
   const domains = document.querySelector('.domain-group');
-  const filters = document.querySelector('.sidebar > .filters');
-  const brand = document.querySelector('.sidebar > .brand');
   const list = document.getElementById('model-list');
   if (list) list.scrollTop = 0;
   const btnTop = btn?.getBoundingClientRect().top ?? 0;
   const domainTop = domains?.getBoundingClientRect().top ?? 0;
-  const filtersTop = filters?.getBoundingClientRect().top ?? 0;
-  const brandBottom = brand?.getBoundingClientRect().bottom ?? 0;
   const host = document.getElementById('micro3d-host');
   const count = document.querySelector('#model-list .filter-count');
   const side = document.getElementById('sidebar');
+  const inDomain = !!host?.closest?.('.domain-group, .sub-group');
   return {
     hasBtn: !!btn,
     hasStrip: !!stripEl,
     aboveDomains: !!(btn && domains && btnTop < domainTop - 4),
-    aboveFilters: !!(host && filters && host.getBoundingClientRect().bottom <= filtersTop + 1),
-    underBrand: !!(host && brand && host.getBoundingClientRect().top >= brandBottom - 2),
-    hostPinned: !!host && host.contains(stripEl) && !list?.contains(host),
+    ownZone: !!host && !!list?.contains(host) && host.contains(stripEl) && !inDomain,
     countInList: !!count && !!list?.contains(count),
     stripPos: stripEl ? getComputedStyle(stripEl).position : '',
     sideOverflow: side ? getComputedStyle(side).overflow : '',
@@ -588,35 +583,27 @@ const strip = await desk.evaluate(() => {
 });
 if (!strip.hasBtn || !strip.hasStrip) fail(`3D strip missing ${JSON.stringify(strip)}`);
 if (!strip.aboveDomains) fail(`3D strip must sit above domain folds ${JSON.stringify(strip)}`);
-if (!strip.aboveFilters) fail(`3D strip must sit above filters ${JSON.stringify(strip)}`);
-if (!strip.underBrand) fail(`3D strip must sit under brand ${JSON.stringify(strip)}`);
-if (!strip.hostPinned) fail(`3D strip must live in #micro3d-host outside #model-list ${JSON.stringify(strip)}`);
+if (!strip.ownZone) fail(`3D strip must be its own #micro3d-host zone inside #model-list ${JSON.stringify(strip)}`);
 if (!strip.countInList) fail(`filter-count must stay inside scrolling #model-list ${JSON.stringify(strip)}`);
-if (strip.stripPos === 'sticky') fail(`3D strip should be static in pinned host ${JSON.stringify(strip)}`);
+if (strip.stripPos === 'sticky') fail(`3D strip should be static in its catalog zone ${JSON.stringify(strip)}`);
 if (strip.sideOverflow === 'auto' || strip.sideOverflow === 'scroll') {
   fail(`sidebar must not be the scrollport ${JSON.stringify(strip)}`);
 }
-const pinBefore = await desk.evaluate(() => {
-  const host = document.getElementById('micro3d-host');
-  const list = document.getElementById('model-list');
-  return { top: host?.getBoundingClientRect().top ?? -1, scrollH: list?.scrollHeight ?? 0 };
-});
+// Own zone scrolls with the catalog (not pinned under brand).
 await desk.evaluate(() => {
   const list = document.getElementById('model-list');
   if (list) list.scrollTop = Math.min(list.scrollHeight, 400);
 });
-const pinAfter = await desk.evaluate(() => {
+const zoneScroll = await desk.evaluate(() => {
   const host = document.getElementById('micro3d-host');
   const list = document.getElementById('model-list');
   return {
-    top: host?.getBoundingClientRect().top ?? -1,
     scrollTop: list?.scrollTop ?? 0,
+    hostInList: !!list?.contains(host),
   };
 });
-if (pinAfter.scrollTop < 40) fail(`model-list did not scroll for pin check ${JSON.stringify(pinAfter)}`);
-if (Math.abs(pinAfter.top - pinBefore.top) > 1.5) {
-  fail(`#micro3d-host moved with list scroll before=${pinBefore.top} after=${pinAfter.top}`);
-}
+if (zoneScroll.scrollTop < 40) fail(`model-list did not scroll for zone check ${JSON.stringify(zoneScroll)}`);
+if (!zoneScroll.hostInList) fail(`#micro3d-host left #model-list ${JSON.stringify(zoneScroll)}`);
 await desk.evaluate(() => window.__labCapture.enterMicroscope3d());
 await desk.waitForFunction(() => document.documentElement.dataset.shell === 'lab-microscope3d');
 await desk.waitForFunction(() => document.documentElement.dataset.stageMode === 'webgl3d');
@@ -1019,7 +1006,7 @@ const wideHit = await menuHitTest(wideProj);
 if (!wideHit.ok) fail(`1440 projector menu not on top of dimmer ${JSON.stringify(wideHit)}`);
 console.log('menuHitTest wide ok', JSON.stringify(wideHit));
 
-// Catalog must scroll under the overlay (#model-list, not #sidebar — host stays pinned).
+// Catalog must scroll under the overlay (#model-list, not #sidebar).
 await ensureCatalogRows(wideProj);
 const scrollInfo = await wideProj.evaluate(() => {
   const side = document.getElementById('sidebar');
@@ -1147,7 +1134,7 @@ const narrowOpen = await narrow.evaluate(() => {
 });
 if (!narrowOpen.overlay || narrowOpen.pe !== 'auto' || narrowOpen.vis !== 'visible') fail(`390 projector overlay ${JSON.stringify(narrowOpen)}`);
 if (narrowOpen.label !== 'Close model list') fail(`390 close label ${narrowOpen.label}`);
-// Overlay must keep #micro3d-host pinned (sidebar overflow:hidden, list scrolls).
+// Overlay: 3D zone lives inside #model-list; sidebar is not the scrollport.
 await ensureCatalogRows(narrow);
 const narrowPin = await narrow.evaluate(() => {
   const host = document.getElementById('micro3d-host');
@@ -1157,19 +1144,19 @@ const narrowPin = await narrow.evaluate(() => {
   if (list) list.scrollTop = Math.min(list.scrollHeight, 320);
   const after = host?.getBoundingClientRect().top ?? -1;
   return {
-    hostPinned: !!host && !list?.contains(host),
+    ownZone: !!host && !!list?.contains(host) && !host.closest('.domain-group, .sub-group'),
     sideOverflow: side ? getComputedStyle(side).overflow : '',
     listOverflow: list ? getComputedStyle(list).overflowY || getComputedStyle(list).overflow : '',
     scrolled: list?.scrollTop || 0,
-    delta: Math.abs(after - before),
+    moved: Math.abs(after - before) > 1.5,
   };
 });
-if (!narrowPin.hostPinned) fail(`390 overlay host not pinned ${JSON.stringify(narrowPin)}`);
+if (!narrowPin.ownZone) fail(`390 overlay 3D zone not in #model-list ${JSON.stringify(narrowPin)}`);
 if (narrowPin.sideOverflow === 'auto' || narrowPin.sideOverflow === 'scroll') {
   fail(`390 overlay sidebar must not be the scroll container ${JSON.stringify(narrowPin)}`);
 }
 if (narrowPin.scrolled < 20) fail(`390 overlay list did not scroll ${JSON.stringify(narrowPin)}`);
-if (narrowPin.delta > 1.5) fail(`390 overlay #micro3d-host moved on list scroll ${JSON.stringify(narrowPin)}`);
+if (!narrowPin.moved) fail(`390 overlay #micro3d-host should scroll with catalog ${JSON.stringify(narrowPin)}`);
 await narrow.evaluate(() => document.getElementById('drawer-backdrop')?.click());
 await narrow.evaluate(() => localStorage.setItem('physics-lab-auto-open-bench', '1'));
 await narrow.evaluate(() => window.__labCapture?.switchModel?.('free-fall'));

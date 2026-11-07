@@ -32,6 +32,6 @@ chflags nouchg path/to/file
 # Park concurrent dirt:
 git stash push -u -m "race-dirt-park-$(date +%H%M%S)" -- <paths>
 
-# Confirm pin after sidebar work:
-# #micro3d-host must stay outside #model-list; list scroll must not move host top.
+# Confirm 3D zone after sidebar work:
+# #micro3d-host is its own section inside #model-list (not inside .domain-group).
 ```
