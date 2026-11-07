@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { assertDrawerStack, probeDrawerStack } from './drawer-stack-probe.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const shots = path.join(root, 'shots');
@@ -226,61 +227,10 @@ if (!(drawer.firstThree?.length >= 2) && !drawer.firstThreeInside) {
 }
 if (drawer.listH < 80) failures.push(`390px drawer list too short ${drawer.listH}`);
 
-// Catalog must sit above stage chrome (Play/Reset/formula) — regression for mobile stack mess.
-const stack = await page.evaluate(() => {
-  const side = document.getElementById('sidebar');
-  const micro = document.querySelector('#micro3d-host .micro3d-entry, #micro3d-host');
-  const menu = document.getElementById('btn-menu');
-  const params = document.getElementById('btn-params');
-  const formula = document.getElementById('shell-formula');
-  const sr = side?.getBoundingClientRect();
-  const probe = (el) => {
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    if (r.width < 4 || r.height < 4) return null;
-    const x = Math.min(r.right - 4, Math.max(r.left + 4, r.left + r.width * 0.5));
-    const y = Math.min(r.bottom - 4, Math.max(r.top + 4, r.top + r.height * 0.5));
-    const hit = document.elementFromPoint(x, y);
-    return {
-      x, y,
-      hitId: hit?.id || '',
-      hitClass: hit?.className?.toString?.()?.slice(0, 80) || '',
-      inSidebar: !!(hit && side?.contains(hit)),
-    };
-  };
-  const sideZ = Number.parseFloat(getComputedStyle(side || document.body).zIndex) || 0;
-  const shellZ = Number.parseFloat(getComputedStyle(document.querySelector('.model-shell') || document.body).zIndex) || 0;
-  return {
-    sideZ,
-    shellZ,
-    menuPos: menu ? getComputedStyle(menu).position : '',
-    paramsPos: params ? getComputedStyle(params).position : '',
-    sidebarTop: sr?.top || 0,
-    toolbarBottom: document.querySelector('.toolbar')?.getBoundingClientRect()?.bottom || 0,
-    microHit: probe(micro),
-    formulaOverSidebar: !!(formula && sr && (() => {
-      const fr = formula.getBoundingClientRect();
-      return fr.width > 0 && fr.left < sr.right - 8 && fr.right > sr.left + 8
-        && fr.top < sr.bottom - 8 && fr.bottom > sr.top + 8
-        && (Number.parseFloat(getComputedStyle(formula).zIndex) || 0) >= sideZ;
-    })()),
-  };
-});
-if (!(stack.sideZ > stack.shellZ)) {
-  failures.push(`390px drawer z-order sidebar=${stack.sideZ} shell=${stack.shellZ}`);
-}
-if (stack.menuPos === 'fixed' || stack.paramsPos === 'fixed') {
-  failures.push(`390px classic drawer must not position:fixed menu/params (menu=${stack.menuPos} params=${stack.paramsPos})`);
-}
-if (stack.sidebarTop + 1 < stack.toolbarBottom - 8) {
-  // Sidebar should clear the toolbar band (allow 8px slack).
-  failures.push(`390px drawer overlaps toolbar band top=${stack.sidebarTop} toolbarBottom=${stack.toolbarBottom}`);
-}
-if (stack.microHit && !stack.microHit.inSidebar) {
-  failures.push(`390px micro3d hit missed sidebar: ${JSON.stringify(stack.microHit)}`);
-}
-if (stack.formulaOverSidebar) {
-  failures.push('390px shell-formula paints over open sidebar');
+const stack = await probeDrawerStack(page);
+failures.push(...assertDrawerStack(stack).map((m) => `390px ${m}`));
+if (stack.activeId !== 'filter-q') {
+  failures.push(`390px open menu focus expected filter-q got ${stack.activeId}`);
 }
 
 await page.evaluate(() => document.getElementById('btn-menu')?.click());

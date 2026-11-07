@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { assertDrawerStack, probeDrawerStack } from './drawer-stack-probe.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const base = (process.env.PAGES_URL || 'https://otas0.github.io/immspfee/').replace(/\/?$/, '/');
@@ -96,6 +97,41 @@ await withPage({ width: 390, height: 844 }, async (page) => {
   }
 });
 
+// 390 open-menu stack (align with narrow regression).
+await withPage({ width: 390, height: 844 }, async (page) => {
+  await page.goto(`${base}?lang=en&shell=lab-classic#m=free-fall`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.waitForFunction(() => window.__labCapture?.switchModel, null, { timeout: 90000 });
+  await page.evaluate(async () => { await window.__labCapture.switchModel('free-fall'); });
+  await page.click('#btn-menu');
+  await page.waitForFunction(() => {
+    const side = document.getElementById('sidebar');
+    return !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open'));
+  }, null, { timeout: 10000 });
+  await page.waitForTimeout(200);
+  const stack = await probeDrawerStack(page);
+  failures.push(...assertDrawerStack(stack).map((m) => `pages-mobile 390 ${m}`));
+  if (stack.activeId !== 'filter-q') {
+    failures.push(`pages-mobile 390 focus expected filter-q got ${stack.activeId}`);
+  }
+  // Backdrop dismiss — click the thin strip to the right of the 92vw drawer (not under it).
+  const dismissed = await page.evaluate(() => {
+    const side = document.getElementById('sidebar');
+    const bd = document.getElementById('drawer-backdrop');
+    const sr = side?.getBoundingClientRect();
+    const x = Math.min(window.innerWidth - 4, (sr?.right || 0) + 8);
+    const y = Math.max(80, window.innerHeight * 0.45);
+    const hit = document.elementFromPoint(x, y);
+    if (hit === bd || bd?.contains(hit)) {
+      bd.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+    } else {
+      // Fallback: same path as production listener.
+      bd?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+    return !side?.classList.contains('open');
+  });
+  if (!dismissed) failures.push('pages-mobile 390 backdrop did not close sidebar');
+});
+
 await withPage({ width: 1000, height: 700 }, async (page) => {
   await page.goto(`${base}?lang=en&shell=lab-classic#m=free-fall`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => window.__labCapture?.switchModel, null, { timeout: 90000 });
@@ -114,6 +150,26 @@ await withPage({ width: 1000, height: 700 }, async (page) => {
   if (before.tier !== 'tablet') failures.push(`tablet tier ${before.tier}`);
   if (!before.open) failures.push('tablet bench did not open');
   if (after) failures.push('tablet stage click did not close bench');
+
+  // Tablet 1000 classic: no drawer translate — menu must not go position:fixed.
+  const classicPos = await page.evaluate(() => ({
+    menu: getComputedStyle(document.getElementById('btn-menu') || document.body).position,
+    params: getComputedStyle(document.getElementById('btn-params') || document.body).position,
+    sideZ: Number.parseFloat(getComputedStyle(document.getElementById('sidebar') || document.body).zIndex) || 0,
+  }));
+  if (classicPos.menu === 'fixed' || classicPos.params === 'fixed') {
+    failures.push(`tablet 1000 classic menu/params must stay in flow (${JSON.stringify(classicPos)})`);
+  }
+
+  // Tablet 1000 projector overlay: menu fixed above catalog (same z-order family).
+  await page.goto(`${base}?lang=en&shell=lab-projector&_=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.waitForFunction(() => window.__labCapture, null, { timeout: 90000 });
+  await page.click('#btn-menu');
+  await page.waitForFunction(() => document.getElementById('chassis')?.classList.contains('shell-sidebar-overlay'), null, { timeout: 10000 });
+  await page.waitForTimeout(200);
+  const proj = await probeDrawerStack(page);
+  failures.push(...assertDrawerStack(proj, { projector: true }).map((m) => `pages-mobile 1000 projector ${m}`));
+  await page.screenshot({ path: path.join(root, 'shots', 'pages-tablet-1000-projector-menu.png') }).catch(() => {});
 });
 
 await withPage({ width: 390, height: 844 }, async (page) => {

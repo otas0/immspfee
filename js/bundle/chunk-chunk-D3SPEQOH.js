@@ -148,6 +148,11 @@ var DEFAULT_PARAMS = {
   fEye_mm: 25,
   NA: 0.25,
   WD_mm: 6.5,
+  focusZ_mm: 0,
+  stageX_mm: 0,
+  stageY_mm: 0,
+  fieldIris: 0.55,
+  lampOn: 1,
   n: 1,
   lambda_nm: 550,
   showRays: 1
@@ -170,6 +175,16 @@ var PARAM_SCHEMA = {
   fEye_mm: { group: "dynamics", unit: "mm", label: "f_eye", min: 10, max: 60 },
   NA: { group: "dynamics", unit: "\u2014", label: "NA", min: 0.05, max: 1.4 },
   WD_mm: { group: "dynamics", unit: "mm", label: "Working distance", min: 0.05, max: 25 },
+  focusZ_mm: { group: "dynamics", unit: "mm", label: "Focus \u0394z", min: -2, max: 2 },
+  stageX_mm: { group: "dynamics", unit: "mm", label: "Stage X", min: -25, max: 25 },
+  stageY_mm: { group: "dynamics", unit: "mm", label: "Stage Y", min: -25, max: 25 },
+  fieldIris: { group: "dynamics", unit: "\u2014", label: "Field iris", min: 0.1, max: 1 },
+  lampOn: {
+    group: "display",
+    unit: "",
+    label: "Lamp",
+    options: [{ value: 0, label: "Off" }, { value: 1, label: "On" }]
+  },
   n: { group: "dynamics", unit: "\u2014", label: "n (medium)", min: 1, max: 1.6 },
   lambda_nm: { group: "dynamics", unit: "nm", label: "\u03BB", min: 400, max: 700 },
   showRays: {

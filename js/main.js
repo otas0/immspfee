@@ -1251,6 +1251,10 @@ function setSidebarOpen(open) {
     sidebar.classList.toggle('open', open);
     sidebar.style.transform = '';
     syncDrawerChrome();
+    if (open) {
+      // VoiceOver / keyboard: land in search, not the stage Play control.
+      requestAnimationFrame(() => { try { filterQ?.focus({ preventScroll: true }); } catch { filterQ?.focus(); } });
+    }
     return;
   }
   if (!isMobileDrawer()) {
@@ -1264,6 +1268,9 @@ function setSidebarOpen(open) {
   sidebar.classList.toggle('open', open);
   sidebar.style.transform = '';
   syncDrawerChrome();
+  if (open) {
+    requestAnimationFrame(() => { try { filterQ?.focus({ preventScroll: true }); } catch { filterQ?.focus(); } });
+  }
 }
 
 function setBenchOpen(open) {

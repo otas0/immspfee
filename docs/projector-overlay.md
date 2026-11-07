@@ -20,11 +20,28 @@ Local / CI artifacts (gitignored under `shots/`, uploaded as `shell-chrome-scree
 
 Asserted by `npm run test:shell` (`menuHitTest`, Escape close, catalog scroll, stageW ≥ 700 with overlay).
 
-## Menu above dimmer
+## Menu above dimmer (Projector only)
 
-`#btn-menu` / `#btn-params` use `position: fixed; z-index: 70` while the drawer/overlay
-is open so they escape the `.stage` stacking context and stay clickable above the
-backdrop (`z-index: 24`) and overlay catalog (`z-index: 60`).
+**Projector overlay** (`shell-hide-sidebar.shell-sidebar-overlay`): `#btn-menu` /
+`#btn-params` use `position: fixed; z-index: 70` so they escape the `.stage`
+stacking context and stay clickable above the backdrop (`z-index: 24`) and
+overlay catalog (`z-index: 60`). Catalog clears the toolbar band with
+`top: var(--projector-overlay-top)` / `3.75rem`.
+
+**Classic phone drawer** (`≤900`, not projector): do **not** apply
+`position: fixed` to menu/params. Raising the whole `.toolbar` or fixing those
+buttons stacked Play/Reset/formula over the catalog (“全叠在一起”). Classic rules:
+
+| Layer | z-index | Notes |
+| --- | --- | --- |
+| Backdrop | 24 | Dimmer |
+| Toolbar (in stage) | 32 | Above backdrop; below open sidebar |
+| Open `.sidebar` | 45 | Opaque; `top` clears toolbar band |
+| `#btn-menu` / `#btn-params` (relative) | 50 | Stay in toolbar band only |
+| `.lab-toast` | 90 | Above drawer + sticky `.sidebar-foot` |
+
+Asserted by `npm run test:narrow` (390 stack hit-test) and
+`npm run test:pages-mobile` (open-menu + tablet 1000 z-order).
 
 ## RTL overlay edge
 

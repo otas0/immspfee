@@ -529,6 +529,7 @@ jobs:
           path: |
             shots/shell-projector-1000-safari-proxy.png
             shots/shell-micro-390-webkit.png
+            shots/shell-micro-menu-390-webkit.png
             docs/assets/shell-projector-1000-safari-proxy.png
           if-no-files-found: warn
 

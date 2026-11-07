@@ -28,6 +28,13 @@ import beamSfdBmd from '../models/beamSfdBmd.js';
 import pidTune from '../models/pidTune.js';
 import hodgkinHuxley from '../models/hodgkinHuxley.js';
 import compoundMicroscope from '../models/compoundMicroscope.js';
+import {
+  OBJECTIVE_RING_LEGEND,
+  objectiveRingColor,
+  opticsFromParams,
+} from '../models/microscopeOptics.js';
+import { createMicroscopeStage } from '../shells/microscopeStage.js';
+import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
 import { runModelContract } from './model-contract.js';
 import { validateUserModelDraft } from '../lab/userModels.js';
 import { runLab12 } from './lab12.js';
@@ -332,6 +339,129 @@ export function runSuite() {
           && at40.readouts.find((x) => x.label === 'M')?.value === '-400.000×',
         `10× ${at10.readouts.find((x) => x.label === 'M')?.value} 40× ${at40.readouts.find((x) => x.label === 'M')?.value}`,
       );
+    }
+
+    // #micro-ring-legend four-color DIN DOM contract.
+    {
+      assert('DIN ring legend has 4 rows', OBJECTIVE_RING_LEGEND.length === 4, String(OBJECTIVE_RING_LEGEND.length));
+      const names = OBJECTIVE_RING_LEGEND.map((r) => r.name);
+      assert(
+        'DIN ring legend colors red/yellow/light blue/white',
+        names[0] === 'red' && names[1] === 'yellow' && names[2] === 'light blue' && names[3] === 'white',
+        names.join(','),
+      );
+      const hexes = new Set(OBJECTIVE_RING_LEGEND.map((r) => r.hex));
+      assert('DIN ring legend hex unique', hexes.size === 4, [...hexes].join(','));
+      assert('4× ring is red', objectiveRingColor(4).name === 'red');
+      assert('100× ring is white', objectiveRingColor(100).name === 'white');
+
+      const store = new Map();
+      const makeEl = (tag) => {
+        const attrs = {};
+        const children = [];
+        const el = {
+          tagName: String(tag).toUpperCase(),
+          id: '',
+          className: '',
+          hidden: false,
+          style: { setProperty() {} },
+          dataset: {},
+          children,
+          childNodes: children,
+          textContent: '',
+          innerHTML: '',
+          getAttribute(k) { return attrs[k] ?? null; },
+          setAttribute(k, v) {
+            attrs[k] = String(v);
+            if (k === 'id') {
+              el.id = String(v);
+              store.set(String(v), el);
+            }
+          },
+          appendChild(c) { children.push(c); el.childNodes = children; return c; },
+          addEventListener() {},
+          querySelector(sel) {
+            if (sel.startsWith('#')) return store.get(sel.slice(1)) || null;
+            return null;
+          },
+          querySelectorAll() { return []; },
+          closest() { return null; },
+        };
+        return el;
+      };
+      const doc = {
+        getElementById: (id) => store.get(id) || null,
+        querySelector: (sel) => (sel.startsWith('#') ? store.get(sel.slice(1)) || null : null),
+        createElement: makeEl,
+        createTextNode: (t) => ({ textContent: String(t), nodeType: 3 }),
+      };
+      const prevDoc = globalThis.document;
+      globalThis.document = doc;
+      try {
+        const stageApi = createMicroscopeStage({
+          getState: () => ({
+            params: {
+              objective: '10x', eyepiece: '10x', tubeL_mm: 160, NA: 0.25, WD_mm: 6.5,
+              lambda_nm: 550, lampOn: 1, fieldIris: 0.55, focusZ_mm: 0, stageX_mm: 0, stageY_mm: 0,
+            },
+          }),
+          onChange: () => {},
+          t: (k) => k,
+        });
+        const legend = makeEl('div');
+        legend.id = 'micro-ring-legend';
+        legend.className = 'micro-ring-legend';
+        legend.setAttribute('aria-label', 'DIN objective rings');
+        store.set('micro-ring-legend', legend);
+        for (const row of OBJECTIVE_RING_LEGEND) {
+          const sw = makeEl('span');
+          sw.className = 'micro-ring-swatch';
+          sw.style.setProperty('--micro-ring', row.hex);
+          const dot = makeEl('i');
+          dot.setAttribute('aria-hidden', 'true');
+          sw.appendChild(dot);
+          sw.appendChild(doc.createTextNode(`${row.mag}× ${row.name}`));
+          legend.appendChild(sw);
+        }
+        const legendEl = doc.getElementById('micro-ring-legend');
+        assert('micro-ring-legend exists', !!legendEl, 'missing #micro-ring-legend');
+        assert(
+          'micro-ring-legend aria-label',
+          legendEl.getAttribute('aria-label') === 'DIN objective rings',
+          String(legendEl.getAttribute('aria-label')),
+        );
+        assert(
+          'micro-ring-legend has 4 swatches',
+          legendEl.children.length === 4,
+          String(legendEl.children.length),
+        );
+        assert('stage API exposes paint', typeof stageApi.paint === 'function');
+      } finally {
+        globalThis.document = prevDoc;
+      }
+    }
+
+    {
+      const o40 = opticsFromParams({ objective: '40x', eyepiece: '10x', tubeL_mm: 160, NA: 0.65, WD_mm: 0.6 });
+      const lay = microscopeLayout(o40, { focusZ_mm: 0.5, stageX_mm: 5, stageY_mm: -3, fieldIris: 0.4, lampOn: 1 });
+      const active = lay.pts.find((p) => p.kind === 'obj' && p.index === 2);
+      assert('turret puts 40× on optical axis (−Z)', !!active && Math.abs(active.z + 0.32) < 0.02 && Math.abs(active.x) < 0.02, JSON.stringify(active));
+      const eyes = lay.pts.filter((p) => p.kind === 'eye');
+      assert('eyepiece picks sit on tubes (y ≥ tubeTop)', eyes.length === 3 && eyes.every((e) => e.y >= lay.tubeTopY), eyes.map((e) => e.y).join(','));
+      assert(
+        'Abbe iris tracks NA',
+        Math.abs(lay.irisOpen - Math.min(0.95, Math.max(0.08, o40.NA / o40.NAcap))) < 1e-9,
+        String(lay.irisOpen),
+      );
+      assert('condenser height tracks WD', lay.condenserY < lay.stageY - 0.05, `c=${lay.condenserY} s=${lay.stageY}`);
+      assert('focus displaces stage (WD)', lay.stageY < microscopeLayout(o40, { focusZ_mm: 0 }).stageY);
+      assert('stage XY slides slide picks', Math.abs(lay.slideX - 0.02) < 1e-9 && Math.abs(lay.slideZ + 0.012) < 1e-9);
+      for (const k of ['focusCoarse', 'focusFine', 'stageX', 'stageY', 'condenser', 'iris', 'fieldIris', 'tubeL']) {
+        assert(`DRAG_KINDS has ${k}`, DRAG_KINDS.has(k));
+      }
+      for (const k of ['obj', 'eye', 'lamp', 'immersion', 'clip']) {
+        assert(`CLICK_KINDS has ${k}`, CLICK_KINDS.has(k));
+      }
     }
   }
 

@@ -76,6 +76,35 @@ async function runWebkitProjectorProxy() {
     fail(`WebKit micro dprCap ${micro.dprCap}`);
   }
   console.log('webkit micro 390 ok', JSON.stringify(micro));
+
+  // Classic 390 menu-open baseline (stack regression under real WebKit).
+  await wkPage.goto(`${base}?shell=lab-classic&lang=en&v=${encodeURIComponent(buildStamp)}&_=${Date.now()}`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await wkPage.waitForFunction(() => window.__labCapture, null, { timeout: 60000 });
+  await wkPage.evaluate(() => document.getElementById('btn-menu')?.click());
+  await wkPage.waitForFunction(() => {
+    const side = document.getElementById('sidebar');
+    return !!(side?.classList.contains('open') || document.body.classList.contains('drawer-open'));
+  }, null, { timeout: 10000 });
+  await wkPage.waitForTimeout(300);
+  await wkPage.screenshot({ path: join(shotsDir, 'shell-micro-menu-390-webkit.png') });
+  const menuStack = await wkPage.evaluate(() => {
+    const side = document.getElementById('sidebar');
+    const shell = document.querySelector('.model-shell');
+    return {
+      open: !!side?.classList.contains('open'),
+      sideZ: Number.parseFloat(getComputedStyle(side || document.body).zIndex) || 0,
+      shellZ: Number.parseFloat(getComputedStyle(shell || document.body).zIndex) || 0,
+      menuPos: getComputedStyle(document.getElementById('btn-menu') || document.body).position,
+    };
+  });
+  if (!menuStack.open) fail('WebKit 390 menu sidebar not open');
+  if (!(menuStack.sideZ > menuStack.shellZ)) {
+    fail(`WebKit 390 menu z-order ${JSON.stringify(menuStack)}`);
+  }
+  if (menuStack.menuPos === 'fixed') fail('WebKit classic 390 must not fixed #btn-menu');
+  console.log('webkit micro-menu 390 ok', JSON.stringify(menuStack));
   await wk.close();
 }
 

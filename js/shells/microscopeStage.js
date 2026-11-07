@@ -36,14 +36,21 @@ function fmtReadouts(o) {
  * }} api
  */
 function opticsFingerprint(params) {
-  const o = opticsFromParams(params || {});
+  const p = params || {};
+  const o = opticsFromParams(p);
   return [
     o.obj.id,
     o.eye.id,
     Math.round(o.Lmm),
     o.NA.toFixed(3),
+    o.WD.toFixed(2),
     Math.round(o.lambdaNm),
     o.immersion ? 'oil' : 'dry',
+    (Number(p.focusZ_mm) || 0).toFixed(2),
+    (Number(p.stageX_mm) || 0).toFixed(1),
+    (Number(p.stageY_mm) || 0).toFixed(1),
+    (Number(p.fieldIris) || 0.55).toFixed(2),
+    Number(p.lampOn) !== 0 ? '1' : '0',
   ].join('|');
 }
 
@@ -97,12 +104,54 @@ export function createMicroscopeStage(api) {
           <span class="micro-cap" id="micro-na-cap"></span>
         </label>
         <label class="micro-field">
+          <span class="micro-field-label">Working distance</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
+            <output id="micro-wd-out">6.5 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Focus Δz</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-focus" min="-5" max="5" step="0.05" />
+            <output id="micro-focus-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Stage X</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-stage-x" min="-25" max="25" step="0.5" />
+            <output id="micro-stage-x-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Stage Y</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-stage-y" min="-25" max="25" step="0.5" />
+            <output id="micro-stage-y-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Field iris</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-field-iris" min="0.1" max="1" step="0.01" />
+            <output id="micro-field-iris-out">0.55</output>
+          </div>
+        </label>
+        <label class="micro-field">
           <span class="micro-field-label">Wavelength λ</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-lambda-in" min="400" max="700" step="1" />
             <output id="micro-lambda">550 nm</output>
           </div>
         </label>
+        <div class="micro-field">
+          <span class="micro-field-label">Lamp</span>
+          <div class="micro-chips" id="micro-lamp" role="group">
+            <button type="button" class="micro-chip" data-lamp="1">On</button>
+            <button type="button" class="micro-chip" data-lamp="0">Off</button>
+          </div>
+        </div>
         <div class="micro-field">
           <span class="micro-field-label">Immersion</span>
           <div class="micro-chips" id="micro-imm" role="group">
@@ -221,6 +270,30 @@ export function createMicroscopeStage(api) {
       paint();
       api.onChange();
     });
+    const bindSlider = (id, key, cast = Number) => {
+      const el = stage.querySelector(id);
+      el?.addEventListener('input', () => {
+        const state = api.getState();
+        if (!state?.params) return;
+        state.params[key] = cast(el.value);
+        paint();
+        api.onChange();
+      });
+    };
+    bindSlider('#micro-wd', 'WD_mm');
+    bindSlider('#micro-focus', 'focusZ_mm');
+    bindSlider('#micro-stage-x', 'stageX_mm');
+    bindSlider('#micro-stage-y', 'stageY_mm');
+    bindSlider('#micro-field-iris', 'fieldIris');
+    stage.querySelector('#micro-lamp')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-lamp]');
+      if (!btn) return;
+      const state = api.getState();
+      if (!state?.params) return;
+      state.params.lampOn = Number(btn.dataset.lamp) ? 1 : 0;
+      paint();
+      api.onChange();
+    });
     return stage;
   }
 
@@ -282,6 +355,34 @@ export function createMicroscopeStage(api) {
     const lambdaOut = stage.querySelector('#micro-lambda');
     if (lambdaIn) lambdaIn.value = String(Math.round(o.lambdaNm));
     if (lambdaOut) lambdaOut.textContent = `${formatNum(o.lambdaNm, 0)} nm`;
+    const wd = stage.querySelector('#micro-wd');
+    const wdOut = stage.querySelector('#micro-wd-out');
+    if (wd) wd.value = String(o.WD);
+    if (wdOut) wdOut.textContent = `${formatNum(o.WD, 2)} mm`;
+    const focusZ = Number(state.params.focusZ_mm) || 0;
+    const focus = stage.querySelector('#micro-focus');
+    const focusOut = stage.querySelector('#micro-focus-out');
+    if (focus) focus.value = String(focusZ);
+    if (focusOut) focusOut.textContent = `${formatNum(focusZ, 2)} mm`;
+    const sx = Number(state.params.stageX_mm) || 0;
+    const sy = Number(state.params.stageY_mm) || 0;
+    const stageX = stage.querySelector('#micro-stage-x');
+    const stageXOut = stage.querySelector('#micro-stage-x-out');
+    const stageY = stage.querySelector('#micro-stage-y');
+    const stageYOut = stage.querySelector('#micro-stage-y-out');
+    if (stageX) stageX.value = String(sx);
+    if (stageXOut) stageXOut.textContent = `${formatNum(sx, 1)} mm`;
+    if (stageY) stageY.value = String(sy);
+    if (stageYOut) stageYOut.textContent = `${formatNum(sy, 1)} mm`;
+    const fieldIris = Math.min(1, Math.max(0.1, Number(state.params.fieldIris) || 0.55));
+    const field = stage.querySelector('#micro-field-iris');
+    const fieldOut = stage.querySelector('#micro-field-iris-out');
+    if (field) field.value = String(fieldIris);
+    if (fieldOut) fieldOut.textContent = formatNum(fieldIris, 2);
+    const lampOn = Number(state.params.lampOn) !== 0;
+    for (const btn of stage.querySelectorAll('#micro-lamp .micro-chip')) {
+      btn.classList.toggle('is-active', (btn.dataset.lamp === '1') === lampOn);
+    }
     const note = stage.querySelector('#micro-imm-note');
     if (note) {
       note.textContent = o.immersion

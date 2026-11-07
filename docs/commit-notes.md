@@ -95,7 +95,9 @@ and advisories when unchanged vs cache. Follow-ups: sidebar `heavy` filter chip
 cell; HUD compare per-card patch; desktop Power saver (tablet budget);
 lorenz ring rebuild on trailCap change; WebKit `SHELL_WEBKIT_ONLY` also smokes
 micro 390; `manual.html` §9b 390 Params open/closed shots. Manual Safari
-toast/feel remains human-only.
+toast/feel remains human-only. Classic vs Projector drawer z-index rules:
+`docs/projector-overlay.md` § Menu above dimmer — never reapply `position:fixed`
+menu/params to classic phone drawers.
 
 ### soft-paint issue template smoke
 

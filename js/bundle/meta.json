@@ -1,33 +1,33 @@
 {
-  "at": "2026-11-06T15:18:39.953Z",
+  "at": "2026-11-07T04:11:42.189Z",
   "outputs": [
     {
-      "file": "chunk-factory-B3W22IGK.js",
+      "file": "chunk-factory-6VR676DR.js",
       "bytes": 352706
     },
     {
       "file": "lab.js",
-      "bytes": 328290
+      "bytes": 348564
     },
     {
       "file": "chunk-chunk-54AD6SA2.js",
       "bytes": 269853
     },
     {
-      "file": "chunk-handModels-JDDY263D.js",
+      "file": "chunk-handModels-CCR6TM4B.js",
       "bytes": 159162
     },
     {
-      "file": "chunk-chunk-6JMBWQBR.js",
-      "bytes": 21812
+      "file": "chunk-chunk-GKMEN2KM.js",
+      "bytes": 21876
     },
     {
       "file": "chunk-chunk-4PMPDTZN.js",
       "bytes": 13396
     },
     {
-      "file": "chunk-chunk-TGXQVZOP.js",
-      "bytes": 5909
+      "file": "chunk-chunk-D3SPEQOH.js",
+      "bytes": 6480
     },
     {
       "file": "chunk-chunk-O2CR3FKE.js",

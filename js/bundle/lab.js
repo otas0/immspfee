@@ -380,7 +380,7 @@ function applyLowInkStrokeBoost(model) {
 }
 
 
-/* inlined chunk-chunk-TGXQVZOP.js */
+/* inlined chunk-chunk-D3SPEQOH.js */
 // js/utils/integrator.js
 function createFixedStepper(fixedDt = 1 / 240, maxSubSteps = 48) {
   let accumulator = 0;
@@ -531,6 +531,11 @@ var DEFAULT_PARAMS = {
   fEye_mm: 25,
   NA: 0.25,
   WD_mm: 6.5,
+  focusZ_mm: 0,
+  stageX_mm: 0,
+  stageY_mm: 0,
+  fieldIris: 0.55,
+  lampOn: 1,
   n: 1,
   lambda_nm: 550,
   showRays: 1
@@ -553,6 +558,16 @@ var PARAM_SCHEMA = {
   fEye_mm: { group: "dynamics", unit: "mm", label: "f_eye", min: 10, max: 60 },
   NA: { group: "dynamics", unit: "\u2014", label: "NA", min: 0.05, max: 1.4 },
   WD_mm: { group: "dynamics", unit: "mm", label: "Working distance", min: 0.05, max: 25 },
+  focusZ_mm: { group: "dynamics", unit: "mm", label: "Focus \u0394z", min: -2, max: 2 },
+  stageX_mm: { group: "dynamics", unit: "mm", label: "Stage X", min: -25, max: 25 },
+  stageY_mm: { group: "dynamics", unit: "mm", label: "Stage Y", min: -25, max: 25 },
+  fieldIris: { group: "dynamics", unit: "\u2014", label: "Field iris", min: 0.1, max: 1 },
+  lampOn: {
+    group: "display",
+    unit: "",
+    label: "Lamp",
+    options: [{ value: 0, label: "Off" }, { value: 1, label: "On" }]
+  },
   n: { group: "dynamics", unit: "\u2014", label: "n (medium)", min: 1, max: 1.6 },
   lambda_nm: { group: "dynamics", unit: "nm", label: "\u03BB", min: 400, max: 700 },
   showRays: {
@@ -564,7 +579,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-6JMBWQBR.js */
+/* inlined chunk-chunk-GKMEN2KM.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -1151,6 +1166,7 @@ function budgetFor(tier) {
       lifeNCap: 48,
       lifeMaxGens: 1,
       microDprCap: 1.75,
+      microTess: 0.42,
       trailCap: 400,
       hudMinMs: 125
     };
@@ -1168,6 +1184,7 @@ function budgetFor(tier) {
       lifeNCap: 64,
       lifeMaxGens: 2,
       microDprCap: 2,
+      microTess: 0.58,
       trailCap: 700,
       hudMinMs: 100
     };
@@ -1184,6 +1201,7 @@ function budgetFor(tier) {
     lifeNCap: 128,
     lifeMaxGens: 8,
     microDprCap: 3,
+    microTess: 1,
     trailCap: 1400,
     hudMinMs: 0
   };
@@ -1244,8 +1262,8 @@ function ringLast(ring) {
 
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
-/* static chunk inlined: chunk-chunk-TGXQVZOP.js */
-/* static chunk inlined: chunk-chunk-6JMBWQBR.js */
+/* static chunk inlined: chunk-chunk-D3SPEQOH.js */
+/* static chunk inlined: chunk-chunk-GKMEN2KM.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1450,7 +1468,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-B3W22IGK.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-6VR676DR.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -1603,7 +1621,7 @@ var STRINGS = {
     "ui.lang": "language",
     "ui.shell": "shell",
     "ui.microExit": "Back to catalog",
-    "ui.microLede": "Drag to orbit \xB7 wheel zoom \xB7 click objectives/eyepieces \xB7 Optical params edit L/NA/\u03BB",
+    "ui.microLede": "Drag to orbit \xB7 pinch/wheel zoom \xB7 tap/drag every knob \xB7 Optical params edit L/NA/WD/stage",
     "ui.microReset": "Reset optics",
     "ui.microBench": "Optical params",
     "ui.micro3dSection": "3D stage",
@@ -2839,7 +2857,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-JDDY263D.js").then((mod) => {
+    handsPending = import("./chunk-handModels-CCR6TM4B.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -4522,6 +4540,244 @@ function applyShell(id, opts = {}) {
   return shell;
 }
 
+// js/viz/microscopeLayout.js
+function MagScale(m) {
+  return Math.log10(Math.max(4, m));
+}
+function armPoint(t2) {
+  const heelZ = -0.56;
+  const y = 0.24 + t2 * 1.3;
+  const z = heelZ - Math.sin(t2 * Math.PI) * 0.38 + t2 * (-0.08 - heelZ);
+  const x = 0.05 * Math.sin(t2 * Math.PI);
+  return [x, y, z];
+}
+function microscopeLayout(optics, params = {}) {
+  const mag = optics.obj.mag;
+  const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
+  const tubeH = (1.35 + MagScale(mag) * 0.22) * Lscale;
+  const headY = 1.55;
+  const turY = headY - 0.28;
+  const tubeCenterY = headY + tubeH / 2 - 0.05;
+  const tubeTopY = tubeCenterY + tubeH / 2;
+  const tubeBotY = tubeCenterY - tubeH / 2;
+  const activeIdx = Math.max(0, OBJECTIVES.findIndex((o) => o.id === optics.obj.id));
+  const turretRot = -Math.PI / 2 - activeIdx * (Math.PI / 2);
+  const focusZmm = Number(params.focusZ_mm) || 0;
+  const stageXmm = Number(params.stageX_mm) || 0;
+  const stageYmm = Number(params.stageY_mm) || 0;
+  const slideX = stageXmm * 4e-3;
+  const slideZ = stageYmm * 4e-3;
+  const WD = Math.max(0.05, Number(optics.WD) || 6.5);
+  const wdT = Math.min(1, Math.max(0, (WD - 0.15) / (18 - 0.15)));
+  const condenserGap = 0.08 + wdT * 0.27;
+  const objLen = 0.26 + MagScale(mag) * 0.055;
+  const stageY = turY - objLen - 0.18 - focusZmm * 0.04;
+  const NAcap = Math.max(0.05, Number(optics.NAcap) || 0.25);
+  const NA = Math.max(0.05, Math.min(NAcap, Number(optics.NA) || 0.25));
+  const irisOpen = Math.min(0.95, Math.max(0.08, NA / NAcap));
+  const fieldIris = Math.min(1, Math.max(0.1, Number(params.fieldIris) || 0.55));
+  const lampOn = Number(params.lampOn) !== 0;
+  const tilt = 34 * Math.PI / 180;
+  const dirY = Math.cos(tilt);
+  const dirZ = Math.sin(tilt);
+  const ocularLen = 0.3;
+  const oculars = [-1, 1].map((side) => {
+    const x0 = side * 0.09;
+    const y0 = tubeTopY + 0.12;
+    const z0 = 0.04;
+    const x1 = x0 + side * 0.032;
+    const y1 = y0 + dirY * ocularLen;
+    const z1 = z0 + dirZ * ocularLen;
+    const flange = 0.07;
+    return {
+      side,
+      x0,
+      y0,
+      z0,
+      x1,
+      y1,
+      z1,
+      tipX: x1 + side * 8e-3,
+      tipY: y1 + dirY * flange,
+      tipZ: z1 + dirZ * flange
+    };
+  });
+  const focus = armPoint(0.3);
+  const condenserY = stageY - condenserGap;
+  const lampY = stageY - 0.46;
+  const pts = [];
+  OBJECTIVES.forEach((obj, i) => {
+    const ang = turretRot + i * (Math.PI / 2);
+    pts.push({
+      kind: "obj",
+      index: i,
+      x: Math.cos(ang) * 0.32,
+      y: turY - 0.1,
+      z: Math.sin(ang) * 0.32,
+      rWorld: 0.12,
+      id: obj.id
+    });
+  });
+  const eyeSlots = [
+    { x: oculars[0].tipX, y: oculars[0].tipY, z: oculars[0].tipZ },
+    { x: 0, y: tubeTopY + 0.22, z: 0.14 },
+    { x: oculars[1].tipX, y: oculars[1].tipY, z: oculars[1].tipZ }
+  ];
+  EYEPIECES.forEach((eye, i) => {
+    const slot = eyeSlots[i] || eyeSlots[1];
+    pts.push({
+      kind: "eye",
+      index: i,
+      x: slot.x,
+      y: slot.y,
+      z: slot.z,
+      rWorld: 0.1,
+      id: eye.id
+    });
+  });
+  for (const side of [0, 1]) {
+    const s = side === 0 ? -1 : 1;
+    pts.push({
+      kind: "focusCoarse",
+      index: side,
+      x: focus[0] + s * 0.155,
+      y: focus[1],
+      z: focus[2],
+      rWorld: 0.12
+    });
+    pts.push({
+      kind: "focusFine",
+      index: side,
+      x: focus[0] + s * 0.21,
+      y: focus[1],
+      z: focus[2],
+      rWorld: 0.09
+    });
+  }
+  pts.push({
+    kind: "stageX",
+    index: 0,
+    x: 0.58,
+    y: stageY - 5e-3,
+    z: 0.16,
+    rWorld: 0.1
+  });
+  pts.push({
+    kind: "stageY",
+    index: 0,
+    x: 0.6,
+    y: stageY - 5e-3,
+    z: -0.02,
+    rWorld: 0.09
+  });
+  pts.push({
+    kind: "condenser",
+    index: 0,
+    x: 0.16,
+    y: condenserY - 0.05,
+    z: 0.1,
+    rWorld: 0.1
+  });
+  pts.push({
+    kind: "iris",
+    index: 0,
+    x: 0,
+    y: condenserY,
+    z: 0.02,
+    rWorld: 0.14
+  });
+  pts.push({
+    kind: "fieldIris",
+    index: 0,
+    x: 0,
+    y: lampY + 0.185,
+    z: 0.02,
+    rWorld: 0.12
+  });
+  pts.push({
+    kind: "lamp",
+    index: 0,
+    x: 0,
+    y: lampY,
+    z: 0.02,
+    rWorld: 0.16
+  });
+  pts.push({
+    kind: "tubeL",
+    index: 0,
+    x: -0.28,
+    y: tubeCenterY,
+    z: 0,
+    rWorld: 0.12
+  });
+  pts.push({
+    kind: "immersion",
+    index: 0,
+    x: 0.08 + slideX,
+    y: stageY + 0.06,
+    z: 0.03 + slideZ,
+    rWorld: 0.12
+  });
+  pts.push({
+    kind: "clip",
+    index: 0,
+    x: -0.2 + slideX,
+    y: stageY + 0.07,
+    z: 0.12 + slideZ,
+    rWorld: 0.09
+  });
+  pts.push({
+    kind: "clip",
+    index: 1,
+    x: 0.22 + slideX,
+    y: stageY + 0.07,
+    z: 0.12 + slideZ,
+    rWorld: 0.09
+  });
+  return {
+    turY,
+    tubeH,
+    headY,
+    tubeCenterY,
+    tubeTopY,
+    tubeBotY,
+    Lscale,
+    turretRot,
+    stageY,
+    slideX,
+    slideZ,
+    condenserY,
+    condenserGap,
+    irisOpen,
+    fieldIris,
+    lampOn,
+    lampY,
+    focus,
+    oculars,
+    WD,
+    NA,
+    NAcap,
+    pts
+  };
+}
+var DRAG_KINDS = /* @__PURE__ */ new Set([
+  "focusCoarse",
+  "focusFine",
+  "stageX",
+  "stageY",
+  "condenser",
+  "iris",
+  "fieldIris",
+  "tubeL"
+]);
+var CLICK_KINDS = /* @__PURE__ */ new Set([
+  "obj",
+  "eye",
+  "lamp",
+  "immersion",
+  "clip"
+]);
+
 // js/viz/microscopeMeshBuild.js
 function shade(nx, ny, nz, r, g, b, gloss = 0.12) {
   const lx = 0.42;
@@ -4806,9 +5062,6 @@ function tubeSeg(x0, y0, z0, x1, y1, z1, radius, r, g, b, out, slices = 16, caps
     }
   }
 }
-function MagScale(m) {
-  return Math.log10(Math.max(4, m));
-}
 function irisWedges(cx, cy, cz, rIn, rOut, count, r, g, b, out) {
   for (let i = 0; i < count; i += 1) {
     const pitch = Math.PI * 2 / count;
@@ -4827,33 +5080,48 @@ function irisWedges(cx, cy, cz, rIn, rOut, count, r, g, b, out) {
     tri(out, x0, cy - 8e-3, z0, xt, cy - 4e-3, zt, x1, cy - 8e-3, z1, 0, -1, 0, r * 0.72, g * 0.72, b * 0.72, 0.08);
   }
 }
-function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRingColor2) {
-  const data = [];
-  const mag = optics.obj.mag;
-  const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
-  const tubeH = (1.35 + MagScale(mag) * 0.22) * Lscale;
-  const headY = 1.55;
-  const turY = headY - 0.28;
-  const tubeCenterY = headY + tubeH / 2 - 0.05;
-  const tubeTopY = tubeCenterY + tubeH / 2;
-  const tubeBotY = tubeCenterY - tubeH / 2;
+function clampTess(tess) {
+  return Math.max(0.45, Math.min(1.15, Number(tess) || 1));
+}
+function meshStaticKey(tess) {
+  return `static:${clampTess(tess)}`;
+}
+function meshDynamicKey(optics, hover, params = {}) {
+  const p = params || {};
+  const h = hover ? `${hover.kind}:${hover.index}` : "-";
+  return [
+    "dyn",
+    optics?.obj?.id ?? "",
+    optics?.eye?.id ?? "",
+    optics?.Lmm ?? "",
+    optics?.NA ?? "",
+    optics?.NAcap ?? "",
+    optics?.WD ?? "",
+    optics?.immersion ? 1 : 0,
+    p.focusZ_mm ?? 0,
+    p.stageX_mm ?? 0,
+    p.stageY_mm ?? 0,
+    p.fieldIris ?? 0.55,
+    Number(p.lampOn) !== 0 ? 1 : 0,
+    h
+  ].join("|");
+}
+function hoverHi(hover, kind, index = 0) {
+  return !!(hover && hover.kind === kind && (hover.index == null || hover.index === index));
+}
+function buildStatic(out, S) {
   const enamel = [0.11, 0.115, 0.125];
   const enamelHi = [0.16, 0.168, 0.18];
   const chrome = [0.74, 0.76, 0.8];
-  const chromeDim = [0.52, 0.55, 0.6];
-  const ivory = [0.9, 0.86, 0.74];
-  const ivoryEdge = [0.7, 0.64, 0.5];
-  const glass = [0.7, 0.82, 0.9];
-  const glassHi = [0.84, 0.92, 0.96];
-  const gold = [0.92, 0.74, 0.22];
-  const lampGlow = [1, 0.88, 0.48];
   const heelZ = -0.56;
   const shoeR = 0.66;
   const shoeZc = heelZ + shoeR;
   const shoeY = 0.09;
   const shoeRad = 0.09;
   const tipZ = 0.78;
-  const arcSegs = 24;
+  const arcSegs = S(24, 16);
+  const arcSlice = S(32, 16);
+  const chromeSlice = S(16, 8);
   for (let i = 0; i < arcSegs; i += 1) {
     const a0 = Math.PI + i / arcSegs * Math.PI;
     const a1 = Math.PI + (i + 1) / arcSegs * Math.PI;
@@ -4861,26 +5129,21 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
     const z0 = shoeZc + Math.sin(a0) * shoeR;
     const x1 = Math.cos(a1) * shoeR;
     const z1 = shoeZc + Math.sin(a1) * shoeR;
-    tubeSeg(x0, shoeY, z0, x1, shoeY, z1, shoeRad, ...enamel, data, 18, false, 0.1);
-    tubeSeg(x0, shoeY + 0.07, z0, x1, shoeY + 0.07, z1, 0.016, ...chrome, data, 10, false, 0.4);
+    tubeSeg(x0, shoeY, z0, x1, shoeY, z1, shoeRad, ...enamel, out, arcSlice, false, 0.1);
+    tubeSeg(x0, shoeY + 0.07, z0, x1, shoeY + 0.07, z1, 0.016, ...chrome, out, chromeSlice, false, 0.4);
   }
-  tubeSeg(-shoeR, shoeY, shoeZc, -shoeR, shoeY, tipZ, shoeRad, ...enamel, data, 18, false, 0.1);
-  tubeSeg(shoeR, shoeY, shoeZc, shoeR, shoeY, tipZ, shoeRad, ...enamel, data, 18, false, 0.1);
-  sphere(-shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, data, 20, 14, 0.42);
-  sphere(shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, data, 20, 14, 0.42);
-  cylinderY(0, 0.22, heelZ, 0.095, 0.3, ...enamel, data, 36, true, 0.1);
-  torusY(0, 0.34, heelZ, 0.1, 0.016, ...chrome, data, 32, 10, 0.36);
-  const armPoint = (t2) => {
-    const y = 0.24 + t2 * 1.3;
-    const z = heelZ - Math.sin(t2 * Math.PI) * 0.38 + t2 * (-0.08 - heelZ);
-    const x = 0.05 * Math.sin(t2 * Math.PI);
-    return [x, y, z];
-  };
-  const armSegs = 24;
+  tubeSeg(-shoeR, shoeY, shoeZc, -shoeR, shoeY, tipZ, shoeRad, ...enamel, out, arcSlice, false, 0.1);
+  tubeSeg(shoeR, shoeY, shoeZc, shoeR, shoeY, tipZ, shoeRad, ...enamel, out, arcSlice, false, 0.1);
+  sphere(-shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, out, S(24, 14), S(16, 10), 0.42);
+  sphere(shoeR, shoeY + 0.02, tipZ, 0.115, ...chrome, out, S(24, 14), S(16, 10), 0.42);
+  cylinderY(0, 0.22, heelZ, 0.095, 0.3, ...enamel, out, S(48, 24), true, 0.1);
+  torusY(0, 0.34, heelZ, 0.1, 0.016, ...chrome, out, S(32, 16), S(12, 8), 0.36);
+  const armSegs = S(24, 16);
+  const armSlice = S(32, 16);
   for (let i = 0; i < armSegs; i += 1) {
     const a = armPoint(i / armSegs);
     const b = armPoint((i + 1) / armSegs);
-    tubeSeg(a[0], a[1], a[2], b[0], b[1], b[2], 0.074, ...enamel, data, 18, false, 0.11);
+    tubeSeg(a[0], a[1], a[2], b[0], b[1], b[2], 0.074, ...enamel, out, armSlice, false, 0.11);
     tubeSeg(
       a[0],
       a[1] + 0.055,
@@ -4890,104 +5153,146 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
       b[2] - 0.028,
       0.014,
       ...chrome,
-      data,
-      10,
+      out,
+      chromeSlice,
       false,
       0.4
     );
   }
   const armEnd = armPoint(1);
-  sphere(armEnd[0], armEnd[1], armEnd[2], 0.086, ...enamelHi, data, 18, 12, 0.12);
-  const focus = armPoint(0.3);
-  sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, data, 16, 12, 0.12);
+  sphere(armEnd[0], armEnd[1], armEnd[2], 0.086, ...enamelHi, out, S(20, 12), S(14, 8), 0.12);
+}
+function buildDynamic(out, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRingColor2, layout, S) {
+  const enamel = [0.11, 0.115, 0.125];
+  const enamelHi = [0.16, 0.168, 0.18];
+  const chrome = [0.74, 0.76, 0.8];
+  const chromeDim = [0.52, 0.55, 0.6];
+  const ivory = [0.9, 0.86, 0.74];
+  const ivoryEdge = [0.7, 0.64, 0.5];
+  const glass = [0.7, 0.82, 0.9];
+  const glassHi = [0.84, 0.92, 0.96];
+  const gold = [0.92, 0.74, 0.22];
+  const lampGlow = layout.lampOn ? [1, 0.88, 0.48] : [0.28, 0.24, 0.18];
+  const hi = [0.45, 0.9, 1];
+  const hiSoft = [0.62, 0.82, 1];
+  const {
+    turY,
+    tubeH,
+    headY,
+    tubeCenterY,
+    tubeTopY,
+    tubeBotY,
+    turretRot,
+    stageY,
+    slideX,
+    slideZ,
+    condenserY,
+    irisOpen,
+    fieldIris,
+    lampY,
+    focus,
+    oculars
+  } = layout;
+  const tubeSlice = S(56, 28);
+  const torusR = S(40, 20);
+  const torusT = S(12, 8);
+  const midSlice = S(32, 16);
+  const fineSlice = S(20, 10);
+  sphere(focus[0], focus[1], focus[2], 0.1, ...enamel, out, S(24, 12), S(16, 10), 0.12);
   for (const side of [-1, 1]) {
-    cylinderX(focus[0] + side * 0.09, focus[1], focus[2], 0.026, 0.1, ...chromeDim, data, 12, 0.28, false);
+    const sideIdx = side < 0 ? 0 : 1;
+    const coarseHot = hoverHi(hover, "focusCoarse", sideIdx);
+    const fineHot = hoverHi(hover, "focusFine", sideIdx);
+    cylinderX(focus[0] + side * 0.09, focus[1], focus[2], 0.026, 0.1, ...chromeDim, out, S(16, 8), 0.28, false);
     const coarseX = focus[0] + side * 0.155;
-    cylinderX(coarseX, focus[1], focus[2], 0.092, 0.05, ...chrome, data, 24, 0.4, true);
-    cylinderX(coarseX - side * 0.012, focus[1], focus[2], 0.102, 0.01, ...chromeDim, data, 24, 0.32, false);
-    cylinderX(coarseX + side * 0.012, focus[1], focus[2], 0.102, 0.01, ...chromeDim, data, 24, 0.32, false);
+    const cCol = coarseHot ? hi : chrome;
+    cylinderX(coarseX, focus[1], focus[2], 0.092, 0.05, ...cCol, out, S(28, 14), 0.4, true);
+    cylinderX(coarseX - side * 0.012, focus[1], focus[2], 0.102, 0.01, ...chromeDim, out, S(28, 14), 0.32, false);
+    cylinderX(coarseX + side * 0.012, focus[1], focus[2], 0.102, 0.01, ...chromeDim, out, S(28, 14), 0.32, false);
+    if (coarseHot) torusY(coarseX, focus[1], focus[2], 0.11, 0.012, ...hi, out, fineSlice, S(10, 6), 0.4);
     const fineX = focus[0] + side * 0.21;
-    cylinderX(fineX, focus[1], focus[2], 0.05, 0.036, ...chrome, data, 20, 0.42, true);
-    sphere(focus[0] + side * 0.232, focus[1], focus[2], 0.046, ...chrome, data, 14, 10, 0.42);
+    const fCol = fineHot ? hi : chrome;
+    cylinderX(fineX, focus[1], focus[2], 0.05, 0.036, ...fCol, out, S(22, 12), 0.42, true);
+    sphere(focus[0] + side * 0.232, focus[1], focus[2], 0.046, ...fineHot ? hi : chrome, out, S(16, 10), S(12, 8), 0.42);
+    if (fineHot) torusY(fineX, focus[1], focus[2], 0.066, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.36);
   }
   const tubeR = 0.118;
-  cylinderY(0, tubeCenterY, 0, tubeR, tubeH, ...enamel, data, 56, true, 0.14);
-  torusY(0, tubeCenterY + tubeH * 0.28, 0, tubeR + 4e-3, 0.015, ...chrome, data, 40, 10, 0.4);
-  torusY(0, tubeCenterY, 0, tubeR + 4e-3, 0.012, ...chrome, data, 40, 8, 0.38);
-  torusY(0, tubeCenterY - tubeH * 0.28, 0, tubeR + 4e-3, 0.015, ...chrome, data, 40, 10, 0.4);
-  torusY(0, headY, 0, tubeR + 0.01, 0.02, ...chrome, data, 40, 10, 0.4);
+  const tubeHot = hoverHi(hover, "tubeL");
+  cylinderY(0, tubeCenterY, 0, tubeR, tubeH, ...enamel, out, tubeSlice, true, 0.14);
+  torusY(0, tubeCenterY + tubeH * 0.28, 0, tubeR + 4e-3, 0.015, ...chrome, out, torusR, torusT, 0.4);
+  torusY(0, tubeCenterY, 0, tubeR + 4e-3, 0.012, ...chrome, out, torusR, S(12, 6), 0.38);
+  torusY(0, tubeCenterY - tubeH * 0.28, 0, tubeR + 4e-3, 0.015, ...chrome, out, torusR, torusT, 0.4);
+  torusY(0, headY, 0, tubeR + 0.01, 0.02, ...chrome, out, torusR, torusT, 0.4);
   const neckTop = tubeBotY;
   const neckBot = turY + 0.1;
   const neckH = neckTop - neckBot;
   if (neckH > 0.02) {
-    cylinderY(0, (neckTop + neckBot) / 2, 0, 0.1, neckH, ...enamel, data, 40, true, 0.12);
-    torusY(0, neckBot + 0.01, 0, 0.108, 0.014, ...chrome, data, 32, 8, 0.36);
+    cylinderY(0, (neckTop + neckBot) / 2, 0, 0.1, neckH, ...enamel, out, midSlice, true, 0.12);
+    torusY(0, neckBot + 0.01, 0, 0.108, 0.014, ...chrome, out, S(48, 20), S(12, 6), 0.36);
   }
   const dimX = -0.28;
-  box(dimX, tubeCenterY, 0, 8e-3, tubeH, 8e-3, 0.95, 0.85, 0.35, data, 0.05);
-  box(dimX, tubeTopY, 0, 0.09, 8e-3, 8e-3, 0.95, 0.85, 0.35, data, 0.05);
-  box(dimX, tubeBotY, 0, 0.09, 8e-3, 8e-3, 0.95, 0.85, 0.35, data, 0.05);
-  box(0, tubeTopY + 0.07, 0.03, 0.36, 0.12, 0.24, ...enamel, data, 0.1);
-  box(0, tubeTopY + 0.15, 0.07, 0.24, 0.08, 0.16, ...enamelHi, data, 0.12);
-  cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3, ...chrome, data, 16, 0.38, true);
-  const tilt = 34 * Math.PI / 180;
-  const dirY = Math.cos(tilt);
-  const dirZ = Math.sin(tilt);
-  const ocularLen = 0.3;
-  for (const side of [-1, 1]) {
-    const x0 = side * 0.09;
-    const y0 = tubeTopY + 0.12;
-    const z0 = 0.04;
-    const x1 = x0 + side * 0.032;
-    const y1 = y0 + dirY * ocularLen;
-    const z1 = z0 + dirZ * ocularLen;
-    tubeSeg(x0, y0, z0, x1, y1, z1, 0.044, ...enamel, data, 18, true, 0.14);
-    torusY(x0, y0, z0, 0.05, 0.01, ...chrome, data, 16, 8, 0.34);
-    const flange = 0.042;
-    const x2 = x1 + side * 6e-3;
-    const y2 = y1 + dirY * flange;
-    const z2 = z1 + dirZ * flange;
-    tubeSeg(x1, y1, z1, x2, y2, z2, 0.06, ...chrome, data, 18, true, 0.38);
+  const dimCol = tubeHot ? hi : [0.95, 0.85, 0.35];
+  box(dimX, tubeCenterY, 0, 8e-3, tubeH, 8e-3, ...dimCol, out, 0.05);
+  box(dimX, tubeTopY, 0, 0.09, 8e-3, 8e-3, ...dimCol, out, 0.05);
+  box(dimX, tubeBotY, 0, 0.09, 8e-3, 8e-3, ...dimCol, out, 0.05);
+  if (tubeHot) torusY(dimX, tubeCenterY, 0, 0.06, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.3);
+  box(0, tubeTopY + 0.07, 0.03, 0.36, 0.12, 0.24, ...enamel, out, 0.1);
+  box(0, tubeTopY + 0.15, 0.07, 0.24, 0.08, 0.16, ...enamelHi, out, 0.12);
+  cylinderX(0, tubeTopY + 0.12, 0.05, 0.028, 0.3, ...chrome, out, S(24, 12), 0.38, true);
+  const oculSlice = S(24, 12);
+  for (const oc of oculars) {
+    tubeSeg(oc.x0, oc.y0, oc.z0, oc.x1, oc.y1, oc.z1, 0.044, ...enamel, out, oculSlice, true, 0.14);
+    torusY(oc.x0, oc.y0, oc.z0, 0.05, 0.01, ...chrome, out, S(20, 10), S(10, 6), 0.34);
+    tubeSeg(oc.x1, oc.y1, oc.z1, oc.tipX, oc.tipY, oc.tipZ, 0.06, ...chrome, out, oculSlice, true, 0.38);
+    const dx = oc.tipX - oc.x1;
+    const dy = oc.tipY - oc.y1;
+    const dz = oc.tipZ - oc.z1;
+    const dl = Math.hypot(dx, dy, dz) || 1;
     tubeSeg(
-      x2,
-      y2,
-      z2,
-      x2 + side * 3e-3,
-      y2 + dirY * 0.028,
-      z2 + dirZ * 0.028,
+      oc.tipX,
+      oc.tipY,
+      oc.tipZ,
+      oc.tipX + dx / dl * 0.028,
+      oc.tipY + dy / dl * 0.028,
+      oc.tipZ + dz / dl * 0.028,
       0.034,
       0.02,
       0.022,
       0.026,
-      data,
-      14,
+      out,
+      S(18, 10),
       true,
       0.06
     );
   }
+  const eyeSlots = [
+    oculars[0] && { x: oculars[0].tipX, y: oculars[0].tipY, z: oculars[0].tipZ },
+    { x: 0, y: tubeTopY + 0.22, z: 0.14 },
+    oculars[1] && { x: oculars[1].tipX, y: oculars[1].tipY, z: oculars[1].tipZ }
+  ];
   EYEPIECES2.forEach((eye, i) => {
+    const slot = eyeSlots[i] || eyeSlots[1];
+    if (!slot) return;
     const active = eye.id === optics.eye.id;
-    const hovered = hover?.kind === "eye" && hover.index === i;
-    const x = (i - (EYEPIECES2.length - 1) / 2) * 0.16;
-    const y = tubeTopY + 0.52;
-    const z = 0.22;
-    cylinderY(x, y, z, active ? 0.05 : 0.044, 0.07, ...chromeDim, data, 18, true, 0.3);
-    cylinderY(x, y + 0.02, z, 0.03, 0.02, 0.03, 0.035, 0.04, data, 14, true, 0.08);
+    const hovered = hoverHi(hover, "eye", i);
+    const { x, y, z } = slot;
+    cylinderY(x, y, z, active ? 0.05 : 0.044, 0.07, ...chromeDim, out, S(28, 14), true, 0.3);
+    cylinderY(x, y + 0.02, z, 0.03, 0.02, 0.03, 0.035, 0.04, out, S(20, 10), true, 0.08);
     if (active || hovered) {
       const gr = active ? 0.95 : 0.78;
-      torusY(x, y + 0.04, z, 0.064, 0.012, 0.45, gr, 1, data, 16, 8, 0.36);
+      torusY(x, y + 0.04, z, 0.064, 0.012, 0.45, gr, 1, out, S(24, 12), S(12, 6), 0.36);
     }
   });
-  cylinderY(0, turY + 0.055, 0, 0.36, 0.11, ...enamel, data, 40, true, 0.12);
-  torusY(0, turY + 0.11, 0, 0.36, 0.022, ...chrome, data, 40, 10, 0.4);
-  torusY(0, turY + 0.02, 0, 0.3, 0.016, ...chromeDim, data, 36, 8, 0.3);
-  sphere(0, turY + 0.12, 0.36, 0.018, ...chrome, data, 10, 8, 0.4);
+  cylinderY(0, turY + 0.055, 0, 0.36, 0.11, ...enamel, out, midSlice, true, 0.12);
+  torusY(0, turY + 0.11, 0, 0.36, 0.022, ...chrome, out, torusR, torusT, 0.4);
+  torusY(0, turY + 0.02, 0, 0.3, 0.016, ...chromeDim, out, S(48, 20), S(12, 6), 0.3);
+  sphere(0, turY + 0.12, 0.36, 0.018, ...chrome, out, S(16, 8), S(12, 6), 0.4);
   OBJECTIVES2.forEach((obj, i) => {
-    const ang = -Math.PI / 2 + i * (Math.PI / 2);
+    const ang = turretRot + i * (Math.PI / 2);
     const ox = Math.cos(ang) * 0.32;
     const oz = Math.sin(ang) * 0.32;
     const active = obj.id === optics.obj.id;
-    const hovered = hover?.kind === "obj" && hover.index === i;
+    const hovered = hoverHi(hover, "obj", i);
     const k = active ? 1.08 : hovered ? 1.04 : 1;
     let y = turY - 0.012;
     const band = (h) => {
@@ -5004,77 +5309,121 @@ function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveR
     const noseH = 0.055 + MagScale(obj.mag) * 0.028;
     const yNose = band(noseH);
     const yFront = band(0.016);
-    cylinderY(ox, yCol, oz, 0.05 * k, 0.04, ...chrome, data, 20, true, 0.38);
-    cylinderY(ox, ySh, oz, 0.044 * k, 0.042, ...enamel, data, 20, true, 0.12);
+    const objSlice = S(24, 14);
+    cylinderY(ox, yCol, oz, 0.05 * k, 0.04, ...chrome, out, objSlice, true, 0.38);
+    cylinderY(ox, ySh, oz, 0.044 * k, 0.042, ...enamel, out, objSlice, true, 0.12);
     const [rr, rg, rb] = objectiveRingColor2(obj.mag).rgb;
-    torusY(ox, yRing, oz, 0.05 * k, 0.012, rr, rg, rb, data, 20, 8, 0.34);
-    cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, data, 20, true, 0.12);
-    cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, data, 18, true, 0.36);
-    frustumY(ox, yNose, oz, 0.03 * k, 0.02 * k, noseH, ...chromeDim, data, 18, 0.3);
-    cylinderY(ox, yFront, oz, 0.016 * k, 0.016, ...glass, data, 14, true, 0.45);
+    torusY(ox, yRing, oz, 0.05 * k, 0.012, rr, rg, rb, out, S(24, 12), S(10, 6), 0.34);
+    cylinderY(ox, yBar, oz, 0.034 * k, 0.075, ...enamel, out, objSlice, true, 0.12);
+    cylinderY(ox, yStep, oz, 0.03 * k, 0.026, ...chrome, out, S(20, 12), true, 0.36);
+    frustumY(ox, yNose, oz, 0.03 * k, 0.02 * k, noseH, ...chromeDim, out, S(20, 12), 0.3);
+    cylinderY(ox, yFront, oz, 0.016 * k, 0.016, ...glass, out, S(16, 8), true, 0.45);
     if (obj.immersion) {
-      torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, data, 16, 8, 0.36);
+      torusY(ox, yNose - noseH * 0.28, oz, 0.028 * k, 0.01, ...gold, out, S(18, 10), S(10, 6), 0.36);
     }
     if (active) {
-      torusY(ox, turY + 0.045, oz, 0.1, 0.014, 0.45, 0.9, 1, data, 20, 8, 0.4);
+      torusY(ox, turY + 0.045, oz, 0.1, 0.014, 0.45, 0.9, 1, out, S(24, 12), S(10, 6), 0.4);
     } else if (hovered) {
-      torusY(ox, turY + 0.045, oz, 0.096, 0.012, 0.62, 0.82, 1, data, 18, 8, 0.32);
+      torusY(ox, turY + 0.045, oz, 0.096, 0.012, 0.62, 0.82, 1, out, S(20, 10), S(10, 6), 0.32);
     }
   });
-  const objLen = 0.26 + MagScale(mag) * 0.055;
-  const stageY = turY - objLen - 0.18;
-  box(0, stageY, 0.04, 1.02, 0.05, 0.7, ...ivory, data, 0.06);
-  box(0, stageY - 0.032, 0.04, 0.94, 0.016, 0.62, ...ivoryEdge, data, 0.08);
-  box(0, stageY - 0.05, 0.02, 0.7, 0.02, 0.46, ...chromeDim, data, 0.16);
-  cylinderY(0, stageY + 0.02, 0.02, 0.1, 0.02, 0.08, 0.08, 0.09, data, 28, true, 0.05);
-  torusY(0, stageY + 0.028, 0.02, 0.12, 0.012, ...chromeDim, data, 28, 8, 0.22);
+  const stageHotX = hoverHi(hover, "stageX");
+  const stageHotY = hoverHi(hover, "stageY");
+  const clipHot0 = hoverHi(hover, "clip", 0);
+  const clipHot1 = hoverHi(hover, "clip", 1);
+  const immHot = hoverHi(hover, "immersion");
+  box(0, stageY, 0.04, 1.02, 0.05, 0.7, ...ivory, out, 0.06);
+  box(0, stageY - 0.032, 0.04, 0.94, 0.016, 0.62, ...ivoryEdge, out, 0.08);
+  box(0, stageY - 0.05, 0.02, 0.7, 0.02, 0.46, ...chromeDim, out, 0.16);
+  cylinderY(0, stageY + 0.02, 0.02, 0.1, 0.02, 0.08, 0.08, 0.09, out, S(32, 16), true, 0.05);
+  torusY(0, stageY + 0.028, 0.02, 0.12, 0.012, ...chromeDim, out, S(32, 16), S(10, 6), 0.22);
   const railY = stageY + 0.036;
-  box(0.02, railY, 0.2, 0.68, 0.01, 0.018, ...chromeDim, data, 0.18);
-  box(0.02, railY, -0.14, 0.68, 0.01, 0.018, ...chromeDim, data, 0.18);
-  box(-0.31, railY, 0.03, 0.018, 0.01, 0.36, ...chromeDim, data, 0.18);
-  box(0.35, railY, 0.03, 0.018, 0.01, 0.36, ...chromeDim, data, 0.18);
+  box(0.02, railY, 0.2, 0.68, 0.01, 0.018, ...chromeDim, out, 0.18);
+  box(0.02, railY, -0.14, 0.68, 0.01, 0.018, ...chromeDim, out, 0.18);
+  box(-0.31, railY, 0.03, 0.018, 0.01, 0.36, ...chromeDim, out, 0.18);
+  box(0.35, railY, 0.03, 0.018, 0.01, 0.36, ...chromeDim, out, 0.18);
   for (let i = 0; i < 6; i += 1) {
-    box(-0.1 + i * 0.055, stageY + 0.032, 0.3, 0.012, 0.01, 0.02, ...chrome, data, 0.22);
+    box(-0.1 + i * 0.055, stageY + 0.032, 0.3, 0.012, 0.01, 0.02, ...chrome, out, 0.22);
   }
-  box(0.02, stageY + 0.046, 0.03, 0.62, 0.01, 0.22, ...glass, data, 0.42);
-  box(-0.22, stageY + 0.052, 0.03, 0.14, 0.012, 0.22, 0.86, 0.84, 0.74, data, 0.1);
-  cylinderY(0.08, stageY + 0.056, 0.03, 0.07, 6e-3, ...glassHi, data, 20, true, 0.48);
-  box(-0.2, stageY + 0.066, 0.12, 0.2, 0.012, 0.028, ...chrome, data, 0.28);
-  box(0.22, stageY + 0.066, 0.12, 0.2, 0.012, 0.028, ...chrome, data, 0.28);
-  cylinderY(-0.1, stageY + 0.07, 0.12, 0.02, 0.028, ...chromeDim, data, 12, true, 0.24);
-  cylinderY(0.14, stageY + 0.07, 0.12, 0.02, 0.028, ...chromeDim, data, 12, true, 0.24);
-  for (const sx of [-0.46, 0.46]) {
-    for (const sz of [-0.26, 0.32]) {
-      cylinderY(sx, stageY + 0.03, sz, 0.016, 0.012, ...chrome, data, 10, true, 0.34);
+  const sx = slideX;
+  const sz = slideZ;
+  box(0.02 + sx, stageY + 0.046, 0.03 + sz, 0.62, 0.01, 0.22, ...glass, out, 0.42);
+  box(-0.22 + sx, stageY + 0.052, 0.03 + sz, 0.14, 0.012, 0.22, 0.86, 0.84, 0.74, out, 0.1);
+  cylinderY(0.08 + sx, stageY + 0.056, 0.03 + sz, immHot ? 0.078 : 0.07, 6e-3, ...immHot ? hi : glassHi, out, S(28, 14), true, 0.48);
+  if (immHot) torusY(0.08 + sx, stageY + 0.06, 0.03 + sz, 0.09, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.34);
+  const clipCol0 = clipHot0 ? hi : chrome;
+  const clipCol1 = clipHot1 ? hi : chrome;
+  box(-0.2 + sx, stageY + 0.066, 0.12 + sz, 0.2, 0.012, 0.028, ...clipCol0, out, 0.28);
+  box(0.22 + sx, stageY + 0.066, 0.12 + sz, 0.2, 0.012, 0.028, ...clipCol1, out, 0.28);
+  cylinderY(-0.1 + sx, stageY + 0.07, 0.12 + sz, 0.02, 0.028, ...chromeDim, out, S(16, 8), true, 0.24);
+  cylinderY(0.14 + sx, stageY + 0.07, 0.12 + sz, 0.02, 0.028, ...chromeDim, out, S(16, 8), true, 0.24);
+  if (clipHot0) torusY(-0.2 + sx, stageY + 0.072, 0.12 + sz, 0.08, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.3);
+  if (clipHot1) torusY(0.22 + sx, stageY + 0.072, 0.12 + sz, 0.08, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.3);
+  for (const px of [-0.46, 0.46]) {
+    for (const pz of [-0.26, 0.32]) {
+      cylinderY(px, stageY + 0.03, pz, 0.016, 0.012, ...chrome, out, S(14, 8), true, 0.34);
     }
   }
-  cylinderX(0.58, stageY - 5e-3, 0.16, 0.042, 0.12, ...chrome, data, 18, 0.38, true);
-  cylinderX(0.6, stageY - 5e-3, -0.02, 0.03, 0.1, ...chromeDim, data, 16, 0.34, true);
-  cylinderX(0.5, stageY - 5e-3, 0.16, 0.016, 0.1, ...chromeDim, data, 10, 0.24, false);
+  cylinderX(0.58, stageY - 5e-3, 0.16, 0.042, 0.12, ...stageHotX ? hi : chrome, out, S(28, 14), 0.38, true);
+  cylinderX(0.6, stageY - 5e-3, -0.02, 0.03, 0.1, ...stageHotY ? hi : chromeDim, out, S(24, 12), 0.34, true);
+  cylinderX(0.5, stageY - 5e-3, 0.16, 0.016, 0.1, ...chromeDim, out, S(16, 8), 0.24, false);
+  if (stageHotX) torusY(0.58, stageY - 5e-3, 0.16, 0.055, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.34);
+  if (stageHotY) torusY(0.6, stageY - 5e-3, -0.02, 0.045, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.34);
   const tStage = Math.min(0.82, Math.max(0.08, (stageY - 0.24) / 1.3));
   const limb = armPoint(tStage);
-  tubeSeg(limb[0], limb[1], limb[2], 0, stageY - 0.02, -0.22, 0.048, ...enamel, data, 12, false, 0.1);
-  box(0, stageY - 0.04, -0.24, 0.16, 0.08, 0.16, ...enamel, data, 0.08);
-  frustumY(0, stageY - 0.09, 0.02, 0.07, 0.11, 0.08, ...chrome, data, 28, 0.34);
-  irisWedges(0, stageY - 0.145, 0.02, 0.028, 0.1, 12, 0.22, 0.23, 0.26, data);
-  torusY(0, stageY - 0.145, 0.02, 0.112, 0.016, ...chrome, data, 28, 8, 0.36);
-  cylinderX(0.15, stageY - 0.145, 0.02, 0.012, 0.08, ...chrome, data, 10, 0.32, true);
-  cylinderY(0, stageY - 0.205, 0.02, 0.088, 0.1, ...enamel, data, 28, true, 0.12);
-  frustumY(0, stageY - 0.28, 0.02, 0.08, 0.05, 0.07, ...chrome, data, 24, 0.32);
-  cylinderX(0.16, stageY - 0.22, 0.1, 0.038, 0.06, ...chrome, data, 16, 0.36, true);
-  const lampY = stageY - 0.46;
-  box(0, lampY, 0.02, 0.3, 0.16, 0.3, ...enamel, data, 0.08);
-  torusY(0, lampY + 0.08, 0.02, 0.1, 0.016, ...chrome, data, 24, 8, 0.36);
-  box(0, lampY, 0.17, 0.1, 0.07, 0.016, ...lampGlow, data, 0.12);
-  sphere(0, lampY, 0.04, 0.034, ...lampGlow, data, 12, 8, 0.18);
-  cylinderY(0, lampY + 0.125, 0.02, 0.09, 0.03, ...glass, data, 28, true, 0.48);
-  cylinderY(0, lampY + 0.158, 0.02, 0.064, 0.02, ...glassHi, data, 24, true, 0.5);
-  irisWedges(0, lampY + 0.185, 0.02, 0.018, 0.068, 8, 0.28, 0.29, 0.32, data);
-  torusY(0, lampY + 0.185, 0.02, 0.076, 0.012, ...chrome, data, 24, 8, 0.36);
-  cylinderY(0, lampY - 0.1, 0.02, 0.12, 0.03, ...enamel, data, 20, true, 0.08);
+  tubeSeg(limb[0], limb[1], limb[2], 0, stageY - 0.02, -0.22, 0.048, ...enamel, out, S(24, 12), false, 0.1);
+  box(0, stageY - 0.04, -0.24, 0.16, 0.08, 0.16, ...enamel, out, 0.08);
+  const irisHot = hoverHi(hover, "iris");
+  const condHot = hoverHi(hover, "condenser");
+  const rIn = 0.018 + irisOpen * 0.075;
+  const rOut = 0.1;
+  frustumY(0, condenserY + 0.055, 0.02, 0.07, 0.11, 0.08, ...chrome, out, S(32, 16), 0.34);
+  irisWedges(0, condenserY, 0.02, rIn, rOut, 12, irisHot ? 0.4 : 0.22, irisHot ? 0.55 : 0.23, irisHot ? 0.7 : 0.26, out);
+  torusY(0, condenserY, 0.02, 0.112, 0.016, ...irisHot ? hi : chrome, out, S(32, 16), S(10, 6), 0.36);
+  cylinderX(0.15, condenserY, 0.02, 0.012, 0.08, ...chrome, out, S(14, 8), 0.32, true);
+  cylinderY(0, condenserY - 0.06, 0.02, 0.088, 0.1, ...enamel, out, S(32, 16), true, 0.12);
+  frustumY(0, condenserY - 0.135, 0.02, 0.08, 0.05, 0.07, ...chrome, out, S(28, 14), 0.32);
+  cylinderX(0.16, condenserY - 0.05, 0.1, 0.038, 0.06, ...condHot ? hi : chrome, out, S(24, 12), 0.36, true);
+  if (condHot) torusY(0.16, condenserY - 0.05, 0.1, 0.05, 0.01, ...hiSoft, out, fineSlice, S(10, 6), 0.34);
+  const lampHot = hoverHi(hover, "lamp");
+  const fieldHot = hoverHi(hover, "fieldIris");
+  const frIn = 0.012 + fieldIris * 0.05;
+  const frOut = 0.068;
+  box(0, lampY, 0.02, 0.3, 0.16, 0.3, ...lampHot ? enamelHi : enamel, out, 0.08);
+  torusY(0, lampY + 0.08, 0.02, 0.1, 0.016, ...chrome, out, S(28, 14), S(10, 6), 0.36);
+  box(0, lampY, 0.17, 0.1, 0.07, 0.016, ...lampGlow, out, 0.12);
+  sphere(0, lampY, 0.04, layout.lampOn ? 0.034 : 0.028, ...lampGlow, out, S(16, 8), S(12, 8), 0.18);
+  cylinderY(0, lampY + 0.125, 0.02, 0.09, 0.03, ...glass, out, S(32, 16), true, 0.48);
+  cylinderY(0, lampY + 0.158, 0.02, 0.064, 0.02, ...glassHi, out, S(28, 14), true, 0.5);
+  irisWedges(0, lampY + 0.185, 0.02, frIn, frOut, 8, fieldHot ? 0.45 : 0.28, fieldHot ? 0.55 : 0.29, fieldHot ? 0.72 : 0.32, out);
+  torusY(0, lampY + 0.185, 0.02, 0.076, 0.012, ...fieldHot ? hi : chrome, out, S(28, 14), S(10, 6), 0.36);
+  cylinderY(0, lampY - 0.1, 0.02, 0.12, 0.03, ...enamel, out, S(22, 12), true, 0.08);
+  if (lampHot) torusY(0, lampY, 0.02, 0.18, 0.014, ...hiSoft, out, S(24, 12), S(10, 6), 0.34);
+}
+function buildMicroscopeSolid(optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRingColor2, opts) {
+  if (!opts || !opts.layout) {
+    throw new Error("buildMicroscopeSolid: opts.layout is required");
+  }
+  const layout = opts.layout;
+  const tess = clampTess(opts.tess);
+  const part = opts.part || "all";
+  const S = (n, lo = 8) => Math.max(lo, Math.round(n * tess));
+  const staticArr = [];
+  const dynamicArr = [];
+  if (part === "static" || part === "all") buildStatic(staticArr, S);
+  if (part === "dynamic" || part === "all") {
+    buildDynamic(dynamicArr, optics, hover, OBJECTIVES2, EYEPIECES2, objectiveRingColor2, layout, S);
+  }
+  const staticData = new Float32Array(staticArr);
+  const dynamicData = new Float32Array(dynamicArr);
+  const data = new Float32Array(staticData.length + dynamicData.length);
+  data.set(staticData, 0);
+  data.set(dynamicData, staticData.length);
   return {
-    data: new Float32Array(data),
-    oilStageY: stageY + 0.05,
+    staticData,
+    dynamicData,
+    data,
+    oilStageY: layout.stageY + 0.05,
     oilActive: !!optics.immersion
   };
 }
@@ -5224,8 +5573,8 @@ function project(mvp, x, y, z, width, height) {
     y: (1 - (ndcY * 0.5 + 0.5)) * height
   };
 }
-function MagScale2(m) {
-  return Math.log10(Math.max(4, m));
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
 }
 function createMicroscopeWebgl(canvas2, opts = {}) {
   const gl = canvas2.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true });
@@ -5234,7 +5583,8 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   const aPos = gl.getAttribLocation(prog, "aPos");
   const aCol = gl.getAttribLocation(prog, "aCol");
   const uMVP = gl.getUniformLocation(prog, "uMVP");
-  const buf = gl.createBuffer();
+  const staticBuf = gl.createBuffer();
+  const dynamicBuf = gl.createBuffer();
   const oilProg = link(gl, OIL_VS, OIL_FS);
   const oilAUv = gl.getAttribLocation(oilProg, "aUv");
   const oilUMVP = gl.getUniformLocation(oilProg, "uMVP");
@@ -5258,12 +5608,15 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     0,
     1
   ]), gl.STATIC_DRAW);
-  let lastKey = "";
-  let vertCount = 0;
-  let yaw = 0.72;
-  let pitch = 0.38;
-  let radius = 3.35;
-  let dragging = false;
+  let staticKey = "";
+  let dynamicKey = "";
+  let staticVertCount = 0;
+  let dynamicVertCount = 0;
+  let yaw = 0.85;
+  let pitch = 0.22;
+  let radius = 7.5;
+  let dragMode = null;
+  let partHit = null;
   let moved = false;
   let lastX = 0;
   let lastY = 0;
@@ -5273,54 +5626,23 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   let lastState = null;
   let hoverHit = null;
   let oilStageY = 0.4;
+  let oilSlideX = 0;
+  let oilSlideZ = 0;
   let oilActive = false;
-  let prevImmersion = null;
   let overlayLabels = [];
-  function turretWorld(optics) {
-    const mag = optics.obj.mag;
-    const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
-    const tubeH = (1.35 + MagScale2(mag) * 0.22) * Lscale;
-    const headY = 1.55;
-    const turY = headY - 0.28;
-    const tubeCenterY = headY + tubeH / 2 - 0.05;
-    const tubeTopY = tubeCenterY + tubeH / 2;
-    const tubeBotY = tubeCenterY - tubeH / 2;
-    const pts = [];
-    OBJECTIVES.forEach((obj, i) => {
-      const ang = -Math.PI / 2 + i * (Math.PI / 2);
-      pts.push({
-        kind: "obj",
-        index: i,
-        x: Math.cos(ang) * 0.32,
-        y: turY - 0.08,
-        z: Math.sin(ang) * 0.32,
-        id: obj.id
-      });
-    });
-    EYEPIECES.forEach((eye, i) => {
-      const x = (i - (EYEPIECES.length - 1) / 2) * 0.16;
-      pts.push({
-        kind: "eye",
-        index: i,
-        x,
-        y: tubeTopY + 0.52,
-        z: 0.22,
-        id: eye.id
-      });
-    });
-    return { turY, tubeH, headY, tubeCenterY, tubeTopY, tubeBotY, Lscale, pts };
-  }
+  const pointers = /* @__PURE__ */ new Map();
+  let pinchDist = 0;
   function hitRadiusPx(mvp, p, width, height) {
+    const rw = Math.max(0.04, Number(p.rWorld) || 0.12);
     const c = project(mvp, p.x, p.y, p.z, width, height);
-    const e = project(mvp, p.x + 0.14, p.y, p.z, width, height);
+    const e = project(mvp, p.x + rw, p.y, p.z, width, height);
     if (!c || !e) return 36;
     const r = Math.hypot(e.x - c.x, e.y - c.y);
-    return Math.max(30, Math.min(58, r * 1.45));
+    return Math.max(28, Math.min(64, r * 1.35));
   }
-  function rebuildHits(mvp, width, height, optics) {
-    const { pts } = turretWorld(optics);
+  function rebuildHits(mvp, width, height, layout) {
     hits = [];
-    for (const p of pts) {
+    for (const p of layout.pts || []) {
       const s = project(mvp, p.x, p.y, p.z, width, height);
       if (!s) continue;
       hits.push({
@@ -5347,47 +5669,149 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     }
     return best;
   }
-  function applyHit(hit) {
-    if (!lastState?.params || !hit) return false;
+  function notifyParams() {
+    opts.onPick?.(lastState);
+  }
+  function applyDrag(kind, dx, dy) {
+    if (!lastState?.params) return;
+    const p = lastState.params;
+    const o = opticsFromParams(p);
+    if (kind === "focusCoarse") {
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -5, 5);
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.09, 0.05, 25);
+    } else if (kind === "focusFine") {
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -6e-3, -5, 5);
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.02, 0.05, 25);
+    } else if (kind === "stageX") {
+      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -25, 25);
+    } else if (kind === "stageY") {
+      p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -25, 25);
+    } else if (kind === "condenser") {
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.07, 0.05, 25);
+    } else if (kind === "iris") {
+      p.NA = clamp((Number(p.NA) || o.NA) + dx * 25e-4, 0.05, o.NAcap);
+    } else if (kind === "fieldIris") {
+      p.fieldIris = clamp((Number(p.fieldIris) || 0.55) + dx * 3e-3, 0.1, 1);
+    } else if (kind === "tubeL") {
+      p.tubeL_mm = clamp((Number(p.tubeL_mm) || 160) + dy * -0.2, 120, 200);
+    } else {
+      return;
+    }
+    notifyParams();
+  }
+  function applyClick(hit) {
+    if (!lastState?.params || !hit || !CLICK_KINDS.has(hit.kind)) return false;
+    const p = lastState.params;
     if (hit.kind === "obj") {
-      lastState.params.objective = OBJECTIVES[hit.index].id;
+      const obj = OBJECTIVES[hit.index];
+      if (!obj) return false;
+      p.objective = obj.id;
       applyTurretDefaults(lastState, "obj");
-      lastState._lastObj = lastState.params.objective;
-      lastState.pick = `obj-${OBJECTIVES[hit.index].mag}\xD7`;
-      opts.onPick?.(lastState);
+      lastState._lastObj = p.objective;
+      lastState.pick = `obj-${obj.mag}\xD7`;
+      notifyParams();
       return true;
     }
     if (hit.kind === "eye") {
-      lastState.params.eyepiece = EYEPIECES[hit.index].id;
+      const eye = EYEPIECES[hit.index];
+      if (!eye) return false;
+      p.eyepiece = eye.id;
       applyTurretDefaults(lastState, "eye");
-      lastState._lastEye = lastState.params.eyepiece;
-      lastState.pick = `eye-${EYEPIECES[hit.index].mag}\xD7`;
-      opts.onPick?.(lastState);
+      lastState._lastEye = p.eyepiece;
+      lastState.pick = `eye-${eye.mag}\xD7`;
+      notifyParams();
+      return true;
+    }
+    if (hit.kind === "lamp") {
+      p.lampOn = Number(p.lampOn) !== 0 ? 0 : 1;
+      lastState.pick = p.lampOn ? "lamp-on" : "lamp-off";
+      notifyParams();
+      return true;
+    }
+    if (hit.kind === "immersion") {
+      if (p.objective === "100x") p.objective = "40x";
+      else p.objective = "100x";
+      applyTurretDefaults(lastState, "obj");
+      lastState._lastObj = p.objective;
+      lastState.pick = p.objective === "100x" ? "immersion-oil" : "immersion-dry";
+      notifyParams();
+      return true;
+    }
+    if (hit.kind === "clip") {
+      const nudge = hit.index === 1 ? 1.5 : -1.5;
+      p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + nudge, -25, 25);
+      lastState.pick = `clip-${hit.index}`;
+      notifyParams();
       return true;
     }
     return false;
   }
+  function pointerPairDist() {
+    if (pointers.size < 2) return 0;
+    const pts = [...pointers.values()];
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
   const onDown = (ev) => {
     ev.preventDefault();
-    dragging = true;
-    moved = false;
     autoSpin = 0;
+    pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pointers.size >= 2) {
+      dragMode = null;
+      partHit = null;
+      pinchDist = pointerPairDist();
+      moved = true;
+      return;
+    }
+    moved = false;
     lastX = ev.clientX;
     lastY = ev.clientY;
+    const hit = pickAt(ev.clientX, ev.clientY);
+    if (hit && DRAG_KINDS.has(hit.kind)) {
+      dragMode = "part";
+      partHit = { kind: hit.kind, index: hit.index };
+      canvas2.style.cursor = "ns-resize";
+    } else {
+      dragMode = "orbit";
+      partHit = null;
+      canvas2.style.cursor = "grabbing";
+    }
     try {
       canvas2.setPointerCapture(ev.pointerId);
     } catch {
     }
   };
   const onMove = (ev) => {
-    if (dragging) {
+    if (pointers.has(ev.pointerId)) {
+      pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    }
+    if (pointers.size >= 2) {
+      const dist = pointerPairDist();
+      if (pinchDist > 1) {
+        const delta = dist - pinchDist;
+        radius = clamp(radius - delta * 0.012, 2.4, 12);
+        opts.onViewChange?.();
+      }
+      pinchDist = dist;
+      moved = true;
+      return;
+    }
+    if (dragMode === "part" && partHit) {
+      const dx = ev.clientX - lastX;
+      const dy = ev.clientY - lastY;
+      if (Math.hypot(dx, dy) > 2) moved = true;
+      lastX = ev.clientX;
+      lastY = ev.clientY;
+      applyDrag(partHit.kind, dx, dy);
+      return;
+    }
+    if (dragMode === "orbit") {
       const dx = ev.clientX - lastX;
       const dy = ev.clientY - lastY;
       if (Math.hypot(dx, dy) > 3) moved = true;
       lastX = ev.clientX;
       lastY = ev.clientY;
       yaw += dx * 6e-3;
-      pitch = Math.max(0.08, Math.min(1.25, pitch + dy * 5e-3));
+      pitch = clamp(pitch + dy * 5e-3, 0.05, 1.15);
       opts.onViewChange?.();
       return;
     }
@@ -5396,28 +5820,52 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     const prevKey = hoverHit ? `${hoverHit.kind}:${hoverHit.index}` : "";
     if (nextKey !== prevKey) {
       hoverHit = hit ? { kind: hit.kind, index: hit.index } : null;
-      lastKey = "";
       canvas2.style.cursor = hit ? "pointer" : "grab";
       opts.onViewChange?.();
     }
   };
-  const onUp = (ev) => {
-    if (!dragging) return;
-    dragging = false;
+  const endPointer = (ev) => {
+    pointers.delete(ev.pointerId);
+    if (pointers.size >= 2) {
+      pinchDist = pointerPairDist();
+      return;
+    }
+    if (pointers.size === 1) {
+      pinchDist = 0;
+      const rem = [...pointers.values()][0];
+      lastX = rem.x;
+      lastY = rem.y;
+      dragMode = "orbit";
+      partHit = null;
+      return;
+    }
+    pinchDist = 0;
+    if (!dragMode) {
+      canvas2.style.cursor = hoverHit ? "pointer" : "grab";
+      return;
+    }
+    const wasMode = dragMode;
+    const wasPart = partHit;
+    dragMode = null;
+    partHit = null;
     try {
       canvas2.releasePointerCapture(ev.pointerId);
     } catch {
     }
-    if (!moved) {
+    if (!moved && wasMode !== "part") {
       const hit = pickAt(ev.clientX, ev.clientY);
-      if (hit) applyHit(hit);
+      if (hit) applyClick(hit);
+    } else if (!moved && wasMode === "part" && wasPart && CLICK_KINDS.has(wasPart.kind)) {
+      applyClick(wasPart);
     }
     canvas2.style.cursor = hoverHit ? "pointer" : "grab";
   };
+  const onUp = (ev) => endPointer(ev);
+  const onCancel = (ev) => endPointer(ev);
   const onLeave = () => {
+    if (dragMode) return;
     if (hoverHit) {
       hoverHit = null;
-      lastKey = "";
       canvas2.style.cursor = "grab";
       opts.onViewChange?.();
     }
@@ -5425,25 +5873,34 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
   const onWheel = (ev) => {
     ev.preventDefault();
     autoSpin = 0;
-    const next = radius + Math.sign(ev.deltaY) * 0.18;
-    radius = Math.max(1.8, Math.min(5.5, next));
+    radius = clamp(radius + Math.sign(ev.deltaY) * 0.22, 2.4, 12);
     opts.onViewChange?.();
   };
   canvas2.style.touchAction = "none";
+  canvas2.style.cursor = "grab";
   canvas2.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onCancel);
   canvas2.addEventListener("pointerleave", onLeave);
   canvas2.addEventListener("wheel", onWheel, { passive: false });
+  function drawBuffer(buf, count) {
+    if (!count) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.enableVertexAttribArray(aPos);
+    gl.enableVertexAttribArray(aCol);
+    gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 24, 0);
+    gl.vertexAttribPointer(aCol, 3, gl.FLOAT, false, 24, 12);
+    gl.drawArrays(gl.TRIANGLES, 0, count);
+  }
   function drawScene(state, view) {
     lastState = state;
     lastView = { width: view.width, height: view.height };
-    const optics = opticsFromParams(state.params || {});
+    const params = state.params || {};
+    const optics = opticsFromParams(params);
+    const layout = microscopeLayout(optics, params);
+    const tess = mobileBudget().microTess ?? 1;
     const tSec = performance.now() * 1e-3;
-    if (prevImmersion !== null && prevImmersion !== !!optics.immersion) lastKey = "";
-    prevImmersion = !!optics.immersion;
-    const hoverKey = hoverHit ? `${hoverHit.kind}:${hoverHit.index}` : "-";
-    const key = `${optics.obj.id}:${optics.eye.id}:${optics.Lmm}:${optics.immersion}:${optics.lambdaNm}:${hoverKey}:${view.width}x${view.height}`;
     const dpr = Math.min(window.devicePixelRatio || 1, Number(document.documentElement.dataset.dprCap) || 3);
     const bw = Math.max(1, Math.floor(view.width * dpr));
     const bh = Math.max(1, Math.floor(view.height * dpr));
@@ -5457,64 +5914,95 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(0.012, 0.016, 0.022, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    if (key !== lastKey) {
-      const built = buildMicroscopeSolid(optics, hoverHit, OBJECTIVES, EYEPIECES, objectiveRingColor);
+    const nextStatic = meshStaticKey(tess);
+    const nextDynamic = meshDynamicKey(optics, hoverHit, params);
+    const needStatic = nextStatic !== staticKey;
+    const needDynamic = nextDynamic !== dynamicKey;
+    if (needStatic || needDynamic) {
+      const built = buildMicroscopeSolid(
+        optics,
+        hoverHit,
+        OBJECTIVES,
+        EYEPIECES,
+        objectiveRingColor,
+        { layout, tess, part: needStatic ? "all" : "dynamic" }
+      );
+      if (needStatic) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, staticBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, built.staticData, gl.STATIC_DRAW);
+        staticVertCount = built.staticData.length / 6;
+        staticKey = nextStatic;
+      }
+      if (needStatic || needDynamic) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, dynamicBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, built.dynamicData, gl.DYNAMIC_DRAW);
+        dynamicVertCount = built.dynamicData.length / 6;
+        dynamicKey = nextDynamic;
+      }
       oilStageY = built.oilStageY;
       oilActive = built.oilActive;
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER, built.data, gl.STATIC_DRAW);
-      vertCount = built.data.length / 6;
-      lastKey = key;
     }
-    if (!dragging && autoSpin) yaw += autoSpin * 0.016;
+    oilSlideX = layout.slideX;
+    oilSlideZ = layout.slideZ;
+    if (!dragMode && pointers.size < 2 && autoSpin) yaw += autoSpin * 0.016;
+    const lookY = 2.05;
     const ex = Math.cos(yaw) * Math.cos(pitch) * radius;
-    const ey = Math.sin(pitch) * radius + 0.4;
+    const ey = Math.sin(pitch) * radius + 0.2;
     const ez = Math.sin(yaw) * Math.cos(pitch) * radius;
     const aspect = view.width / Math.max(view.height, 1);
-    const proj = perspective(36, aspect, 0.1, 24);
-    const viewM = lookAt(ex, ey, ez, 0, 0.85, 0, 0, 1, 0);
+    const proj = perspective(38, aspect, 0.15, 56);
+    const viewM = lookAt(ex, ey, ez, 0, lookY, 0, 0, 1, 0);
     const mvp = multiply(proj, viewM);
-    rebuildHits(mvp, view.width, view.height, optics);
-    const tw = turretWorld(optics);
-    const mid = project(mvp, -0.28, tw.tubeCenterY, 0, view.width, view.height);
+    rebuildHits(mvp, view.width, view.height, layout);
     overlayLabels = [];
-    if (mid) {
+    const tubeHit = layout.pts.find((row) => row.kind === "tubeL");
+    const Lpt = tubeHit ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height) : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
+    if (Lpt) {
       overlayLabels.push({
         id: "L",
         text: `L = ${Math.round(optics.Lmm)} mm`,
-        x: mid.x,
-        y: mid.y
+        x: Lpt.x,
+        y: Lpt.y
       });
     }
-    for (const eye of EYEPIECES) {
-      const i = EYEPIECES.indexOf(eye);
-      const p = tw.pts.find((row) => row.kind === "eye" && row.index === i);
-      if (!p) continue;
-      const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
-      if (!s) continue;
-      overlayLabels.push({
-        id: `eye-${eye.id}`,
-        text: `${eye.mag}\xD7`,
-        x: s.x,
-        y: s.y - 14,
-        active: eye.id === optics.eye.id
-      });
+    for (const p of layout.pts) {
+      if (p.kind === "obj") {
+        const obj = OBJECTIVES[p.index];
+        if (!obj) continue;
+        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+        if (!s) continue;
+        overlayLabels.push({
+          id: `obj-${obj.id}`,
+          text: `${obj.mag}\xD7`,
+          x: s.x,
+          y: s.y - 12,
+          active: obj.id === optics.obj.id
+        });
+      } else if (p.kind === "eye") {
+        const eye = EYEPIECES[p.index];
+        if (!eye) continue;
+        const s = project(mvp, p.x, p.y, p.z, view.width, view.height);
+        if (!s) continue;
+        overlayLabels.push({
+          id: `eye-${eye.id}`,
+          text: `${eye.mag}\xD7`,
+          x: s.x,
+          y: s.y - 14,
+          active: eye.id === optics.eye.id
+        });
+      }
     }
     gl.useProgram(prog);
     gl.uniformMatrix4fv(uMVP, false, mvp);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.enableVertexAttribArray(aPos);
-    gl.enableVertexAttribArray(aCol);
-    gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 24, 0);
-    gl.vertexAttribPointer(aCol, 3, gl.FLOAT, false, 24, 12);
-    gl.drawArrays(gl.TRIANGLES, 0, vertCount);
+    drawBuffer(staticBuf, staticVertCount);
+    drawBuffer(dynamicBuf, dynamicVertCount);
     if (oilActive) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
       gl.useProgram(oilProg);
       gl.uniformMatrix4fv(oilUMVP, false, mvp);
-      gl.uniform3f(oilUCenter, 0, oilStageY, 0);
+      gl.uniform3f(oilUCenter, oilSlideX, oilStageY, oilSlideZ);
       gl.uniform1f(oilUScale, 0.58);
       gl.uniform1f(oilUTime, tSec);
       gl.uniform1f(oilUImm, 1);
@@ -5549,12 +6037,15 @@ function createMicroscopeWebgl(canvas2, opts = {}) {
       canvas2.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
       canvas2.removeEventListener("pointerleave", onLeave);
       canvas2.removeEventListener("wheel", onWheel);
-      gl.deleteBuffer(buf);
+      gl.deleteBuffer(staticBuf);
+      gl.deleteBuffer(dynamicBuf);
       gl.deleteBuffer(oilBuf);
       gl.deleteProgram(prog);
       gl.deleteProgram(oilProg);
+      pointers.clear();
     }
   };
 }
@@ -5575,14 +6066,21 @@ function fmtReadouts(o) {
   };
 }
 function opticsFingerprint(params) {
-  const o = opticsFromParams(params || {});
+  const p = params || {};
+  const o = opticsFromParams(p);
   return [
     o.obj.id,
     o.eye.id,
     Math.round(o.Lmm),
     o.NA.toFixed(3),
+    o.WD.toFixed(2),
     Math.round(o.lambdaNm),
-    o.immersion ? "oil" : "dry"
+    o.immersion ? "oil" : "dry",
+    (Number(p.focusZ_mm) || 0).toFixed(2),
+    (Number(p.stageX_mm) || 0).toFixed(1),
+    (Number(p.stageY_mm) || 0).toFixed(1),
+    (Number(p.fieldIris) || 0.55).toFixed(2),
+    Number(p.lampOn) !== 0 ? "1" : "0"
   ].join("|");
 }
 function createMicroscopeStage(api) {
@@ -5633,12 +6131,54 @@ function createMicroscopeStage(api) {
           <span class="micro-cap" id="micro-na-cap"></span>
         </label>
         <label class="micro-field">
+          <span class="micro-field-label">Working distance</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
+            <output id="micro-wd-out">6.5 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Focus \u0394z</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-focus" min="-5" max="5" step="0.05" />
+            <output id="micro-focus-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Stage X</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-stage-x" min="-25" max="25" step="0.5" />
+            <output id="micro-stage-x-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Stage Y</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-stage-y" min="-25" max="25" step="0.5" />
+            <output id="micro-stage-y-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label">Field iris</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-field-iris" min="0.1" max="1" step="0.01" />
+            <output id="micro-field-iris-out">0.55</output>
+          </div>
+        </label>
+        <label class="micro-field">
           <span class="micro-field-label">Wavelength \u03BB</span>
           <div class="micro-slider-row">
             <input type="range" id="micro-lambda-in" min="400" max="700" step="1" />
             <output id="micro-lambda">550 nm</output>
           </div>
         </label>
+        <div class="micro-field">
+          <span class="micro-field-label">Lamp</span>
+          <div class="micro-chips" id="micro-lamp" role="group">
+            <button type="button" class="micro-chip" data-lamp="1">On</button>
+            <button type="button" class="micro-chip" data-lamp="0">Off</button>
+          </div>
+        </div>
         <div class="micro-field">
           <span class="micro-field-label">Immersion</span>
           <div class="micro-chips" id="micro-imm" role="group">
@@ -5754,6 +6294,30 @@ function createMicroscopeStage(api) {
       paint();
       api.onChange();
     });
+    const bindSlider = (id, key, cast = Number) => {
+      const el = stage.querySelector(id);
+      el?.addEventListener("input", () => {
+        const state = api.getState();
+        if (!state?.params) return;
+        state.params[key] = cast(el.value);
+        paint();
+        api.onChange();
+      });
+    };
+    bindSlider("#micro-wd", "WD_mm");
+    bindSlider("#micro-focus", "focusZ_mm");
+    bindSlider("#micro-stage-x", "stageX_mm");
+    bindSlider("#micro-stage-y", "stageY_mm");
+    bindSlider("#micro-field-iris", "fieldIris");
+    stage.querySelector("#micro-lamp")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-lamp]");
+      if (!btn) return;
+      const state = api.getState();
+      if (!state?.params) return;
+      state.params.lampOn = Number(btn.dataset.lamp) ? 1 : 0;
+      paint();
+      api.onChange();
+    });
     return stage;
   }
   function captureBaseline(state = api.getState()) {
@@ -5809,6 +6373,34 @@ function createMicroscopeStage(api) {
     const lambdaOut = stage.querySelector("#micro-lambda");
     if (lambdaIn) lambdaIn.value = String(Math.round(o.lambdaNm));
     if (lambdaOut) lambdaOut.textContent = `${formatNum(o.lambdaNm, 0)} nm`;
+    const wd = stage.querySelector("#micro-wd");
+    const wdOut = stage.querySelector("#micro-wd-out");
+    if (wd) wd.value = String(o.WD);
+    if (wdOut) wdOut.textContent = `${formatNum(o.WD, 2)} mm`;
+    const focusZ = Number(state.params.focusZ_mm) || 0;
+    const focus = stage.querySelector("#micro-focus");
+    const focusOut = stage.querySelector("#micro-focus-out");
+    if (focus) focus.value = String(focusZ);
+    if (focusOut) focusOut.textContent = `${formatNum(focusZ, 2)} mm`;
+    const sx = Number(state.params.stageX_mm) || 0;
+    const sy = Number(state.params.stageY_mm) || 0;
+    const stageX = stage.querySelector("#micro-stage-x");
+    const stageXOut = stage.querySelector("#micro-stage-x-out");
+    const stageY = stage.querySelector("#micro-stage-y");
+    const stageYOut = stage.querySelector("#micro-stage-y-out");
+    if (stageX) stageX.value = String(sx);
+    if (stageXOut) stageXOut.textContent = `${formatNum(sx, 1)} mm`;
+    if (stageY) stageY.value = String(sy);
+    if (stageYOut) stageYOut.textContent = `${formatNum(sy, 1)} mm`;
+    const fieldIris = Math.min(1, Math.max(0.1, Number(state.params.fieldIris) || 0.55));
+    const field = stage.querySelector("#micro-field-iris");
+    const fieldOut = stage.querySelector("#micro-field-iris-out");
+    if (field) field.value = String(fieldIris);
+    if (fieldOut) fieldOut.textContent = formatNum(fieldIris, 2);
+    const lampOn = Number(state.params.lampOn) !== 0;
+    for (const btn of stage.querySelectorAll("#micro-lamp .micro-chip")) {
+      btn.classList.toggle("is-active", btn.dataset.lamp === "1" === lampOn);
+    }
     const note = stage.querySelector("#micro-imm-note");
     if (note) {
       note.textContent = o.immersion ? "Oil film on the stage \xB7 n \u2265 1.515" : "Dry objective \xB7 immersion follows 100\xD7";
@@ -7294,6 +7886,15 @@ function setSidebarOpen(open) {
     sidebar.classList.toggle("open", open);
     sidebar.style.transform = "";
     syncDrawerChrome();
+    if (open) {
+      requestAnimationFrame(() => {
+        try {
+          filterQ?.focus({ preventScroll: true });
+        } catch {
+          filterQ?.focus();
+        }
+      });
+    }
     return;
   }
   if (!isMobileDrawer()) {
@@ -7307,6 +7908,15 @@ function setSidebarOpen(open) {
   sidebar.classList.toggle("open", open);
   sidebar.style.transform = "";
   syncDrawerChrome();
+  if (open) {
+    requestAnimationFrame(() => {
+      try {
+        filterQ?.focus({ preventScroll: true });
+      } catch {
+        filterQ?.focus();
+      }
+    });
+  }
 }
 function setBenchOpen(open) {
   const chassis = document.getElementById("chassis");
@@ -8806,4 +9416,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-B3W22IGK.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-6VR676DR.js");

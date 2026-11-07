@@ -136,7 +136,7 @@ export const STRINGS = {
     'ui.lang': 'language',
     'ui.shell': 'shell',
     'ui.microExit': 'Back to catalog',
-    'ui.microLede': 'Drag to orbit · wheel zoom · click objectives/eyepieces · Optical params edit L/NA/λ',
+    'ui.microLede': 'Drag to orbit · pinch/wheel zoom · tap/drag every knob · Optical params edit L/NA/WD/stage',
     'ui.microReset': 'Reset optics',
     'ui.microBench': 'Optical params',
     'ui.micro3dSection': '3D stage',
