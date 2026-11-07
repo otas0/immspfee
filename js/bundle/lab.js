@@ -1651,6 +1651,7 @@ var STRINGS = {
     "ui.perfHeavyFilter": "\u91CD\u6A21\u578B",
     "ui.perfHeavyFilterHint": "\u53EA\u663E\u793A\u79FB\u52A8\u7AEF\u91CD\u6A21\u578B\uFF08\u8FDB\u9875\u6682\u505C\uFF09",
     "ui.noMatch": "\u65E0\u5339\u914D",
+    "ui.namesLoading": "\u52A0\u8F7D\u540D\u79F0",
     "ui.openMenu": "\u6253\u5F00\u6A21\u578B\u5217\u8868",
     "ui.closeMenu": "\u5173\u95ED\u6A21\u578B\u5217\u8868",
     "ui.params": "\u53C2\u6570",
@@ -1808,6 +1809,7 @@ var STRINGS = {
     "ui.perfHeavyFilter": "heavy",
     "ui.perfHeavyFilterHint": "Show heavy models only (auto-pause on mobile)",
     "ui.noMatch": "no match",
+    "ui.namesLoading": "loading names",
     "ui.openMenu": "Open model list",
     "ui.closeMenu": "Close model list",
     "ui.params": "params",
@@ -1961,6 +1963,7 @@ var STRINGS = {
     "ui.foldHint": "\u6298\u308A\u305F\u305F\u307F\uFF1A\u5168\u958B/\u5168\u9589\u3001\u898B\u51FA\u3057\u3067\u5207\u66FF",
     "ui.recents": "\u6700\u8FD1",
     "ui.noMatch": "\u4E00\u81F4\u306A\u3057",
+    "ui.namesLoading": "\u540D\u524D\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D",
     "ui.openMenu": "\u30E2\u30C7\u30EB\u4E00\u89A7\u3092\u958B\u304F",
     "ui.closeMenu": "\u30E2\u30C7\u30EB\u4E00\u89A7\u3092\u9589\u3058\u308B",
     "ui.params": "\u30D1\u30E9\u30E1\u30FC\u30BF",
@@ -2080,6 +2083,7 @@ var STRINGS = {
     "ui.foldHint": "\uC811\uAE30: \uC804\uCCB4 \uC5F4\uAE30/\uB2EB\uAE30, \uC81C\uBAA9 \uD074\uB9AD",
     "ui.recents": "\uCD5C\uADFC",
     "ui.noMatch": "\uC77C\uCE58 \uC5C6\uC74C",
+    "ui.namesLoading": "\uC774\uB984 \uBD88\uB7EC\uC624\uB294 \uC911",
     "ui.openMenu": "\uBAA8\uB378 \uBAA9\uB85D \uC5F4\uAE30",
     "ui.closeMenu": "\uBAA8\uB378 \uBAA9\uB85D \uB2EB\uAE30",
     "ui.params": "\uB9E4\uAC1C\uBCC0\uC218",
@@ -2199,6 +2203,7 @@ var STRINGS = {
     "ui.foldHint": "Plegado: todo abierto/cerrado; clic en el t\xEDtulo",
     "ui.recents": "recientes",
     "ui.noMatch": "sin coincidencias",
+    "ui.namesLoading": "cargando nombres",
     "ui.openMenu": "Abrir lista de modelos",
     "ui.closeMenu": "Cerrar lista de modelos",
     "ui.params": "par\xE1metros",
@@ -2318,6 +2323,7 @@ var STRINGS = {
     "ui.foldHint": "Pliage : tout ouvrir/fermer ; clic sur le titre",
     "ui.recents": "r\xE9cents",
     "ui.noMatch": "aucun r\xE9sultat",
+    "ui.namesLoading": "chargement des noms",
     "ui.openMenu": "Ouvrir la liste",
     "ui.closeMenu": "Fermer la liste",
     "ui.params": "param\xE8tres",
@@ -2437,6 +2443,7 @@ var STRINGS = {
     "ui.foldHint": "Falten: alles auf/zu; Titel klicken",
     "ui.recents": "zuletzt",
     "ui.noMatch": "kein Treffer",
+    "ui.namesLoading": "Namen laden",
     "ui.openMenu": "Modellliste \xF6ffnen",
     "ui.closeMenu": "Modellliste schlie\xDFen",
     "ui.params": "Parameter",
@@ -7653,11 +7660,23 @@ function domainsForFilter() {
   };
   return loaded2;
 }
+function setNamesLoading(on) {
+  if (!sidebar) return;
+  const filters = sidebar.querySelector(".filters");
+  if (on) {
+    sidebar.classList.add("is-names-loading");
+    sidebar.setAttribute("aria-busy", "true");
+    if (filters) filters.dataset.namesLoading = t("ui.namesLoading");
+  } else {
+    sidebar.classList.remove("is-names-loading");
+    sidebar.removeAttribute("aria-busy");
+    if (filters) delete filters.dataset.namesLoading;
+  }
+}
 async function refreshSidebar() {
   const q = app.filter.q.trim();
   if (q) {
-    sidebar?.classList.add("is-names-loading");
-    sidebar?.setAttribute("aria-busy", "true");
+    setNamesLoading(true);
     try {
       await ensureDomainNames();
     } catch {
@@ -7670,18 +7689,20 @@ async function refreshSidebar() {
       await Promise.all(domains.map((domain) => loadDomain(domain)));
     }
   } finally {
-    sidebar?.classList.remove("is-names-loading");
-    sidebar?.removeAttribute("aria-busy");
+    setNamesLoading(false);
   }
   buildSidebar();
 }
+var sidebarRefreshTimer = 0;
+var SIDEBAR_SEARCH_DEBOUNCE_MS = 160;
 filterQ.addEventListener("input", () => {
   app.filter.q = filterQ.value;
-  if (app.filter.q.trim()) {
-    sidebar?.classList.add("is-names-loading");
-    sidebar?.setAttribute("aria-busy", "true");
-  }
-  void refreshSidebar();
+  if (app.filter.q.trim()) setNamesLoading(true);
+  else setNamesLoading(false);
+  clearTimeout(sidebarRefreshTimer);
+  sidebarRefreshTimer = setTimeout(() => {
+    void refreshSidebar();
+  }, SIDEBAR_SEARCH_DEBOUNCE_MS);
 });
 filterTag.addEventListener("change", () => {
   app.filter.tag = filterTag.value;

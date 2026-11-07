@@ -238,16 +238,29 @@ Against live Pages (`PAGES_URL=https://otas0.github.io/immspfee/`):
 
 Cold index ~65KB (names lazy until search). Palette shards max ~6KB (数学/化学 by sub). `fonts.css?v=` self-hosted;
 CJK uses system stack (no Google). Optional self-hosted Noto SC subset (<200KB) deferred — full package download timed out.
-Trend: `npm run test:pages-tti-trend` → `artifacts/pages-tti-trend.json` (CI cache restores `previous` across runs).
+Trend pair (same shape, different metrics):
+
+| Script | Artifact | Cross-run cache | Soft-fail |
+|--------|----------|-----------------|-----------|
+| `npm run test:pages-tti-trend` | `artifacts/pages-tti-trend.json` (+ `warmStreak`) | `pages-tti-prev-*` → `pages-tti-sw.prev.json` | warm `firstHandP95` >250ms for **2** consecutive runs (`WARM_FIRST_HAND_SOFT_FAIL`) |
+| `npm run test:micro-fps-trend` | `artifacts/micro-fps-trend.json` | `micro-fps-prev-*` → `micro-fps-advisory.prev.json` | advisory only (probe may omit JSON on some runners) |
 
 **CDN jitter (cold `firstHandP95`):** a single cold hit can spike to ~8–11s when the edge is cold;
 `pages-tti-sw` retries once under `PAGES_TTI_HARD`. Do **not** treat a one-shot cold P95 spike as a
 code regression — compare warm P95 and cold `readyMs`/`interactiveMs` first.
 
 **Bohr deep-link baseline (separate from free-fall TTI):** cold open
-`?lang=zh#m=r018-玻尔模型` on Pages (2026-11-07) reached the model with
-`interactiveMs ≈ 11.8s` and no page errors. That figure includes catalog resolve + domain load;
-do **not** mix it with the free-fall gold-frame TTI table above.
+`?lang=zh#m=r018-玻尔模型` on Pages — samples below. Includes catalog resolve + domain load;
+do **not** mix with the free-fall gold-frame TTI table above.
+
+| Sample (UTC) | `interactiveMs` | Notes |
+|--------------|-----------------|-------|
+| 2026-11-07 ~08:52Z | ≈ 11818 | first post-deploy hand check |
+| 2026-11-07 ~09:35Z | ≈ 11536 | re-sample; wall ≈ 11.9s; title 玻尔模型 |
+
+**narrow soft-fail:** `test:narrow` is `continue-on-error` so micro contracts still run when Bohr/narrow flakes.
+On `9a2fc15` `ci-summary` showed `narrow-regression ok` — isolation is intentional, not a blanket skip.
+If it fails two runs in a row, treat as a real regression (do not widen further).
 
 ### Real-device 4G / weak-net first gold frame
 

@@ -2011,11 +2011,24 @@ function domainsForFilter() {
   return loaded;
 }
 
+function setNamesLoading(on) {
+  if (!sidebar) return;
+  const filters = sidebar.querySelector('.filters');
+  if (on) {
+    sidebar.classList.add('is-names-loading');
+    sidebar.setAttribute('aria-busy', 'true');
+    if (filters) filters.dataset.namesLoading = t('ui.namesLoading');
+  } else {
+    sidebar.classList.remove('is-names-loading');
+    sidebar.removeAttribute('aria-busy');
+    if (filters) delete filters.dataset.namesLoading;
+  }
+}
+
 async function refreshSidebar() {
   const q = app.filter.q.trim();
   if (q) {
-    sidebar?.classList.add('is-names-loading');
-    sidebar?.setAttribute('aria-busy', 'true');
+    setNamesLoading(true);
     try { await ensureDomainNames(); } catch { /* ignore */ }
   }
   try {
@@ -2025,18 +2038,20 @@ async function refreshSidebar() {
       await Promise.all(domains.map((domain) => loadDomain(domain)));
     }
   } finally {
-    sidebar?.classList.remove('is-names-loading');
-    sidebar?.removeAttribute('aria-busy');
+    setNamesLoading(false);
   }
   buildSidebar();
 }
+
+/** Debounce catalog search so domain-names / domain loads are not fired per keystroke. */
+let sidebarRefreshTimer = 0;
+const SIDEBAR_SEARCH_DEBOUNCE_MS = 160;
 filterQ.addEventListener('input', () => {
   app.filter.q = filterQ.value;
-  if (app.filter.q.trim()) {
-    sidebar?.classList.add('is-names-loading');
-    sidebar?.setAttribute('aria-busy', 'true');
-  }
-  void refreshSidebar();
+  if (app.filter.q.trim()) setNamesLoading(true);
+  else setNamesLoading(false);
+  clearTimeout(sidebarRefreshTimer);
+  sidebarRefreshTimer = setTimeout(() => { void refreshSidebar(); }, SIDEBAR_SEARCH_DEBOUNCE_MS);
 });
 filterTag.addEventListener('change', () => {
   app.filter.tag = filterTag.value;

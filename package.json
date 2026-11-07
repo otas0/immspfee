@@ -19,6 +19,7 @@
     "test:boot-timing": "node scripts/boot-timing.mjs",
     "test:noto-zh": "node scripts/noto-zh-flicker.mjs",
     "test:pages-tti-trend": "node scripts/pages-tti-trend.mjs",
+    "assert:no-monolith-palette": "node scripts/assert-no-monolith-palette.mjs",
     "gen:palette-domains": "node scripts/gen-palette-domains.mjs",
     "test:pages": "node scripts/pages-check.mjs",
     "assert:stage-strips": "node scripts/assert-no-stage-strips.mjs",

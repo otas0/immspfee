@@ -228,8 +228,14 @@ html.hc .pot-dial:focus-visible {
   opacity: 0.45;
   pointer-events: none;
 }
-.sidebar.is-names-loading .filter-count::after {
-  content: ' · …';
+.sidebar.is-names-loading .filters::after {
+  content: attr(data-names-loading);
+  display: block;
+  margin: 0.15rem 0.55rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
 }
 .domain-group {
   margin: 0.15rem 0.35rem 0.45rem;

@@ -118,6 +118,10 @@ jobs:
             exit 1
           fi
 
+      - name: No browser monolith palettes.json
+        run: |
+          npm run assert:no-monolith-palette | tee -a artifacts/ci-summary.txt
+
       - name: Shell first-paint (factory steady models)
         timeout-minutes: 3
         run: npm run test:shell-first-paint
