@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { STRINGS } from '../js/i18n/strings.js';
-import { expandDomainIndex, packDomainIndex } from '../js/boot/domainPack.js';
+import { expandDomainIndex, packDomainIndex, packDomainNames } from '../js/boot/domainPack.js';
 
 export function readCatalog(root) {
   return JSON.parse(fs.readFileSync(path.join(root, 'data/catalog.json'), 'utf8'));
@@ -45,6 +45,7 @@ export function fingerprint(root) {
   return {
     js: hashFile('js/bundle/lab.js'),
     css: hashFile('css/styles.css'),
+    fontsCss: hashFile('css/fonts.css'),
     microCss: hashFile('css/microscope-shell.css'),
     entry: hashFile('js/entry.js'),
     bundleMeta: hashFile('js/bundle/meta.json'),
@@ -84,6 +85,10 @@ export function rewriteIndex(html, stamp) {
     next = next.replace(/name="imm-js" content="[^"]*"/, `name="imm-js" content="${v}"`);
     next = next.replace(/name="imm-css" content="[^"]*"/, `name="imm-css" content="${stamp.css}"`);
   }
+  next = next.replace(
+    /href="\.\/css\/fonts\.css(?:\?v=[^"]*)?"/,
+    `href="./css/fonts.css?v=${stamp.fontsCss || stamp.css}"`,
+  );
   next = next.replace(
     /href="\.\/css\/styles\.css(?:\?v=[^"]*)?"/,
     `href="./css/styles.css?v=${stamp.css}"`,
@@ -140,7 +145,7 @@ export function assertIndexBudget(catalog) {
   const packed = packDomainIndex(domainIndex(catalog));
   const bytes = Buffer.byteLength(JSON.stringify(packed));
   // Compact array rows: ~70–90KB. Keep headroom under 96KB.
-  const limit = 96 * 1024;
+  const limit = 72 * 1024;
   if (bytes > limit) throw new Error(`domain index ${bytes} bytes exceeds ${limit}`);
   if (JSON.stringify(packed).includes('"formula"')) {
     throw new Error('packed domain index must not carry formula strings');
@@ -176,7 +181,7 @@ export function assertBundleMeta(stamp, root) {
   return stamp.bundleMeta;
 }
 
-export { packDomainIndex };
+export { packDomainIndex, packDomainNames };
 
 export function assertDomainCoverage(catalog) {
   const index = domainIndex(catalog);

@@ -426,7 +426,7 @@ function velocityVerlet1D(x, v, a, aAt, dt) {
 }
 
 
-/* inlined chunk-chunk-DJSVDYBS.js */
+/* inlined chunk-chunk-GXA4MM4M.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -737,7 +737,8 @@ function hydratePaletteDomain(domain) {
   const key = domain || "\u5176\u4ED6";
   if (hydratedDomains.has(key) || hydratedDomains.has("*")) return Promise.resolve();
   if (domainHydrates.has(key)) return domainHydrates.get(key);
-  const safe = encodeURIComponent(key);
+  const file = String(key).replace(/\//g, "__");
+  const safe = encodeURIComponent(file);
   const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href).then((res) => res.ok ? res.json() : null).then((doc2) => {
     if (doc2?.models) {
       Object.assign(MODEL, doc2.models);
@@ -1331,7 +1332,7 @@ function ringLast(ring) {
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
-/* static chunk inlined: chunk-chunk-DJSVDYBS.js */
+/* static chunk inlined: chunk-chunk-GXA4MM4M.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
 /* static chunk inlined: chunk-chunk-6F5B3IST.js */
 // js/models/freeFall.js
@@ -1538,7 +1539,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-ZGNQYSGD.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-TAGVXYS2.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -2595,12 +2596,7 @@ function notify() {
 }
 function ensureNotoSc() {
   if (typeof document === "undefined") return;
-  if (document.querySelector("link[data-imm-noto-sc]")) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap";
-  link.dataset.immNotoSc = "1";
-  document.head.appendChild(link);
+  document.documentElement.dataset.immCjk = "1";
 }
 function setLocale(next, opts = {}) {
   if (!STRINGS[next] || next === locale) {
@@ -3225,7 +3221,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-MMTHKRCG.js").then((mod) => {
+    handsPending = import("./chunk-handModels-COFX6ACP.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -3369,12 +3365,22 @@ function domainChunkUrl(domain, stamp) {
 }
 
 // js/boot/domainPack.js
-function expandDomainIndex(payload) {
+function expandDomainIndex(payload, names = null) {
   if (Array.isArray(payload)) return payload;
   const domains = payload?.domains || [];
-  return (payload?.rows || []).map((row) => {
+  return (payload?.rows || []).map((row, i) => {
     if (Array.isArray(row)) {
-      const [id, d, sub, name, family] = row;
+      let id;
+      let d;
+      let sub;
+      let name;
+      let family;
+      if (row.length >= 5) {
+        [id, d, sub, name, family] = row;
+      } else {
+        [id, d, sub, family] = row;
+        name = Array.isArray(names) && names[i] || id;
+      }
       return {
         id,
         domain: domains[d] || "\u5176\u4ED6",
@@ -3388,7 +3394,7 @@ function expandDomainIndex(payload) {
       id: row.id,
       domain: domains[row.d] || "\u5176\u4ED6",
       sub: row.sub || "",
-      name: row.name || row.id,
+      name: row.name || Array.isArray(names) && names[i] || row.id,
       family: row.family || "",
       formula: row.formula || ""
     };
@@ -3402,6 +3408,8 @@ var loaded = /* @__PURE__ */ new Set();
 var inflight = /* @__PURE__ */ new Map();
 var specCache = /* @__PURE__ */ new Map();
 var indexPromise = null;
+var domainNames = null;
+var namesPromise = null;
 function endpoint(path) {
   return new URL(path, document.baseURI).href;
 }
@@ -3423,12 +3431,39 @@ function loadIndex() {
       if (!res.ok) throw new Error(String(res.status));
       return res.json();
     }).then((rows) => {
-      domainIndex.push(...expandDomainIndex(rows));
+      domainIndex.push(...expandDomainIndex(rows, domainNames));
       mark("boot-loadIndex-end");
       return domainIndex;
     });
   }
   return indexPromise;
+}
+function ensureDomainNames() {
+  if (domainNames) {
+    applyNames(domainNames);
+    return Promise.resolve(domainNames);
+  }
+  if (!namesPromise) {
+    namesPromise = fetch(endpoint("data/domain-names.json")).then((res) => res.ok ? res.json() : []).then((names) => {
+      domainNames = Array.isArray(names) ? names : [];
+      applyNames(domainNames);
+      return domainNames;
+    }).catch(() => {
+      domainNames = domainNames || [];
+      return domainNames;
+    });
+  }
+  return namesPromise;
+}
+function applyNames(names) {
+  if (!Array.isArray(names) || !domainIndex.length) return;
+  for (let i = 0; i < domainIndex.length; i += 1) {
+    const row = domainIndex[i];
+    if (!row) continue;
+    const n = names[i];
+    if (n && (row.name === row.id || !row.name)) row.name = n;
+    else if (n) row.name = n;
+  }
 }
 async function appendUsers() {
   if (!loadUserSpecs().length) return;
@@ -7586,6 +7621,7 @@ function domainsForFilter() {
   return loaded2;
 }
 async function refreshSidebar() {
+  if (app.filter.q.trim()) await ensureDomainNames();
   if (app.filter.q.trim() || app.filter.tag || app.filter.formalism || app.filter.heavy) {
     await loadIndex();
     const domains = domainsForFilter();
@@ -8233,6 +8269,10 @@ async function boot() {
     i18nPack
   ]);
   try {
+    await ensureDomainNames();
+  } catch {
+  }
+  try {
     await ensureSidebarLocales();
   } catch {
   }
@@ -8471,4 +8511,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-ZGNQYSGD.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-TAGVXYS2.js");

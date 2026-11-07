@@ -148,6 +148,9 @@ if (fail) {
   if (coldChunks.some((r) => /chunk-chunk-/i.test(r.short))) {
     errors.push(`cold boot still fetched shared chunk(s): ${coldChunks.map((r) => r.short).join(',')}`);
   }
+  if (js.some((r) => /chunk-microscopeWebgl/i.test(r.short))) {
+    errors.push(`cold boot fetched microscope WebGL chunk: ${js.filter((r) => /microscopeWebgl/i.test(r.short)).map((r) => r.short).join(',')}`);
+  }
   if (errors.length) {
     console.error(errors.join('\n'));
     process.exit(1);

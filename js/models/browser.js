@@ -16,6 +16,10 @@ const inflight = new Map();
 /** @type {Map<string, object[]>} */
 const specCache = new Map();
 let indexPromise = null;
+/** @type {string[]|null} */
+let domainNames = null;
+/** @type {Promise<string[]>|null} */
+let namesPromise = null;
 
 function endpoint(path) {
   return new URL(path, document.baseURI).href;
@@ -39,13 +43,47 @@ export function loadIndex() {
         return res.json();
       })
       .then((rows) => {
-        domainIndex.push(...expandDomainIndex(rows));
+        domainIndex.push(...expandDomainIndex(rows, domainNames));
         mark('boot-loadIndex-end');
         return domainIndex;
       });
   }
   return indexPromise;
 }
+
+/** Lazy name pack for search / sidebar labels (not on cold index). */
+export function ensureDomainNames() {
+  if (domainNames) {
+    applyNames(domainNames);
+    return Promise.resolve(domainNames);
+  }
+  if (!namesPromise) {
+    namesPromise = fetch(endpoint('data/domain-names.json'))
+      .then((res) => (res.ok ? res.json() : []))
+      .then((names) => {
+        domainNames = Array.isArray(names) ? names : [];
+        applyNames(domainNames);
+        return domainNames;
+      })
+      .catch(() => {
+        domainNames = domainNames || [];
+        return domainNames;
+      });
+  }
+  return namesPromise;
+}
+
+function applyNames(names) {
+  if (!Array.isArray(names) || !domainIndex.length) return;
+  for (let i = 0; i < domainIndex.length; i += 1) {
+    const row = domainIndex[i];
+    if (!row) continue;
+    const n = names[i];
+    if (n && (row.name === row.id || !row.name)) row.name = n;
+    else if (n) row.name = n;
+  }
+}
+
 
 async function appendUsers() {
   if (!loadUserSpecs().length) return;

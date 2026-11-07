@@ -1,5 +1,5 @@
 import {
-  models, domainIndex, getModelById, getAllTags, rebuildModels, loadIndex, loadDomain, ensureId, primeHandModel,
+  models, domainIndex, getModelById, getAllTags, rebuildModels, loadIndex, loadDomain, ensureId, primeHandModel, ensureDomainNames,
 } from './models/browser.js';
 import { resizeCanvas } from './utils/canvas.js';
 import { createFixedStepper } from './utils/integrator.js';
@@ -1991,6 +1991,7 @@ function domainsForFilter() {
 }
 
 async function refreshSidebar() {
+  if (app.filter.q.trim()) await ensureDomainNames();
   if (app.filter.q.trim() || app.filter.tag || app.filter.formalism || app.filter.heavy) {
     await loadIndex();
     const domains = domainsForFilter();
@@ -2659,6 +2660,8 @@ async function boot() {
     needsCatalog ? Promise.resolve() : loadIndex(),
     i18nPack,
   ]);
+  // Display names are lazy (not in cold index) — hydrate before sidebar paint.
+  try { await ensureDomainNames(); } catch { /* ignore */ }
   try { await ensureSidebarLocales(); } catch { /* ignore */ }
   syncChromeI18n();
   microUi.sync(microUi.isMicroscopeShell());

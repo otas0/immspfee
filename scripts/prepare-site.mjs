@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  assertDomainCoverage, domainIndex, docsAssetsStamp, entryStamp, fingerprint, packDomainIndex, readCatalog, rewriteIndex, specsForDomain,
+  assertDomainCoverage, domainIndex, docsAssetsStamp, entryStamp, fingerprint, packDomainIndex, packDomainNames, readCatalog, rewriteIndex, specsForDomain,
 } from './static-boot.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,7 +47,9 @@ if (fs.existsSync(manualSrc)) {
 }
 const dir = path.join(out, 'data/domains');
 fs.mkdirSync(dir, { recursive: true });
-fs.writeFileSync(path.join(out, 'data/domain-index.json'), JSON.stringify(packDomainIndex(domainIndex(catalog))));
+const indexRows = domainIndex(catalog);
+fs.writeFileSync(path.join(out, 'data/domain-index.json'), JSON.stringify(packDomainIndex(indexRows)));
+fs.writeFileSync(path.join(out, 'data/domain-names.json'), JSON.stringify(packDomainNames(indexRows)));
 const domains = [...new Set(catalog.map((spec) => spec.domain || '其他'))];
 for (const domain of domains) {
   fs.writeFileSync(path.join(dir, `${domain}.json`), JSON.stringify(specsForDomain(catalog, domain)));

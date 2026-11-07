@@ -227,16 +227,17 @@ True first-interaction mark: `performance` mark `boot-interactive` / `__bootMark
 (after free-fall `switchModel` + `requestAnimationFrame`). `pages-tti-sw` waits on this mark;
 do not treat `__labCapture` alone as TTI.
 
-### Pages TTI snapshot (post free-fall stub, 2026-11-07)
+### Pages TTI snapshot (post index/fonts/palette split, 2026-11-07)
 
 Against live Pages (`PAGES_URL=https://otas0.github.io/immspfee/`):
 
 | Visit | readyMs | interactiveMs (boot) | firstHandP95 |
 |-------|---------|----------------------|--------------|
-| Cold (SW blocked) | ~1287 | ~1284 | ~1918 |
-| Warm (SW) | ~204 | ~113 | ~88 |
+| Cold (SW blocked) | ~1214 | ~1213 | ~2007 |
+| Warm (SW) | ~193 | ~96 | ~82 |
 
-Local `test:boot-timing` with `PAGES_URL`: pagesDirect ~512ms, pagesSwCached ~189ms.
+Cold index ~65KB (names lazy). Palette shards max ~14KB. `fonts.css?v=` self-hosted.
+Trend: `npm run test:pages-tti-trend` → `artifacts/pages-tti-trend.json`.
 
 ### Real-device 4G / weak-net first gold frame
 

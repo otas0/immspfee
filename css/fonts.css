@@ -1,3 +1,4 @@
+/* CJK: system fonts via styles.css — no Google network. */
 /* Self-hosted Latin UI fonts — keeps Google Fonts off the cold path. */
 @font-face {
   font-family: "Sora";

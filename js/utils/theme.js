@@ -5,6 +5,7 @@
  * Browser bundle embeds free-fall so cold paint is not gated on palette JSON.
  * Other models hydrate per-domain shards under data/palettes/domains/.
  */
+/** @deprecated Browser uses free-fall stub + domain shards; this import is Node/tests only (esbuild shells it). */
 import paletteDoc from '../../data/palettes.json' with { type: 'json' };
 
 let activeModelId = 'free-fall';
@@ -52,7 +53,8 @@ export function hydratePaletteDomain(domain) {
   const key = domain || '其他';
   if (hydratedDomains.has(key) || hydratedDomains.has('*')) return Promise.resolve();
   if (domainHydrates.has(key)) return domainHydrates.get(key);
-  const safe = encodeURIComponent(key);
+  const file = String(key).replace(/\//g, '__');
+  const safe = encodeURIComponent(file);
   const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href)
     .then((res) => (res.ok ? res.json() : null))
     .then((doc) => {

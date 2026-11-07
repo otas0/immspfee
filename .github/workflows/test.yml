@@ -266,7 +266,8 @@ jobs:
           PAGES_URL: https://otas0.github.io/immspfee/
           PAGES_TTI_HARD: '1'
           FIRST_HAND_SAMPLES: '5'
-        run: npm run test:pages-tti-sw
+          FIRST_HAND_P95_RETRIES: '1'
+        run: npm run test:pages-tti-sw && npm run test:pages-tti-trend
 
       - name: Restore previous Pages stamp (cache)
         if: always()
@@ -321,6 +322,7 @@ jobs:
           path: |
             artifacts/boot-timing.json
             artifacts/pages-tti-sw.json
+            artifacts/pages-tti-trend.json
             artifacts/pages-network-summary.json
             artifacts/pages-live-stamp.json
             artifacts/pages-mobile-smoke.json

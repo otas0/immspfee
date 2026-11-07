@@ -17,7 +17,7 @@ import {
   heatTempColor,
   phaseHueColor,
   springK
-} from "./chunk-chunk-DJSVDYBS.js";
+} from "./chunk-chunk-GXA4MM4M.js";
 import {
   DEFAULT_PARAMS,
   EYEPIECES,

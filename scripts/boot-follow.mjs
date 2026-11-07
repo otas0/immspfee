@@ -45,10 +45,12 @@ if (!expectedCc || !stampCc.toLowerCase().includes(expectedCc.toLowerCase())) {
 }
 const indexRes = await fetch(new URL('data/domain-index.json', base));
 const indexText = await indexRes.text();
-const indexRows = expandDomainIndex(JSON.parse(indexText));
+const namesRes = await fetch(new URL('data/domain-names.json', base));
+const namesJson = namesRes.ok ? await namesRes.json() : null;
+const indexRows = expandDomainIndex(JSON.parse(indexText), namesJson);
 const indexBytes = Buffer.byteLength(indexText);
 console.log('domain index', indexBytes, 'bytes', indexRows.length, 'rows');
-if (indexBytes > 256 * 1024) fail(`domain index ${indexBytes} bytes is a first-screen file again`);
+if (indexBytes > 72 * 1024) fail(`domain index ${indexBytes} bytes exceeds 72KB cold budget`);
 
 const browser = await chromium.launch({ headless: true });
 

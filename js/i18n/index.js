@@ -139,15 +139,10 @@ function notify() {
   }
 }
 
-/** Lazy-load Noto Sans SC only when the UI is Chinese — keeps Latin cold path lean. */
+/** Mark zh locale for system CJK stack (PingFang / YaHei) — no Google Fonts. */
 function ensureNotoSc() {
   if (typeof document === 'undefined') return;
-  if (document.querySelector('link[data-imm-noto-sc]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap';
-  link.dataset.immNotoSc = '1';
-  document.head.appendChild(link);
+  document.documentElement.dataset.immCjk = '1';
 }
 
 /** @param {string} next @param {{ focusSelect?: boolean }} [opts] */

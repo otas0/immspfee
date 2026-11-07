@@ -20,8 +20,8 @@
   --bench-w: 320px;
   /* Projector overlay clears the stage toolbar so #btn-menu stays clickable */
   --projector-overlay-top: 3.25rem;
-  --font-display: "Sora", "Noto Sans SC", sans-serif;
-  --font-body: "Sora", "Noto Sans SC", sans-serif;
+  --font-display: "Sora", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-body: "Sora", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --elev: 0 8px 28px rgba(0,0,0,0.06);
 }

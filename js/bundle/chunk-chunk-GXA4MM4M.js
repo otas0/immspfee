@@ -308,7 +308,8 @@ function hydratePaletteDomain(domain) {
   const key = domain || "\u5176\u4ED6";
   if (hydratedDomains.has(key) || hydratedDomains.has("*")) return Promise.resolve();
   if (domainHydrates.has(key)) return domainHydrates.get(key);
-  const safe = encodeURIComponent(key);
+  const file = String(key).replace(/\//g, "__");
+  const safe = encodeURIComponent(file);
   const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href).then((res) => res.ok ? res.json() : null).then((doc2) => {
     if (doc2?.models) {
       Object.assign(MODEL, doc2.models);
