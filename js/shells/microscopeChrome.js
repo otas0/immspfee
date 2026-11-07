@@ -27,7 +27,9 @@ import { mobileBudget } from '../utils/mobilePerf.js';
  *   setBenchOpen: (open: boolean) => void,
  *   syncPauseUi: () => void,
  *   syncDrawerChrome: () => void,
- *   resetSim: () => void,
+ *   resetSim?: () => void,
+ *   resetOptics?: () => void,
+ *   restoreSafeDefaults?: () => void,
  *   setPaused: (paused: boolean) => void,
  *   focusCatalogModel?: (id: string, loc: { domain: string, sub: string }) => void | Promise<void>,
  *   onOpticsChange?: () => void,
@@ -362,9 +364,16 @@ export function createMicroscopeChrome(api) {
     });
     document.getElementById('btn-micro-reset')?.addEventListener('click', () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
-      api.resetSim();
+      // 「Reset optics」must restore DEFAULT_PARAMS — not keep-params resetSim/重跑.
+      if (typeof api.resetOptics === 'function') api.resetOptics();
+      else if (typeof api.restoreSafeDefaults === 'function') api.restoreSafeDefaults();
+      else api.resetSim?.();
+      const gl = api.getWebglStage?.();
+      gl?.setCameraView?.('overview');
       stage.captureBaseline();
       stage.paint();
+      api.paintFrame?.();
+      api.onOpticsChange?.();
     });
     document.getElementById('btn-micro-shot')?.addEventListener('click', () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;

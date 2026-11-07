@@ -237,8 +237,21 @@ function revealCatalogButton(btn) {
   }
 }
 
+/** Snapshot catalog defaults once so live edits never poison "restore defaults". */
+function ensureParamDefaults(model) {
+  if (!model || model.__paramDefaultsFrozen) return;
+  try {
+    model.paramDefaults = JSON.parse(JSON.stringify(model.params || {}));
+  } catch {
+    model.paramDefaults = { ...(model.params || {}) };
+  }
+  model.__paramDefaultsFrozen = true;
+}
+
 function createState(model) {
-  const params = JSON.parse(JSON.stringify(model.params));
+  ensureParamDefaults(model);
+  const src = model.paramDefaults || model.params || {};
+  const params = JSON.parse(JSON.stringify(src));
   const state = { params };
   model.init(state);
   return state;
@@ -781,13 +794,24 @@ function resetToModelDefaults() {
   restoreSafeDefaults();
 }
 
+/**
+ * Re-run from t=0 keeping the current params (toolbar 「重跑」).
+ * Not for "restore defaults" / microscope 「重置光学」.
+ */
 function resetSim() {
+  if (!app.model || !app.state?.params) return;
   stepper.reset();
   const kept = { ...app.state.params };
   app.state = { params: kept };
   app.model.init(app.state);
   setSafeRestoreVisible(false);
   updateHud();
+  paintFrame();
+}
+
+/** Microscope 「Reset optics」: schema defaults + safe globals (not keep-params re-run). */
+function resetOptics() {
+  restoreSafeDefaults();
 }
 
 const DOMAIN_ORDER = [
@@ -2228,6 +2252,9 @@ window.__labCapture = {
   isHeavyModel: (id) => isHeavyModel(id),
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
   restoreSafeDefaults: () => restoreSafeDefaults(),
+  resetToModelDefaults: () => resetToModelDefaults(),
+  resetOptics: () => resetOptics(),
+  resetSim: () => resetSim(),
   getCapabilities: () => deriveCapabilities(app.model),
   getModel: () => app.model,
   runAction: (actionId) => {
@@ -2511,6 +2538,8 @@ async function boot() {
     syncPauseUi,
     syncDrawerChrome,
     resetSim,
+    resetOptics,
+    restoreSafeDefaults,
     setPaused: (paused) => { app.paused = paused; },
     focusCatalogModel,
     onOpticsChange: () => {
@@ -2660,8 +2689,6 @@ async function boot() {
     needsCatalog ? Promise.resolve() : loadIndex(),
     i18nPack,
   ]);
-  // Display names are lazy (not in cold index) — hydrate before sidebar paint.
-  try { await ensureDomainNames(); } catch { /* ignore */ }
   try { await ensureSidebarLocales(); } catch { /* ignore */ }
   syncChromeI18n();
   microUi.sync(microUi.isMicroscopeShell());

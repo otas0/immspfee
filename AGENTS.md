@@ -12,9 +12,23 @@
 3. **Multiple shells.** The chassis is not frozen. Register new layouts in `js/shells/registry.js` (`?shell=` + `localStorage`). Engines stay shared; only chrome/layout differs.
 4. **3D scope.** Ship **one** WebGL/Three-style 3D experience (compound microscope). Do not proliferate parallel 3D shells; 2D Canvas remains the default stage for the catalog.
 
+## Reset / re-run semantics
+
+| Control | API | Behavior |
+| --- | --- | --- |
+| Toolbar **重跑 / re-run** (`#btn-reset`) | `resetSim()` | Keep current `params`; re-`init` from t=0 |
+| Bench **restore defaults** | `restoreSafeDefaults()` / `resetToModelDefaults()` | Reload frozen `model.paramDefaults` + safe globals |
+| Microscope **Reset optics** (`#btn-micro-reset`) | `resetOptics()` → `restoreSafeDefaults()` | Same as restore defaults (not keep-params re-run) |
+
+`createState` freezes `paramDefaults` once per model so live edits cannot poison later restores. Playwright: `test:micro-camera` asserts Reset optics returns tube L=160 / 10×.
+
+## Shell-chrome FAIL shots
+
+When classic 1000 param drawer cannot open after retries, `scripts/shell-chrome.mjs` writes `shots/shell-classic-1000-bench-FAIL.png`. CI uploads `shots/shell-*.png` under `shell-chrome-screenshots-<sha>` — look for the `*-FAIL.png` suffix in that artifact.
+
 ## Parallel agents / file locks
 
-Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
+Read `docs/race-lock.md` before starting. Do not set macOS `uchg` on lab files. If writes fail with `Operation not permitted`, run `chflags nouchg` on the path (see `docs/commit-notes.md`). Avoid racing a second Agents Window against this tree.
 
 If a microscope / WebKit agent and a mobile-drawer agent both touch `css/styles.css`, **rebase (or merge main) before push** — never overwrite classic phone drawer z-index rules with projector `position:fixed` menu/params.
 

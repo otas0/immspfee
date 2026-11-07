@@ -266,9 +266,17 @@ function inferGroup(key, value) {
   return "dynamics";
 }
 
-// palette-shell:../../data/palettes.json
-var doc = {
-  neutral: { axis: "#5c6570", ground: "#6b7280", muted: "#94a3b8", theory: "#64748b", text: "#94a3b8", bg: "#000000", flash: "rgba(255, 220, 100, 0.45)" },
+// data/palettes/cold-stub.json
+var cold_stub_default = {
+  neutral: {
+    axis: "#5c6570",
+    ground: "#6b7280",
+    muted: "#94a3b8",
+    theory: "#64748b",
+    text: "#94a3b8",
+    bg: "#000000",
+    flash: "rgba(255, 220, 100, 0.45)"
+  },
   models: {
     "free-fall": {
       swatch: "#f0b429",
@@ -277,18 +285,23 @@ var doc = {
       accent: "#fb7185",
       vector: "#2dd4bf",
       trail: "rgba(240, 180, 41, 0.4)",
-      legend: ["\u7403 body", "\u901F\u5EA6 vector"]
+      legend: [
+        "\u7403 body",
+        "\u901F\u5EA6 vector"
+      ]
     }
   },
-  hc: { saturationScale: 0.42, lightnessBoost: 0.08 }
+  hc: {
+    saturationScale: 0.42,
+    lightnessBoost: 0.08
+  }
 };
-var palettes_default = doc;
 
 // js/utils/theme.js
 var activeModelId = "free-fall";
-var NEUTRAL = palettes_default.neutral;
-var MODEL = palettes_default.models;
-var HC = palettes_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
+var NEUTRAL = cold_stub_default.neutral;
+var MODEL = cold_stub_default.models;
+var HC = cold_stub_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
 var palettesSettled = typeof document === "undefined" || !!MODEL["free-fall"] || Object.keys(MODEL).length > 1;
 var hydratedDomains = new Set(typeof document === "undefined" ? ["*"] : []);
 var domainMapPromise = null;
@@ -310,9 +323,9 @@ function hydratePaletteDomain(domain) {
   if (domainHydrates.has(key)) return domainHydrates.get(key);
   const file = String(key).replace(/\//g, "__");
   const safe = encodeURIComponent(file);
-  const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href).then((res) => res.ok ? res.json() : null).then((doc2) => {
-    if (doc2?.models) {
-      Object.assign(MODEL, doc2.models);
+  const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href).then((res) => res.ok ? res.json() : null).then((doc) => {
+    if (doc?.models) {
+      Object.assign(MODEL, doc.models);
       hydratedDomains.add(key);
       palettesSettled = true;
       try {

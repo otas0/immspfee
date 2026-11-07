@@ -426,7 +426,7 @@ function velocityVerlet1D(x, v, a, aAt, dt) {
 }
 
 
-/* inlined chunk-chunk-GXA4MM4M.js */
+/* inlined chunk-chunk-RJLELWJ4.js */
 // js/utils/draw.js
 function drawArrow(ctx, x, y, tipX, tipY, color = "#2dd4bf", width = 2) {
   const dx = tipX - x;
@@ -695,9 +695,17 @@ function inferGroup(key, value) {
   return "dynamics";
 }
 
-// palette-shell:../../data/palettes.json
-var doc = {
-  neutral: { axis: "#5c6570", ground: "#6b7280", muted: "#94a3b8", theory: "#64748b", text: "#94a3b8", bg: "#000000", flash: "rgba(255, 220, 100, 0.45)" },
+// data/palettes/cold-stub.json
+var cold_stub_default = {
+  neutral: {
+    axis: "#5c6570",
+    ground: "#6b7280",
+    muted: "#94a3b8",
+    theory: "#64748b",
+    text: "#94a3b8",
+    bg: "#000000",
+    flash: "rgba(255, 220, 100, 0.45)"
+  },
   models: {
     "free-fall": {
       swatch: "#f0b429",
@@ -706,18 +714,23 @@ var doc = {
       accent: "#fb7185",
       vector: "#2dd4bf",
       trail: "rgba(240, 180, 41, 0.4)",
-      legend: ["\u7403 body", "\u901F\u5EA6 vector"]
+      legend: [
+        "\u7403 body",
+        "\u901F\u5EA6 vector"
+      ]
     }
   },
-  hc: { saturationScale: 0.42, lightnessBoost: 0.08 }
+  hc: {
+    saturationScale: 0.42,
+    lightnessBoost: 0.08
+  }
 };
-var palettes_default = doc;
 
 // js/utils/theme.js
 var activeModelId = "free-fall";
-var NEUTRAL = palettes_default.neutral;
-var MODEL = palettes_default.models;
-var HC = palettes_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
+var NEUTRAL = cold_stub_default.neutral;
+var MODEL = cold_stub_default.models;
+var HC = cold_stub_default.hc || { saturationScale: 0.42, lightnessBoost: 0.08 };
 var palettesSettled = typeof document === "undefined" || !!MODEL["free-fall"] || Object.keys(MODEL).length > 1;
 var hydratedDomains = new Set(typeof document === "undefined" ? ["*"] : []);
 var domainMapPromise = null;
@@ -739,9 +752,9 @@ function hydratePaletteDomain(domain) {
   if (domainHydrates.has(key)) return domainHydrates.get(key);
   const file = String(key).replace(/\//g, "__");
   const safe = encodeURIComponent(file);
-  const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href).then((res) => res.ok ? res.json() : null).then((doc2) => {
-    if (doc2?.models) {
-      Object.assign(MODEL, doc2.models);
+  const task = fetch(new URL(`data/palettes/domains/${safe}.json`, document.baseURI).href).then((res) => res.ok ? res.json() : null).then((doc) => {
+    if (doc?.models) {
+      Object.assign(MODEL, doc.models);
       hydratedDomains.add(key);
       palettesSettled = true;
       try {
@@ -1332,7 +1345,7 @@ function ringLast(ring) {
 
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
-/* static chunk inlined: chunk-chunk-GXA4MM4M.js */
+/* static chunk inlined: chunk-chunk-RJLELWJ4.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
 /* static chunk inlined: chunk-chunk-6F5B3IST.js */
 // js/models/freeFall.js
@@ -1539,7 +1552,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-TAGVXYS2.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-LVUS2Q44.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3221,7 +3234,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-COFX6ACP.js").then((mod) => {
+    handsPending = import("./chunk-handModels-WB5EMFU4.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -5731,9 +5744,15 @@ function createMicroscopeChrome(api) {
     });
     document.getElementById("btn-micro-reset")?.addEventListener("click", () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
-      api.resetSim();
+      if (typeof api.resetOptics === "function") api.resetOptics();
+      else if (typeof api.restoreSafeDefaults === "function") api.restoreSafeDefaults();
+      else api.resetSim?.();
+      const gl = api.getWebglStage?.();
+      gl?.setCameraView?.("overview");
       stage.captureBaseline();
       stage.paint();
+      api.paintFrame?.();
+      api.onOpticsChange?.();
     });
     document.getElementById("btn-micro-shot")?.addEventListener("click", () => {
       if (api.getModelId() !== MICROSCOPE_MODEL_ID) return;
@@ -5962,8 +5981,19 @@ function revealCatalogButton(btn) {
     if (Math.abs(again) > 1) list.scrollTop += again;
   }
 }
+function ensureParamDefaults(model) {
+  if (!model || model.__paramDefaultsFrozen) return;
+  try {
+    model.paramDefaults = JSON.parse(JSON.stringify(model.params || {}));
+  } catch {
+    model.paramDefaults = { ...model.params || {} };
+  }
+  model.__paramDefaultsFrozen = true;
+}
 function createState(model) {
-  const params = JSON.parse(JSON.stringify(model.params));
+  ensureParamDefaults(model);
+  const src = model.paramDefaults || model.params || {};
+  const params = JSON.parse(JSON.stringify(src));
   const state = { params };
   model.init(state);
   return state;
@@ -6479,12 +6509,17 @@ function resetToModelDefaults() {
   restoreSafeDefaults();
 }
 function resetSim() {
+  if (!app.model || !app.state?.params) return;
   stepper.reset();
   const kept = { ...app.state.params };
   app.state = { params: kept };
   app.model.init(app.state);
   setSafeRestoreVisible(false);
   updateHud();
+  paintFrame();
+}
+function resetOptics() {
+  restoreSafeDefaults();
 }
 var DOMAIN_ORDER = [
   "\u7269\u7406",
@@ -7851,6 +7886,9 @@ window.__labCapture = {
   isHeavyModel: (id) => isHeavyModel(id),
   snapshotReadouts: () => updateHud({ snapshotPrev: true }),
   restoreSafeDefaults: () => restoreSafeDefaults(),
+  resetToModelDefaults: () => resetToModelDefaults(),
+  resetOptics: () => resetOptics(),
+  resetSim: () => resetSim(),
   getCapabilities: () => deriveCapabilities(app.model),
   getModel: () => app.model,
   runAction: (actionId) => {
@@ -8132,6 +8170,8 @@ async function boot() {
     syncPauseUi,
     syncDrawerChrome,
     resetSim,
+    resetOptics,
+    restoreSafeDefaults,
     setPaused: (paused) => {
       app.paused = paused;
     },
@@ -8268,10 +8308,6 @@ async function boot() {
     needsCatalog ? Promise.resolve() : loadIndex(),
     i18nPack
   ]);
-  try {
-    await ensureDomainNames();
-  } catch {
-  }
   try {
     await ensureSidebarLocales();
   } catch {
@@ -8511,4 +8547,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-TAGVXYS2.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-LVUS2Q44.js");

@@ -259,6 +259,16 @@ jobs:
           PAGES_NETWORK_MAX_JS: '5'
         run: npm run test:pages-network
 
+      - name: Restore previous Pages TTI (cross-run trend)
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/restore@v5
+        with:
+          path: artifacts/pages-tti-cache
+          key: pages-tti-prev-${{ github.run_id }}
+          restore-keys: |
+            pages-tti-prev-
+
       - name: Pages TTI SW blocked vs second hit
         if: always()
         timeout-minutes: 5
@@ -267,7 +277,24 @@ jobs:
           PAGES_TTI_HARD: '1'
           FIRST_HAND_SAMPLES: '5'
           FIRST_HAND_P95_RETRIES: '1'
-        run: npm run test:pages-tti-sw && npm run test:pages-tti-trend
+          WARM_FIRST_HAND_P95_WARN_MS: '250'
+        run: |
+          mkdir -p artifacts
+          if [ -f artifacts/pages-tti-cache/pages-tti-sw.json ]; then
+            cp -f artifacts/pages-tti-cache/pages-tti-sw.json artifacts/pages-tti-sw.prev.json
+          fi
+          npm run test:pages-tti-sw
+          npm run test:pages-tti-trend
+          mkdir -p artifacts/pages-tti-cache
+          cp -f artifacts/pages-tti-sw.json artifacts/pages-tti-cache/pages-tti-sw.json
+
+      - name: Save Pages TTI cache (next run trend)
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v5
+        with:
+          path: artifacts/pages-tti-cache
+          key: pages-tti-prev-${{ github.run_id }}
 
       - name: Restore previous Pages stamp (cache)
         if: always()
@@ -506,16 +533,42 @@ jobs:
             artifacts/
           if-no-files-found: ignore
 
+  webkit-gate:
+    name: webkit-gate
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            micro:
+              - 'scripts/micro-**'
+              - 'scripts/shell-chrome.mjs'
+              - 'js/viz/microscope**'
+              - 'js/shells/microscope**'
+              - 'js/models/microscope**'
+              - 'js/models/compoundMicroscope.js'
+              - 'css/microscope-shell.css'
+      - name: Decide WebKit job
+        id: check
+        run: |
+          run=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then run=true; fi
+          msg='${{ github.event.head_commit.message }}'
+          if printf '%s' "$msg" | grep -q '\[webkit\]'; then run=true; fi
+          if [ "${{ steps.filter.outputs.micro }}" = "true" ]; then run=true; fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "webkit-gate run=$run filter=${{ steps.filter.outputs.micro }}"
+
   webkit-projector:
     name: webkit-projector (optional)
-    # Tip [webkit] OR micro Playwright scripts / mesh / shell chrome touched on this push.
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.head_commit.message, '[webkit]') ||
-      contains(toJSON(github.event.commits.*.modified), 'scripts/micro-') ||
-      contains(toJSON(github.event.commits.*.added), 'scripts/micro-') ||
-      contains(toJSON(github.event.commits.*.modified), 'js/viz/microscope') ||
-      contains(toJSON(github.event.commits.*.modified), 'scripts/shell-chrome.mjs')
+    needs: webkit-gate
+    if: needs.webkit-gate.outputs.run == 'true'
     # Ubuntu WebKit apt deps frequently fail (exit 100); macOS ships a usable WebKit binary.
     # Prefer macos-latest: macos-14 can cancel instantly with
     # "configuration 'macos-14-arm64-us-default' is not supported" on this repo.
@@ -564,6 +617,27 @@ jobs:
         env:
           MICRO_BROWSER: webkit
         run: npm run test:micro-shots
+      - name: Promo still drift check
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          if ! git diff --exit-code -- docs/promo >/dev/null 2>&1; then
+            echo "DRIFTED=1 promo stills changed by test:micro-shots"
+            git diff --stat -- docs/promo | tee artifacts/promo-drift.txt || true
+            TITLE='webkit: docs/promo drifted — commit micro-shots sync'
+            EXISTING=$(gh issue list -R "${{ github.repository }}" --search "$TITLE in:title" --json number --jq '.[0].number' 2>/dev/null || true)
+            BODY="Promo PNGs drifted on run ${{ github.run_id }} (SHA \`${{ github.sha }}\`). Commit after \`MICRO_BROWSER=webkit npm run test:micro-shots\` + review."
+            if [ -n "$EXISTING" ]; then
+              gh issue comment -R "${{ github.repository }}" "$EXISTING" --body "$BODY" || true
+            else
+              gh issue create -R "${{ github.repository }}" --title "$TITLE" --body "$BODY" || true
+            fi
+          else
+            echo "promo stills unchanged"
+          fi
       - name: Sync safari-proxy + shell menu docs shots when drifted
         if: always()
         id: safari_proxy

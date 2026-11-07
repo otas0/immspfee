@@ -197,6 +197,34 @@ try {
   if (!naLens.keyLow || !naLens.keyHigh || naLens.keyLow === naLens.keyHigh) {
     fail(`NA did not rebuild condenser mesh ${JSON.stringify(naLens)}`);
   }
+  const meshApi = await page.evaluate(() => typeof window.__labCapture.getWebglStage?.()?.getMeshDynamicKey);
+  if (meshApi !== 'function') fail(`getMeshDynamicKey runtime ${meshApi}`);
+
+  // Reset optics must restore catalog defaults — not keep-params re-run.
+  await page.evaluate(() => {
+    window.__labCapture.setParam?.('tubeL_mm', 180);
+    window.__labCapture.setParam?.('focusZ_mm', 1.2);
+    window.__labCapture.setParam?.('NA', 0.4);
+  });
+  await page.click('#btn-micro-reset', { timeout: 10000 });
+  await page.waitForTimeout(200);
+  const resetOptics = await page.evaluate(() => {
+    const p = window.__labCapture.getParams?.() || {};
+    return {
+      tube: p.tubeL_mm,
+      focus: p.focusZ_mm,
+      obj: p.objective,
+      NA: p.NA,
+      hasResetOptics: typeof window.__labCapture.resetOptics === 'function',
+      hasRestore: typeof window.__labCapture.restoreSafeDefaults === 'function',
+    };
+  });
+  console.log('resetOptics', JSON.stringify(resetOptics));
+  if (!resetOptics.hasResetOptics && !resetOptics.hasRestore) fail('resetOptics API missing');
+  if (!(Number(resetOptics.tube) === 160)) fail(`tube after reset ${resetOptics.tube}`);
+  if (!(Math.abs(Number(resetOptics.focus) || 0) < 1e-9)) fail(`focus after reset ${resetOptics.focus}`);
+  // 40× was selected earlier; restore defaults returns catalog 10×.
+  if (resetOptics.obj !== '10x') fail(`obj after reset ${resetOptics.obj}`);
 
   let fps = null;
   if (viewport.width <= 420) {

@@ -506,6 +506,9 @@ export function runSuite() {
         JSON.stringify(coldCap),
       );
       assert('DEFAULT_PARAMS.showLabels is 0', DEFAULT_PARAMS.showLabels === 0, String(DEFAULT_PARAMS.showLabels));
+      assert('DEFAULT_PARAMS.tubeL_mm is 160', DEFAULT_PARAMS.tubeL_mm === 160, String(DEFAULT_PARAMS.tubeL_mm));
+      assert('DEFAULT_PARAMS.objective is 10x', DEFAULT_PARAMS.objective === '10x', String(DEFAULT_PARAMS.objective));
+      assert('DEFAULT_PARAMS.focusZ_mm is 0', DEFAULT_PARAMS.focusZ_mm === 0, String(DEFAULT_PARAMS.focusZ_mm));
       assert('CAMERA_HOLD KeyD → yawRight', CAMERA_HOLD.KeyD === 'yawRight', String(CAMERA_HOLD.KeyD));
       assert('CAMERA_HOLD KeyA → yawLeft', CAMERA_HOLD.KeyA === 'yawLeft', String(CAMERA_HOLD.KeyA));
       assert('CAMERA_HOLD KeyW → dollyIn', CAMERA_HOLD.KeyW === 'dollyIn', String(CAMERA_HOLD.KeyW));
