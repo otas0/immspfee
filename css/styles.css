@@ -892,7 +892,8 @@ html.hc .model-item.active { background: #fff; color: #000; }
 }
 .filter-chip {
   appearance: none;
-  align-self: end;
+  /* Same left edge as .fold-bar「全部展开 / 收起」— not trailing-end. */
+  align-self: start;
   margin: 0 0 0.15rem;
   border: 1px solid var(--line);
   background: var(--panel-2);
