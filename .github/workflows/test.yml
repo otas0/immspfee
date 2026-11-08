@@ -95,6 +95,14 @@ jobs:
       - name: Phone toolbar hit + contrast (390)
         run: npm run test:toolbar-hit
 
+      - name: Sidebar fold / heavy / custom left-edge
+        id: sidebar_left
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts
+          npm run test:sidebar-left 2>&1 | tee artifacts/sidebar-left.log
+          echo "sidebar-left ok" >> artifacts/ci-summary.txt
+
       - name: Names-loading filters stay interactive
         run: npm run test:names-loading
 

@@ -80,28 +80,43 @@ if (!stamped) {
  */
 function inlineStaticChunks(entryFile) {
   let src = fs.readFileSync(entryFile, 'utf8');
-  const staticImports = [...src.matchAll(/^import\s*\{([^}]+)\}\s*from\s*"\.\/(chunk-[^"]+\.js)";\s*$/gm)];
-  if (!staticImports.length) return src;
+  // Named imports: import { a } from "./chunk-….js"
+  const namedImports = [...src.matchAll(/^import\s*\{([^}]+)\}\s*from\s*"\.\/(chunk-[^"]+\.js)";\s*$/gm)];
+  // Side-effect helpers (esbuild __export etc.): import "./chunk-….js"
+  const sideImports = [...src.matchAll(/^import\s*"\.\/(chunk-[^"]+\.js)";\s*$/gm)];
+  if (!namedImports.length && !sideImports.length) return src;
   const bodies = [];
-  for (const match of staticImports) {
-    const fileName = match[2];
-    if (fileName.includes('chunk-factory')) continue;
+  const seen = new Set();
+  const take = (fileName, wholeLine) => {
+    if (fileName.includes('chunk-factory') || seen.has(fileName)) {
+      src = src.replace(wholeLine, `/* static chunk skipped/dup: ${fileName} */`);
+      return;
+    }
+    seen.add(fileName);
     const chunkPath = path.join(outdir, fileName);
     let chunk = fs.readFileSync(chunkPath, 'utf8');
     if (chunk.includes('js/lab/rows/') || chunk.includes('0.5*rho*v*v*c*Cl')) {
       throw new Error(`${fileName} is a static dependency of lab.js and still carries topic rows`);
     }
-    chunk = chunk.replace(/\nexport\s*\{[\s\S]*?\};\s*$/m, '\n');
+    chunk = chunk
+      .replace(/\nexport\s*\{[\s\S]*?\};\s*$/m, '\n')
+      .replace(/^export\s*\{[^}]+\};?\s*$/gm, '')
+      .replace(/\bexport\s+(?=async\s+function|function|class|const|let|var)/g, '');
     bodies.push(`/* inlined ${fileName} */\n${chunk}`);
-    src = src.replace(match[0], `/* static chunk inlined: ${fileName} */`);
-  }
+    src = src.replace(wholeLine, `/* static chunk inlined: ${fileName} */`);
+  };
+  for (const match of namedImports) take(match[2], match[0]);
+  for (const match of sideImports) take(match[1], match[0]);
   src = `${bodies.join('\n')}\n${src}`;
   fs.writeFileSync(entryFile, src);
   return src;
 }
 
 const labSrc = inlineStaticChunks(labFile);
-if (/^import\s*\{[^}]+\}\s*from\s*"\.\/chunk-(?!factory)[^"]+\.js"/m.test(labSrc)) {
+if (
+  /^import\s*\{[^}]+\}\s*from\s*"\.\/chunk-(?!factory)[^"]+\.js"/m.test(labSrc)
+  || /^import\s*"\.\/chunk-(?!factory)[^"]+\.js"/m.test(labSrc)
+) {
   console.error('lab.js still has static chunk imports after inline');
   process.exit(1);
 }

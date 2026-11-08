@@ -1343,13 +1343,20 @@ function ringLast(ring) {
 }
 
 
+/* inlined chunk-chunk-KX6VIJEB.js */
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+
 /* static chunk inlined: chunk-chunk-4PMPDTZN.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
 /* static chunk inlined: chunk-chunk-6F5B3IST.js */
-import "./chunk-chunk-KX6VIJEB.js";
-
+/* static chunk inlined: chunk-chunk-KX6VIJEB.js */
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1554,7 +1561,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-FST72QDY.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-NAVZ22F7.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3428,7 +3435,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-D5F2TFSL.js").then((mod) => {
+    handsPending = import("./chunk-handModels-OLJ46ZHM.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -5058,11 +5065,19 @@ var PHRASE_TABLE = [
   ["\u6C34\u8F6E\u673A\uFF08\u4F69\u5C14\u987F/\u5F17\u6717\u897F\u65AF\uFF09", "Pelton/Francis turbine", "\u30DA\u30EB\u30C8\u30F3/\u30D5\u30E9\u30F3\u30B7\u30B9\u6C34\u8ECA", "\uD3A0\uD134/\uD504\uB79C\uC2DC\uC2A4 \uC218\uCC28", "turbina Pelton/Francis", "turbine Pelton/Francis", "Pelton-/Francis-Turbine"],
   ["\u7EC6\u80DE\u81EA\u52A8\u673A/\u751F\u547D\u6E38\u620F", "cellular automaton / Game of Life", "\u30BB\u30EB\u30AA\u30FC\u30C8\u30DE\u30C8\u30F3\uFF0F\u30E9\u30A4\u30D5\u30B2\u30FC\u30E0", "\uC138\uD3EC \uC790\uB3D9\uC790 / \uC0DD\uBA85 \uAC8C\uC784", "aut\xF3mata celular / Juego de la vida", "automate cellulaire / jeu de la vie", "Zellul\xE4rer Automat / Game of Life"],
   ["\u6307\u4EE4\u5468\u671F/\u6C47\u7F16\u6267\u884C", "instruction cycle / assembly execution", "\u547D\u4EE4\u30B5\u30A4\u30AF\u30EB\uFF0F\u30A2\u30BB\u30F3\u30D6\u30EA\u5B9F\u884C", "\uBA85\uB839 \uC8FC\uAE30 / \uC5B4\uC148\uBE14\uB9AC \uC2E4\uD589", "ciclo de instrucci\xF3n / ejecuci\xF3n ensamblador", "cycle d\u2019instruction / ex\xE9cution assembleur", "Befehlszyklus / Assembler-Ausf\xFChrung"],
+  ["\u8C03\u7C98\u5EA6\u3001\u91CD\u529B\u3001\u7C92\u5B50\u6570", "tune viscosity, gravity, particle count", "\u7C98\u5EA6\u30FB\u91CD\u529B\u30FB\u7C92\u5B50\u6570\u3092\u8ABF\u6574", "\uC810\uB3C4\xB7\uC911\uB825\xB7\uC785\uC790 \uC218 \uC870\uC808", "ajustar viscosidad, gravedad, n\xFAmero de part\xEDculas", "r\xE9gler viscosit\xE9, gravit\xE9, nombre de particules", "Viskosit\xE4t, Schwerkraft, Teilchenzahl einstellen"],
+  ["\u8C03\u9891\u7387\u3001\u7EF3\u957F\u3001\u5F20\u529B", "tune frequency, length, tension", "\u5468\u6CE2\u6570\u30FB\u9577\u3055\u30FB\u5F35\u529B\u3092\u8ABF\u6574", "\uC8FC\uD30C\uC218\xB7\uAE38\uC774\xB7\uC7A5\uB825 \uC870\uC808", "ajustar frecuencia, longitud, tensi\xF3n", "r\xE9gler fr\xE9quence, longueur, tension", "Frequenz, L\xE4nge, Spannung einstellen"],
+  ["\u8C03\u7F1D\u8DDD\u3001\u6CE2\u957F\u3001\u5C4F\u8DDD", "tune slit spacing, wavelength, screen distance", "\u30B9\u30EA\u30C3\u30C8\u9593\u9694\u30FB\u6CE2\u9577\u30FB\u30B9\u30AF\u30EA\u30FC\u30F3\u8DDD\u96E2\u3092\u8ABF\u6574", "\uC2AC\uB9BF \uAC04\uACA9\xB7\uD30C\uC7A5\xB7\uC2A4\uD06C\uB9B0 \uAC70\uB9AC \uC870\uC808", "ajustar separaci\xF3n, longitud de onda, distancia", "r\xE9gler \xE9cartement, longueur d\u2019onde, distance", "Spaltabstand, Wellenl\xE4nge, Schirmabstand einstellen"],
+  ["\u8C03\u7269\u8DDD\u3001\u7126\u8DDD\u3001\u7269\u9AD8", "tune object distance, focal length, object height", "\u7269\u4F53\u8DDD\u96E2\u30FB\u7126\u70B9\u8DDD\u96E2\u30FB\u7269\u4F53\u9AD8\u3055\u3092\u8ABF\u6574", "\uBB3C\uCCB4\uAC70\uB9AC\xB7\uCD08\uC810\uAC70\uB9AC\xB7\uBB3C\uCCB4\uB192\uC774 \uC870\uC808", "ajustar distancia al objeto, focal, altura", "r\xE9gler distance objet, focale, hauteur", "Gegenstandsweite, Brennweite, Gegenstandsh\xF6he einstellen"],
+  ["\u8C03\u5F20\u529B\u3001\u5BC6\u5EA6\u3001\u6FC0\u52B1\u70B9", "tune tension, density, drive point", "\u5F35\u529B\u30FB\u5BC6\u5EA6\u30FB\u52B1\u632F\u70B9\u3092\u8ABF\u6574", "\uC7A5\uB825\xB7\uBC00\uB3C4\xB7\uAC00\uC9C4\uC810 \uC870\uC808", "ajustar tensi\xF3n, densidad, punto de excitaci\xF3n", "r\xE9gler tension, densit\xE9, point d\u2019excitation", "Spannung, Dichte, Anregungspunkt einstellen"],
   ["\u7C92\u5B50\u3001\u989C\u8272\u6620\u5C04\u3001\u4EA4\u4E92\u6270\u52A8", "particles, colormap, interactive perturbation", "\u7C92\u5B50\u30FB\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7\u30FB\u76F8\u4E92\u4F5C\u7528", "\uC785\uC790, \uCEEC\uB7EC\uB9F5, \uC0C1\uD638\uC791\uC6A9 \uC12D\uB3D9", "part\xEDculas, mapa de color, perturbaci\xF3n", "particules, carte de couleurs, perturbation", "Teilchen, Farbkarte, St\xF6rung"],
   ["\u7EF3\u4E0A\u9A7B\u6CE2\u3001\u8282\u70B9/\u8179\u70B9", "standing wave on a string; nodes/antinodes", "\u5F26\u306E\u5B9A\u5E38\u6CE2\u30FB\u7BC0\uFF0F\u8179", "\uD604\uC758 \uC815\uC0C1\uD30C\xB7\uB9C8\uB514/\uBC30", "onda estacionaria; nodos/antinodos", "onde stationnaire; n\u0153uds/ventres", "stehende Welle; Knoten/B\xE4uche"],
   ["\u5149\u8F74\u3001\u7269/\u50CF\u3001\u4E09\u6761\u7279\u6B8A\u5149\u7EBF", "optical axis; object/image; three principal rays", "\u5149\u8EF8\u30FB\u7269\uFF0F\u50CF\u30FB3\u672C\u306E\u4E3B\u5149\u7DDA", "\uAD11\uCD95\xB7\uBB3C/\uC0C1\xB7\uC138 \uC8FC\uC694 \uAD11\uC120", "eje \xF3ptico; objeto/imagen; tres rayos", "axe optique; objet/image; trois rayons", "optische Achse; Gegenstand/Bild; drei Hauptstrahlen"],
   ["\u53CC\u7F1D\u3001\u5C4F\u5E55\u6761\u7EB9", "double slit; screen fringes", "\u4E8C\u91CD\u30B9\u30EA\u30C3\u30C8\u30FB\u30B9\u30AF\u30EA\u30FC\u30F3\u7E1E", "\uC774\uC911 \uC2AC\uB9BF\xB7\uC2A4\uD06C\uB9B0 \uBB34\uB2AC", "doble rendija; franjas", "double fente; franges", "Doppelspalt; Schirmstreifen"],
   ["\u7F51\u683C\u3001\u989C\u8272\u6620\u5C04\u3001\u6A21\u6001", "grid, colormap, modes", "\u683C\u5B50\u30FB\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7\u30FB\u30E2\u30FC\u30C9", "\uACA9\uC790, \uCEEC\uB7EC\uB9F5, \uBAA8\uB4DC", "malla, mapa de color, modos", "grille, carte de couleurs, modes", "Gitter, Farbkarte, Moden"],
+  ["\u6746\u4EF6\u62C9\u4F38/\u538B\u7F29", "axial tension/compression", "\u68D2\u306E\u5F15\u5F35\uFF0F\u5727\u7E2E", "\uCD95 \uC778\uC7A5/\uC555\uCD95", "tracci\xF3n/compresi\xF3n axial", "traction/compression axiale", "Zug/Druck im Stab"],
+  ["\u629B\u4F53\u8FD0\u52A8", "projectile motion", "\u653E\u7269\u904B\u52D5", "\uD3EC\uBB3C\uC120 \uC6B4\uB3D9", "movimiento de proyectil", "mouvement de projectile", "Wurfbewegung"],
+  ["\u6746\u4EF6\u62C9\u4F38", "axial tension", "\u68D2\u306E\u5F15\u5F35", "\uCD95 \uC778\uC7A5", "tracci\xF3n axial", "traction axiale", "Zug im Stab"],
   ["\u5F15\u529B\u5F39\u5F13", "gravitational slingshot", "\u91CD\u529B\u30B9\u30A4\u30F3\u30B0\u30D0\u30A4", "\uC911\uB825 \uC2AC\uB9C1\uC0F7", "asistencia gravitatoria", "assistance gravitationnelle", "Swing-by"],
   ["\u603B\u7EBF/\u4EF2\u88C1", "bus / arbitration", "\u30D0\u30B9\uFF0F\u8ABF\u505C", "\uBC84\uC2A4 / \uC911\uC7AC", "bus / arbitraje", "bus / arbitrage", "Bus / Arbitration"],
   ["\u989C\u8272\u6620\u5C04", "colormap", "\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7", "\uCEEC\uB7EC\uB9F5", "mapa de color", "carte de couleurs", "Farbkarte"],
@@ -7351,11 +7366,14 @@ function paintSidebar() {
     };
     const ensureBody = () => {
       if (!details.open) return;
-      const have = [...subMap.values()].some((items) => items.some((row) => models.some((m) => m.id === row.id)));
-      if (have || searching) {
+      const rows = [...subMap.values()].flat();
+      const readyCount = rows.filter((row) => models.some((m) => m.id === row.id)).length;
+      const complete = rows.length > 0 && readyCount >= rows.length;
+      if (searching || complete) {
         fillBody();
         return;
       }
+      if (readyCount > 0) fillBody();
       if (details.dataset.loading === "1") return;
       details.dataset.loading = "1";
       void loadDomain(domain).then(async () => {
@@ -9107,4 +9125,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-FST72QDY.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-NAVZ22F7.js");

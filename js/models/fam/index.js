@@ -8,7 +8,9 @@ import { BUILDERS_EM } from './builders-em.js';
 import { BUILDERS_QUANTUM } from './builders-quantum.js';
 import { BUILDERS_STRUCTURES } from './builders-structures.js';
 import { BUILDERS_FLUIDS } from './builders-fluids.js';
-import { BUILDERS_DISCRETE } from './builders-discrete.js';
+import { BUILDERS_CS } from './builders-cs.js';
+import { BUILDERS_ML } from './builders-ml.js';
+import { BUILDERS_ENG } from './builders-eng.js';
 
 const BUILDERS = {
   ...BUILDERS_MECHANICS,
@@ -18,7 +20,9 @@ const BUILDERS = {
   ...BUILDERS_QUANTUM,
   ...BUILDERS_STRUCTURES,
   ...BUILDERS_FLUIDS,
-  ...BUILDERS_DISCRETE,
+  ...BUILDERS_CS,
+  ...BUILDERS_ML,
+  ...BUILDERS_ENG,
 };
 
 const sineWarned = new Set();

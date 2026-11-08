@@ -1182,11 +1182,16 @@ function paintSidebar() {
     };
     const ensureBody = () => {
       if (!details.open) return;
-      const have = [...subMap.values()].some((items) => items.some((row) => models.some((m) => m.id === row.id)));
-      if (have || searching) {
+      const rows = [...subMap.values()].flat();
+      const readyCount = rows.filter((row) => models.some((m) => m.id === row.id)).length;
+      // Cold stub may already hold free-fall while the rest of 物理 is still on disk.
+      // Require the full subject pack — a single hit must not skip loadDomain.
+      const complete = rows.length > 0 && readyCount >= rows.length;
+      if (searching || complete) {
         fillBody();
         return;
       }
+      if (readyCount > 0) fillBody();
       if (details.dataset.loading === '1') return;
       details.dataset.loading = '1';
       void loadDomain(domain).then(async () => {

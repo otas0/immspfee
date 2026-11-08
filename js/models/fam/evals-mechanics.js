@@ -75,12 +75,20 @@ export function circularEval(p, t) {
   const r = pos(P(p, 'r', 1), 1e-9);
   const w = P(p, 'omega', 1);
   const ac = w * w * r;
+  const x = r * Math.cos(w * t);
+  const y = r * Math.sin(w * t);
+  const xy = linspace(96, (u) => {
+    const th = u * 2 * Math.PI;
+    return { x: r * Math.cos(th), y: r * Math.sin(th) };
+  });
   return {
     val: ac,
     ac,
-    x: r * Math.cos(w * t),
-    y: r * Math.sin(w * t),
+    x,
+    y,
     curve: linspace(64, (u) => r * Math.sin(2 * Math.PI * u)),
+    xy,
+    drawKind: 'xy',
   };
 }
 
@@ -96,7 +104,17 @@ export function collisionEval(p) {
   const v2n = (m1 * (1 + e)) / (m1 + m2) * u1n;
   const v1 = Math.hypot(v1n, u1t);
   const v2 = Math.abs(v2n);
-  return { val: v2, e, v1, v2, v1n, v2n };
+  // Schematic path along the impact normal: approach → contact → rebound.
+  const n = { x: Math.cos(ang), y: Math.sin(ang) };
+  const xy = [
+    { x: -1.2 * n.x, y: -1.2 * n.y },
+    { x: -0.15 * n.x, y: -0.15 * n.y },
+    { x: 0, y: 0 },
+    { x: 0.15 * n.x * Math.sign(v2n || 1), y: 0.15 * n.y * Math.sign(v2n || 1) },
+    { x: v2n * n.x, y: v2n * n.y },
+    { x: v1n * n.x - u1t * n.y, y: v1n * n.y + u1t * n.x },
+  ];
+  return { val: v2, e, v1, v2, v1n, v2n, xy, drawKind: 'xy', x: v2n * n.x, y: v2n * n.y };
 }
 
 export function rocketEval(p, t) {

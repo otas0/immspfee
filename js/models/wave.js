@@ -214,14 +214,19 @@ export default {
 
   getEnergy(state) {
     const { c, damp } = state.params;
-    const μ = 1; // 线密度归一
-    const kEff = μ * (c * c) / (state.dx * state.dx);
+    const μ = 1; // linear density normalized
+    const dx = state.dx;
+    const c2 = c * c;
     let ke = 0;
     let pe = 0;
+    // Semi-discrete energy matching the second-difference Laplacian:
+    // KE = ½ μ dx Σ v_i², PE = ½ μ c² / dx Σ (y_{i+1}−y_i)² over all segments.
     for (let i = 1; i <= state.N; i += 1) {
-      ke += 0.5 * μ * state.dx * state.v[i] * state.v[i];
-      const dy = state.y[i] - state.y[i - 1];
-      pe += 0.5 * kEff * state.dx * dy * dy;
+      ke += 0.5 * μ * dx * state.v[i] * state.v[i];
+    }
+    for (let i = 0; i <= state.N; i += 1) {
+      const dy = state.y[i + 1] - state.y[i];
+      pe += 0.5 * μ * c2 / dx * dy * dy;
     }
     void damp;
     return { kinetic: ke, potential: pe };

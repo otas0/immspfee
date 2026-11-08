@@ -1144,13 +1144,16 @@ var wave_default = {
   getEnergy(state) {
     const { c, damp } = state.params;
     const \u03BC = 1;
-    const kEff = \u03BC * (c * c) / (state.dx * state.dx);
+    const dx = state.dx;
+    const c2 = c * c;
     let ke = 0;
     let pe = 0;
     for (let i = 1; i <= state.N; i += 1) {
-      ke += 0.5 * \u03BC * state.dx * state.v[i] * state.v[i];
-      const dy = state.y[i] - state.y[i - 1];
-      pe += 0.5 * kEff * state.dx * dy * dy;
+      ke += 0.5 * \u03BC * dx * state.v[i] * state.v[i];
+    }
+    for (let i = 0; i <= state.N; i += 1) {
+      const dy = state.y[i + 1] - state.y[i];
+      pe += 0.5 * \u03BC * c2 / dx * dy * dy;
     }
     void damp;
     return { kinetic: ke, potential: pe };

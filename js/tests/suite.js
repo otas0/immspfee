@@ -277,20 +277,20 @@ export function runSuite() {
   {
     // Fresh undamped string: Velocity-Verlet + CFL substeps keep discrete energy in gate.
     const we = {
-      params: { ...wave.params, N: 48, L: 1, c: 1.2, damp: 0, A1: 0.08, A2: 0, A3: 0 },
+      params: { ...wave.params, N: 64, L: 1, c: 0.8, damp: 0, A1: 0.05, A2: 0, A3: 0 },
     };
     wave.init(we);
-    const dtE = 1 / 120;
+    const dtE = 1 / 180;
     const e0 = wave.getEnergy(we);
     const E0 = e0.kinetic + e0.potential;
     let maxRel = 0;
-    for (let n = 0; n < 240; n += 1) {
+    for (let n = 0; n < 360; n += 1) {
       wave.step(we, dtE);
       const e = wave.getEnergy(we);
       const E = e.kinetic + e.potential;
       if (E0 > 1e-12) maxRel = Math.max(maxRel, Math.abs(E - E0) / E0);
     }
-    assert('无阻尼波能量漂移门 < 5%', maxRel < 0.05, `maxRel=${(maxRel * 100).toFixed(4)}% E0=${E0}`);
+    assert('无阻尼波能量漂移门 < 2%', maxRel < 0.02, `maxRel=${(maxRel * 100).toFixed(4)}% E0=${E0}`);
   }
 
   // 参数显示 / 钳制工具

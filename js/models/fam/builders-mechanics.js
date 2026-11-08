@@ -34,7 +34,8 @@ export const BUILDERS_MECHANICS = {
   }),
   circular: (spec) => algebraic(spec, {
     equation: 'a=ω² r',
-    assumptions: 'Uniform circular motion.',
+    assumptions: 'Uniform circular motion. Canvas draws the circular path in the plane.',
+    drawKind: 'xy',
     rows: [['a', 'ac', 'm/s²'], ['x', 'x', 'm'], ['y', 'y', 'm']],
     eval: E.circularEval,
   }),
@@ -51,7 +52,8 @@ export const BUILDERS_MECHANICS = {
   }),
   collision: (spec) => algebraic(spec, {
     equation: 'v1n=(m1−e m2)/(m1+m2)·u1n, v2n=m1(1+e)/(m1+m2)·u1n',
-    assumptions: 'm2=1, u1=1, u2=0. e is the normal restitution. Tangential velocity is unchanged. angle is the impact normal.',
+    assumptions: 'm2=1, u1=1, u2=0. e is the normal restitution. Tangential velocity is unchanged. angle is the impact normal. Canvas sketches the impact-normal path.',
+    drawKind: 'xy',
     rows: [['v1', 'v1', 'm/s'], ['v2', 'v2', 'm/s'], ['e', 'e']],
     eval: (p) => E.collisionEval(p),
   }),

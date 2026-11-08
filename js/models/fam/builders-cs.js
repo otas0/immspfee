@@ -1,4 +1,4 @@
-/** fam discrete builders */
+/** fam cs builders (split from discrete) */
 import { algebraic, P, G, EPS0, KE, MU0, SIGMA, R_GAS, C_LIGHT, LAMBDA_C_PM, HC_KEV_PM, QE, ME, KB, PRIMES, clamp, pos, finiteOr, linspace, primeAtMost, modPow, formatNum, fnv1a } from './common.js';
 import * as Mech from './evals-mechanics.js';
 import * as Waves from './evals-waves.js';
@@ -10,7 +10,7 @@ import * as Fluids from './evals-fluids.js';
 import * as Discrete from './evals-discrete.js';
 const E = { ...Mech, ...Waves, ...Thermo, ...Em, ...Quantum, ...Struct, ...Fluids, ...Discrete };
 
-export const BUILDERS_DISCRETE = {
+export const BUILDERS_CS = {
   sort: (spec) => algebraic(spec, {
     equation: 'insertion-sort comparisons',
     assumptions: 'CLRS insertion sort. The array is 0..n−1 with a reversed prefix of length (1−sortedness)·n. n is capped at 256.',
@@ -81,16 +81,6 @@ export const BUILDERS_DISCRETE = {
     eval: (p) => {
       const h = E.treeHeights(P(p, 'n', 20), P(p, 'order', 2));
       return { val: h.hAvl, ...h };
-    },
-  }),
-  hashtable: (spec) => algebraic(spec, {
-    equation: 'E[probes]=1+α/2',
-    assumptions: 'CLRS chaining, successful search. α is the load knob. Keys=α·capacity.',
-    rows: [['E', 'probes'], ['keys', 'keys']],
-    eval: (p) => {
-      const cap = Math.max(0, P(p, 'cap', 16));
-      const load = Math.max(0, P(p, 'load', 0));
-      return { val: 1 + load / 2, probes: 1 + load / 2, keys: load * cap };
     },
   }),
   uf: (spec) => algebraic(spec, {
@@ -207,74 +197,6 @@ export const BUILDERS_DISCRETE = {
       return { val: topples, topples };
     },
   }),
-  'linear-model': (spec) => algebraic(spec, {
-    equation: 'β=(Σ x y)/(Σ x²+λ); one GD step β=lr·mean(x y)',
-    assumptions: 'Design x=1..8, y=2x. Ridge has no intercept. One gradient step starts at β=0. Not a fitted dataset.',
-    rows: [['β_ridge', 'ridge'], ['β_gd', 'gd']],
-    eval: (p) => {
-      let sxx = 0;
-      let sxy = 0;
-      for (let i = 1; i <= 8; i += 1) {
-        sxx += i * i;
-        sxy += i * (2 * i);
-      }
-      const reg = Math.max(0, P(p, 'reg', 0));
-      const lr = P(p, 'lr', 0.1);
-      const ridge = sxy / (sxx + reg);
-      const gd = lr * (sxy / 8);
-      return { val: ridge, ridge, gd };
-    },
-  }),
-  'tree-model': (spec) => algebraic(spec, {
-    equation: 'leaves=trees·min(2^{depth}, n_rows)',
-    assumptions: 'Capacity of an ensemble, not an accuracy. n_rows=max(2, round(8·sample)). Depth is capped at 8 in the leaf count.',
-    rows: [['leaves', 'leaves']],
-    eval: (p) => {
-      const trees = Math.max(1, Math.round(P(p, 'trees', 1)));
-      const depth = Math.max(1, Math.round(P(p, 'depth', 1)));
-      const rows = Math.max(2, Math.round(8 * clamp(P(p, 'sample', 1), 0, 1)));
-      const leaves = trees * Math.min(2 ** Math.min(depth, 8), rows);
-      return { val: leaves, leaves };
-    },
-  }),
-  kernel: (spec) => algebraic(spec, {
-    equation: 'k=exp(−γ ‖x−y‖²), ‖x−y‖=1',
-    assumptions: 'RBF kernel between two stated points a unit apart. C is the SVM box constraint. Bishop / Schölkopf.',
-    rows: [['k', 'k'], ['C', 'C']],
-    eval: (p) => {
-      const gamma = P(p, 'gamma', 1);
-      const Cbox = P(p, 'C', 1);
-      const k = Math.exp(-gamma);
-      return { val: k, k, C: Cbox };
-    },
-  }),
-  cluster: (spec) => algebraic(spec, {
-    equation: 'Lloyd k-means inertia',
-    assumptions: 'Eight fixed 1D points. metric 0 is squared distance, metric≥1 is absolute distance with a median update.',
-    rows: [['inertia', 'inertia']],
-    eval: (p) => {
-      const inertia = E.kmeansInertia(P(p, 'k', 2), P(p, 'metric', 0));
-      return { val: inertia, inertia };
-    },
-  }),
-  dimred: (spec) => algebraic(spec, {
-    equation: 'PCA retained variance',
-    assumptions: '2×2 covariance of a stated cloud. k≥2 keeps both components. nn is the sample count. t-SNE is not computed.',
-    rows: [['fraction', 'fraction']],
-    eval: (p) => {
-      const fraction = E.pcaFraction(P(p, 'k', 2), P(p, 'nn', 10));
-      return { val: fraction, fraction };
-    },
-  }),
-  nn: (spec) => algebraic(spec, {
-    equation: 'a ← act(0.1·width·a), input 1',
-    assumptions: 'Identical weights 0.1. act 0 ReLU, 1 tanh, 2 sigmoid, else linear. Not a trained model.',
-    rows: [['y', 'y']],
-    eval: (p) => {
-      const y = E.nnForward(P(p, 'layers', 1), P(p, 'width', 4), P(p, 'act', 0));
-      return { val: y, y };
-    },
-  }),
   conv: (spec) => algebraic(spec, {
     equation: 'MACs=L_out·k·channels, L_out=⌊(8−k)/stride⌋+1',
     assumptions: 'Valid convolution of a length-8 input. No feature values are invented.',
@@ -286,31 +208,6 @@ export const BUILDERS_DISCRETE = {
       const out = Math.max(0, Math.floor((8 - k) / stride) + 1);
       const macs = out * k * ch;
       return { val: macs, macs };
-    },
-  }),
-  attention: (spec) => algebraic(spec, {
-    equation: 'softmax(q·k/√d_k)',
-    assumptions: 'Vaswani et al. 2017. Two tokens, scores √d_k and 0. Parameter count is heads·d_k.',
-    rows: [['w0', 'w0'], ['params', 'params']],
-    eval: (p) => {
-      const dk = Math.max(1, P(p, 'dk', 1));
-      const s0 = Math.sqrt(dk);
-      const e0 = Math.exp(s0 - s0);
-      const e1 = Math.exp(0 - s0);
-      const w0 = e0 / (e0 + e1);
-      const params = Math.max(1, Math.round(P(p, 'heads', 1))) * dk;
-      return { val: w0, w0, params };
-    },
-  }),
-  rl: (spec) => algebraic(spec, {
-    equation: 'V=1/(1−γ)',
-    assumptions: 'Sutton & Barto. One-state continuing task with reward 1. One TD step from 0 is the learning rate.',
-    rows: [['V', 'V'], ['td', 'td']],
-    eval: (p) => {
-      const gamma = clamp(P(p, 'gamma', 0.9), 0, 0.999999);
-      const V = 1 / (1 - gamma);
-      const td = P(p, 'lr', 0);
-      return { val: V, V, td };
     },
   }),
   'opt-algo': (spec) => algebraic(spec, {
@@ -377,48 +274,6 @@ export const BUILDERS_DISCRETE = {
       return { val: Math.log2(keyspace), shift: Math.round(keyspace) % 26, bits: Math.log2(keyspace) };
     },
   }),
-  'sym-enc': (spec) => algebraic(spec, {
-    equation: 'AES-128/192/256 rounds = keyBits/32+6',
-    assumptions: 'FIPS-197 round count only when the key size is 128, 192, or 256. Other sizes report 0. No ciphertext is produced. mode is ECB/CBC/CTR as an index.',
-    rows: [['rounds', 'rounds'], ['mode', 'mode']],
-    eval: (p) => {
-      const bits = Math.round(P(p, 'keyBits', 128));
-      const rounds = bits === 128 || bits === 192 || bits === 256 ? bits / 32 + 6 : 0;
-      return { val: rounds, rounds, mode: P(p, 'mode', 0) };
-    },
-  }),
-  pubkey: (spec) => algebraic(spec, {
-    equation: 'c=m^e mod n, toy primes',
-    assumptions: 'Classroom RSA toy only (not a secure key). Fixed constants: e=65537, plaintext m=42; primes = largest ≤2^k and next lower, k=clamp(bits/4,8,16). No padding, no CRT, no real entropy.',
-    rows: [['c', 'c'], ['n', 'n']],
-    eval: (p) => {
-      const bits = P(p, 'bits', 64);
-      const k = clamp(Math.round(bits / 4), 8, 16);
-      const hi = primeAtMost(2 ** k);
-      const lo = primeAtMost(hi - 1);
-      const n = hi * lo;
-      const c = modPow(42, 65537, n);
-      return { val: c, c, n };
-    },
-  }),
-  hash: (spec) => algebraic(spec, {
-    equation: 'FNV-1a 32-bit of len bytes 0x61',
-    assumptions: 'Not MD5 or SHA. Public-domain FNV-1a of a repeated letter.',
-    rows: [['h', 'h']],
-    eval: (p) => {
-      const h = fnv1a(P(p, 'len', 16), 0x61);
-      return { val: h, h };
-    },
-  }),
-  mac: (spec) => algebraic(spec, {
-    equation: 'FNV-1a tag of `msg` bytes set to key mod 256',
-    assumptions: 'A teaching tag, not HMAC. Katz & Lindell discuss MAC length; this readout is only the FNV tag.',
-    rows: [['tag', 'tag']],
-    eval: (p) => {
-      const tag = fnv1a(P(p, 'msg', 1), Math.round(P(p, 'key', 0)));
-      return { val: tag, tag };
-    },
-  }),
   'ecc-code': (spec) => algebraic(spec, {
     equation: 'Hamming n=2^m−1, m=K',
     assumptions: 'Binary Hamming code with m parity bits. The rate knob is compared with k/n, k=n−m.',
@@ -462,15 +317,6 @@ export const BUILDERS_DISCRETE = {
       return { val: eps, eps };
     },
   }),
-  sched: (spec) => algebraic(spec, {
-    equation: 'FCFS average wait, 4 jobs',
-    assumptions: 'Job i arrives at i·arrival and runs for `burst`. Silberschatz.',
-    rows: [['wait', 'wait']],
-    eval: (p) => {
-      const wait = E.fcfsWait(P(p, 'arrival', 0), P(p, 'burst', 1));
-      return { val: wait, wait };
-    },
-  }),
   mem: (spec) => algebraic(spec, {
     equation: 'compulsory faults = ⌈refs / page⌉',
     assumptions: 'One sequential pass. Each new page faults once. page is the page size in address units.',
@@ -510,28 +356,6 @@ export const BUILDERS_DISCRETE = {
     eval: (p) => {
       const rate = E.tcpMbps(P(p, 'bw', 1), P(p, 'rtt', 20), P(p, 'loss', 0));
       return { val: rate, rate };
-    },
-  }),
-  routing: (spec) => algebraic(spec, {
-    equation: 'Dijkstra distance (n−1)·cost',
-    assumptions: 'Path graph, every hop weighs `cost`. CLRS.',
-    rows: [['dist', 'dist']],
-    eval: (p) => {
-      const dist = E.dijkstraDist(P(p, 'n', 6), P(p, 'cost', 1));
-      return { val: dist, dist };
-    },
-  }),
-  queueing: (spec) => algebraic(spec, {
-    equation: 'L=ρ/(1−ρ), ρ=λ/μ',
-    assumptions: 'M/M/1, Gross & Harris. L is undefined for ρ≥1 and is reported as 0 with stable=0.',
-    rows: [['L', 'L'], ['ρ', 'rho'], ['stable', 'stable']],
-    eval: (p) => {
-      const lam = Math.max(0, P(p, 'lam', 0));
-      const mu = pos(P(p, 'mu', 1), 1e-12);
-      const rho = lam / mu;
-      const stable = rho < 1 ? 1 : 0;
-      const L = stable ? rho / (1 - rho) : 0;
-      return { val: L, L, rho, stable };
     },
   }),
   consensus: (spec) => algebraic(spec, {
@@ -628,16 +452,6 @@ export const BUILDERS_DISCRETE = {
       return { val: connections, connections };
     },
   }),
-  isa: (spec) => algebraic(spec, {
-    equation: 'cycles=nInst, CPI=1',
-    assumptions: 'Single-cycle RISC. Addressing-mode count is the addr knob and does not add cycles. Hennessy & Patterson.',
-    rows: [['cycles', 'cycles'], ['modes', 'modes']],
-    eval: (p) => ({
-      val: P(p, 'nInst', 0),
-      cycles: P(p, 'nInst', 0),
-      modes: P(p, 'addr', 0),
-    }),
-  }),
   datapath: (spec) => algebraic(spec, {
     equation: 'bits=width, controls=ctrl',
     assumptions: 'The datapath width and the control-signal count are the catalog inputs.',
@@ -648,25 +462,6 @@ export const BUILDERS_DISCRETE = {
       ctrl: P(p, 'ctrl', 0),
     }),
   }),
-  pipeline: (spec) => algebraic(spec, {
-    equation: 'CPI=1/issue, latency=stages',
-    assumptions: 'Ideal pipeline, no hazards. Hennessy & Patterson.',
-    rows: [['CPI', 'cpi'], ['latency', 'latency']],
-    eval: (p) => {
-      const issue = pos(P(p, 'issue', 1), 1e-9);
-      const latency = P(p, 'stages', 1);
-      return { val: 1 / issue, cpi: 1 / issue, latency };
-    },
-  }),
-  cache: (spec) => algebraic(spec, {
-    equation: 'LRU hit rate on a sequential scan',
-    assumptions: 'Hennessy & Patterson. Capacity, block, and associativity define the sets. The scan is at most 2048 references.',
-    rows: [['hit', 'hit']],
-    eval: (p) => {
-      const hit = E.cacheHitRate(P(p, 'cap', 16), P(p, 'block', 4), P(p, 'assoc', 1));
-      return { val: hit, hit };
-    },
-  }),
   vmem: (spec) => algebraic(spec, {
     equation: 'TLB reach=entries·page',
     assumptions: 'Hennessy & Patterson. page and tlb use the catalog units.',
@@ -674,25 +469,6 @@ export const BUILDERS_DISCRETE = {
     eval: (p) => {
       const reach = P(p, 'tlb', 0) * P(p, 'page', 0);
       return { val: reach, reach };
-    },
-  }),
-  branch: (spec) => algebraic(spec, {
-    equation: '2-bit counter mispredict rate',
-    assumptions: 'Smith 2-bit counters on 64 phase-shifted loops. hist is the taken-run length. A table smaller than 64 aliases PCs.',
-    rows: [['mis', 'mis']],
-    eval: (p) => {
-      const mis = E.branchMisrate(P(p, 'hist', 2), P(p, 'table', 64));
-      return { val: mis, mis };
-    },
-  }),
-  bus: (spec) => algebraic(spec, {
-    equation: 'share=bw/masters',
-    assumptions: 'Equal share of a stated bandwidth.',
-    rows: [['share', 'share']],
-    eval: (p) => {
-      const masters = pos(P(p, 'masters', 1), 1e-9);
-      const share = P(p, 'bw', 0) / masters;
-      return { val: share, share };
     },
   }),
   memhier: (spec) => algebraic(spec, {
@@ -738,17 +514,6 @@ export const BUILDERS_DISCRETE = {
       return { val: f, f };
     },
   }),
-  adc: (spec) => algebraic(spec, {
-    equation: 'SQNR=6.0206 N+1.7609 dB',
-    assumptions: 'Full-scale sine quantization. Nyquist frequency is fs/2. Oppenheim & Schafer.',
-    rows: [['SQNR', 'sqnr', 'dB'], ['f_N', 'fN', 'Hz']],
-    eval: (p) => {
-      const bits = P(p, 'bits', 8);
-      const sqnr = 6.0206 * bits + 1.7609;
-      const fN = P(p, 'fs', 0) / 2;
-      return { val: sqnr, sqnr, fN };
-    },
-  }),
   serial: (spec) => algebraic(spec, {
     equation: 'byte rate=baud/frame bits',
     assumptions: 'Frame 0 is 8N1 (10 bits), 1 is 8E1 (11), 2 is 8N2 (11), else 8E2 (12).',
@@ -760,16 +525,6 @@ export const BUILDERS_DISCRETE = {
       return { val: bps, bps, bits };
     },
   }),
-  dma: (spec) => algebraic(spec, {
-    equation: 'beats=size',
-    assumptions: 'One beat per unit of the size knob. prio is the channel priority.',
-    rows: [['beats', 'beats'], ['prio', 'prio']],
-    eval: (p) => ({
-      val: P(p, 'size', 0),
-      beats: P(p, 'size', 0),
-      prio: P(p, 'prio', 0),
-    }),
-  }),
   wdt: (spec) => algebraic(spec, {
     equation: 'timeout',
     assumptions: 'The timeout knob is the watchdog period. wake is the wake-source index.',
@@ -779,35 +534,6 @@ export const BUILDERS_DISCRETE = {
       timeout: P(p, 'timeout', 0),
       wake: P(p, 'wake', 0),
     }),
-  }),
-  rtsched: (spec) => algebraic(spec, {
-    equation: 'U=exec/period',
-    assumptions: 'One task. Liu & Layland: the task is schedulable when U≤1. RM and EDF agree for one task.',
-    rows: [['U', 'U'], ['ok', 'ok']],
-    eval: (p) => {
-      const U = P(p, 'exec', 0) / pos(P(p, 'period', 1), 1e-9);
-      return { val: U, U, ok: U <= 1 ? 1 : 0 };
-    },
-  }),
-  'irq-nest': (spec) => algebraic(spec, {
-    equation: 'depth=levels',
-    assumptions: 'Nesting depth is bounded by the priority-level count. rate is the interrupt rate.',
-    rows: [['depth', 'depth'], ['rate', 'rate']],
-    eval: (p) => ({
-      val: P(p, 'levels', 0),
-      depth: P(p, 'levels', 0),
-      rate: P(p, 'rate', 0),
-    }),
-  }),
-  'sample-quant': (spec) => algebraic(spec, {
-    equation: 'SQNR=6.0206 N+1.7609; Nyquist fs≥2 f0',
-    assumptions: 'Same sine quantization formula as the ADC. alias=1 when fs<2 f0.',
-    rows: [['SQNR', 'sqnr', 'dB'], ['alias', 'alias']],
-    eval: (p) => {
-      const sqnr = 6.0206 * P(p, 'N', 8) + 1.7609;
-      const alias = P(p, 'fs', 0) < 2 * P(p, 'f0', 0) ? 1 : 0;
-      return { val: sqnr, sqnr, alias };
-    },
   }),
   fft: (spec) => algebraic(spec, {
     equation: '|X[k0]|=(N/2)·cg, cg=1, 0.5, 0.54',
@@ -819,18 +545,6 @@ export const BUILDERS_DISCRETE = {
       const cg = win <= 0 ? 1 : win === 1 ? 0.5 : 0.54;
       const mag = (N / 2) * cg;
       return { val: mag, mag };
-    },
-  }),
-  filter: (spec) => algebraic(spec, {
-    equation: '|H(f)|=1/√(1+(f/fc)^{2n})',
-    assumptions: 'Analog Butterworth magnitude. Evaluated at f=min(0.45, 2 fc). Oppenheim & Schafer.',
-    rows: [['|H|', 'H']],
-    eval: (p) => {
-      const n = Math.max(1, Math.round(P(p, 'order', 1)));
-      const fc = pos(P(p, 'fc', 0.1), 1e-6);
-      const f = Math.min(0.45, 2 * fc);
-      const H = 1 / Math.sqrt(1 + (f / fc) ** (2 * n));
-      return { val: H, H };
     },
   }),
   mod: (spec) => algebraic(spec, {
@@ -873,15 +587,6 @@ export const BUILDERS_DISCRETE = {
       return { val: M, M };
     },
   }),
-  sync: (spec) => algebraic(spec, {
-    equation: 'τ=1/bw',
-    assumptions: 'First-order loop time constant. jitter is the supplied rms and is not converted into a variance model.',
-    rows: [['τ', 'tau'], ['jitter', 'jitter']],
-    eval: (p) => {
-      const tau = 1 / pos(P(p, 'bw', 0.01), 1e-9);
-      return { val: tau, tau, jitter: P(p, 'jitter', 0) };
-    },
-  }),
   'struct-dyn': (spec) => algebraic(spec, {
     equation: 'ωn=√(k/m), ζ=c/(2√(km))',
     assumptions: 'Viscously damped SDOF. Chopra / Hibbeler.',
@@ -893,12 +598,6 @@ export const BUILDERS_DISCRETE = {
     assumptions: 'Harmonic base acceleration at resonance. Not a design spectrum. Chopra.',
     rows: [['amp', 'amp']],
     eval: (p) => E.seismicEval(p),
-  }),
-  'pipe-flow': (spec) => algebraic(spec, {
-    equation: 'f=64/Re (laminar) or Swamee–Jain',
-    assumptions: 'Darcy friction factor. eps is relative roughness ε/D. Laminar below Re=2300.',
-    rows: [['f', 'f']],
-    eval: (p) => E.darcyEval(p),
   }),
   'open-channel': (spec) => algebraic(spec, {
     equation: 'y=(Q n / √S)^{3/5}',
@@ -912,41 +611,17 @@ export const BUILDERS_DISCRETE = {
     rows: [['Q', 'Q', 'm³/s']],
     eval: (p) => E.weirEval(p),
   }),
-  'pump-fan': (spec) => algebraic(spec, {
-    equation: 'Q/Qref=(rpm/1450)·units, H/Href=(rpm/1450)²',
-    assumptions: 'Affinity laws about 1450 rpm. Qref=1 per machine.',
-    rows: [['Q', 'Q'], ['H', 'H']],
-    eval: (p) => E.pumpEval(p),
-  }),
   hx: (spec) => algebraic(spec, {
     equation: 'UA=U A',
     assumptions: 'Terminal temperatures are not in the catalog, so LMTD is not invented. The conductance is UA.',
     rows: [['UA', 'UA', 'W/K']],
     eval: (p) => E.hxEval(p),
   }),
-  'conv-eng': (spec) => algebraic(spec, {
-    equation: 'q=h·1 K; Nu=0.664 Re^{1/2} Pr^{1/3}',
-    assumptions: 'Same Newton and Blasius relations as the convection family. Incropera.',
-    rows: [['q', 'q', 'W/m²'], ['h_Bl', 'hBl', 'W/(m²K)']],
-    eval: (p) => E.convEngEval(p),
-  }),
-  'rad-eng': (spec) => algebraic(spec, {
-    equation: 'q=ε σ T⁴, F12=1',
-    assumptions: 'Infinite parallel plates, view factor 1, enclosure at 0 K. Incropera.',
-    rows: [['q', 'q', 'W/m²']],
-    eval: (p) => E.radEngEval(p),
-  }),
   'thermo-cycle': (spec) => algebraic(spec, {
     equation: 'η=1−rp^{(1−γ)/γ}, rp=P/(1 bar), γ=1.4',
     assumptions: 'Ideal-gas Brayton. Fixed γ=1.4 (cold air); rp=P/(1 bar) with P_low=1 bar. γ is not a live knob (Çengel & Boles).',
     rows: [['η_B', 'etaB'], ['η_C', 'etaC']],
     eval: (p) => E.thermoCycleEval(p),
-  }),
-  combustion: (spec) => algebraic(spec, {
-    equation: 'excess air=1/φ−1',
-    assumptions: 'Turns. φ>1 is fuel-rich and the excess-air term is negative. T is the reactant temperature, not an adiabatic flame temperature.',
-    rows: [['φ', 'phi'], ['excess', 'excess']],
-    eval: (p) => E.combustionEval(p),
   }),
   'dc-motor': (spec) => algebraic(spec, {
     equation: 'ω=(V−TL Ra)/K, Ra=K=1',
@@ -965,12 +640,6 @@ export const BUILDERS_DISCRETE = {
     assumptions: 'Per-unit V=Xs=1 and Ea proportional to field current. Chapman.',
     rows: [['P', 'Ppu']],
     eval: (p) => E.motorSyncEval(p),
-  }),
-  transformer: (spec) => algebraic(spec, {
-    equation: 'V2/V1=1/a',
-    assumptions: 'Ideal transformer. load is the per-unit secondary current and does not change the voltage ratio.',
-    rows: [['V2/V1', 'ratio'], ['I_pu', 'Ipu']],
-    eval: (p) => E.transformerEval(p),
   }),
   pe: (spec) => algebraic(spec, {
     equation: 'Vout/Vin=D, Δi∝D(1−D)/fs',
@@ -996,36 +665,6 @@ export const BUILDERS_DISCRETE = {
     rows: [['P_pv', 'Ppv', 'W'], ['P_wind', 'Pwind', 'W']],
     eval: (p) => E.renewableEval(p),
   }),
-  storage: (spec) => algebraic(spec, {
-    equation: 'hours=E/P',
-    assumptions: 'E in kWh and P in kW, so the ratio is hours.',
-    rows: [['t', 'hours', 'h']],
-    eval: (p) => E.storageEval(p),
-  }),
-  reactor: (spec) => algebraic(spec, {
-    equation: 'X=kτ/(1+kτ), τ=V/v',
-    assumptions: 'Isothermal irreversible first-order reaction. Fogler. Xp is the PFR conversion.',
-    rows: [['X_cstr', 'Xc'], ['X_pfr', 'Xp']],
-    eval: (p) => E.cstrEval(p),
-  }),
-  distill: (spec) => algebraic(spec, {
-    equation: 'Nmin=ln[(xD/(1−xD))((1−xB)/xB)]/ln α',
-    assumptions: 'Fenske for α=2.5, xD=0.95, xB=0.05. feed/N is the relative feed location.',
-    rows: [['feed/N', 'feedFrac'], ['Nmin', 'Nmin']],
-    eval: (p) => E.fenskeEval(p),
-  }),
-  absorb: (spec) => algebraic(spec, {
-    equation: 'fraction=A/(1+A), A=L/G',
-    assumptions: 'Single equilibrium stage, equilibrium slope m=1. Temperature is recorded and does not change m.',
-    rows: [['abs', 'frac'], ['T', 'T', 'K']],
-    eval: (p) => E.absorbEval(p),
-  }),
-  extract: (spec) => algebraic(spec, {
-    equation: 'Kremser fraction (S^{N+1}−S)/(S^{N+1}−1)',
-    assumptions: 'Extraction factor S, distribution ratio 1. At S=1 the fraction is N/(N+1).',
-    rows: [['frac', 'frac']],
-    eval: (p) => E.extractEval(p),
-  }),
   hen: (spec) => algebraic(spec, {
     equation: 'UA=Q/ΔT_min',
     assumptions: 'Pinch conductance scale. Linnhoff. No stream set is invented.',
@@ -1043,11 +682,5 @@ export const BUILDERS_DISCRETE = {
     assumptions: 'Wen & Yu 1966. Air and sand ρs=2500 kg/m³. dp is in μm.',
     rows: [['Umf', 'Umf', 'm/s'], ['above', 'above']],
     eval: (p) => E.fluidbedEval(p),
-  }),
-  crystal: (spec) => algebraic(spec, {
-    equation: 'ln S',
-    assumptions: 'Supersaturation ratio. No nucleation prefactor. Mullin.',
-    rows: [['ln S', 'lnS'], ['T', 'T', 'K']],
-    eval: (p) => E.crystalEval(p),
   })
 };
