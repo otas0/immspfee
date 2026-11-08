@@ -2334,24 +2334,34 @@ function buildGauge(spec) {
     },
   };
   const preset = presets[spec.id];
+  // No decorative sine fallback — unnamed gauge shells were pruned.
+  // Prefer topicModel / a dedicated family builder over this path.
+  if (!preset?.step) {
+    return {
+      ...baseMeta(spec),
+      params: { speed: 1 },
+      paramSchema: { speed: schemaNum('动画速', 'dynamics', '—', 0.1, 8) },
+      init(state) { state.t = 0; state.val = 0; state.hist = []; state.err = 'gauge_unwired'; },
+      step(state, dt) { state.t += dt; },
+      draw(ctx, state, view) {
+        title(ctx, spec.name);
+        ctx.fillStyle = C.muted;
+        ctx.font = '12px IBM Plex Mono, monospace';
+        ctx.fillText('Unwired gauge family — remount on a topic/family engine', 16, 48);
+      },
+      getReadouts() {
+        return [{ label: 'status', value: 'unwired' }];
+      },
+      getTrajectory() { return []; },
+    };
+  }
   return {
     ...baseMeta(spec),
-    params: preset?.params || { amplitude: 1, offset: 0.5, phase: 0, speed: 1 },
-    paramSchema: preset?.schema || {
-      amplitude: schemaNum('振幅', 'dynamics', '—', 0, 20),
-      offset: schemaNum('偏置', 'dynamics', '—', -10, 10),
-      phase: schemaNum('相位', 'dynamics', 'rad', -6.28, 6.28),
-      speed: schemaNum('动画速', 'dynamics', '—', 0.1, 8),
-    },
+    params: preset.params,
+    paramSchema: preset.schema,
     init(state) { state.t = 0; state.val = 0; state.hist = []; },
     step(state, dt) {
-      if (preset?.step) {
-        preset.step(state, dt);
-      } else {
-        state.t += dt * P(state.params, 'speed', 1);
-        state.val = P(state.params, 'amplitude', 1) * Math.sin(state.t + P(state.params, 'phase', 0))
-          + P(state.params, 'offset', 0.5);
-      }
+      preset.step(state, dt);
       state.hist.push(state.val);
       if (state.hist.length > 160) state.hist.shift();
     },

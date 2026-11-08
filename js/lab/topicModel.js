@@ -5021,12 +5021,8 @@ export function buildTopicModel(spec) {
   if (!spec) return null;
   const over = overrideOptions(spec);
   if (over) return shell(spec, over);
-  const formula = String(spec.formula || '');
-  if (formula.includes('·')) {
-    const prefix = formula.split('·')[0].trim();
-    const topic = formula.split('·').slice(1).join('·').trim();
-    const fn = PREFIX[prefix];
-    if (fn) return fn(spec, topic);
-  }
+  // Course-style "学科 · 主题" PREFIX routing removed after the r### catalog prune
+  // (0 remaining PREFIX hits). keywordModel + familyFallback cover the completed set.
+  // PREFIX table is kept only for a few keywordModel / familyFallback aliases.
   return keywordModel(spec) || familyFallback(spec);
 }

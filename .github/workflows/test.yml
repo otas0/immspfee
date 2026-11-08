@@ -68,6 +68,9 @@ jobs:
       - name: models-en zero Han leakage
         run: node scripts/assert-models-en.mjs
 
+      - name: Forbid unfinished course-shell ids
+        run: npm run assert:no-course-ids
+
       - name: Lab poster — no sibling TE markers
         run: npm run sync:poster && npm run assert:poster
 

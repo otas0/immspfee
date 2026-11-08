@@ -5044,13 +5044,6 @@ function buildTopicModel(spec) {
   if (!spec) return null;
   const over = overrideOptions(spec);
   if (over) return shell(spec, over);
-  const formula = String(spec.formula || "");
-  if (formula.includes("\xB7")) {
-    const prefix = formula.split("\xB7")[0].trim();
-    const topic = formula.split("\xB7").slice(1).join("\xB7").trim();
-    const fn = PREFIX[prefix];
-    if (fn) return fn(spec, topic);
-  }
   return keywordModel(spec) || familyFallback(spec);
 }
 
@@ -10981,27 +10974,45 @@ function buildGauge(spec) {
     }
   };
   const preset = presets[spec.id];
+  if (!preset?.step) {
+    return {
+      ...baseMeta2(spec),
+      params: { speed: 1 },
+      paramSchema: { speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 8) },
+      init(state) {
+        state.t = 0;
+        state.val = 0;
+        state.hist = [];
+        state.err = "gauge_unwired";
+      },
+      step(state, dt) {
+        state.t += dt;
+      },
+      draw(ctx, state, view) {
+        title(ctx, spec.name);
+        ctx.fillStyle = C.muted;
+        ctx.font = "12px IBM Plex Mono, monospace";
+        ctx.fillText("Unwired gauge family \u2014 remount on a topic/family engine", 16, 48);
+      },
+      getReadouts() {
+        return [{ label: "status", value: "unwired" }];
+      },
+      getTrajectory() {
+        return [];
+      }
+    };
+  }
   return {
     ...baseMeta2(spec),
-    params: preset?.params || { amplitude: 1, offset: 0.5, phase: 0, speed: 1 },
-    paramSchema: preset?.schema || {
-      amplitude: schemaNum2("\u632F\u5E45", "dynamics", "\u2014", 0, 20),
-      offset: schemaNum2("\u504F\u7F6E", "dynamics", "\u2014", -10, 10),
-      phase: schemaNum2("\u76F8\u4F4D", "dynamics", "rad", -6.28, 6.28),
-      speed: schemaNum2("\u52A8\u753B\u901F", "dynamics", "\u2014", 0.1, 8)
-    },
+    params: preset.params,
+    paramSchema: preset.schema,
     init(state) {
       state.t = 0;
       state.val = 0;
       state.hist = [];
     },
     step(state, dt) {
-      if (preset?.step) {
-        preset.step(state, dt);
-      } else {
-        state.t += dt * P(state.params, "speed", 1);
-        state.val = P(state.params, "amplitude", 1) * Math.sin(state.t + P(state.params, "phase", 0)) + P(state.params, "offset", 0.5);
-      }
+      preset.step(state, dt);
       state.hist.push(state.val);
       if (state.hist.length > 160) state.hist.shift();
     },

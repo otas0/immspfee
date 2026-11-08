@@ -26,8 +26,20 @@ const STORAGE_KEY = 'immspfee-user-models-v1';
 /** 允许自建挂接的引擎族（有完整 factory builder） */
 const DEPRECATED_FAMILIES = new Set(Object.keys(templates.deprecatedFamilies || {}));
 
-export const USER_MODEL_FAMILIES = Object.keys(FAMILY_META).filter(
-  (k) => !['variant', 'hand'].includes(k) && !DEPRECATED_FAMILIES.has(k),
+/** Ban decorative/placeholder engines — custom models must mount a real topic family. */
+const BLOCKED_USER_FAMILIES = new Set(['variant', 'hand', 'gauge']);
+
+/**
+ * Verified whitelist: family must exist in FAMILY_META, not be blocked/deprecated,
+ * and appear on at least one completed catalog entry (see data/authority-templates
+ * `verifiedUserFamilies`, refreshed by scripts/sync-verified-families.mjs).
+ */
+const fromTemplates = Array.isArray(templates.verifiedUserFamilies)
+  ? templates.verifiedUserFamilies
+  : Object.keys(FAMILY_META);
+
+export const USER_MODEL_FAMILIES = fromTemplates.filter(
+  (k) => FAMILY_META[k] && !BLOCKED_USER_FAMILIES.has(k) && !DEPRECATED_FAMILIES.has(k),
 );
 
 export function loadUserSpecs() {

@@ -510,7 +510,7 @@
     "name": "偏振",
     "formula": "Malus 定律",
     "description": "偏振片、光强变化；调偏振角、偏振片数",
-    "family": "gauge",
+    "family": "interference",
     "authority": "Hecht, Optics, Malus 定律",
     "assumptions": "入射光已线偏振；理想偏振片；θ 为偏振方向夹角",
     "fidelity": "engineering"
@@ -534,7 +534,7 @@
     "name": "光电效应",
     "formula": "K_max=hf-W",
     "description": "光子、电子逸出、I-V 曲线；调频率、光强、逸出功",
-    "family": "gauge",
+    "family": "particles",
     "authority": "Einstein photoelectric equation; Halliday (K_max independent of intensity; yield ∝ I above threshold)",
     "assumptions": "hf and W both in eV; no space charge; R is a relative yield, not a calibrated current",
     "fidelity": "engineering"
@@ -594,7 +594,7 @@
     "name": "相对论时间膨胀",
     "formula": "Δt=γΔτ",
     "description": "双生子、时钟、速度；调速度、时间",
-    "family": "gauge",
+    "family": "ode1d",
     "authority": "French, Special Relativity, 或 Rindler；时间膨胀与长度收缩",
     "assumptions": "惯性系、β<1；质能用静止质量。双生子只给出 γ 时间比，不是广义相对论",
     "fidelity": "engineering"
@@ -1770,7 +1770,7 @@
     "name": "天线方向图",
     "formula": "阵列因子",
     "description": "极坐标辐射方向图、增益、波束宽度；调阵元间距、相位",
-    "family": "gauge",
+    "family": "field2d",
     "authority": "Balanis, Antenna Theory, 均匀直线阵",
     "assumptions": "等幅、均匀相位差",
     "fidelity": "engineering"
@@ -2454,7 +2454,7 @@
     "name": "线性变换（矩阵）",
     "formula": "x'=Ax",
     "description": "2D 向量/网格的拉伸/旋转/剪切；调 2×2 矩阵",
-    "family": "gauge",
+    "family": "discrete",
     "authority": "Strang, Introduction to Linear Algebra, 2×2",
     "assumptions": "实 2×2；PCA/SVD 此处给出协方差最大特征值，不是统计软件",
     "fidelity": "engineering"
@@ -2466,7 +2466,7 @@
     "name": "酸碱滴定曲线",
     "formula": "pH 突跃",
     "description": "pH 随滴定体积、突跃；调浓度、pKa",
-    "family": "gauge",
+    "family": "reactor",
     "authority": "Harris, Quantitative Chemical Analysis, 强酸强碱滴定",
     "assumptions": "等体积近似前的过量强酸；等当点附近需水平衡，此处只给等当点前一支",
     "fidelity": "principle"
@@ -2574,33 +2574,9 @@
     "name": "大气辐射平衡",
     "formula": "温室效应",
     "description": "太阳/地面辐射、温室效应；调反照率、CO₂",
-    "family": "gauge",
+    "family": "cycle",
     "authority": "Stefan–Boltzmann 定律；Rybicki & Lightman, Radiative Processes",
     "assumptions": "黑体、半球辐射出射度",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "经济与管理",
-    "sub": "微观",
-    "id": "supply-demand",
-    "name": "供需均衡",
-    "formula": "均衡价格",
-    "description": "供给/需求曲线、均衡价格；调弹性、冲击",
-    "family": "gauge",
-    "authority": "Varian, Intermediate Microeconomics, 线性供需",
-    "assumptions": "线性、竞争市场局部均衡",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "经济与管理",
-    "sub": "金融",
-    "id": "compound-growth",
-    "name": "复利/投资增长",
-    "formula": "A=P(1+r)^n",
-    "description": "本金增长曲线、不同利率对比；调利率、期数",
-    "family": "gauge",
-    "authority": "标准复利定义（离散年复利）",
-    "assumptions": "固定利率、无手续费",
     "fidelity": "engineering"
   },
   {

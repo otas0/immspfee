@@ -43,7 +43,7 @@ import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayo
 import { buildMicroscopeSolid, digitStrokes, condenserLensRadii, meshDynamicKey } from '../viz/microscopeMeshBuild.js';
 import { overlayCaptionPolicy, CAMERA_HOLD, VIEW_HOTKEYS, STAGE_CAPTURE_KEYS } from '../viz/microscopeWebgl.js';
 import { runModelContract } from './model-contract.js';
-import { validateUserModelDraft } from '../lab/userModels.js';
+import { validateUserModelDraft, USER_MODEL_FAMILIES } from '../lab/userModels.js';
 import { runLab12 } from './lab12.js';
 
 function almostEqual(a, b, relTol = 1e-3, absTol = 1e-6) {
@@ -684,7 +684,7 @@ export function runSuite() {
   // 目录规模 + live/reset 语义
   {
     // 每族×引擎仅 1 条；不再要求笛卡尔爆炸后的 ≥3000
-    assert('completed catalog size (hand+fam+named)', models.length >= 200 && models.length <= 500, `n=${models.length}`);
+    assert('completed catalog size (hand+fam+named)', models.length >= 200 && models.length <= 450, `n=${models.length}`);
     {
       const idsList = models.map((m) => m.id);
       const famIds = idsList.filter((id) => /^fam-.+-v\d+$/.test(id));
@@ -707,7 +707,9 @@ export function runSuite() {
     assert('free-fall fidelity engineering', ff?.fidelity === 'engineering', ff?.fidelity);
     const polGate = models.find((m) => m.id === 'polarization');
     assert('偏振不再是占位 deprecated', polGate && polGate.deprecated !== true && polGate.topicBound, String(polGate?.deprecated));
+    assert('偏振已离开 gauge family', polGate?.family === 'interference', polGate?.family);
     assert('偏振公式写的是 Malus', String(polGate?.formula || '').includes('cos'));
+    assert('自建白名单不含 gauge', !USER_MODEL_FAMILIES.includes('gauge'), USER_MODEL_FAMILIES.join(','));
 
     const kept = validateUserModelDraft({
       name: '有阻尼谐振子（工程）',
@@ -963,6 +965,41 @@ export function runSuite() {
         st.params.e = 0;
         model.step(st, 0);
         assert('fam-collision e 改变出射速度', !almostEqual(st.v2, 1, 1e-6, 1e-6), `v2=${st.v2}`);
+      }
+      {
+        // Hand projectile vs fam-projectile: same vacuum parabola at t=1 (substepped).
+        const { model: famModel, st: famSt } = boot('fam-projectile-v01', { g: 9.81, v0: 10, theta: 45, k: 0 });
+        const hand = models.find((m) => m.id === 'projectile');
+        const handSt = { params: { ...hand.params, g: 9.81, v0: 10, theta: 45, k: 0, m: 1, windX: 0, windY: 0, pauseOnLand: 0 } };
+        hand.init(handSt);
+        const dt = 1 / 60;
+        for (let i = 0; i < 60; i += 1) {
+          hand.step(handSt, dt);
+          famModel.step(famSt, dt);
+        }
+        const yVac = 10 * Math.sin(Math.PI / 4) - 0.5 * 9.81;
+        const xVac = 10 * Math.cos(Math.PI / 4);
+        // fam is analytic; hand is stepped ODE — allow integrator drift but keep same vacuum law.
+        assert('fam-projectile 真空解析', almostEqual(famSt.y, yVac, 1e-9, 1e-9) && almostEqual(famSt.x, xVac, 1e-9, 1e-9), `fam=(${famSt.x},${famSt.y})`);
+        assert('hand-projectile 真空近解析', almostEqual(handSt.y, yVac, 0.12, 0.12) && almostEqual(handSt.x, xVac, 0.12, 0.12), `hand=(${handSt.x},${handSt.y})`);
+        assert('hand/fam projectile 同号同量级', handSt.y > 1.5 && famSt.y > 1.5 && Math.abs(handSt.y - famSt.y) < 0.2, `Δy=${handSt.y - famSt.y}`);
+      }
+      {
+        // Hand 1D collision vs fam-collision: equal-mass elastic exchange (analytic).
+        const { st: famSt } = boot('fam-collision-v01', { e: 1, mRatio: 1, angle: 0 });
+        const hand = models.find((m) => m.id === 'collision');
+        const handSt = { params: { m1: 1, m2: 1, v1: 1, v2: 0, e: 1 } };
+        hand.init(handSt);
+        for (let i = 0; i < 8000 && handSt.collisionCount < 1; i += 1) hand.step(handSt, 1 / 240);
+        assert('hand collision 发生过碰撞', handSt.collisionCount >= 1, `n=${handSt.collisionCount}`);
+        assert(
+          'hand/fam collision 等质量弹性交换对照',
+          almostEqual(handSt.v1, 0, 1e-9, 1e-9)
+            && almostEqual(handSt.v2, 1, 1e-9, 1e-9)
+            && almostEqual(famSt.v1, 0, 1e-12, 1e-12)
+            && almostEqual(famSt.v2, 1, 1e-12, 1e-12),
+          `hand=${handSt.v1},${handSt.v2} fam=${famSt.v1},${famSt.v2}`,
+        );
       }
       {
         const { model, st } = boot('fam-sho-v01', { k: 5, m: 0.5, x0: -1 });

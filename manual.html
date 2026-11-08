@@ -70,7 +70,7 @@ const oil = stage.oilVisible() ? stage.getOilScreen() : null;</pre>
     <h2>0. 架构原则（统一接口 · Canvas）</h2>
     <div class="card">
       <ul class="muted">
-        <li>对齐 <strong>scikit-complexity</strong>：catalog 分类 + 同一套 Model API；可视化层用 Web/Canvas，不依赖 Python/Rerun。</li>
+        <li>对齐 <strong>scikit-complexity</strong>：catalog 分类 + 同一套 Model API；可视化层用 Web/Canvas，不依赖 Python/Rerun。Completed catalog is ~400 models (hand + famPhysics + topic-bound named demos); unfinished course-mass clones were removed.</li>
         <li>物理交互借鉴 <strong>PhET / oPhysics / SimuPhysics</strong>（拖物、读数对照、虚像虚线）。</li>
         <li>CS 步进/高亮借鉴 <strong>Algorithm Visualizer / eigenvue</strong> 思路（图算法点选连边、网表拖线）。</li>
         <li><strong>工业级硬规则</strong>：每个模型须有权威来源与适用假设、高自定义参数、无假数据；概念不符则修或下架。Catalog metadata may carry fidelity; stage UI does not paint ENGINEERING/assumption banners. See <a href="./docs/model-correctness.md">model-correctness</a> · <a href="./docs/ethics-audit.md">ethics</a> · <a href="./AGENTS.md">AGENTS.md</a>.</li>

@@ -18,10 +18,11 @@ export function stampEntry(entry) {
   const byId = ids[entry.id] || {};
   const depReason = deprecatedFamilies[entry.family];
   const next = { ...entry };
-  const staleAuth = !entry.authority || String(entry.authority).includes('占位量表');
-  const staleAsm = !entry.assumptions || String(entry.assumptions).includes('不保证与模型名称');
-  next.authority = staleAuth ? (byId.authority || fam.authority) : entry.authority;
-  next.assumptions = staleAsm ? (byId.assumptions || fam.assumptions) : entry.assumptions;
+  const staleAuth = !entry.authority || String(entry.authority).length < 8 || String(entry.authority).includes('占位量表');
+  const staleAsm = !entry.assumptions || String(entry.assumptions).length < 8 || String(entry.assumptions).includes('不保证与模型名称');
+  const pickLong = (a, b) => (a && String(a).length >= 8 ? a : b);
+  next.authority = staleAuth ? pickLong(byId.authority, fam.authority) : entry.authority;
+  next.assumptions = staleAsm ? pickLong(byId.assumptions, fam.assumptions) : entry.assumptions;
   next.fidelity = entry.fidelity || byId.fidelity || fam.fidelity || 'principle';
   if (depReason && entry.family !== 'hand') {
     next.deprecated = true;

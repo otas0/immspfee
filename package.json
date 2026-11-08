@@ -9,6 +9,8 @@
     "test": "npm run gen:glyphs && npm run build:bundle && node scripts/gen-equation-index.mjs && node scripts/run-tests.mjs",
     "test:pot": "node scripts/test-pot.mjs",
     "test:catalog": "node scripts/validate-catalog.mjs",
+    "assert:no-course-ids": "node scripts/assert-no-course-ids.mjs",
+    "sync:verified-families": "node scripts/sync-verified-families.mjs",
     "test:contract-browser": "node scripts/contract-browser.mjs",
     "test:narrow": "node scripts/narrow-regression.mjs",
     "//test:narrow": "Bohr EN timeout via NARROW_BOHR_MS (default 120000 in narrow-regression.mjs). Use test:narrow:bohr-slow for 180000.",

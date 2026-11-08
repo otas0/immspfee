@@ -2,7 +2,7 @@
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-otas0.github.io%2Fimmspfee-0B3D2E?logo=github)](https://otas0.github.io/immspfee/)
 
-Browser-based simulation workbench: **1500+ models** (hand-tuned + one engine entry per family; axis/presets live on the param bench, not as sidebar clones) · shared Model contract · Web/Canvas visuals · customizable parameter bench.
+Browser-based simulation workbench: **~400 completed models** (hand-tuned + famPhysics engines + topic-bound named demos; unfinished course clones removed) · shared Model contract · Web/Canvas visuals · customizable parameter bench.
 
 **Repo language:** English is the source of truth for README, docs, UI chrome defaults, commits, and new code comments. Locale packs (`zh` / `ja` / …) localize the running Lab; catalog source strings may still include Chinese titles until packs cover them.
 
