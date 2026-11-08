@@ -243,6 +243,21 @@ try {
     const minFps = Number(process.env.MICRO_CAMERA_FPS_MIN || 24);
     const hard = process.env.MICRO_CAMERA_FPS_HARD === '1'
       || (process.env.MICRO_CAMERA_FPS_HARD !== '0' && !process.env.CI);
+    try {
+      const outDir = path.join(root, 'artifacts');
+      fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(path.join(outDir, 'micro-fps390.json'), `${JSON.stringify({
+        at: new Date().toISOString(),
+        kind: 'fps390',
+        viewport: `${viewport.width}x${viewport.height}`,
+        fps: Number(fps.toFixed(2)),
+        minFps,
+        belowGate: !(fps > minFps),
+        asset: await page.evaluate(() => window.__LAB_ASSET_V || ''),
+      }, null, 2)}\n`);
+    } catch (err) {
+      console.warn('fps390 json write failed', err?.message || err);
+    }
     if (!(fps > minFps)) {
       const msg = `fps390 ${fps} ≤ ${minFps}`;
       if (hard) fail(msg);

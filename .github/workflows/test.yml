@@ -106,6 +106,13 @@ jobs:
       - name: Fam deep-link list + eq tag + lazy subs
         run: npm run test:fam-deeplink
 
+      - name: Sidebar sub close releases DOM
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts
+          npm run test:sidebar-sub-dom 2>&1 | tee artifacts/sidebar-sub-dom.log
+          echo "sidebar-sub-dom ok" >> artifacts/ci-summary.txt
+
       - name: Names-loading filters stay interactive
         run: npm run test:names-loading
 
@@ -280,6 +287,18 @@ jobs:
           set -o pipefail
           npm run test:micro-camera 2>&1 | tee artifacts/micro-camera.log
           echo "micro-camera ok" >> artifacts/ci-summary.txt
+          if [ -f artifacts/micro-fps390.json ]; then
+            if [ -f artifacts/micro-fps-cache/micro-fps390.json ]; then
+              cp -f artifacts/micro-fps-cache/micro-fps390.json artifacts/micro-fps390.prev.json
+            fi
+            npm run test:micro-fps-trend 2>&1 | tee -a artifacts/micro-camera.log || true
+            mkdir -p artifacts/micro-fps-cache
+            cp -f artifacts/micro-fps390.json artifacts/micro-fps-cache/micro-fps390.json
+            if [ -f artifacts/micro-fps-advisory.json ]; then
+              cp -f artifacts/micro-fps-advisory.json artifacts/micro-fps-cache/micro-fps-advisory.json
+            fi
+            echo "fps390 trend cached" >> artifacts/ci-summary.txt
+          fi
 
       - name: Short SHA for artifacts
         if: always()

@@ -72,6 +72,12 @@ const filterQ = document.getElementById('filter-q');
 const filterTag = document.getElementById('filter-tag');
 const filterFormalism = document.getElementById('filter-formalism');
 const filterHeavyBtn = document.getElementById('filter-heavy');
+const filterEqBtn = document.getElementById('filter-eq');
+
+function isEqWiredModel(m) {
+  if (!m) return false;
+  return !!(m.variantOf || m.governing || String(m.id || '').startsWith('fam-'));
+}
 const foldBarEl = document.getElementById('fold-bar');
 const btnUserModel = document.getElementById('btn-user-model');
 const userModelDialog = document.getElementById('user-model-dialog');
@@ -99,7 +105,7 @@ const app = {
   model: null,
   state: null,
   paused: false,
-  filter: { q: '', tag: '', formalism: '', heavy: false },
+  filter: { q: '', tag: '', formalism: '', heavy: false, eq: false },
   lastReadouts: [],
   globals: {
     timeScale: 1,
@@ -904,6 +910,7 @@ function filteredModels() {
         if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
         if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
         if (app.filter.heavy && !isHeavyModel(m.id)) return false;
+        if (app.filter.eq && !isEqWiredModel(m)) return false;
         return true;
       });
     }
@@ -913,6 +920,7 @@ function filteredModels() {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
     if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
     if (app.filter.heavy && !isHeavyModel(m.id)) return false;
+    if (app.filter.eq && !isEqWiredModel(m)) return false;
     if (!tokens.length) return true;
     const hay = `${m.name} ${m.id} ${m.sub || ''} ${m.formula || ''} ${(m.tags || []).join(' ')} ${m.description || ''} ${m.formalism || ''}`.toLowerCase();
     return tokens.some((t) => hay.includes(t));
@@ -931,7 +939,7 @@ function makeModelButton(raw) {
   if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
     .map((t) => `<span class="tag">${t}</span>`);
-  const wiredEq = !!(m.variantOf || String(m.id || '').startsWith('fam-') || m.governing);
+  const wiredEq = isEqWiredModel(m);
   if (wiredEq) {
     const hint = t('ui.eqTagHint');
     tags.unshift(
@@ -1061,13 +1069,14 @@ function paintSidebar() {
   modelListEl.innerHTML = '';
   const list = filteredModels();
   const folds = loadFolds();
-  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism || !!app.filter.heavy;
+  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism || !!app.filter.heavy || !!app.filter.eq;
   const countEl = document.createElement('div');
   countEl.className = 'filter-count';
   const parts = [];
   if (app.filter.tag) parts.push(`tag:${app.filter.tag}`);
   if (app.filter.formalism) parts.push(`form:${app.filter.formalism}`);
   if (app.filter.heavy) parts.push('heavy');
+  if (app.filter.eq) parts.push('eq');
   if (app.filter.q.trim()) parts.push(`q:${app.filter.q.trim()}`);
   const catalogTotal = domainIndex.length || models.length;
   countEl.textContent = parts.length
@@ -1085,16 +1094,18 @@ function paintSidebar() {
     showToast(msg);
   };
   countEl.addEventListener('click', () => {
-    if (app.filter.tag || app.filter.formalism || app.filter.heavy) {
+    if (app.filter.tag || app.filter.formalism || app.filter.heavy || app.filter.eq) {
       const keepQ = !!app.filter.q.trim();
       app.filter.tag = '';
       app.filter.formalism = '';
       app.filter.heavy = false;
+      app.filter.eq = false;
       if (filterTag) filterTag.value = '';
       if (filterFormalism) filterFormalism.value = '';
       syncHeavyFilterChip();
+      syncEqFilterChip();
       buildSidebar();
-      announce(keepQ ? '已清除 tag · form · heavy（再点清除搜索）' : '已清除 tag · form · heavy 筛选');
+      announce(keepQ ? '已清除 tag · form · heavy · eq（再点清除搜索）' : '已清除 tag · form · heavy · eq 筛选');
       return;
     }
     if (app.filter.q.trim()) {
@@ -1170,17 +1181,39 @@ function paintSidebar() {
     body.className = 'domain-body';
     const fillBody = () => {
       body.replaceChildren();
+      const q = app.filter.q.trim();
+      const activeId = app.model?.id;
+      // Search: open at most a few hit-heavy subs (not every matching sub at once).
+      const SEARCH_SUB_CAP = 4;
+      const rankedSubs = [...subMap.entries()]
+        .map(([sub, items]) => {
+          const nameHit = q && (sub === q || sub.toLowerCase().includes(q.toLowerCase()));
+          const hasActive = !!activeId && items.some((row) => row.id === activeId);
+          return {
+            sub,
+            items,
+            score: (nameHit ? 100 : 0) + (hasActive ? 50 : 0) + Math.min(20, items.length),
+          };
+        })
+        .sort((a, b) => b.score - a.score);
+      const searchOpen = new Set();
+      if (searching) {
+        for (const row of rankedSubs) {
+          const must = row.items.some((i) => i.id === activeId) || row.score >= 100;
+          if (must || searchOpen.size < SEARCH_SUB_CAP) searchOpen.add(row.sub);
+        }
+      }
       for (const [sub, items] of subMap) {
         const anyReady = items.some((row) => models.some((m) => m.id === row.id));
         if (!anyReady && !searching) continue;
         const subEl = document.createElement('details');
         subEl.className = 'sub-group';
         const sKey = foldKey(domain, sub);
-        // Deep-link focus writes explicit fold keys; otherwise stay collapsed.
-        const defaultOpen = searching;
-        const subWantOpen = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
+        // Deep-link focus writes explicit fold keys; search opens a capped set.
+        const subWantOpen = folds[sKey] != null
+          ? !!folds[sKey]
+          : (searching ? searchOpen.has(sub) : false);
         const subSum = document.createElement('summary');
-        const q = app.filter.q.trim();
         const hit = q && (sub === q || sub.toLowerCase() === q.toLowerCase());
         subSum.innerHTML = `<span class="sub-name${hit ? ' is-match' : ''}" data-sub="${sub}">${sub}</span><span class="sub-count">${items.length}</span>`;
         const subBody = document.createElement('div');
@@ -2100,7 +2133,7 @@ async function refreshSidebar(signal) {
       }
     }
     if (signal?.aborted) return;
-    if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
+    if (q || app.filter.tag || app.filter.formalism || app.filter.heavy || app.filter.eq) {
       try {
         await loadIndex(signal);
       } catch (err) {
@@ -2158,9 +2191,24 @@ function syncHeavyFilterChip() {
   filterHeavyBtn.setAttribute('aria-label', t('ui.perfHeavyFilterHint'));
 }
 
+function syncEqFilterChip() {
+  if (!filterEqBtn) return;
+  const on = !!app.filter.eq;
+  filterEqBtn.classList.toggle('is-active', on);
+  filterEqBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  filterEqBtn.textContent = t('ui.eqFilter');
+  filterEqBtn.setAttribute('aria-label', t('ui.eqFilterHint'));
+}
+
 filterHeavyBtn?.addEventListener('click', () => {
   app.filter.heavy = !app.filter.heavy;
   syncHeavyFilterChip();
+  void refreshSidebar();
+});
+
+filterEqBtn?.addEventListener('click', () => {
+  app.filter.eq = !app.filter.eq;
+  syncEqFilterChip();
   void refreshSidebar();
 });
 
@@ -2820,6 +2868,7 @@ async function boot() {
   populateTagFilter();
   populateFormalismFilter();
   syncHeavyFilterChip();
+  syncEqFilterChip();
   populateUserModelFamilies();
   bindUserModelUi();
   app.globals.powerSaver = powerSaverEnabled();

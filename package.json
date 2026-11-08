@@ -69,6 +69,7 @@
     "test:poster": "npm run sync:poster && npm run assert:poster && node scripts/poster-print.mjs",
     "poster:pdf": "npm run sync:poster && node scripts/poster-print.mjs --pdf",
     "test:sidebar-left": "node scripts/sidebar-left-probe.mjs",
+    "test:sidebar-sub-dom": "node scripts/sidebar-sub-dom-probe.mjs",
     "test:fam-deeplink": "node scripts/fam-deeplink-list.mjs"
   },
   "devDependencies": {

@@ -1662,6 +1662,8 @@ var STRINGS = {
     "ui.eqTag": "\u65B9\u7A0B",
     "ui.eqTagHint": "\u6559\u79D1\u4E66\u65B9\u7A0B\u5DF2\u63A5\u5165 \xB7 \u65CB\u94AE\u9A71\u52A8\u8BFB\u6570\u4E0E\u753B\u5E03",
     "ui.eqPrefix": "\u65B9\u7A0B",
+    "ui.eqFilter": "\u65B9\u7A0B",
+    "ui.eqFilterHint": "\u53EA\u663E\u793A\u5DF2\u63A5\u5165\u6559\u79D1\u4E66\u65B9\u7A0B\u7684\u6A21\u578B\uFF08fam / governing\uFF09",
     "ui.noMatch": "\u65E0\u5339\u914D",
     "ui.namesLoading": "\u52A0\u8F7D\u540D\u79F0",
     "ui.openMenu": "\u6253\u5F00\u6A21\u578B\u5217\u8868",
@@ -1823,6 +1825,8 @@ var STRINGS = {
     "ui.eqTag": "eq",
     "ui.eqTagHint": "Textbook equations wired \u2014 knobs drive readouts and canvas",
     "ui.eqPrefix": "Equation",
+    "ui.eqFilter": "eq",
+    "ui.eqFilterHint": "Show equation-wired models only (fam / governing)",
     "ui.noMatch": "no match",
     "ui.namesLoading": "loading names",
     "ui.openMenu": "Open model list",
@@ -1915,6 +1919,8 @@ var STRINGS = {
     "ui.eqTag": "\u65B9\u7A0B\u5F0F",
     "ui.eqTagHint": "\u6559\u79D1\u66F8\u306E\u65B9\u7A0B\u5F0F\u304C\u63A5\u7D9A\u6E08\u307F",
     "ui.eqPrefix": "\u65B9\u7A0B\u5F0F",
+    "ui.eqFilter": "\u65B9\u7A0B\u5F0F",
+    "ui.eqFilterHint": "\u6559\u79D1\u66F8\u65B9\u7A0B\u5F0F\u30E2\u30C7\u30EB\u306E\u307F",
     "ui.search": "\u691C\u7D22",
     "ui.searchPh": "\u5206\u985E / CS / CE / formula",
     "ui.tag": "\u30BF\u30B0",
@@ -2038,6 +2044,8 @@ var STRINGS = {
     "ui.eqTag": "\uBC29\uC815\uC2DD",
     "ui.eqTagHint": "\uAD50\uACFC\uC11C \uBC29\uC815\uC2DD \uC5F0\uACB0\uB428",
     "ui.eqPrefix": "\uBC29\uC815\uC2DD",
+    "ui.eqFilter": "\uBC29\uC815\uC2DD",
+    "ui.eqFilterHint": "\uAD50\uACFC\uC11C \uBC29\uC815\uC2DD \uBAA8\uB378\uB9CC",
     "ui.search": "\uAC80\uC0C9",
     "ui.searchPh": "\uBD84\uB958 / CS / CE / formula",
     "ui.tag": "\uD0DC\uADF8",
@@ -2161,6 +2169,8 @@ var STRINGS = {
     "ui.eqTag": "eq",
     "ui.eqTagHint": "Ecuaciones de libro conectadas",
     "ui.eqPrefix": "Ecuaci\xF3n",
+    "ui.eqFilter": "eq",
+    "ui.eqFilterHint": "Solo modelos con ecuaciones",
     "ui.search": "buscar",
     "ui.searchPh": "sub / CS / CE / formula",
     "ui.tag": "etiqueta",
@@ -2284,6 +2294,8 @@ var STRINGS = {
     "ui.eqTag": "\xE9q",
     "ui.eqTagHint": "\xC9quations de manuel branch\xE9es",
     "ui.eqPrefix": "\xC9quation",
+    "ui.eqFilter": "\xE9q",
+    "ui.eqFilterHint": "Mod\xE8les \xE0 \xE9quations seulement",
     "ui.search": "rechercher",
     "ui.searchPh": "sous / CS / CE / formula",
     "ui.tag": "\xE9tiquette",
@@ -2407,6 +2419,8 @@ var STRINGS = {
     "ui.eqTag": "Gl.",
     "ui.eqTagHint": "Lehrbuchgleichungen angebunden",
     "ui.eqPrefix": "Gleichung",
+    "ui.eqFilter": "Gl.",
+    "ui.eqFilterHint": "Nur Modelle mit Gleichungen",
     "ui.search": "Suche",
     "ui.searchPh": "Unter / CS / CE / formula",
     "ui.tag": "Tag",
@@ -5096,6 +5110,14 @@ var PHRASE_TABLE = [
   ["\u5149\u8F74\u3001\u7269/\u50CF\u3001\u4E09\u6761\u7279\u6B8A\u5149\u7EBF", "optical axis; object/image; three principal rays", "\u5149\u8EF8\u30FB\u7269\uFF0F\u50CF\u30FB3\u672C\u306E\u4E3B\u5149\u7DDA", "\uAD11\uCD95\xB7\uBB3C/\uC0C1\xB7\uC138 \uC8FC\uC694 \uAD11\uC120", "eje \xF3ptico; objeto/imagen; tres rayos", "axe optique; objet/image; trois rayons", "optische Achse; Gegenstand/Bild; drei Hauptstrahlen"],
   ["\u53CC\u7F1D\u3001\u5C4F\u5E55\u6761\u7EB9", "double slit; screen fringes", "\u4E8C\u91CD\u30B9\u30EA\u30C3\u30C8\u30FB\u30B9\u30AF\u30EA\u30FC\u30F3\u7E1E", "\uC774\uC911 \uC2AC\uB9BF\xB7\uC2A4\uD06C\uB9B0 \uBB34\uB2AC", "doble rendija; franjas", "double fente; franges", "Doppelspalt; Schirmstreifen"],
   ["\u7F51\u683C\u3001\u989C\u8272\u6620\u5C04\u3001\u6A21\u6001", "grid, colormap, modes", "\u683C\u5B50\u30FB\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7\u30FB\u30E2\u30FC\u30C9", "\uACA9\uC790, \uCEEC\uB7EC\uB9F5, \uBAA8\uB4DC", "malla, mapa de color, modos", "grille, carte de couleurs, modes", "Gitter, Farbkarte, Moden"],
+  ["\u7AD6\u76F4\u4E00\u7EF4\u3001\u5E38 g\u3001\u7EBF\u6027\u963B\u529B F=\u2212kv\uFF1B\u4E0D\u8BA1\u6D6E\u529B\u4E0E\u4E8C\u6B21\u963B\u529B", "vertical 1D, constant g, linear drag F=\u2212kv; neglect buoyancy and quadratic drag", "\u925B\u76F41\u6B21\u5143\u30FB\u4E00\u5B9Ag\u30FB\u7DDA\u5F62\u62B5\u6297F=\u2212kv\uFF1B\u6D6E\u529B\u3068\u4E8C\u6B21\u62B5\u6297\u306F\u7121\u8996", "\uC5F0\uC9C1 1\uCC28\uC6D0\xB7\uC0C1\uC218 g\xB7\uC120\uD615 \uC800\uD56D F=\u2212kv; \uBD80\uB825\xB7\uC774\uCC28 \uC800\uD56D \uBB34\uC2DC", "1D vertical, g constante, F=\u2212kv; sin flotaci\xF3n ni arrastre cuadr\xE1tico", "1D vertical, g constant, F=\u2212kv ; sans flottabilit\xE9 ni tra\xEEn\xE9e quadratique", "vertikal 1D, konstantes g, F=\u2212kv; ohne Auftrieb und quadratischen Widerstand"],
+  ["\u5300 g\u3001\u65E0\u7A7A\u6C14\u963B\u529B\uFF08\u516C\u5F0F\u5C42\uFF09\uFF1B\u5E73\u9762\u8FD0\u52A8\uFF1B\u843D\u5730\u505C\u6B62\u6309\u6A21\u578B\u9009\u9879", "uniform g, no air drag (formula layer); planar motion; ground stop per model options", "\u4E00\u5B9Ag\u30FB\u7A7A\u6C17\u62B5\u6297\u306A\u3057\uFF08\u516C\u5F0F\u5C64\uFF09\uFF1B\u5E73\u9762\u904B\u52D5\uFF1B\u7740\u5730\u505C\u6B62\u306F\u30E2\u30C7\u30EB\u8A2D\u5B9A\u306B\u3088\u308B", "\uC77C\uC815 g\xB7\uACF5\uAE30\uC800\uD56D \uC5C6\uC74C(\uACF5\uC2DD\uCE35); \uD3C9\uBA74 \uC6B4\uB3D9; \uCC29\uC9C0 \uC815\uC9C0\uB294 \uBAA8\uB378 \uC635\uC158", "g uniforme, sin resistencia (capa f\xF3rmula); movimiento plano; parada seg\xFAn opciones", "g uniforme, sans tra\xEEn\xE9e (couche formule) ; mouvement plan ; arr\xEAt selon options", "konstantes g, ohne Luftwiderstand (Formelschicht); ebene Bewegung; Stopp je nach Option"],
+  ["\u521A\u6027\u659C\u9762\u3001\u5E93\u4ED1\u6469\u64E6\u3001\u8D28\u70B9\uFF1Ba=g(sin\u03B8\u2212\u03BCcos\u03B8) \u5728\u4E0B\u6ED1\u65B9\u5411", "rigid incline, Coulomb friction, point mass; a=g(sin\u03B8\u2212\u03BCcos\u03B8) downslope", "\u525B\u306A\u659C\u9762\u30FB\u30AF\u30FC\u30ED\u30F3\u6469\u64E6\u30FB\u8CEA\u70B9\uFF1B\u4E0B\u308A\u65B9\u5411 a=g(sin\u03B8\u2212\u03BCcos\u03B8)", "\uAC15\uCCB4 \uBE57\uBA74\xB7\uCFE8\uB871 \uB9C8\uCC30\xB7\uC9C8\uC810; \uB0B4\uB9AC\uB9C9 a=g(sin\u03B8\u2212\u03BCcos\u03B8)", "plano r\xEDgido, fricci\xF3n de Coulomb, masa puntual; a=g(sin\u03B8\u2212\u03BCcos\u03B8) cuesta abajo", "plan rigide, frottement de Coulomb, masse ponctuelle ; a=g(sin\u03B8\u2212\u03BCcos\u03B8) vers le bas", "starre Ebene, Coulomb-Reibung, Punktmasse; a=g(sin\u03B8\u2212\u03BCcos\u03B8) hangabw\xE4rts"],
+  ["\u5E93\u4ED1\u6469\u64E6", "Coulomb friction", "\u30AF\u30FC\u30ED\u30F3\u6469\u64E6", "\uCFE8\uB871 \uB9C8\uCC30", "fricci\xF3n de Coulomb", "frottement de Coulomb", "Coulomb-Reibung"],
+  ["\u7EBF\u6027\u963B\u529B", "linear drag", "\u7DDA\u5F62\u62B5\u6297", "\uC120\uD615 \uC800\uD56D", "arrastre lineal", "tra\xEEn\xE9e lin\xE9aire", "linearer Widerstand"],
+  ["\u4E8C\u6B21\u963B\u529B", "quadratic drag", "\u4E8C\u6B21\u62B5\u6297", "\uC774\uCC28 \uC800\uD56D", "arrastre cuadr\xE1tico", "tra\xEEn\xE9e quadratique", "quadratischer Widerstand"],
+  ["\u5E73\u9762\u8FD0\u52A8", "planar motion", "\u5E73\u9762\u904B\u52D5", "\uD3C9\uBA74 \uC6B4\uB3D9", "movimiento plano", "mouvement plan", "ebene Bewegung"],
+  ["\u8D28\u70B9", "point mass", "\u8CEA\u70B9", "\uC9C8\uC810", "masa puntual", "masse ponctuelle", "Punktmasse"],
   ["\u659C\u9762\u6ED1\u52A8\u7269\u5757", "block sliding on an incline", "\u659C\u9762\u4E0A\u3092\u6ED1\u308B\u7269\u4F53", "\uBE57\uBA74\uC5D0\uC11C \uBBF8\uB044\uB7EC\uC9C0\uB294 \uBB3C\uCCB4", "bloque que desliza en un plano", "bloc glissant sur un plan", "Block auf schiefer Ebene"],
   ["\u5C0F\u7403\u3001\u5730\u9762\u3001\u901F\u5EA6\u77E2\u91CF", "ball, ground, velocity vector", "\u5C0F\u7403\u30FB\u5730\u9762\u30FB\u901F\u5EA6\u30D9\u30AF\u30C8\u30EB", "\uC791\uC740 \uACF5, \uC9C0\uBA74, \uC18D\uB3C4 \uBCA1\uD130", "bola, suelo, vector velocidad", "bille, sol, vecteur vitesse", "Kugel, Boden, Geschwindigkeitsvektor"],
   ["\u8C03 g\u3001\u521D\u9AD8\u5EA6\u3001\u7A7A\u6C14\u963B\u529B", "tune g, initial height, air drag", "g\u30FB\u521D\u671F\u9AD8\u3055\u30FB\u7A7A\u6C17\u62B5\u6297\u3092\u8ABF\u6574", "g\xB7\uCD08\uAE30 \uB192\uC774\xB7\uACF5\uAE30\uC800\uD56D \uC870\uC808", "ajustar g, altura inicial, resistencia", "r\xE9gler g, hauteur initiale, tra\xEEn\xE9e", "g, Anfangsh\xF6he, Luftwiderstand einstellen"],
@@ -6380,6 +6402,11 @@ var filterQ = document.getElementById("filter-q");
 var filterTag = document.getElementById("filter-tag");
 var filterFormalism = document.getElementById("filter-formalism");
 var filterHeavyBtn = document.getElementById("filter-heavy");
+var filterEqBtn = document.getElementById("filter-eq");
+function isEqWiredModel(m) {
+  if (!m) return false;
+  return !!(m.variantOf || m.governing || String(m.id || "").startsWith("fam-"));
+}
 var foldBarEl = document.getElementById("fold-bar");
 var btnUserModel = document.getElementById("btn-user-model");
 var userModelDialog = document.getElementById("user-model-dialog");
@@ -6405,7 +6432,7 @@ var app = {
   model: null,
   state: null,
   paused: false,
-  filter: { q: "", tag: "", formalism: "", heavy: false },
+  filter: { q: "", tag: "", formalism: "", heavy: false, eq: false },
   lastReadouts: [],
   globals: {
     timeScale: 1,
@@ -7174,6 +7201,7 @@ function filteredModels() {
         if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
         if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
         if (app.filter.heavy && !isHeavyModel(m.id)) return false;
+        if (app.filter.eq && !isEqWiredModel(m)) return false;
         return true;
       });
     }
@@ -7183,6 +7211,7 @@ function filteredModels() {
     if (app.filter.tag && !(m.tags || []).includes(app.filter.tag)) return false;
     if (app.filter.formalism && formalismFor(m) !== app.filter.formalism) return false;
     if (app.filter.heavy && !isHeavyModel(m.id)) return false;
+    if (app.filter.eq && !isEqWiredModel(m)) return false;
     if (!tokens.length) return true;
     const hay = `${m.name} ${m.id} ${m.sub || ""} ${m.formula || ""} ${(m.tags || []).join(" ")} ${m.description || ""} ${m.formalism || ""}`.toLowerCase();
     return tokens.some((t2) => hay.includes(t2));
@@ -7199,7 +7228,7 @@ function makeModelButton(raw) {
   if (heavy) btn.dataset.perfClass = "heavy";
   if (active) btn.setAttribute("aria-current", "page");
   const tags = (m.tags || []).filter((t2) => !DOMAIN_ORDER.includes(t2)).slice(0, 2).map((t2) => `<span class="tag">${t2}</span>`);
-  const wiredEq = !!(m.variantOf || String(m.id || "").startsWith("fam-") || m.governing);
+  const wiredEq = isEqWiredModel(m);
   if (wiredEq) {
     const hint = t("ui.eqTagHint");
     tags.unshift(
@@ -7310,13 +7339,14 @@ function paintSidebar() {
   modelListEl.innerHTML = "";
   const list = filteredModels();
   const folds = loadFolds();
-  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism || !!app.filter.heavy;
+  const searching = !!app.filter.q.trim() || !!app.filter.tag || !!app.filter.formalism || !!app.filter.heavy || !!app.filter.eq;
   const countEl = document.createElement("div");
   countEl.className = "filter-count";
   const parts = [];
   if (app.filter.tag) parts.push(`tag:${app.filter.tag}`);
   if (app.filter.formalism) parts.push(`form:${app.filter.formalism}`);
   if (app.filter.heavy) parts.push("heavy");
+  if (app.filter.eq) parts.push("eq");
   if (app.filter.q.trim()) parts.push(`q:${app.filter.q.trim()}`);
   const catalogTotal = domainIndex.length || models.length;
   countEl.textContent = parts.length ? `\u7B5B\u9009 ${list.length} / ${catalogTotal} \xB7 ${parts.join(" \xB7 ")}` : `\u5168\u90E8 ${catalogTotal} \u6A21\u578B`;
@@ -7329,16 +7359,18 @@ function paintSidebar() {
     showToast(msg);
   };
   countEl.addEventListener("click", () => {
-    if (app.filter.tag || app.filter.formalism || app.filter.heavy) {
+    if (app.filter.tag || app.filter.formalism || app.filter.heavy || app.filter.eq) {
       const keepQ = !!app.filter.q.trim();
       app.filter.tag = "";
       app.filter.formalism = "";
       app.filter.heavy = false;
+      app.filter.eq = false;
       if (filterTag) filterTag.value = "";
       if (filterFormalism) filterFormalism.value = "";
       syncHeavyFilterChip();
+      syncEqFilterChip();
       buildSidebar();
-      announce(keepQ ? "\u5DF2\u6E05\u9664 tag \xB7 form \xB7 heavy\uFF08\u518D\u70B9\u6E05\u9664\u641C\u7D22\uFF09" : "\u5DF2\u6E05\u9664 tag \xB7 form \xB7 heavy \u7B5B\u9009");
+      announce(keepQ ? "\u5DF2\u6E05\u9664 tag \xB7 form \xB7 heavy \xB7 eq\uFF08\u518D\u70B9\u6E05\u9664\u641C\u7D22\uFF09" : "\u5DF2\u6E05\u9664 tag \xB7 form \xB7 heavy \xB7 eq \u7B5B\u9009");
       return;
     }
     if (app.filter.q.trim()) {
@@ -7409,16 +7441,33 @@ function paintSidebar() {
     body.className = "domain-body";
     const fillBody = () => {
       body.replaceChildren();
+      const q = app.filter.q.trim();
+      const activeId = app.model?.id;
+      const SEARCH_SUB_CAP = 4;
+      const rankedSubs = [...subMap.entries()].map(([sub, items]) => {
+        const nameHit = q && (sub === q || sub.toLowerCase().includes(q.toLowerCase()));
+        const hasActive = !!activeId && items.some((row) => row.id === activeId);
+        return {
+          sub,
+          items,
+          score: (nameHit ? 100 : 0) + (hasActive ? 50 : 0) + Math.min(20, items.length)
+        };
+      }).sort((a, b) => b.score - a.score);
+      const searchOpen = /* @__PURE__ */ new Set();
+      if (searching) {
+        for (const row of rankedSubs) {
+          const must = row.items.some((i) => i.id === activeId) || row.score >= 100;
+          if (must || searchOpen.size < SEARCH_SUB_CAP) searchOpen.add(row.sub);
+        }
+      }
       for (const [sub, items] of subMap) {
         const anyReady = items.some((row) => models.some((m) => m.id === row.id));
         if (!anyReady && !searching) continue;
         const subEl = document.createElement("details");
         subEl.className = "sub-group";
         const sKey = foldKey(domain, sub);
-        const defaultOpen = searching;
-        const subWantOpen = folds[sKey] != null ? !!folds[sKey] : defaultOpen;
+        const subWantOpen = folds[sKey] != null ? !!folds[sKey] : searching ? searchOpen.has(sub) : false;
         const subSum = document.createElement("summary");
-        const q = app.filter.q.trim();
         const hit = q && (sub === q || sub.toLowerCase() === q.toLowerCase());
         subSum.innerHTML = `<span class="sub-name${hit ? " is-match" : ""}" data-sub="${sub}">${sub}</span><span class="sub-count">${items.length}</span>`;
         const subBody = document.createElement("div");
@@ -8286,7 +8335,7 @@ async function refreshSidebar(signal) {
       }
     }
     if (signal?.aborted) return;
-    if (q || app.filter.tag || app.filter.formalism || app.filter.heavy) {
+    if (q || app.filter.tag || app.filter.formalism || app.filter.heavy || app.filter.eq) {
       try {
         await loadIndex(signal);
       } catch (err) {
@@ -8339,9 +8388,22 @@ function syncHeavyFilterChip() {
   filterHeavyBtn.textContent = t("ui.perfHeavyFilter");
   filterHeavyBtn.setAttribute("aria-label", t("ui.perfHeavyFilterHint"));
 }
+function syncEqFilterChip() {
+  if (!filterEqBtn) return;
+  const on = !!app.filter.eq;
+  filterEqBtn.classList.toggle("is-active", on);
+  filterEqBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  filterEqBtn.textContent = t("ui.eqFilter");
+  filterEqBtn.setAttribute("aria-label", t("ui.eqFilterHint"));
+}
 filterHeavyBtn?.addEventListener("click", () => {
   app.filter.heavy = !app.filter.heavy;
   syncHeavyFilterChip();
+  void refreshSidebar();
+});
+filterEqBtn?.addEventListener("click", () => {
+  app.filter.eq = !app.filter.eq;
+  syncEqFilterChip();
   void refreshSidebar();
 });
 btnHc?.addEventListener("click", (e) => {
@@ -8988,6 +9050,7 @@ async function boot() {
   populateTagFilter();
   populateFormalismFilter();
   syncHeavyFilterChip();
+  syncEqFilterChip();
   populateUserModelFamilies();
   bindUserModelUi();
   app.globals.powerSaver = powerSaverEnabled();
