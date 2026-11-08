@@ -256,7 +256,7 @@ try {
   });
 
   // REQUIRED gate — Bohr narrow deep-link: EN title + formula, no PAGE CRASH, drawer closed.
-  const bohrId = 'r018-玻尔模型';
+  const bohrId = 'bohr';
   let bohrCrashed = false;
   page.on('crash', () => { bohrCrashed = true; });
   await page.goto(

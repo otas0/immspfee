@@ -19,8 +19,8 @@ fs.mkdirSync(shots, { recursive: true });
 const base = process.env.LAB_URL || 'http://127.0.0.1:8765/';
 
 const layout = [
-  ['r018-玻尔模型', 'narrow-bohr-closed.png'],
-  ['r003-爆炸反冲', 'narrow-recoil-closed.png'],
+  ['bohr', 'narrow-bohr-closed.png'],
+  ['fam-collision-v01', 'narrow-recoil-closed.png'],
   ['neutron-diffusion', 'narrow-neutron-closed.png'],
 ];
 
@@ -61,7 +61,7 @@ async function openModel(id) {
   currentModelId = id;
   // Bohr EN packs + factory chunk can stall on slow CI / cold SW; give them headroom.
   // Override: NARROW_BOHR_MS=180000 npm run test:narrow
-  const slowEn = id === 'r018-玻尔模型';
+  const slowEn = id === 'bohr';
   const bohrMs = Number(process.env.NARROW_BOHR_MS || 120000);
   const bootMs = slowEn ? Math.max(90000, Math.floor(bohrMs * 0.75)) : 60000;
   const modelMs = slowEn ? bohrMs : 60000;
@@ -102,7 +102,7 @@ for (const [id, file] of layout) {
       failures.push(`lang=en formula Han/race on ${id}: ${JSON.stringify(formula)}`);
     }
   }
-  if (id === 'r018-玻尔模型') {
+  if (id === 'bohr') {
     const title = await page.evaluate(() => document.getElementById('toolbar-title')?.textContent || '');
     if (title !== 'Bohr Model') {
       failures.push(`${id}: EN title race ${JSON.stringify(title)}`);
@@ -153,9 +153,8 @@ for (const [id, file] of layout) {
   if (info.canvas && (info.canvas.w > 2400 || info.canvas.h > 3200)) {
     failures.push(`${id}: canvas oversized ${JSON.stringify(info.canvas)}`);
   }
-  if (id === 'r018-玻尔模型') {
-    const blob = info.texts.join('\n');
-    if (!info.texts.some((s) => s.includes('n=')) || !blob.includes('轨道 r∝n²')) {
+  if (id === 'bohr') {
+    if (!info.texts.some((s) => s.includes('n='))) {
       failures.push(`${id}: canvas missing level labels (n=${info.texts.length} sample=${info.texts.slice(0, 12).join(' | ')})`);
     }
   }
@@ -176,7 +175,7 @@ for (const [id, file] of layout) {
 // Caveats stay in catalog metadata only — not asserted on the model-shell stage.
 
 await page.setViewportSize({ width: 390, height: 844 });
-await openModel('r018-玻尔模型');
+await openModel('bohr');
 // Boot may already open the mobile drawer when focusing the active row — only open if closed.
 await page.evaluate(() => document.getElementById('btn-menu')?.click());
 await page.waitForFunction(() => {

@@ -8,7 +8,7 @@ import {
 } from "./chunk-chunk-EW7TY4D2.js";
 import {
   mobileBudget
-} from "./chunk-chunk-6F5B3IST.js";
+} from "./chunk-chunk-ZIYIE64H.js";
 import "./chunk-chunk-KX6VIJEB.js";
 
 // js/viz/microscopeLayout.js

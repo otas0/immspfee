@@ -14,7 +14,7 @@ var HEAVY_MODEL_IDS = /* @__PURE__ */ new Set([
   "rossler",
   "ideal-gas",
   "entropy-mix",
-  "r018-\u73BB\u5C14\u6A21\u578B"
+  "bohr"
 ]);
 var POWER_SAVER_KEY = "physics-lab-power-saver";
 function powerSaverEnabled() {

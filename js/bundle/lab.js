@@ -1182,7 +1182,7 @@ var PARAM_SCHEMA = {
 };
 
 
-/* inlined chunk-chunk-6F5B3IST.js */
+/* inlined chunk-chunk-ZIYIE64H.js */
 // js/utils/mobilePerf.js
 var HEAVY_MODEL_IDS = /* @__PURE__ */ new Set([
   "mandelbrot-julia",
@@ -1199,7 +1199,7 @@ var HEAVY_MODEL_IDS = /* @__PURE__ */ new Set([
   "rossler",
   "ideal-gas",
   "entropy-mix",
-  "r018-\u73BB\u5C14\u6A21\u578B"
+  "bohr"
 ]);
 var POWER_SAVER_KEY = "physics-lab-power-saver";
 function powerSaverEnabled() {
@@ -1355,7 +1355,7 @@ var __export = (target, all) => {
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
-/* static chunk inlined: chunk-chunk-6F5B3IST.js */
+/* static chunk inlined: chunk-chunk-ZIYIE64H.js */
 /* static chunk inlined: chunk-chunk-KX6VIJEB.js */
 // js/models/freeFall.js
 var freeFall_default = {
@@ -1561,7 +1561,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-NAVZ22F7.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-YCGALCLC.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3470,7 +3470,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-OLJ46ZHM.js").then((mod) => {
+    handsPending = import("./chunk-handModels-KXUE7I4C.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -7828,7 +7828,7 @@ function updateHud(opts = {}) {
 var webglCreatePromise = null;
 function loadMicroscopeWebgl() {
   if (!webglCreatePromise) {
-    webglCreatePromise = import("./chunk-microscopeWebgl-TDPHDHJ2.js").then((mod) => mod.createMicroscopeWebgl);
+    webglCreatePromise = import("./chunk-microscopeWebgl-4UXH2FZD.js").then((mod) => mod.createMicroscopeWebgl);
   }
   return webglCreatePromise;
 }
@@ -9265,4 +9265,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-NAVZ22F7.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-YCGALCLC.js");

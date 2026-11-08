@@ -16,7 +16,7 @@ Same optics engine (`js/models/microscopeOptics.js` · Hecht finite tube · Abbe
                 ◀──exit──  Back to catalog (expand 物理/光学 · highlight r016)
 
 ┌──────────────────── Dedicated shell (lab-microscope3d) ───────────────┐
-│  IMMSPFEE brand row · Back to catalog only (no 1517 shell list)       │
+│  IMMSPFEE brand row · Back to catalog only (no full catalog list)     │
 │  ┌──────────────────────────────────────────┬───────────────────────┐ │
 │  │  WebGL structure (orbit + turret hits)   │  Optical rail         │ │
 │  │  drag orbit · wheel zoom                 │  objective / eyepiece │ │

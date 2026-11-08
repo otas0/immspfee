@@ -24,7 +24,7 @@ const HAND_EN = {
   wave: { name: 'Transverse wave', description: 'String wave y_tt=c² y_xx; length sets the grid spacing dx=L/(N+1)' },
   'double-pendulum': { name: 'Double pendulum', description: 'Two-link pendulum from the Lagrangian; chaotic sensitivity to the initial angles' },
   photoelectric: { name: 'Photoelectric effect', description: 'Einstein: K_max=max(0, hf−W) in eV; yield tracks intensity, not K_max' },
-  bohr: { name: 'Bohr model', description: 'Hydrogen Bohr levels E_n=−13.6 eV/n²' },
+  bohr: { name: 'Bohr Model', description: 'Bohr hydrogen levels E_n=−13.6 eV/n²' },
   sorting: { name: 'Sorting', description: 'Bubble, insertion, and quicksort with compare/swap highlights' },
   'pid-tune': { name: 'PID tuning', description: 'Second-order plant ÿ+2ζωnẏ+ωn²y=Kωn²u with ideal PID; OS%, ts, IAE' },
   'beam-sfd-bmd': { name: 'Beam SFD/BMD', description: 'Shear and bending diagrams' },

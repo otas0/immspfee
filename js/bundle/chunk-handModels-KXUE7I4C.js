@@ -29,7 +29,7 @@ import {
 import {
   mobileBudget,
   perfClassFor
-} from "./chunk-chunk-6F5B3IST.js";
+} from "./chunk-chunk-ZIYIE64H.js";
 import "./chunk-chunk-KX6VIJEB.js";
 
 // js/models/projectile.js

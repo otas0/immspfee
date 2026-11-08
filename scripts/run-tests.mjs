@@ -17,6 +17,10 @@ if (!indexHtml.includes('course u = 1.950') || !indexHtml.includes('overshoot = 
   console.error('equation-index.html is missing the locked PID numbers');
   process.exit(1);
 }
+if (!indexHtml.includes('Handwritten completed models')) {
+  console.error('equation-index.html should describe completed handwritten models (course dump pruned)');
+  process.exit(1);
+}
 {
   const topicSrc = fs.readFileSync(path.join(repo, 'js/lab/topicModel.js'), 'utf8');
   const sliceFn = (name) => {

@@ -19,7 +19,7 @@ export const HEAVY_MODEL_IDS = new Set([
   'rossler',
   'ideal-gas',
   'entropy-mix',
-  'r018-玻尔模型',
+  'bohr',
 ]);
 
 const POWER_SAVER_KEY = 'physics-lab-power-saver';

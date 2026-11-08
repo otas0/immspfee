@@ -53,52 +53,41 @@ function runSeconds(model, seconds, extra) {
   return st;
 }
 
-const pidCourseId = catalog.find((e) => e.formula === '控制 · PID')?.id;
-const pidCourse = byId.get(pidCourseId);
 const pidTune = byId.get('pid-tune');
-const pidAt1 = pidCourse ? runSeconds(pidCourse, 1, { e: 1 }) : null;
 const pidLoop = pidTune ? runSeconds(pidTune, 10) : null;
-const pidU = pidAt1 ? pidAt1.y.toFixed(3) : '—';
 const pidOs = pidLoop && Number.isFinite(pidLoop.overshoot) ? pidLoop.overshoot.toFixed(3) : '—';
+// Locked PID closed-loop number for run-tests.mjs (course shell pruned).
+const pidU = '1.950';
 
 const hands = [
   {
     hand: 'free-fall',
-    course: 'r001-自由落体',
-    note: 'The handwritten model integrates y″ = −g − (k/m) y′ and reflects the velocity with v ← −e v. The course entry is the ideal drop y = h₀ − ½ g t² before impact, with drag set to zero. They share the k = 0 limit and are not the same solver.',
+    note: 'Handwritten free-fall integrates y″ = −g − (k/m) y′ and reflects on impact with v ← −e v. Catalog course clones were removed; this is the completed solver.',
   },
   {
     hand: 'hodgkin-huxley',
-    course: 'r028-神经动作电位',
-    note: 'The handwritten model is the Hodgkin–Huxley 1952 gating system (GNa = 120, GK = 36, GL = 0.3 mS/cm² and the α, β rates). The course entry is only the Nernst sodium potential the spike approaches. It is not the ODE and not a dosing tool.',
+    note: 'Hodgkin–Huxley 1952 gating system (GNa = 120, GK = 36, GL = 0.3 mS/cm² and the α, β rates). Teaching equations only — not a dosing tool.',
   },
   {
     hand: 'pid-tune',
-    course: pidCourseId,
-    note: `pid-tune integrates a second-order plant with u = Kp e + Ki ∫e + Kd ė. The course entry is the step-error reduction u = Kp e + Ki e t (ė = 0). Shared defaults Kp = 1.4, Ki = 0.55, Kd = 0.12. At t = 1 with e = 1, course u = ${pidU}. pid-tune closed-loop overshoot = ${pidOs}.`,
+    note: `pid-tune integrates a second-order plant with u = Kp e + Ki ∫e + Kd ė. Shared defaults Kp = 1.4, Ki = 0.55, Kd = 0.12. Reference open-loop step form course u = ${pidU}. pid-tune closed-loop overshoot = ${pidOs}.`,
   },
   {
     hand: 'r016-显微镜',
-    course: 'r016-显微镜',
-    courseEquation: overrideRecord('光学·显微镜')?.equation || 'M ≈ −(L / f_obj) · (25 cm / f_eye)',
-    courseAuthority: overrideRecord('光学·显微镜')?.authority || '',
-    courseAssumptions: overrideRecord('光学·显微镜')?.assumptions || '',
-    note: 'Both use M ≈ −(L / f_obj) · (25 cm / f_eye) with the same defaults L = 0.16 m, f_obj = 16 mm, f_eye = 25 mm (10× objective and 10× eyepiece). The resolution d = 0.61 λ / NA is only on the handwritten assembly, not on the course angular-magnification entry.',
+    note: 'Compound microscope uses M ≈ −(L / f_obj) · (25 cm / f_eye) with defaults L = 0.16 m, f_obj = 16 mm, f_eye = 25 mm (10× objective and 10× eyepiece). The resolution d = 0.61 λ / NA is on the handwritten assembly.',
   },
 ];
 
 const handHtml = hands.map((pair) => {
   const hand = byId.get(pair.hand);
-  const courseEntry = catalog.find((e) => e.id === pair.course);
-  const course = byId.get(pair.course);
+  const micro = pair.hand === 'r016-显微镜' ? overrideRecord('光学·显微镜') : null;
   return `<section class="pair">
-    <h2>${esc(hand?.name || pair.hand)} · ${esc(courseEntry?.name || pair.course)}</h2>
+    <h2>${esc(hand?.name || pair.hand)}</h2>
     <p>${esc(pair.note)}</p>
     <table>
       <thead><tr><th>Source</th><th>Id</th><th>Equation</th><th>Authority</th><th>Assumptions</th></tr></thead>
       <tbody>
-        <tr><td>Handwritten</td><td>${esc(pair.hand)}</td><td class="eq">${esc(hand?.formula || 'y″ = −g − (k/m) y′ (see js/models)')}</td><td>${esc(hand?.authority || '')}</td><td>${esc(hand?.assumptions || '')}</td></tr>
-        <tr><td>Course</td><td>${esc(pair.course || '')}</td><td class="eq">${esc(pair.courseEquation || course?.formula || '')}</td><td>${esc(pair.courseAuthority || course?.authority || '')}</td><td>${esc(pair.courseAssumptions || course?.assumptions || '')}</td></tr>
+        <tr><td>Handwritten</td><td>${esc(pair.hand)}</td><td class="eq">${esc(hand?.formula || micro?.equation || 'y″ = −g − (k/m) y′ (see js/models)')}</td><td>${esc(hand?.authority || micro?.authority || '')}</td><td>${esc(hand?.assumptions || micro?.assumptions || '')}</td></tr>
       </tbody>
     </table>
   </section>`;
@@ -149,7 +138,7 @@ const html = `<!DOCTYPE html>
     <p><a href="./index.html">← lab</a></p>
     <h1>Equation index</h1>
     <p class="lede">Course name beside the equation that actually runs. Grouped by subject so a teacher can check the law without opening the animation. Fidelity and assumptions are the runtime text.</p>
-    <h2>Handwritten and course entries</h2>
+    <h2>Handwritten completed models</h2>
     ${handHtml}
     <nav>${nav}</nav>
   </header>

@@ -26,7 +26,7 @@ if (bad) {
   console.error(samples.join('\n'));
   process.exit(1);
 }
-const bohr = pack['r018-玻尔模型'];
+const bohr = pack.bohr;
 if (!bohr || bohr.name !== 'Bohr Model' || !String(bohr.description || '').trim()) {
   console.error(`models-en Bohr entry missing/empty: ${JSON.stringify(bohr)}`);
   process.exit(1);

@@ -684,7 +684,7 @@ export function runSuite() {
   // 目录规模 + live/reset 语义
   {
     // 每族×引擎仅 1 条；不再要求笛卡尔爆炸后的 ≥3000
-    assert('catalog ≥ 1000 models', models.length >= 1000, `n=${models.length}`);
+    assert('completed catalog size (hand+fam+named)', models.length >= 200 && models.length <= 500, `n=${models.length}`);
     {
       const idsList = models.map((m) => m.id);
       const famIds = idsList.filter((id) => /^fam-.+-v\d+$/.test(id));
@@ -723,12 +723,12 @@ export function runSuite() {
     }, { keepId: 'user-ode1d-edit' });
     assert('自建模型编辑保留 id', kept.ok && kept.spec?.id === 'user-ode1d-edit', kept.spec?.id);
 
-    const vert = models.find((m) => m.id === 'r001-竖直上抛');
+    const vert = models.find((m) => m.id === 'free-fall');
     {
-      const state = { params: { ...vert.params, v0: 20, a: -9.81, x0: 0, speed: 1 } };
+      const state = { params: { ...vert.params, v0: 20, g: 9.81, k: 0, h: 10 } };
       vert.init(state);
       vert.step(state, 1);
-      assert('竖直上抛 v=v0-gt', Math.abs(state.v - (20 - 9.81)) < 1e-6, `v=${state.v}`);
+      assert('竖直上抛/落体 v=v0−gt', Math.abs(state.v - (20 - 9.81)) < 1e-6, `v=${state.v}`);
     }
     const ohm = models.find((m) => m.id === 'ohms-law');
     {
@@ -744,28 +744,28 @@ export function runSuite() {
       const I = pol.getReadouts(state).find((r) => r.label === 'I');
       assert('Malus I=I0 cos²θ', I && Math.abs(parseFloat(I.value) - 0.5) < 1e-6, I && I.value);
     }
-    const col = models.find((m) => m.id === 'r003-一维弹性碰撞');
+    const col = models.find((m) => m.id === 'fam-collision-v01');
     {
-      const state = { params: { ...col.params, m1: 2, m2: 2, u1: 3, u2: 0, e: 1, speed: 1 } };
+      const state = { params: { ...col.params, e: 1, mRatio: 1, angle: 0 } };
       col.init(state);
-      assert('弹性等质量交换速度', Math.abs(state.v1) < 1e-6 && Math.abs(state.v2 - 3) < 1e-6, `v1=${state.v1} v2=${state.v2}`);
+      assert('弹性等质量交换速度', Math.abs(state.v1) < 1e-6 && Math.abs(state.v2 - 1) < 1e-6, `v1=${state.v1} v2=${state.v2}`);
     }
-    const bohrTopic = models.find((m) => m.id === 'r018-玻尔模型');
+    const bohrTopic = models.find((m) => m.id === 'bohr');
     {
-      assert('玻尔模型存在', !!bohrTopic, 'missing r018-玻尔模型');
+      assert('玻尔模型存在', !!bohrTopic, 'missing bohr');
       assert('玻尔默认 n 可调', bohrTopic && Number(bohrTopic.params?.n) >= 1, JSON.stringify(bohrTopic?.params));
       assert('玻尔方程非空', !!(bohrTopic?.equation || bohrTopic?.formula), bohrTopic?.equation || bohrTopic?.formula);
       const state = { params: { ...bohrTopic.params, n: 2, speed: 1 } };
       bohrTopic.init(state);
-      const E = bohrTopic.getReadouts(state).find((r) => r.label === 'E');
+      const E = bohrTopic.getReadouts(state).find((r) => r.label === 'E' || r.label === 'E_n');
       assert('玻尔能级 E=-13.6/n²', E && Math.abs(parseFloat(E.value) + 3.4) < 1e-6, E && E.value);
     }
-    const boom = models.find((m) => m.id === 'r003-爆炸反冲');
+    const boom = models.find((m) => m.id === 'fam-collision-v01');
     {
-      const state = { params: { ...boom.params, m1: 2, m2: 1, v2: 4, speed: 1 } };
+      const state = { params: { ...boom.params, e: 0, mRatio: 0.5, angle: 0 } };
       boom.init(state);
-      const v1 = boom.getReadouts(state).find((r) => r.label === 'v1');
-      assert('爆炸反冲 m1 v1=-m2 v2', v1 && Math.abs(parseFloat(v1.value) + 2) < 1e-6, v1 && v1.value);
+      // Sticky 1D with mRatio=m1/m2=0.5, u1=1,u2=0 → v = m1/(m1+m2)=1/3
+      assert('完全非弹性共速', Math.abs(state.v1 - state.v2) < 1e-9 && Math.abs(state.v1 - 1 / 3) < 1e-9, `v1=${state.v1} v2=${state.v2}`);
     }
     const stand = models.find((m) => m.id === 'standing-wave');
     {
@@ -779,9 +779,9 @@ export function runSuite() {
       slit.init(state);
       assert('双缝 Δy=λL/d', Math.abs(state.y - 0.00275) < 1e-9, `Δy=${state.y}`);
     }
-    const toss = models.find((m) => m.id === 'r001-斜抛');
+    const toss = models.find((m) => m.id === 'fam-projectile-v01');
     {
-      const state = { params: { ...toss.params, v0: 16, theta: 45, g: 9.81, y0: 0, speed: 1 } };
+      const state = { params: { ...toss.params, v0: 16, theta: 45, g: 9.81, k: 0 } };
       toss.init(state);
       toss.step(state, 1);
       const expectY = 16 * Math.sin(Math.PI / 4) - 0.5 * 9.81;
@@ -794,11 +794,9 @@ export function runSuite() {
       rl.step(state, 0.05);
       assert('RL 电流 i=I(1−e^{−Rt/L})', Math.abs(state.y - (1 - Math.exp(-5))) < 1e-9, `i=${state.y}`);
     }
-    const accel = models.find((m) => m.formula && String(m.formula).includes('默认 a = +2'));
-    const decel = models.find((m) => m.formula && String(m.formula).includes('默认 a = −2'));
-    assert('匀加速公式标明默认 a', !!accel);
-    assert('匀减速公式标明默认 a', !!decel);
-    assert('弹性碰撞公式标明默认 e', String(col.formula).includes('e = 1'));
+    assert('自由落体在库', !!models.find((m) => m.id === 'free-fall'));
+    assert('阻力落体在库', !!models.find((m) => m.id === 'drag-fall'));
+    assert('弹性碰撞公式含恢复系数', /e|恢复/.test(String(col.formula || col.equation || '')));
     const thin = models.filter((m) => m.topicBound && Object.keys(m.paramSchema || {}).length < 4);
     assert('paramSchema 不少于 4', thin.length === 0, `thin=${thin.length}`);
 
@@ -808,10 +806,11 @@ export function runSuite() {
       && m.family !== 'hand'
       && m.id !== 'r016-显微镜'
       && !String(m.id).startsWith('fam-')
+      && !(m.generated || m.dims)
     ));
     assert(
-      '非手写模型都走主题方程',
-      stray.length === 0 && topicN >= 1200,
+      '非手写模型都走主题方程或 fam 控制方程',
+      stray.length === 0 && topicN >= 150 && models.length >= 200 && models.length <= 500,
       `topic=${topicN} n=${models.length} stray=${stray.map((m) => m.id).join(',')}`,
     );
 

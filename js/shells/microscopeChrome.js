@@ -100,7 +100,7 @@ export function createMicroscopeChrome(api) {
     } catch { /* ignore */ }
   }
 
-  /** Shell picker inside microscope: only “back to catalog”, never the full 1517 list. */
+  /** Shell picker inside microscope: only “back to catalog”, never the full catalog list. */
   function syncShellPicker(on) {
     const el = document.getElementById('shell-select');
     if (!el) return;
