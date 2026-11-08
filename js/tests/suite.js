@@ -711,6 +711,17 @@ export function runSuite() {
     assert('偏振公式写的是 Malus', /cos|Malus/i.test(String(polGate?.formula || polGate?.equation || '')));
     assert('目录无 gauge family', models.every((m) => m.family !== 'gauge'), models.filter((m) => m.family === 'gauge').map((m) => m.id).join(','));
     assert('自建白名单不含 gauge', !USER_MODEL_FAMILIES.includes('gauge'), USER_MODEL_FAMILIES.join(','));
+    {
+      const impostors = models.filter((m) => {
+        const f = `${m.formula || ''} ${m.equation || ''} ${m.authority || ''}`;
+        const idn = `${m.id} ${m.name}`;
+        if (/条目由主题求解器/.test(f)) return true;
+        if (/⌊log₂ n⌋|比较次数上界/.test(f) && m.id !== 'binary-search') return true;
+        if (/f_s ≥ 2 f_max/.test(f) && !/adc|采样|nyquist/i.test(idn)) return true;
+        return false;
+      });
+      assert('无错绑占位模型', impostors.length === 0, impostors.map((m) => m.id).join(','));
+    }
 
     const kept = validateUserModelDraft({
       name: '有阻尼谐振子（工程）',

@@ -12,10 +12,11 @@
 
 ## 已完成（本轮）
 
-- 课程批量 `r###` 薄壳已下架；目录仅保留完成集（hand + famPhysics + 命名独立模型，~413）。
+- 课程批量 `r###` 薄壳已下架；目录仅保留完成集（hand + famPhysics + 命名独立模型，~402）。
 - 命名 `gauge` 占位已迁出；全部 `fam-*` 已离开 `family:gauge`（辐射→cycle、偏振→interference、激光→rays 等）。
 - P0 手写已落地：`polarization` `photoelectric` `ohms-law` `rl-circuit`（`family:hand`）。
-- 弱交互 `matrix-transform` 已下架；经济类 `supply-demand` / `compound-growth` 已删。
+- 弱交互 / 错绑已下架：`matrix-transform`；CS 假二分（`dp-table`/`avl-tree`/`turing`/`lexer`…）；Nyquist 假壳（`serdes`/`crc-hamming`）；经济类已删。
+- 占位权威 fam（激光/NLO/压缩态/角动量/贝尔/相对论/半导体）已改挂真实 topic 方程；`am-fm` 改挂 AM 调制度。
 - `buildGauge` 不再提供装饰性正弦回退；自建对话框只渲染 `USER_MODEL_FAMILIES`。
 
 ## 下一队列：standalone → hand 升写优先序

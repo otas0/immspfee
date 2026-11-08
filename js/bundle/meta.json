@@ -1,13 +1,13 @@
 {
-  "at": "2026-11-08T12:57:07.155Z",
+  "at": "2026-11-08T13:06:49.470Z",
   "outputs": [
     {
       "file": "lab.js",
-      "bytes": 492735
+      "bytes": 490617
     },
     {
-      "file": "chunk-factory-2ZTY5WBV.js",
-      "bytes": 420520
+      "file": "chunk-factory-VRB5UK4M.js",
+      "bytes": 420756
     },
     {
       "file": "chunk-chunk-54AD6SA2.js",

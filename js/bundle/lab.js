@@ -1565,7 +1565,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-2ZTY5WBV.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-VRB5UK4M.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3329,8 +3329,8 @@ var authority_templates_default = {
     },
     "sph-simple": {
       fidelity: "principle",
-      authority: "Monaghan, Smoothed Particle Hydrodynamics; Gingold & Monaghan 1977 kernel form",
-      assumptions: "Kernel centre value only; not a production SPH fluid solver"
+      authority: "Monaghan, Smoothed Particle Hydrodynamics, \u4E09\u6B21\u6837\u6761\u6838",
+      assumptions: "\u53EA\u7ED9\u6838\u4E2D\u5FC3\u503C W(0)\uFF0C\u4E0D\u662F\u6D41\u4F53\u6C42\u89E3\u5668"
     },
     "laminar-turbulent": {
       fidelity: "engineering",
@@ -3344,8 +3344,8 @@ var authority_templates_default = {
     },
     "standing-wave": {
       fidelity: "engineering",
-      authority: "Pain, The Physics of Vibrations and Waves, standing waves",
-      assumptions: "Equal-amplitude counter-propagating waves; one-dimensional"
+      authority: "Halliday / French, \u9A7B\u6CE2 y=2A sin(kx) cos(\u03C9t)",
+      assumptions: "\u7B49\u5E45\u76F8\u5411\u884C\u6CE2\u3001\u7406\u60F3\u8FB9\u754C\uFF1B\u4E00\u7EF4\u793A\u610F"
     },
     doppler: {
       fidelity: "engineering",
@@ -3384,8 +3384,8 @@ var authority_templates_default = {
     },
     "heat-2d": {
       fidelity: "engineering",
-      authority: "Incropera, Fundamentals of Heat and Mass Transfer; separation of variables",
-      assumptions: "2D transient, Dirichlet zero on boundary; constant diffusivity"
+      authority: "Incropera, \u4E8C\u7EF4\u70ED\u65B9\u7A0B\u5206\u79BB\u53D8\u91CF\u7B2C\u4E00\u6A21\u6001",
+      assumptions: "\u56DB\u8FB9 Dirichlet \u96F6\u6E29\u3001\u5E38 \u03B1"
     },
     "entropy-mix": {
       fidelity: "engineering",
@@ -3399,8 +3399,8 @@ var authority_templates_default = {
     },
     "e-field-particle": {
       fidelity: "engineering",
-      authority: "Griffiths, Introduction to Electrodynamics, charged particle in uniform E",
-      assumptions: "Non-relativistic; neglect B and gravity unless parameters add them"
+      authority: "Griffiths, Introduction to Electrodynamics, \u5747\u5300\u7535\u573A\u4E2D\u7684\u70B9\u7535\u8377",
+      assumptions: "\u975E\u76F8\u5BF9\u8BBA\u3001\u5FFD\u7565\u78C1\u4E0E\u91CD\u529B"
     },
     "ohms-law": {
       fidelity: "engineering",
@@ -3434,13 +3434,13 @@ var authority_templates_default = {
     },
     "double-slit": {
       fidelity: "engineering",
-      authority: "Hecht, Optics, Young\u2019s double-slit interference",
-      assumptions: "Far-field small-angle coherent sources"
+      authority: "Hecht, Optics, \u6768\u6C0F\u53CC\u7F1D\u6761\u7EB9\u95F4\u8DDD \u0394y=\u03BBL/d",
+      assumptions: "\u8FDC\u573A\u5C0F\u89D2\u3001\u5355\u8272\uFF1B\u975E\u5B8C\u6574\u884D\u5C04\u79EF\u5206"
     },
     "single-slit": {
       fidelity: "engineering",
-      authority: "Hecht, Optics, single-slit Fraunhofer diffraction",
-      assumptions: "Fraunhofer regime; scalar diffraction"
+      authority: "Hecht, Optics, \u5355\u7F1D\u884D\u5C04\u7B2C\u4E00\u6781\u5C0F a sin\u03B8=\u03BB",
+      assumptions: "\u592B\u7405\u79BE\u8D39\u8FDC\u573A\u3001\u5355\u8272"
     },
     polarization: {
       fidelity: "engineering",
@@ -3489,8 +3489,8 @@ var authority_templates_default = {
     },
     "gravity-assist": {
       fidelity: "principle",
-      authority: "Murray & Dermott, Solar System Dynamics, hyperbolic flyby",
-      assumptions: "Two-body patched conic; impact parameter b"
+      authority: "Curtis, Orbital Mechanics, \u53CC\u66F2\u7EBF\u504F\u8F6C\u89D2",
+      assumptions: "\u4E24\u4F53\u3001\u7784\u51C6\u8DDD\u79BB b\uFF1B\u975E\u4EFB\u52A1\u8BBE\u8BA1\u5DE5\u5177"
     },
     "binary-search": {
       fidelity: "engineering",
@@ -3502,40 +3502,20 @@ var authority_templates_default = {
       authority: "CLRS, Dijkstra",
       assumptions: "\u793A\u610F\u4E00\u6761\u8FB9\u7684\u677E\u5F1B\uFF0C\u4E0D\u4EE3\u66FF\u5B8C\u6574\u56FE\u641C\u7D22\uFF1B\u8FB9\u6743\u987B\u975E\u8D1F"
     },
-    "dp-table": {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
-    },
     hashtable: {
       fidelity: "engineering",
       authority: "CLRS, \u54C8\u5E0C\u8868\u88C5\u8F7D\u56E0\u5B50",
       assumptions: "\u7B80\u5355\u5747\u5300\u54C8\u5E0C"
     },
-    "avl-tree": {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
-    },
     "dfa-nfa": {
       fidelity: "engineering",
-      authority: "Sipser, Introduction to the Theory of Computation, DFA/NFA",
-      assumptions: "Teaching automaton on a single modulus; not a verifier toolchain"
+      authority: "Sipser, Introduction to the Theory of Computation, DFA \u8F6C\u79FB",
+      assumptions: "\u6A21 n \u6559\u5B66\u81EA\u52A8\u673A\uFF0C\u4E0D\u662F\u5B8C\u6574\u6B63\u5219\u8BED\u8A00\u5224\u5B9A\u5668"
     },
     pda: {
       fidelity: "engineering",
       authority: "Kurose & Ross, Computer Networking, TCP \u8FDE\u63A5\u5EFA\u7ACB",
       assumptions: "\u65E0\u4E22\u5305\uFF1B\u6BCF\u6B65\u5386\u65F6\u4E00\u4E2A RTT"
-    },
-    turing: {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
-    },
-    "regex-match": {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
     },
     caesar: {
       fidelity: "principle",
@@ -3551,16 +3531,6 @@ var authority_templates_default = {
       fidelity: "principle",
       authority: "Diffie\u2013Hellman \u5B9A\u4E49",
       assumptions: "\u5C0F\u6574\u6570\uFF0C\u4E0D\u662F\u5B89\u5168\u53C2\u6570"
-    },
-    huffman: {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
-    },
-    "channel-coding": {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
     },
     "linreg-gd": {
       fidelity: "engineering",
@@ -3594,8 +3564,8 @@ var authority_templates_default = {
     },
     "rl-grid": {
       fidelity: "engineering",
-      authority: "Sutton & Barto, Reinforcement Learning, Bellman equation",
-      assumptions: "Deterministic grid MDP sketch"
+      authority: "Sutton & Barto, Reinforcement Learning, \u8D1D\u5C14\u66FC\u5907\u4EFD",
+      assumptions: "\u786E\u5B9A\u6027\u5355\u72B6\u6001\u793A\u610F"
     },
     genetic: {
       fidelity: "engineering",
@@ -3672,20 +3642,10 @@ var authority_templates_default = {
       authority: "Mohan, Power Electronics, PWM \u5E73\u5747\u503C",
       assumptions: "\u7406\u60F3\u5F00\u5173\u3001\u5360\u7A7A\u6BD4 D\u2208[0,1]"
     },
-    serdes: {
-      fidelity: "engineering",
-      authority: "Oppenheim & Schafer, Discrete-Time Signal Processing, \u91C7\u6837\u5B9A\u7406",
-      assumptions: "\u5E26\u9650\u3001\u7406\u60F3\u91C7\u6837"
-    },
     "am-fm": {
-      fidelity: "engineering",
-      authority: "Oppenheim & Schafer, Discrete-Time Signal Processing, \u91C7\u6837\u5B9A\u7406",
-      assumptions: "\u5E26\u9650\u3001\u7406\u60F3\u91C7\u6837"
-    },
-    "crc-hamming": {
-      fidelity: "engineering",
-      authority: "Oppenheim & Schafer, Discrete-Time Signal Processing, \u91C7\u6837\u5B9A\u7406",
-      assumptions: "\u5E26\u9650\u3001\u7406\u60F3\u91C7\u6837"
+      fidelity: "principle",
+      authority: "Proakis, Communication Systems, AM \u8C03\u5236\u5EA6",
+      assumptions: "\u5E38\u89C4\u8C03\u5E45\u3001\u03BC\u22641\uFF1B\u793A\u610F\u8C03\u5236\u5EA6\u4E0D\u662F\u5B8C\u6574\u6536\u53D1\u673A"
     },
     "tcp-handshake": {
       fidelity: "engineering",
@@ -3712,25 +3672,10 @@ var authority_templates_default = {
       authority: "Silberschatz, CPU \u8C03\u5EA6",
       assumptions: "n \u4E2A\u7B49\u957F\u4F5C\u4E1A\u3001\u65E0\u5207\u6362\u5F00\u9500\u65F6\u603B\u5468\u8F6C\u548C\u4E3A n(n+1)/2 \xD7 q \u5F53\u4F5C\u4E1A\u6070\u4E3A 1 \u7247\u2014\u2014\u6B64\u5904\u4F5C\u4E1A\u957F\u5EA6 = q"
     },
-    lexer: {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
-    },
-    parser: {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
-    },
     "vm-interp": {
       fidelity: "engineering",
       authority: "Silberschatz, Operating System Concepts, \u9875\u7F6E\u6362",
       assumptions: "\u56FA\u5B9A\u5F15\u7528\u4E32 1,2,3,4,1,2,5,1,2,3,4,5\uFF1B\u5E27\u6570\u53EF\u8C03"
-    },
-    btree: {
-      fidelity: "engineering",
-      authority: "CLRS, \u4E8C\u5206\u67E5\u627E",
-      assumptions: "\u6709\u5E8F\u6570\u7EC4"
     },
     "acid-tx": {
       fidelity: "engineering",
@@ -3834,13 +3779,13 @@ var authority_templates_default = {
     },
     "brayton-cycle": {
       fidelity: "engineering",
-      authority: "\xC7engel & Boles, Thermodynamics, ideal Brayton cycle",
-      assumptions: "Cold-air-standard ideal cycle; not a turbomachinery design tool"
+      authority: "Cengel & Boles, Thermodynamics, \u7406\u60F3\u5E03\u96F7\u987F\u5FAA\u73AF",
+      assumptions: "\u51B7\u7A7A\u6C14\u6807\u51C6\u3001\u53EF\u9006\uFF1B\u975E\u71C3\u6C14\u8F6E\u673A\u8BBE\u8BA1"
     },
     "otto-diesel": {
       fidelity: "engineering",
-      authority: "\xC7engel & Boles, Thermodynamics, ideal Otto cycle",
-      assumptions: "Cold-air-standard ideal cycle; Diesel branch per params if present"
+      authority: "Cengel & Boles, Thermodynamics, \u7406\u60F3\u5965\u6258\u5FAA\u73AF",
+      assumptions: "\u51B7\u7A7A\u6C14\u6807\u51C6\uFF1B\u975E\u53D1\u52A8\u673A\u6807\u5B9A"
     },
     "pipe-pressure-drop": {
       fidelity: "engineering",
@@ -4428,19 +4373,19 @@ var authority_templates_default = {
       assumptions: "\u8FD1\u8F74\u3001\u8584\u900F\u955C\u6216\u5355\u7403\u9762\uFF1B\u865A\u50CF\u7528\u865A\u7EBF\uFF1B\u975E Zemax \u7EA7\u50CF\u5DEE\u8BBE\u8BA1"
     },
     "fam-laser-v01": {
-      fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      fidelity: "principle",
+      authority: "Siegman, Lasers, \u9608\u503C\u589E\u76CA",
+      assumptions: "\u7A33\u6001\u5F80\u8FD4\u3001\u5206\u5E03\u635F\u8017 \u03B1\uFF1B\u6559\u5B66\u9608\u503C\uFF0C\u975E\u8154\u8BBE\u8BA1"
     },
     "fam-nlo-v01": {
-      fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      fidelity: "principle",
+      authority: "Boyd, Nonlinear Optics, \u5171\u7EBF\u500D\u9891\u4F4E\u8F6C\u6362",
+      assumptions: "\u76F8\u4F4D\u5339\u914D\u3001\u4F4E\u8F6C\u6362\uFF1B\u4E0D\u6D89\u53CA\u5177\u4F53\u6676\u4F53\u751F\u957F"
     },
     "fam-qoptics-v01": {
-      fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      fidelity: "principle",
+      authority: "Scully & Zubairy, Quantum Optics, \u538B\u7F29\u771F\u7A7A\u7684\u4E0D\u786E\u5B9A\u5EA6\u5206\u914D",
+      assumptions: "\u210F=1 \u7684\u5B9A\u4E49\u5F0F\uFF0C\u4E0D\u662F\u5B9E\u9A8C\u88C5\u7F6E"
     },
     "fam-sort-v01": {
       fidelity: "engineering",
@@ -4838,29 +4783,29 @@ var authority_templates_default = {
       assumptions: "\u73BB\u5C14\u8F68\u9053\u662F\u5386\u53F2\u8FD1\u4F3C\uFF0C\u4E0D\u662F\u73B0\u4EE3\u91CF\u5B50\u5316\u5B66\uFF1B\u7981\u6B62\u5916\u63A8\u5230\u5206\u5B50\u5408\u6210"
     },
     "fam-angmom-v01": {
-      fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      fidelity: "principle",
+      authority: "Bransden & Joachain, \u81EA\u65CB-\u8F68\u9053\u8026\u5408\u7684 j \u9009\u62E9",
+      assumptions: "\u5355\u7535\u5B50\u89D2\u52A8\u91CF\u52A0\u6CD5\uFF0C\u4E0D\u662F\u80FD\u7EA7\u6570\u8BA1\u7B97"
     },
     "fam-entangle-v01": {
-      fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      fidelity: "principle",
+      authority: "Clauser et al., Phys. Rev. Lett. 23 (1969)\uFF1BAspect \u5B9E\u9A8C\u7EFC\u8FF0\u4E2D\u7684 CHSH",
+      assumptions: "\u53EA\u7ED9\u51FA Tsirelson \u754C\u4E0E\u7ECF\u5178\u754C\uFF0C\u4E0D\u6A21\u62DF\u5B9E\u9A8C\u566A\u58F0\u534F\u8BAE"
     },
     "fam-qgate-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
+      fidelity: "principle",
+      authority: "Nielsen & Chuang, Quantum Computation and Quantum Information, \u5355\u6BD4\u7279\u65CB\u8F6C",
+      assumptions: "\u7406\u60F3\u5355\u6BD4\u7279\u95E8\uFF1BP(1)=sin\xB2(\u03B8/2)\uFF1B\u975E\u566A\u58F0\u786C\u4EF6\u6807\u5B9A"
     },
     "fam-qalgo-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
+      fidelity: "principle",
+      authority: "Nielsen & Chuang, Quantum Computation and Quantum Information, Grover \u8FED\u4EE3",
+      assumptions: "\u7406\u60F3 Grover \u793A\u610F P=sin\xB2((2k+1)\u03B8)\uFF1B\u975E\u5B9E\u9645\u91CF\u5B50\u786C\u4EF6"
     },
     "fam-rel-kin-v01": {
       fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      authority: "French, Special Relativity, \u6216 Rindler\uFF1B\u65F6\u95F4\u81A8\u80C0\u4E0E\u957F\u5EA6\u6536\u7F29",
+      assumptions: "\u60EF\u6027\u7CFB\u3001\u03B2<1\uFF1B\u8D28\u80FD\u7528\u9759\u6B62\u8D28\u91CF"
     },
     "fam-radioactive-v01": {
       fidelity: "principle",
@@ -4888,9 +4833,9 @@ var authority_templates_default = {
       assumptions: "\u4E0D\u53EF\u538B\u3001\u5B9A\u5E38\u3001\u6CBF\u6D41\u7EBF\u7684\u539F\u7406\u56FE\uFF1B\u975E CFD/\u7BA1\u7F51\u6C34\u529B\u8BA1\u7B97\u8F6F\u4EF6"
     },
     "fam-semiconductor-v01": {
-      fidelity: "engineering",
-      authority: "\u6761\u76EE\u7531\u4E3B\u9898\u6C42\u89E3\u5668\u6309\u540D\u79F0\u79EF\u5206\u6807\u51C6\u5173\u7CFB\uFF1B\u89C1\u6A21\u578B assumptions",
-      assumptions: "\u65B9\u7A0B\u4E0E\u8BFB\u6570\u5BF9\u5E94\u8BE5\u6761\u76EE\u516C\u5F0F\uFF0C\u4E0D\u518D\u4F7F\u7528\u65E0\u5173\u6B63\u5F26\u5360\u4F4D"
+      fidelity: "principle",
+      authority: "Sze, Semiconductor Devices, \u7A81\u53D8\u7ED3\u5185\u5EFA\u52BF",
+      assumptions: "\u975E\u7B80\u5E76\u3001300 K\u3001V_T=0.026 V\u3001n_i=1e10 cm\u207B\xB3\uFF1B\u4E0D\u662F\u5DE5\u827A\u914D\u65B9"
     },
     "fam-sym-enc-v01": {
       fidelity: "principle",
@@ -11070,4 +11015,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-2ZTY5WBV.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-VRB5UK4M.js");

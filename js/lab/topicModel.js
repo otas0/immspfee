@@ -43,6 +43,7 @@ function shell(spec, o) {
     description: spec.description || '',
     sub: spec.sub || '',
     topicBound: true,
+    governing: true,
     deprecated: false,
     authority: o.authority,
     assumptions: o.assumptions,
@@ -3599,8 +3600,9 @@ function shg(spec) {
     fidelity: 'principle',
     params: { P: 1, L: 0.01, d: 1 },
     schema: {
-      P: S('P_ω', 'dynamics', '—', 0, 5),
-      L: S('L', 'dynamics', 'm', 0.001, 0.05),
+      P: S('基频功率 P_ω', 'dynamics', '—', 0, 5),
+      L: S('晶体长 L', 'dynamics', 'm', 0.001, 0.05),
+      d: S('有效非线性 d', 'dynamics', '—', 0.1, 5),
     },
     tick(state) {
       state.P2 = (P(state.params, 'd', 1) * P(state.params, 'L', 0.01) * P(state.params, 'P', 1)) ** 2;
@@ -4554,7 +4556,7 @@ function keywordModel(spec) {
     [/V=IR|欧姆/, () => ohm(spec)],
     [/Malus|偏振/, () => malus(spec)],
     [/光电|hf-W|hf − W/, () => photo(spec)],
-    [/时间膨胀|长度收缩|质能|洛伦兹因子|双生子/, () => gamma(spec, blob)],
+    [/时间膨胀|长度收缩|质能|洛伦兹因子|双生子|相对论|γ=1\/√/, () => gamma(spec, blob)],
     [/1\/f=1\/u|透镜/, () => lens(spec)],
     [/single-slit|单缝/, () => singleSlitModel(spec)],
     [/double-slit|双缝|Δ=d sin|Δ=d/, () => doubleSlit(spec)],
@@ -4640,10 +4642,10 @@ function keywordModel(spec) {
     [/温室/, () => greenhouse(spec)],
     [/PN|半导体/, () => pnBarrier(spec)],
     [/贝尔/, () => bellCHSH(spec)],
-    [/自旋/, () => spinOrbit(spec)],
+    [/自旋|角动量|j=l/, () => spinOrbit(spec)],
     [/谐振腔|激光|g_th/, () => laserThreshold(spec)],
-    [/倍频|OPA/, () => shg(spec)],
-    [/压缩态|Wigner/, () => shell(spec, {
+    [/倍频|OPA|非线性光学|P_2ω/, () => shg(spec)],
+    [/压缩态|Wigner|ΔX ΔP/, () => shell(spec, {
       equation: '真空压缩：ΔX ΔP = 1/4（ℏ=1），单正交可低于 1/2',
       authority: 'Scully & Zubairy, Quantum Optics, 压缩真空的不确定度分配',
       assumptions: 'ℏ=1 的定义式，不是实验装置',
@@ -4676,7 +4678,7 @@ function keywordModel(spec) {
     [/升力|Cl/, () => clift(spec)],
     [/Q=Cd|闸/, () => sluice(spec)],
     [/Vavg=D|占空/, () => pwm(spec)],
-    [/s\(t\)=\[1\+m|调幅/, () => PREFIX['调制'](spec, 'AM')],
+    [/AM\/FM|调制\/解调|调幅|调频|s\(t\)=\[1\+m/, () => PREFIX['调制'](spec, 'AM')],
     [/∮E|高斯/, () => gaussPoint(spec)],
   ];
   for (const [re, fn] of rules) {

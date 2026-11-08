@@ -2,8 +2,8 @@
 
 > 由 `npm run report:schema` 生成；manual 可读入口见 [manual.html](../manual.html)。
 
-- 模型数: **413**
-- 参数槽: **1417**
+- 模型数: **402**
+- 参数槽: **1388**
 - schema 覆盖: **100.0%**
 - 中文/符号 label: **100.0%**
 - unit: **100.0%**

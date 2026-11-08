@@ -418,6 +418,7 @@ function shell(spec, o) {
     description: spec.description || "",
     sub: spec.sub || "",
     topicBound: true,
+    governing: true,
     deprecated: false,
     authority: o.authority,
     assumptions: o.assumptions,
@@ -2807,8 +2808,9 @@ function shg(spec) {
     fidelity: "principle",
     params: { P: 1, L: 0.01, d: 1 },
     schema: {
-      P: S("P_\u03C9", "dynamics", "\u2014", 0, 5),
-      L: S("L", "dynamics", "m", 1e-3, 0.05)
+      P: S("\u57FA\u9891\u529F\u7387 P_\u03C9", "dynamics", "\u2014", 0, 5),
+      L: S("\u6676\u4F53\u957F L", "dynamics", "m", 1e-3, 0.05),
+      d: S("\u6709\u6548\u975E\u7EBF\u6027 d", "dynamics", "\u2014", 0.1, 5)
     },
     tick(state) {
       state.P2 = (P(state.params, "d", 1) * P(state.params, "L", 0.01) * P(state.params, "P", 1)) ** 2;
@@ -3192,7 +3194,7 @@ function keywordModel(spec) {
     [/V=IR|欧姆/, () => ohm(spec)],
     [/Malus|偏振/, () => malus(spec)],
     [/光电|hf-W|hf − W/, () => photo(spec)],
-    [/时间膨胀|长度收缩|质能|洛伦兹因子|双生子/, () => gamma(spec, blob)],
+    [/时间膨胀|长度收缩|质能|洛伦兹因子|双生子|相对论|γ=1\/√/, () => gamma(spec, blob)],
     [/1\/f=1\/u|透镜/, () => lens(spec)],
     [/single-slit|单缝/, () => singleSlitModel(spec)],
     [/double-slit|双缝|Δ=d sin|Δ=d/, () => doubleSlit(spec)],
@@ -3278,10 +3280,10 @@ function keywordModel(spec) {
     [/温室/, () => greenhouse(spec)],
     [/PN|半导体/, () => pnBarrier(spec)],
     [/贝尔/, () => bellCHSH(spec)],
-    [/自旋/, () => spinOrbit(spec)],
+    [/自旋|角动量|j=l/, () => spinOrbit(spec)],
     [/谐振腔|激光|g_th/, () => laserThreshold(spec)],
-    [/倍频|OPA/, () => shg(spec)],
-    [/压缩态|Wigner/, () => shell(spec, {
+    [/倍频|OPA|非线性光学|P_2ω/, () => shg(spec)],
+    [/压缩态|Wigner|ΔX ΔP/, () => shell(spec, {
       equation: "\u771F\u7A7A\u538B\u7F29\uFF1A\u0394X \u0394P = 1/4\uFF08\u210F=1\uFF09\uFF0C\u5355\u6B63\u4EA4\u53EF\u4F4E\u4E8E 1/2",
       authority: "Scully & Zubairy, Quantum Optics, \u538B\u7F29\u771F\u7A7A\u7684\u4E0D\u786E\u5B9A\u5EA6\u5206\u914D",
       assumptions: "\u210F=1 \u7684\u5B9A\u4E49\u5F0F\uFF0C\u4E0D\u662F\u5B9E\u9A8C\u88C5\u7F6E",
@@ -3316,7 +3318,7 @@ function keywordModel(spec) {
     [/升力|Cl/, () => clift(spec)],
     [/Q=Cd|闸/, () => sluice(spec)],
     [/Vavg=D|占空/, () => pwm(spec)],
-    [/s\(t\)=\[1\+m|调幅/, () => PREFIX["\u8C03\u5236"](spec, "AM")],
+    [/AM\/FM|调制\/解调|调幅|调频|s\(t\)=\[1\+m/, () => PREFIX["\u8C03\u5236"](spec, "AM")],
     [/∮E|高斯/, () => gaussPoint(spec)]
   ];
   for (const [re, fn] of rules) {

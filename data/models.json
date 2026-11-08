@@ -175,8 +175,8 @@
     "formula": "弱耦合粒子流体",
     "description": "粒子、颜色映射、交互扰动；调粘度、重力、粒子数",
     "family": "particles",
-    "authority": "SPH 核函数",
-    "assumptions": "只给核的中心值，不是流体求解器",
+    "authority": "Monaghan, Smoothed Particle Hydrodynamics, 三次样条核",
+    "assumptions": "只给核中心值 W(0)，不是流体求解器",
     "fidelity": "principle"
   },
   {
@@ -223,8 +223,8 @@
     "formula": "sin(kx)cos(ωt)",
     "description": "绳上驻波、节点/腹点；调频率、绳长、张力",
     "family": "wave1d",
-    "authority": "驻波",
-    "assumptions": "等幅相向行波",
+    "authority": "Halliday / French, 驻波 y=2A sin(kx) cos(ωt)",
+    "assumptions": "等幅相向行波、理想边界；一维示意",
     "fidelity": "engineering"
   },
   {
@@ -331,8 +331,8 @@
     "formula": "∂T/∂t=α∇²T",
     "description": "温度场、色带；调扩散系数、初始分布",
     "family": "field2d",
-    "authority": "热方程分离变量",
-    "assumptions": "四边为零的 Dirichlet",
+    "authority": "Incropera, 二维热方程分离变量第一模态",
+    "assumptions": "四边 Dirichlet 零温、常 α",
     "fidelity": "engineering"
   },
   {
@@ -367,7 +367,7 @@
     "formula": "a=qE/m",
     "description": "粒子轨迹、E 矢量；调电荷、质量、E",
     "family": "ode2d",
-    "authority": "牛顿第二定律",
+    "authority": "Griffiths, Introduction to Electrodynamics, 均匀电场中的点电荷",
     "assumptions": "非相对论、忽略磁与重力",
     "fidelity": "engineering"
   },
@@ -487,8 +487,8 @@
     "formula": "Δ=d sinθ",
     "description": "双缝、屏幕条纹；调缝距、波长、屏距",
     "family": "interference",
-    "authority": "杨氏双缝",
-    "assumptions": "远场小角",
+    "authority": "Hecht, Optics, 杨氏双缝条纹间距 Δy=λL/d",
+    "assumptions": "远场小角、单色；非完整衍射积分",
     "fidelity": "engineering"
   },
   {
@@ -499,8 +499,8 @@
     "formula": "a sinθ=mλ",
     "description": "单缝、衍射包络；调缝宽、波长",
     "family": "interference",
-    "authority": "单缝衍射",
-    "assumptions": "夫琅禾费",
+    "authority": "Hecht, Optics, 单缝衍射第一极小 a sinθ=λ",
+    "assumptions": "夫琅禾费远场、单色",
     "fidelity": "engineering"
   },
   {
@@ -631,8 +631,8 @@
     "formula": "双曲线转向",
     "description": "航天器轨迹、行星；调行星速度、接近距离",
     "family": "nbody",
-    "authority": "圆锥曲线轨道",
-    "assumptions": "两体、瞄准距离 b",
+    "authority": "Curtis, Orbital Mechanics, 双曲线偏转角",
+    "assumptions": "两体、瞄准距离 b；非任务设计工具",
     "fidelity": "principle"
   },
   {
@@ -698,18 +698,6 @@
   {
     "domain": "计算机科学",
     "sub": "算法与数据结构",
-    "id": "dp-table",
-    "name": "动态规划（背包/LCS）",
-    "formula": "表填充回溯",
-    "description": "表格填充、回溯路径；调物品/序列、容量",
-    "family": "discrete",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机科学",
-    "sub": "算法与数据结构",
     "id": "hashtable",
     "name": "哈希表冲突处理",
     "formula": "链地址/开放寻址",
@@ -721,26 +709,14 @@
   },
   {
     "domain": "计算机科学",
-    "sub": "算法与数据结构",
-    "id": "avl-tree",
-    "name": "平衡树 AVL/红黑",
-    "formula": "旋转维持平衡",
-    "description": "树结构、旋转动画；调插入/删除序列",
-    "family": "tree",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机科学",
     "sub": "计算理论",
     "id": "dfa-nfa",
     "name": "有限自动机 DFA/NFA",
     "formula": "δ(q,a)",
     "description": "状态图、转移、输入串；调状态/转移、输入串",
     "family": "fsm",
-    "authority": "有限自动机转移",
-    "assumptions": "单一模 n 的教学自动机",
+    "authority": "Sipser, Introduction to the Theory of Computation, DFA 转移",
+    "assumptions": "模 n 教学自动机，不是完整正则语言判定器",
     "fidelity": "engineering"
   },
   {
@@ -753,30 +729,6 @@
     "family": "fsm",
     "authority": "Kurose & Ross, Computer Networking, TCP 连接建立",
     "assumptions": "无丢包；每步历时一个 RTT",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机科学",
-    "sub": "计算理论",
-    "id": "turing",
-    "name": "图灵机",
-    "formula": "纸带读写",
-    "description": "纸带、读写头、状态；调转移表、初始纸带",
-    "family": "turing",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机科学",
-    "sub": "计算理论",
-    "id": "regex-match",
-    "name": "正则表达式匹配",
-    "formula": "NFA 模拟",
-    "description": "输入串、高亮匹配；调正则、输入串",
-    "family": "discrete",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
     "fidelity": "engineering"
   },
   {
@@ -826,30 +778,6 @@
     "authority": "Diffie–Hellman 定义",
     "assumptions": "小整数，不是安全参数",
     "fidelity": "principle"
-  },
-  {
-    "domain": "计算机科学",
-    "sub": "信息论",
-    "id": "huffman",
-    "name": "哈夫曼编码",
-    "formula": "最优前缀码",
-    "description": "频率表、编码树、压缩率；调输入文本/符号频率",
-    "family": "tree",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机科学",
-    "sub": "信息论",
-    "id": "channel-coding",
-    "name": "信道编码/纠错",
-    "formula": "汉明距离",
-    "description": "编码前后、错误注入；调码率、错误位置",
-    "family": "discrete",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
   },
   {
     "domain": "计算机科学",
@@ -931,8 +859,8 @@
     "formula": "V←r+γV'",
     "description": "网格、策略箭头、价值色；调奖励、折扣因子",
     "family": "graph",
-    "authority": "贝尔曼方程",
-    "assumptions": "确定性",
+    "authority": "Sutton & Barto, Reinforcement Learning, 贝尔曼备份",
+    "assumptions": "确定性单状态示意",
     "fidelity": "engineering"
   },
   {
@@ -1154,38 +1082,14 @@
   {
     "domain": "计算机工程",
     "sub": "通信",
-    "id": "serdes",
-    "name": "并串转换/编码",
-    "formula": "并行↔串行",
-    "description": "并行数据、串行波形、时钟；调数据、速率",
-    "family": "comm",
-    "authority": "Oppenheim & Schafer, Discrete-Time Signal Processing, 采样定理",
-    "assumptions": "带限、理想采样",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机工程",
-    "sub": "通信",
     "id": "am-fm",
     "name": "调制/解调 AM/FM",
-    "formula": "载波调制",
+    "formula": "AM：s(t)=(A+m cos ω_m t) cos ω_c t",
     "description": "载波、调制信号、频谱；调载波频率、调制指数",
     "family": "comm",
-    "authority": "Oppenheim & Schafer, Discrete-Time Signal Processing, 采样定理",
-    "assumptions": "带限、理想采样",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机工程",
-    "sub": "通信",
-    "id": "crc-hamming",
-    "name": "差错检测 CRC/汉明码",
-    "formula": "校验位",
-    "description": "数据位、校验位、错误注入；调码字、错误位置",
-    "family": "comm",
-    "authority": "Oppenheim & Schafer, Discrete-Time Signal Processing, 采样定理",
-    "assumptions": "带限、理想采样",
-    "fidelity": "engineering"
+    "authority": "Proakis, Communication Systems, AM 调制度",
+    "assumptions": "常规调幅、μ≤1；示意调制度不是完整收发机",
+    "fidelity": "principle"
   },
   {
     "domain": "计算机工程",
@@ -1262,30 +1166,6 @@
   {
     "domain": "计算机工程",
     "sub": "编译原理",
-    "id": "lexer",
-    "name": "词法分析",
-    "formula": "正则→token",
-    "description": "输入串、token 高亮；调源码",
-    "family": "compile",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机工程",
-    "sub": "编译原理",
-    "id": "parser",
-    "name": "语法分析/语法树",
-    "formula": "CFG 推导",
-    "description": "推导过程、语法树；调文法、输入串",
-    "family": "compile",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机工程",
-    "sub": "编译原理",
     "id": "vm-interp",
     "name": "解释器/虚拟机",
     "formula": "栈式执行",
@@ -1293,18 +1173,6 @@
     "family": "compile",
     "authority": "Silberschatz, Operating System Concepts, 页置换",
     "assumptions": "固定引用串 1,2,3,4,1,2,5,1,2,3,4,5；帧数可调",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "计算机工程",
-    "sub": "数据库",
-    "id": "btree",
-    "name": "B+ 树索引",
-    "formula": "多路平衡树",
-    "description": "树结构、范围查询高亮；调键值、查询范围",
-    "family": "tree",
-    "authority": "CLRS, 二分查找",
-    "assumptions": "有序数组",
     "fidelity": "engineering"
   },
   {
@@ -1567,8 +1435,8 @@
     "formula": "η=1-r_p^{(1-γ)/γ}",
     "description": "T-s 图、压气机/燃烧室/涡轮；调压比、涡轮入口温度",
     "family": "cycle",
-    "authority": "理想布雷顿循环",
-    "assumptions": "冷空气标准",
+    "authority": "Cengel & Boles, Thermodynamics, 理想布雷顿循环",
+    "assumptions": "冷空气标准、可逆；非燃气轮机设计",
     "fidelity": "engineering"
   },
   {
@@ -1579,8 +1447,8 @@
     "formula": "η(r,γ)",
     "description": "P-V 图、效率对比；调压缩比、吸热量",
     "family": "cycle",
-    "authority": "理想奥托循环",
-    "assumptions": "冷空气标准",
+    "authority": "Cengel & Boles, Thermodynamics, 理想奥托循环",
+    "assumptions": "冷空气标准；非发动机标定",
     "fidelity": "engineering"
   },
   {
@@ -4753,126 +4621,36 @@
     "sub": "光学",
     "id": "fam-laser-v01",
     "name": "激光",
-    "formula": "增益/谐振腔",
+    "formula": "激光谐振腔：g_th=α−(1/(2L))ln(R1 R2)",
     "description": "物理/光学：激光；维度 腔长、增益、损耗；参数见工作台",
     "family": "rays",
-    "generated": true,
-    "variantOf": "laser",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "L",
-        "label": "腔长",
-        "unit": "m",
-        "min": 0.01,
-        "max": 2,
-        "value": 0.1
-      },
-      {
-        "key": "g",
-        "label": "增益",
-        "unit": "—",
-        "min": 0.1,
-        "max": 5,
-        "value": 0.5
-      },
-      {
-        "key": "loss",
-        "label": "损耗",
-        "unit": "—",
-        "min": 0.01,
-        "max": 2,
-        "value": 0.1
-      }
-    ],
-    "defaults": {
-      "L": 0.1,
-      "g": 0.5,
-      "loss": 0.1
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
-    "fidelity": "engineering"
+    "authority": "Siegman, Lasers, 阈值增益",
+    "assumptions": "稳态往返、分布损耗 α；教学阈值，非腔设计",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
     "sub": "光学",
     "id": "fam-nlo-v01",
-    "name": "非线性光学",
-    "formula": "倍频/OPA",
+    "name": "非线性光学（倍频）",
+    "formula": "倍频/OPA：P_2ω∝(d_eff P_ω L)²",
     "description": "物理/光学：非线性光学；维度 非线性系数、相位失配；参数见工作台",
     "family": "rays",
-    "generated": true,
-    "variantOf": "nlo",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "chi",
-        "label": "非线性系数",
-        "unit": "—",
-        "min": 0.01,
-        "max": 5,
-        "value": 0.1
-      },
-      {
-        "key": "dk",
-        "label": "相位失配",
-        "unit": "—",
-        "min": 0,
-        "max": 5,
-        "value": 0
-      }
-    ],
-    "defaults": {
-      "chi": 0.1,
-      "dk": 0
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
-    "fidelity": "engineering"
+    "authority": "Boyd, Nonlinear Optics, 共线倍频低转换",
+    "assumptions": "相位匹配、低转换；不涉及具体晶体生长",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
     "sub": "光学",
     "id": "fam-qoptics-v01",
-    "name": "量子光学",
-    "formula": "压缩态/Wigner",
+    "name": "量子光学（压缩态）",
+    "formula": "压缩态/Wigner：ΔX ΔP=1/4",
     "description": "物理/光学：量子光学；维度 压缩参数、相干振幅；参数见工作台",
     "family": "bohr",
-    "generated": true,
-    "variantOf": "qoptics",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "r",
-        "label": "压缩参数",
-        "unit": "—",
-        "min": 0,
-        "max": 2,
-        "value": 0.2
-      },
-      {
-        "key": "alpha",
-        "label": "相干振幅",
-        "unit": "—",
-        "min": 0,
-        "max": 5,
-        "value": 0.5
-      }
-    ],
-    "defaults": {
-      "r": 0.2,
-      "alpha": 0.5
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
-    "fidelity": "engineering"
+    "authority": "Scully & Zubairy, Quantum Optics, 压缩真空的不确定度分配",
+    "assumptions": "ℏ=1 的定义式，不是实验装置",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
@@ -8169,79 +7947,25 @@
     "domain": "物理",
     "sub": "近代物理",
     "id": "fam-angmom-v01",
-    "name": "角动量",
-    "formula": "自旋/轨道耦合",
+    "name": "角动量（自旋轨道）",
+    "formula": "自旋/轨道：j=l±1/2",
     "description": "物理/近代物理：角动量；维度 量子数、耦合；参数见工作台",
     "family": "particles",
-    "generated": true,
-    "variantOf": "angmom",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "j",
-        "label": "量子数",
-        "unit": "—",
-        "min": 0.5,
-        "max": 4,
-        "value": 0.5
-      },
-      {
-        "key": "coup",
-        "label": "耦合",
-        "unit": "—",
-        "min": 0,
-        "max": 2,
-        "value": 0.2
-      }
-    ],
-    "defaults": {
-      "j": 0.5,
-      "coup": 0.2
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
-    "fidelity": "engineering"
+    "authority": "Bransden & Joachain, 自旋-轨道耦合的 j 选择",
+    "assumptions": "单电子角动量加法，不是能级数计算",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
     "sub": "近代物理",
     "id": "fam-entangle-v01",
     "name": "纠缠与贝尔态",
-    "formula": "贝尔不等式示意",
+    "formula": "贝尔不等式示意：CHSH |S|≤2√2",
     "description": "物理/近代物理：纠缠与贝尔态；维度 纠缠度、测量基；参数见工作台",
     "family": "particles",
-    "generated": true,
-    "variantOf": "entangle",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "conc",
-        "label": "纠缠度",
-        "unit": "—",
-        "min": 0,
-        "max": 1,
-        "value": 0.2
-      },
-      {
-        "key": "basis",
-        "label": "测量基",
-        "unit": "°",
-        "min": 0,
-        "max": 90,
-        "value": 0
-      }
-    ],
-    "defaults": {
-      "conc": 0.2,
-      "basis": 0
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
-    "fidelity": "engineering"
+    "authority": "Clauser et al., Phys. Rev. Lett. 23 (1969)；Aspect 实验综述中的 CHSH",
+    "assumptions": "只给出 Tsirelson 界与经典界，不模拟实验噪声协议",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
@@ -8278,9 +8002,9 @@
       "theta": 45,
       "ctrl": 0
     },
-    "authority": "Cormen et al., Introduction to Algorithms (CLRS), 相关算法章节",
-    "assumptions": "离散步骤与不变量按该算法定义；可视化高亮不是复杂度证明本身",
-    "fidelity": "engineering"
+    "authority": "Nielsen & Chuang, Quantum Computation and Quantum Information, 单比特旋转",
+    "assumptions": "理想单比特门；P(1)=sin²(θ/2)；非噪声硬件标定",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
@@ -8317,9 +8041,9 @@
       "nBits": 2,
       "iters": 1
     },
-    "authority": "Cormen et al., Introduction to Algorithms (CLRS), 相关算法章节",
-    "assumptions": "离散步骤与不变量按该算法定义；可视化高亮不是复杂度证明本身",
-    "fidelity": "engineering"
+    "authority": "Nielsen & Chuang, Quantum Computation and Quantum Information, Grover 迭代",
+    "assumptions": "理想 Grover 示意 P=sin²((2k+1)θ)；非实际量子硬件",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
@@ -8365,29 +8089,11 @@
     "sub": "近代物理",
     "id": "fam-rel-kin-v01",
     "name": "相对论运动学",
-    "formula": "γ、时间膨胀",
+    "formula": "相对论：γ=1/√(1−β²)、时间膨胀",
     "description": "物理/近代物理：相对论运动学；维度 β=v/c；参数见工作台",
     "family": "ode1d",
-    "generated": true,
-    "variantOf": "rel-kin",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "beta",
-        "label": "β=v/c",
-        "unit": "—",
-        "min": 0.01,
-        "max": 0.99,
-        "value": 0.3
-      }
-    ],
-    "defaults": {
-      "beta": 0.3
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
+    "authority": "French, Special Relativity, 或 Rindler；时间膨胀与长度收缩",
+    "assumptions": "惯性系、β<1；质能用静止质量",
     "fidelity": "engineering"
   },
   {
@@ -8890,39 +8596,12 @@
     "sub": "流体",
     "id": "fam-semiconductor-v01",
     "name": "半导体",
-    "formula": "PN/MOS",
+    "formula": "PN结：V_bi=V_T ln(Na Nd/ni²)",
     "description": "物理/流体：半导体；维度 掺杂浓度、能带偏移；参数见工作台",
     "family": "circuit",
-    "generated": true,
-    "variantOf": "semiconductor",
-    "axes": [
-      "默认"
-    ],
-    "dims": [
-      {
-        "key": "Nd",
-        "label": "掺杂浓度",
-        "unit": "cm⁻³",
-        "min": 100000000000000,
-        "max": 10000000000000000000,
-        "value": 1000000000000000
-      },
-      {
-        "key": "dE",
-        "label": "能带偏移",
-        "unit": "eV",
-        "min": 0,
-        "max": 1,
-        "value": 0.1
-      }
-    ],
-    "defaults": {
-      "Nd": 1000000000000000,
-      "dE": 0.1
-    },
-    "authority": "条目由主题求解器按名称积分标准关系；见模型 assumptions",
-    "assumptions": "方程与读数对应该条目公式，不再使用无关正弦占位",
-    "fidelity": "engineering"
+    "authority": "Sze, Semiconductor Devices, 突变结内建势",
+    "assumptions": "非简并、300 K、V_T=0.026 V、n_i=1e10 cm⁻³；不是工艺配方",
+    "fidelity": "principle"
   },
   {
     "domain": "物理",
