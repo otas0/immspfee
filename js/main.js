@@ -1171,8 +1171,8 @@ function paintSidebar() {
     const fillBody = () => {
       body.replaceChildren();
       for (const [sub, items] of subMap) {
-        const ready = items.map((row) => models.find((m) => m.id === row.id)).filter(Boolean);
-        if (!ready.length) continue;
+        const anyReady = items.some((row) => models.some((m) => m.id === row.id));
+        if (!anyReady && !searching) continue;
         const subEl = document.createElement('details');
         subEl.className = 'sub-group';
         const sKey = foldKey(domain, sub);
@@ -1185,15 +1185,23 @@ function paintSidebar() {
         subSum.innerHTML = `<span class="sub-name${hit ? ' is-match' : ''}" data-sub="${sub}">${sub}</span><span class="sub-count">${items.length}</span>`;
         const subBody = document.createElement('div');
         subBody.className = 'sub-body';
-        for (const m of ready) subBody.appendChild(makeModelButton(m));
+        // Lazy: only mount model buttons for open subs (物理 has ~430 rows).
+        const fillSub = () => {
+          subBody.replaceChildren();
+          const ready = items.map((row) => models.find((m) => m.id === row.id)).filter(Boolean);
+          for (const m of ready) subBody.appendChild(makeModelButton(m));
+        };
         subEl.append(subSum, subBody);
         subEl.addEventListener('toggle', () => {
           const next = loadFolds();
           next[sKey] = subEl.open;
           saveFolds(next);
+          if (subEl.open) fillSub();
+          else subBody.replaceChildren();
         });
         body.appendChild(subEl);
         subEl.open = subWantOpen;
+        if (subEl.open) fillSub();
       }
     };
     const ensureBody = () => {

@@ -5096,6 +5096,42 @@ var PHRASE_TABLE = [
   ["\u5149\u8F74\u3001\u7269/\u50CF\u3001\u4E09\u6761\u7279\u6B8A\u5149\u7EBF", "optical axis; object/image; three principal rays", "\u5149\u8EF8\u30FB\u7269\uFF0F\u50CF\u30FB3\u672C\u306E\u4E3B\u5149\u7DDA", "\uAD11\uCD95\xB7\uBB3C/\uC0C1\xB7\uC138 \uC8FC\uC694 \uAD11\uC120", "eje \xF3ptico; objeto/imagen; tres rayos", "axe optique; objet/image; trois rayons", "optische Achse; Gegenstand/Bild; drei Hauptstrahlen"],
   ["\u53CC\u7F1D\u3001\u5C4F\u5E55\u6761\u7EB9", "double slit; screen fringes", "\u4E8C\u91CD\u30B9\u30EA\u30C3\u30C8\u30FB\u30B9\u30AF\u30EA\u30FC\u30F3\u7E1E", "\uC774\uC911 \uC2AC\uB9BF\xB7\uC2A4\uD06C\uB9B0 \uBB34\uB2AC", "doble rendija; franjas", "double fente; franges", "Doppelspalt; Schirmstreifen"],
   ["\u7F51\u683C\u3001\u989C\u8272\u6620\u5C04\u3001\u6A21\u6001", "grid, colormap, modes", "\u683C\u5B50\u30FB\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7\u30FB\u30E2\u30FC\u30C9", "\uACA9\uC790, \uCEEC\uB7EC\uB9F5, \uBAA8\uB4DC", "malla, mapa de color, modos", "grille, carte de couleurs, modes", "Gitter, Farbkarte, Moden"],
+  ["\u659C\u9762\u6ED1\u52A8\u7269\u5757", "block sliding on an incline", "\u659C\u9762\u4E0A\u3092\u6ED1\u308B\u7269\u4F53", "\uBE57\uBA74\uC5D0\uC11C \uBBF8\uB044\uB7EC\uC9C0\uB294 \uBB3C\uCCB4", "bloque que desliza en un plano", "bloc glissant sur un plan", "Block auf schiefer Ebene"],
+  ["\u5C0F\u7403\u3001\u5730\u9762\u3001\u901F\u5EA6\u77E2\u91CF", "ball, ground, velocity vector", "\u5C0F\u7403\u30FB\u5730\u9762\u30FB\u901F\u5EA6\u30D9\u30AF\u30C8\u30EB", "\uC791\uC740 \uACF5, \uC9C0\uBA74, \uC18D\uB3C4 \uBCA1\uD130", "bola, suelo, vector velocidad", "bille, sol, vecteur vitesse", "Kugel, Boden, Geschwindigkeitsvektor"],
+  ["\u8C03 g\u3001\u521D\u9AD8\u5EA6\u3001\u7A7A\u6C14\u963B\u529B", "tune g, initial height, air drag", "g\u30FB\u521D\u671F\u9AD8\u3055\u30FB\u7A7A\u6C17\u62B5\u6297\u3092\u8ABF\u6574", "g\xB7\uCD08\uAE30 \uB192\uC774\xB7\uACF5\uAE30\uC800\uD56D \uC870\uC808", "ajustar g, altura inicial, resistencia", "r\xE9gler g, hauteur initiale, tra\xEEn\xE9e", "g, Anfangsh\xF6he, Luftwiderstand einstellen"],
+  ["\u5F39\u7C27\u3001\u8D28\u91CF\u5757\u3001\u5E73\u8861\u4F4D\u7F6E", "spring, mass, equilibrium", "\u3070\u306D\u30FB\u8CEA\u91CF\u30FB\u5E73\u8861\u4F4D\u7F6E", "\uC2A4\uD504\uB9C1, \uC9C8\uB7C9, \uD3C9\uD615 \uC704\uCE58", "resorte, masa, equilibrio", "ressort, masse, \xE9quilibre", "Feder, Masse, Gleichgewichtslage"],
+  ["\u8C03 m\u3001k\u3001\u963B\u5C3C\u3001x0", "tune m, k, damping, x0", "m\u30FBk\u30FB\u6E1B\u8870\u30FBx0 \u3092\u8ABF\u6574", "m\xB7k\xB7\uAC10\uC1E0\xB7x0 \uC870\uC808", "ajustar m, k, amortiguaci\xF3n, x0", "r\xE9gler m, k, amortissement, x0", "m, k, D\xE4mpfung, x0 einstellen"],
+  ["\u659C\u9762\u3001\u7269\u5757\u3001\u53D7\u529B\u5206\u89E3", "incline, block, force resolution", "\u659C\u9762\u30FB\u7269\u4F53\u30FB\u529B\u306E\u5206\u89E3", "\uBE57\uBA74, \uBB3C\uCCB4, \uD798 \uBD84\uD574", "plano, bloque, descomposici\xF3n de fuerzas", "plan, bloc, d\xE9composition des forces", "Ebene, Block, Kr\xE4ftezerlegung"],
+  ["\u8C03\u659C\u9762\u89D2\u3001\u6469\u64E6\u7CFB\u6570\u3001\u8D28\u91CF", "tune angle, friction coefficient, mass", "\u659C\u9762\u89D2\u30FB\u6469\u64E6\u4FC2\u6570\u30FB\u8CEA\u91CF\u3092\u8ABF\u6574", "\uBE57\uBA74\uAC01\xB7\uB9C8\uCC30\uACC4\uC218\xB7\uC9C8\uB7C9 \uC870\uC808", "ajustar \xE1ngulo, fricci\xF3n, masa", "r\xE9gler angle, frottement, masse", "Winkel, Reibung, Masse einstellen"],
+  ["\u7AD6\u76F4\u4E00\u7EF4\u3001\u5E38 g\u3001\u7EBF\u6027\u963B\u529B", "vertical 1D, constant g, linear drag", "\u925B\u76F41\u6B21\u5143\u30FB\u4E00\u5B9Ag\u30FB\u7DDA\u5F62\u62B5\u6297", "\uC5F0\uC9C1 1\uCC28\uC6D0\xB7\uC0C1\uC218 g\xB7\uC120\uD615 \uC800\uD56D", "1D vertical, g constante, arrastre lineal", "1D vertical, g constant, tra\xEEn\xE9e lin\xE9aire", "vertikal 1D, konstantes g, linearer Widerstand"],
+  ["\u4E0D\u8BA1\u6D6E\u529B\u4E0E\u4E8C\u6B21\u963B\u529B", "neglect buoyancy and quadratic drag", "\u6D6E\u529B\u3068\u4E8C\u6B21\u62B5\u6297\u3092\u7121\u8996", "\uBD80\uB825\uACFC \uC774\uCC28 \uC800\uD56D \uBB34\uC2DC", "sin flotaci\xF3n ni arrastre cuadr\xE1tico", "sans flottabilit\xE9 ni tra\xEEn\xE9e quadratique", "ohne Auftrieb und quadratischen Widerstand"],
+  ["\u7A7A\u6C14\u963B\u529B", "air drag", "\u7A7A\u6C17\u62B5\u6297", "\uACF5\uAE30\uC800\uD56D", "resistencia del aire", "r\xE9sistance de l\u2019air", "Luftwiderstand"],
+  ["\u901F\u5EA6\u77E2\u91CF", "velocity vector", "\u901F\u5EA6\u30D9\u30AF\u30C8\u30EB", "\uC18D\uB3C4 \uBCA1\uD130", "vector velocidad", "vecteur vitesse", "Geschwindigkeitsvektor"],
+  ["\u53D7\u529B\u5206\u89E3", "force resolution", "\u529B\u306E\u5206\u89E3", "\uD798 \uBD84\uD574", "descomposici\xF3n de fuerzas", "d\xE9composition des forces", "Kr\xE4ftezerlegung"],
+  ["\u6469\u64E6\u7CFB\u6570", "friction coefficient", "\u6469\u64E6\u4FC2\u6570", "\uB9C8\uCC30\uACC4\uC218", "coeficiente de fricci\xF3n", "coefficient de frottement", "Reibungskoeffizient"],
+  ["\u521D\u9AD8\u5EA6", "initial height", "\u521D\u671F\u9AD8\u3055", "\uCD08\uAE30 \uB192\uC774", "altura inicial", "hauteur initiale", "Anfangsh\xF6he"],
+  ["\u5E73\u8861\u4F4D\u7F6E", "equilibrium position", "\u5E73\u8861\u4F4D\u7F6E", "\uD3C9\uD615 \uC704\uCE58", "posici\xF3n de equilibrio", "position d\u2019\xE9quilibre", "Gleichgewichtslage"],
+  ["\u8D28\u91CF\u5757", "mass block", "\u8CEA\u91CF", "\uC9C8\uB7C9 \uBE14\uB85D", "bloque de masa", "masse", "Masse"],
+  ["\u53C2\u6570\u89C1\u5DE5\u4F5C\u53F0", "parameters on the workbench", "\u30D1\u30E9\u30E1\u30FC\u30BF\u306F\u4F5C\u696D\u53F0\u3092\u53C2\u7167", "\uB9E4\uAC1C\uBCC0\uC218\uB294 \uC791\uC5C5\uB300 \uCC38\uACE0", "par\xE1metros en el banco", "param\xE8tres sur le banc", "Parameter am Arbeitstisch"],
+  ["\u6559\u5B66\u53EF\u89C6\u5316", "teaching visualization", "\u6559\u80B2\u7528\u53EF\u8996\u5316", "\uAD50\uC721\uC6A9 \uC2DC\uAC01\uD654", "visualizaci\xF3n did\xE1ctica", "visualisation p\xE9dagogique", "Lehrvisualisierung"],
+  ["\u7B97\u6CD5\u4E0E\u6570\u636E\u7ED3\u6784", "algorithms and data structures", "\u30A2\u30EB\u30B4\u30EA\u30BA\u30E0\u3068\u30C7\u30FC\u30BF\u69CB\u9020", "\uC54C\uACE0\uB9AC\uC998\uACFC \uC790\uB8CC\uAD6C\uC870", "algoritmos y estructuras de datos", "algorithmes et structures de donn\xE9es", "Algorithmen und Datenstrukturen"],
+  ["\u8BA1\u7B97\u673A\u79D1\u5B66", "computer science", "\u30B3\u30F3\u30D4\u30E5\u30FC\u30BF\u79D1\u5B66", "\uCEF4\uD4E8\uD130 \uACFC\uD559", "ciencias de la computaci\xF3n", "informatique", "Informatik"],
+  ["\u8BA1\u7B97\u673A\u5DE5\u7A0B", "computer engineering", "\u30B3\u30F3\u30D4\u30E5\u30FC\u30BF\u5DE5\u5B66", "\uCEF4\uD4E8\uD130 \uACF5\uD559", "ingenier\xEDa inform\xE1tica", "g\xE9nie informatique", "Technische Informatik"],
+  ["\u6570\u5B57\u903B\u8F91", "digital logic", "\u30C7\u30A3\u30B8\u30BF\u30EB\u8AD6\u7406", "\uB514\uC9C0\uD138 \uB17C\uB9AC", "l\xF3gica digital", "logique num\xE9rique", "Digitallogik"],
+  ["\u64CD\u4F5C\u7CFB\u7EDF", "operating systems", "\u30AA\u30DA\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30B7\u30B9\u30C6\u30E0", "\uC6B4\uC601\uCCB4\uC81C", "sistemas operativos", "syst\xE8mes d\u2019exploitation", "Betriebssysteme"],
+  ["\u673A\u5668\u5B66\u4E60", "machine learning", "\u6A5F\u68B0\u5B66\u7FD2", "\uAE30\uACC4 \uD559\uC2B5", "aprendizaje autom\xE1tico", "apprentissage automatique", "maschinelles Lernen"],
+  ["\u5F3A\u5316\u5B66\u4E60", "reinforcement learning", "\u5F37\u5316\u5B66\u7FD2", "\uAC15\uD654\uD559\uC2B5", "aprendizaje por refuerzo", "apprentissage par renforcement", "Best\xE4rkendes Lernen"],
+  ["\u795E\u7ECF\u7F51\u7EDC", "neural network", "\u30CB\u30E5\u30FC\u30E9\u30EB\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF", "\uC2E0\uACBD\uB9DD", "red neuronal", "r\xE9seau de neurones", "neuronales Netz"],
+  ["\u52A8\u6001\u89C4\u5212", "dynamic programming", "\u52D5\u7684\u8A08\u753B\u6CD5", "\uB3D9\uC801 \uACC4\uD68D\uBC95", "programaci\xF3n din\xE1mica", "programmation dynamique", "dynamische Programmierung"],
+  ["\u4FE1\u606F\u8BBA", "information theory", "\u60C5\u5831\u7406\u8AD6", "\uC815\uBCF4\uC774\uB860", "teor\xEDa de la informaci\xF3n", "th\xE9orie de l\u2019information", "Informationstheorie"],
+  ["\u5BC6\u7801\u5B66", "cryptography", "\u6697\u53F7", "\uC554\uD638\uD559", "criptograf\xEDa", "cryptographie", "Kryptographie"],
+  ["\u7F51\u7EDC\u534F\u8BAE", "network protocol", "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30D7\u30ED\u30C8\u30B3\u30EB", "\uB124\uD2B8\uC6CC\uD06C \uD504\uB85C\uD1A0\uCF5C", "protocolo de red", "protocole r\xE9seau", "Netzwerkprotokoll"],
+  ["\u5B58\u50A8\u5C42\u6B21", "memory hierarchy", "\u8A18\u61B6\u968E\u5C64", "\uBA54\uBAA8\uB9AC \uACC4\uCE35", "jerarqu\xEDa de memoria", "hi\xE9rarchie m\xE9moire", "Speicherhierarchie"],
+  ["\u590D\u5408\u6750\u6599", "composite materials", "\u8907\u5408\u6750\u6599", "\uBCF5\uD569\uC7AC\uB8CC", "materiales compuestos", "mat\xE9riaux composites", "Verbundwerkstoffe"],
+  ["\u8FD1\u4EE3\u7269\u7406", "modern physics", "\u73FE\u4EE3\u7269\u7406", "\uD604\uB300 \uBB3C\uB9AC", "f\xEDsica moderna", "physique moderne", "moderne Physik"],
+  ["\u5730\u7403\u7269\u7406", "geophysics", "\u5730\u7403\u7269\u7406\u5B66", "\uC9C0\uAD6C\uBB3C\uB9AC\uD559", "geof\xEDsica", "g\xE9ophysique", "Geophysik"],
+  ["\u7B49\u79BB\u5B50\u4F53", "plasma", "\u30D7\u30E9\u30BA\u30DE", "\uD50C\uB77C\uC2A4\uB9C8", "plasma", "plasma", "Plasma"],
+  ["\u8BA1\u7B97\u7406\u8BBA", "theory of computation", "\u8A08\u7B97\u7406\u8AD6", "\uACC4\uC0B0 \uC774\uB860", "teor\xEDa de la computaci\xF3n", "th\xE9orie de la calculabilit\xE9", "Berechenbarkeitstheorie"],
   ["\u6746\u4EF6\u62C9\u4F38/\u538B\u7F29", "axial tension/compression", "\u68D2\u306E\u5F15\u5F35\uFF0F\u5727\u7E2E", "\uCD95 \uC778\uC7A5/\uC555\uCD95", "tracci\xF3n/compresi\xF3n axial", "traction/compression axiale", "Zug/Druck im Stab"],
   ["\u629B\u4F53\u8FD0\u52A8", "projectile motion", "\u653E\u7269\u904B\u52D5", "\uD3EC\uBB3C\uC120 \uC6B4\uB3D9", "movimiento de proyectil", "mouvement de projectile", "Wurfbewegung"],
   ["\u6746\u4EF6\u62C9\u4F38", "axial tension", "\u68D2\u306E\u5F15\u5F35", "\uCD95 \uC778\uC7A5", "tracci\xF3n axial", "traction axiale", "Zug im Stab"],
@@ -7374,8 +7410,8 @@ function paintSidebar() {
     const fillBody = () => {
       body.replaceChildren();
       for (const [sub, items] of subMap) {
-        const ready = items.map((row) => models.find((m) => m.id === row.id)).filter(Boolean);
-        if (!ready.length) continue;
+        const anyReady = items.some((row) => models.some((m) => m.id === row.id));
+        if (!anyReady && !searching) continue;
         const subEl = document.createElement("details");
         subEl.className = "sub-group";
         const sKey = foldKey(domain, sub);
@@ -7387,15 +7423,22 @@ function paintSidebar() {
         subSum.innerHTML = `<span class="sub-name${hit ? " is-match" : ""}" data-sub="${sub}">${sub}</span><span class="sub-count">${items.length}</span>`;
         const subBody = document.createElement("div");
         subBody.className = "sub-body";
-        for (const m of ready) subBody.appendChild(makeModelButton(m));
+        const fillSub = () => {
+          subBody.replaceChildren();
+          const ready = items.map((row) => models.find((m) => m.id === row.id)).filter(Boolean);
+          for (const m of ready) subBody.appendChild(makeModelButton(m));
+        };
         subEl.append(subSum, subBody);
         subEl.addEventListener("toggle", () => {
           const next = loadFolds();
           next[sKey] = subEl.open;
           saveFolds(next);
+          if (subEl.open) fillSub();
+          else subBody.replaceChildren();
         });
         body.appendChild(subEl);
         subEl.open = subWantOpen;
+        if (subEl.open) fillSub();
       }
     };
     const ensureBody = () => {
