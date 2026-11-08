@@ -2806,6 +2806,428 @@ var rlc_default = {
   }
 };
 
+// js/models/rlCircuit.js
+var rlCircuit_default = {
+  id: "rl-circuit",
+  name: "RL \u7535\u8DEF",
+  equation: "L i\u2032 + R i = V\uFF1Bi(t)=(V/R)(1\u2212e^{\u2212(R/L)t})\uFF08\u96F6\u72B6\u6001\uFF09",
+  authority: "Nilsson & Riedel, Electric Circuits, first-order RL",
+  assumptions: "\u96C6\u603B\u4E32\u8054 RL\u3001\u76F4\u6D41\u9636\u8DC3\u3001\u96F6\u521D\u59CB\u7535\u6D41\uFF1B\u5FFD\u7565\u94C1\u82AF\u9971\u548C",
+  fidelity: "engineering",
+  params: {
+    V: 10,
+    R: 5,
+    L: 0.2,
+    i0: 0,
+    mode: 1
+  },
+  paramSchema: {
+    V: { group: "dynamics", unit: "V", label: "\u7535\u6E90 V", min: 0, max: 48 },
+    R: { group: "dynamics", unit: "\u03A9", label: "\u7535\u963B R", min: 0.2, max: 50 },
+    L: { group: "dynamics", unit: "H", label: "\u7535\u611F L", min: 0.01, max: 2 },
+    i0: { group: "initial", unit: "A", label: "i\u2080", min: -5, max: 5 },
+    mode: {
+      group: "dynamics",
+      unit: "\u2014",
+      label: "\u63A5\u901A(1)/\u77ED\u8DEF(0)",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u63A5\u901A\u7535\u6E90" }, { value: 0, label: "\u77ED\u8DEF\u8870\u51CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.i = P(state.params, "i0", 0);
+    state.trail = [];
+  },
+  step(state, dt) {
+    const R = Math.max(P(state.params, "R", 5), 1e-6);
+    const L = Math.max(P(state.params, "L", 0.2), 1e-6);
+    const mode = P(state.params, "mode", 1) >= 0.5 ? 1 : 0;
+    const V = mode ? P(state.params, "V", 10) : 0;
+    const tau = L / R;
+    state.i = finiteOr(state.i + (V - R * state.i) / L * dt, state.i);
+    state.t += dt;
+    state.tau = tau;
+    state.trail.push({ t: state.t, i: state.i });
+    if (state.trail.length > 600) state.trail.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 50, r: 30, t: 40, b: 40 };
+    const R = Math.max(P(state.params, "R", 5), 1e-6);
+    const L = Math.max(P(state.params, "L", 0.2), 1e-6);
+    const mode = P(state.params, "mode", 1) >= 0.5 ? 1 : 0;
+    const V = mode ? P(state.params, "V", 10) : 0;
+    const iInf = V / R;
+    const iScale = Math.max(Math.abs(iInf), Math.abs(P(state.params, "i0", 0)), 0.5) * 1.3;
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+    const tMax = Math.max(state.t, 0.5);
+    const X = (t) => pad.l + t / tMax * plotW;
+    const Y = (i) => pad.t + (1 - (i / iScale + 0.1) / 1.2) * plotH;
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t);
+    ctx.lineTo(pad.l, pad.t + plotH);
+    ctx.lineTo(pad.l + plotW, pad.t + plotH);
+    ctx.stroke();
+    const tau = L / R;
+    const i0 = P(state.params, "i0", 0);
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = C.theory || "#7c9cbf";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 80; i += 1) {
+      const t = tMax * i / 80;
+      const ii = iInf + (i0 - iInf) * Math.exp(-t / tau);
+      const x = X(t);
+      const y = Y(ii);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (state.trail.length > 1) {
+      ctx.strokeStyle = C.body;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      state.trail.forEach((p, i) => {
+        const x = X(p.t);
+        const y = Y(p.i);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    ctx.fillStyle = C.muted;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`i=${formatNum(state.i, 2)} A \xB7 \u03C4=${formatNum(tau, 3)} s \xB7 \u865A\u7EBF=\u89E3\u6790`, 12, 22);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    const R = P(state.params, "R", 5);
+    const L = P(state.params, "L", 0.2);
+    return [
+      { label: "t", value: `${formatNum(state.t, d)} s` },
+      { label: "i", value: `${formatNum(state.i, d)} A` },
+      { label: "\u03C4", value: `${formatNum(L / Math.max(R, 1e-9), d)} s` }
+    ];
+  },
+  getTrajectory(state) {
+    return state.trail.map((p) => ({ t: p.t, i: p.i }));
+  }
+};
+
+// js/models/ohmsLaw.js
+var ohmsLaw_default = {
+  id: "ohms-law",
+  name: "\u6B27\u59C6\u5B9A\u5F8B",
+  equation: "V = I R\uFF0CP = I V",
+  authority: "Nilsson & Riedel, Electric Circuits, Ohm\u2019s law",
+  assumptions: "\u96C6\u603B\u3001\u7EBF\u6027\u7535\u963B\u3001\u76F4\u6D41\uFF1B\u5FFD\u7565\u6E29\u5EA6\u7CFB\u6570\u4E0E\u5BC4\u751F\u7535\u611F",
+  fidelity: "engineering",
+  params: {
+    I: 0.5,
+    R: 10,
+    showLoad: 1,
+    sweepI: 0
+  },
+  paramSchema: {
+    I: { group: "dynamics", unit: "A", label: "\u7535\u6D41 I", min: 0, max: 5 },
+    R: { group: "dynamics", unit: "\u03A9", label: "\u7535\u963B R", min: 0.1, max: 100 },
+    showLoad: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u8D1F\u8F7D\u7EBF",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    },
+    sweepI: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u626B\u63CF I",
+      min: 0,
+      max: 1,
+      options: [{ value: 0, label: "\u5173" }, { value: 1, label: "\u5F00" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const I = P(state.params, "I", 0.5);
+    const R = P(state.params, "R", 10);
+    state.V = finiteOr(I * R, 0);
+    state.Pwr = finiteOr(I * state.V, 0);
+  },
+  step(state, dt) {
+    if (Math.round(P(state.params, "sweepI", 0)) === 1) {
+      const next = P(state.params, "I", 0.5) + dt * 0.4;
+      state.params.I = next > 5 ? 0 : next;
+    }
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.V);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 48, r: 28, t: 44, b: 36 };
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("V = I R", 14, 22);
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t);
+    ctx.lineTo(pad.l, pad.t + plotH);
+    ctx.lineTo(pad.l + plotW, pad.t + plotH);
+    ctx.stroke();
+    const Imax = 5;
+    const Vmax = Math.max(20, P(state.params, "R", 10) * Imax * 1.05);
+    const X = (i) => pad.l + i / Imax * plotW;
+    const Y = (v) => pad.t + plotH - v / Vmax * plotH;
+    const R = P(state.params, "R", 10);
+    if (Math.round(P(state.params, "showLoad", 1)) === 1) {
+      ctx.strokeStyle = C.body;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(X(0), Y(0));
+      ctx.lineTo(X(Imax), Y(R * Imax));
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    ctx.fillStyle = C.accent;
+    ctx.beginPath();
+    ctx.arc(X(P(state.params, "I", 0.5)), Y(state.V), 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`V=${formatNum(state.V, 2)} V  P=${formatNum(state.Pwr, 2)} W`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "V", value: `${formatNum(state.V, d)} V` },
+      { label: "P", value: `${formatNum(state.Pwr, d)} W` },
+      { label: "I", value: `${formatNum(P(state.params, "I", 0.5), d)} A` },
+      { label: "R", value: `${formatNum(P(state.params, "R", 10), d)} \u03A9` }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, V: v }));
+  }
+};
+
+// js/models/polarization.js
+var polarization_default = {
+  id: "polarization",
+  name: "\u504F\u632F\uFF08Malus\uFF09",
+  equation: "I = I\u2080 cos\xB2\u03B8\uFF1Bn \u7247\u7406\u60F3\u5206\u6790\u5668\u65F6 I = I\u2080 cos\xB2\u207F\u03B8",
+  authority: "Hecht, Optics, Malus\u2019s law",
+  assumptions: "\u5165\u5C04\u5149\u5DF2\u7EBF\u504F\u632F\uFF1B\u7406\u60F3\u504F\u632F\u7247\uFF1B\u03B8 \u4E3A\u504F\u632F\u65B9\u5411\u5939\u89D2\uFF1B\u5FFD\u7565\u5438\u6536\u4E0E\u53CC\u6298\u5C04",
+  fidelity: "engineering",
+  params: {
+    I0: 1,
+    theta: 30,
+    plates: 1,
+    showTheory: 1
+  },
+  paramSchema: {
+    I0: { group: "dynamics", unit: "\u2014", label: "\u5165\u5C04 I\u2080", min: 0, max: 10 },
+    theta: { group: "dynamics", unit: "\xB0", label: "\u5939\u89D2 \u03B8", min: 0, max: 180 },
+    plates: { group: "dynamics", unit: "\u2014", label: "\u5206\u6790\u5668\u6570 n", min: 1, max: 6 },
+    showTheory: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u793A\u610F\u504F\u632F\u8F74",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const n = Math.max(1, Math.round(P(state.params, "plates", 1)));
+    const th = P(state.params, "theta", 30) * Math.PI / 180;
+    state.I = finiteOr(P(state.params, "I0", 1) * Math.cos(th) ** (2 * n), 0);
+    state.n = n;
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.I);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const cx = W * 0.5;
+    const cy = H * 0.48;
+    const R = Math.min(W, H) * 0.22;
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("Malus  I = I\u2080 cos\xB2\u03B8", 14, 22);
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+    const th = P(state.params, "theta", 30) * Math.PI / 180;
+    if (Math.round(P(state.params, "showTheory", 1)) === 1) {
+      ctx.strokeStyle = C.vector || C.accent;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - R * 1.1, cy);
+      ctx.lineTo(cx + R * 1.1, cy);
+      ctx.stroke();
+      ctx.strokeStyle = C.body;
+      ctx.beginPath();
+      ctx.moveTo(cx - R * Math.cos(th) * 1.1, cy - R * Math.sin(th) * 1.1);
+      ctx.lineTo(cx + R * Math.cos(th) * 1.1, cy + R * Math.sin(th) * 1.1);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    const mid = H * 0.82;
+    const boxL = 40;
+    const boxW = W - 70;
+    ctx.strokeStyle = C.body;
+    ctx.beginPath();
+    state.hist.forEach((v, i) => {
+      const x = boxL + i / Math.max(1, state.hist.length - 1) * boxW;
+      const y = mid - v * 28;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+    ctx.fillStyle = C.accent;
+    ctx.font = "12px IBM Plex Mono, monospace";
+    ctx.fillText(`I=${formatNum(state.I, 3)}  n=${state.n}`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "I", value: formatNum(state.I, d) },
+      { label: "\u03B8", value: `${formatNum(P(state.params, "theta", 30), d)} \xB0` },
+      { label: "I\u2080", value: formatNum(P(state.params, "I0", 1), d) },
+      { label: "n", value: formatNum(state.n, 0) }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, I: v }));
+  }
+};
+
+// js/models/photoelectric.js
+var photoelectric_default = {
+  id: "photoelectric",
+  name: "\u5149\u7535\u6548\u5E94",
+  equation: "K_max = max(0, hf \u2212 W)\uFF1B\u9608\u503C\u9608\u503C R \u221D I\uFF08\u4EC5\u5F53 K_max>0\uFF09",
+  authority: "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity)",
+  assumptions: "hf \u4E0E W \u540C\u7528 eV\uFF1B\u65E0\u7A7A\u95F4\u7535\u8377\uFF1BR \u4E3A\u76F8\u5BF9\u4EA7\u989D\u4E0D\u662F\u6807\u5B9A\u7535\u6D41",
+  fidelity: "engineering",
+  params: {
+    hf: 3,
+    W: 2,
+    intensity: 1,
+    showCutoff: 1
+  },
+  paramSchema: {
+    hf: { group: "dynamics", unit: "eV", label: "\u5149\u5B50\u80FD hf", min: 0, max: 12 },
+    W: { group: "dynamics", unit: "eV", label: "\u9038\u51FA\u529F W", min: 0, max: 10 },
+    intensity: { group: "dynamics", unit: "\u2014", label: "\u5149\u5F3A I", min: 0, max: 10 },
+    showCutoff: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u9608\u503C\u7EBF",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const K = Math.max(0, P(state.params, "hf", 3) - P(state.params, "W", 2));
+    state.K = finiteOr(K, 0);
+    state.rate = state.K > 0 ? Math.max(0, P(state.params, "intensity", 1)) : 0;
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.K);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 48, r: 28, t: 44, b: 36 };
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("K_max = hf \u2212 W", 14, 22);
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t);
+    ctx.lineTo(pad.l, pad.t + plotH);
+    ctx.lineTo(pad.l + plotW, pad.t + plotH);
+    ctx.stroke();
+    const hfMax = 12;
+    const kMax = 10;
+    const X = (hf2) => pad.l + hf2 / hfMax * plotW;
+    const Y = (k) => pad.t + plotH - k / kMax * plotH;
+    const W0 = P(state.params, "W", 2);
+    if (Math.round(P(state.params, "showCutoff", 1)) === 1) {
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = C.theory || "#7c9cbf";
+      ctx.beginPath();
+      ctx.moveTo(X(W0), pad.t + plotH);
+      ctx.lineTo(X(W0), pad.t);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.strokeStyle = C.body;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i += 1) {
+      const hf2 = hfMax * i / 60;
+      const k = Math.max(0, hf2 - W0);
+      const x = X(hf2);
+      const y = Y(k);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    const hf = P(state.params, "hf", 3);
+    ctx.fillStyle = C.accent;
+    ctx.beginPath();
+    ctx.arc(X(hf), Y(state.K), 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`K=${formatNum(state.K, 2)} eV  R\u221D${formatNum(state.rate, 2)}`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "K_max", value: `${formatNum(state.K, d)} eV` },
+      { label: "R", value: formatNum(state.rate, d) },
+      { label: "hf", value: `${formatNum(P(state.params, "hf", 3), d)} eV` },
+      { label: "W", value: `${formatNum(P(state.params, "W", 2), d)} eV` }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, K: v }));
+  }
+};
+
 // js/models/inclinedPlane.js
 var inclinedPlane_default = {
   id: "inclined-plane",
@@ -4828,6 +5250,10 @@ var HANDS = [
   fifo_default,
   rcCircuit_default,
   rlc_default,
+  rlCircuit_default,
+  ohmsLaw_default,
+  polarization_default,
+  photoelectric_default,
   inclinedPlane_default,
   collision2d_default,
   dijkstra_default,

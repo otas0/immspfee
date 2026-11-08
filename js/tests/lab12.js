@@ -202,7 +202,7 @@ export function runLab12() {
 
   const handRl = byId('rl-circuit');
   const handRlSt = handRl ? boot(handRl) : null;
-  assert('手写 RL 从零电流出发', !!handRlSt && Math.abs(handRlSt.y) < 1e-9, String(handRlSt?.y));
+  assert('手写 RL 从零电流出发', !!handRlSt && Math.abs(handRlSt.i) < 1e-9, String(handRlSt?.i));
   const handRlc = byId('rlc');
   assert('手写 RLC 在库', !!handRlc);
 

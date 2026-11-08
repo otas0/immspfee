@@ -1433,11 +1433,6 @@
       "authority": "Tolstov, Fourier Series",
       "assumptions": "奇次正弦项"
     },
-    "matrix-transform": {
-      "fidelity": "engineering",
-      "authority": "Strang, Introduction to Linear Algebra, 2×2",
-      "assumptions": "实 2×2；PCA/SVD 此处给出协方差最大特征值，不是统计软件"
-    },
     "titration-curve": {
       "fidelity": "principle",
       "authority": "Harris, Quantitative Chemical Analysis, 强酸强碱滴定",

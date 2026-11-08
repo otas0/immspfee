@@ -706,9 +706,10 @@ export function runSuite() {
     const ff = models.find((m) => m.id === 'free-fall');
     assert('free-fall fidelity engineering', ff?.fidelity === 'engineering', ff?.fidelity);
     const polGate = models.find((m) => m.id === 'polarization');
-    assert('偏振不再是占位 deprecated', polGate && polGate.deprecated !== true && polGate.topicBound, String(polGate?.deprecated));
-    assert('偏振已离开 gauge family', polGate?.family === 'interference', polGate?.family);
-    assert('偏振公式写的是 Malus', String(polGate?.formula || '').includes('cos'));
+    assert('偏振不再是占位 deprecated', polGate && polGate.deprecated !== true, String(polGate?.deprecated));
+    assert('偏振已升手写 family=hand', polGate?.family === 'hand', polGate?.family);
+    assert('偏振公式写的是 Malus', /cos|Malus/i.test(String(polGate?.formula || polGate?.equation || '')));
+    assert('目录无 gauge family', models.every((m) => m.family !== 'gauge'), models.filter((m) => m.family === 'gauge').map((m) => m.id).join(','));
     assert('自建白名单不含 gauge', !USER_MODEL_FAMILIES.includes('gauge'), USER_MODEL_FAMILIES.join(','));
 
     const kept = validateUserModelDraft({
@@ -791,10 +792,13 @@ export function runSuite() {
     }
     const rl = models.find((m) => m.id === 'rl-circuit');
     {
-      const state = { params: { ...rl.params, I: 1, R: 10, L: 0.1, speed: 1, t0: 0 } };
+      const state = { params: { ...rl.params, V: 10, R: 10, L: 0.1, i0: 0, mode: 1 } };
       rl.init(state);
-      rl.step(state, 0.05);
-      assert('RL 电流 i=I(1−e^{−Rt/L})', Math.abs(state.y - (1 - Math.exp(-5))) < 1e-9, `i=${state.y}`);
+      const h = 1e-4;
+      for (let i = 0; i < 500; i += 1) rl.step(state, h);
+      const iInf = 1;
+      const expect = iInf * (1 - Math.exp(-(10 / 0.1) * state.t));
+      assert('RL 电流逼近 (V/R)(1−e^{−Rt/L})', Math.abs(state.i - expect) < 2e-3, `i=${state.i} expect=${expect}`);
     }
     assert('自由落体在库', !!models.find((m) => m.id === 'free-fall'));
     assert('阻力落体在库', !!models.find((m) => m.id === 'drag-fall'));

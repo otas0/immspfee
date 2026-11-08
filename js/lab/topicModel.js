@@ -543,8 +543,8 @@ function ohm(spec) {
     assumptions: '集总、线性电阻、直流',
     params: { I: 0.5, R: 10 },
     schema: {
-      I: S('I', 'dynamics', 'A', 0, 5),
-      R: S('R', 'dynamics', 'Ω', 0.1, 100),
+      I: S('电流 I', 'dynamics', 'A', 0, 5),
+      R: S('电阻 R', 'dynamics', 'Ω', 0.1, 100),
     },
     tick(state) {
       state.V = P(state.params, 'I', 0.5) * P(state.params, 'R', 10);
@@ -581,9 +581,9 @@ function photo(spec) {
     assumptions: 'hf and W both in eV; no space charge; R is a relative yield, not a calibrated current',
     params: { hf: 3, W: 2, intensity: 1 },
     schema: {
-      hf: S('hf', 'dynamics', 'eV', 0, 12),
-      W: S('W', 'dynamics', 'eV', 0, 10),
-      intensity: S('I', 'dynamics', '—', 0, 10),
+      hf: S('光子能 hf', 'dynamics', 'eV', 0, 12),
+      W: S('逸出功 W', 'dynamics', 'eV', 0, 10),
+      intensity: S('光强 I', 'dynamics', '—', 0, 10),
     },
     tick(state) {
       state.K = Math.max(0, P(state.params, 'hf', 3) - P(state.params, 'W', 2));
@@ -605,6 +605,7 @@ function gamma(spec, topic) {
       beta: S('β', 'dynamics', '—', 0, 0.99),
       tau: S('Δτ', 'dynamics', 's', 0, 20),
       L0: S('L₀', 'dynamics', 'm', 0.1, 10),
+      m: S('静质量 m', 'dynamics', '—', 0.1, 10),
     },
     tick(state) {
       const b = Math.min(0.999, Math.max(0, P(state.params, 'beta', 0.6)));
@@ -648,10 +649,12 @@ function lotka(spec) {
     fidelity: 'principle',
     params: { alpha: 1, beta: 0.2, gamma: 0.8, delta: 0.2, x: 4, y: 2 },
     schema: {
-      alpha: S('α', 'dynamics', '—', 0.1, 3),
-      beta: S('β', 'dynamics', '—', 0.05, 1),
-      gamma: S('γ', 'dynamics', '—', 0.1, 3),
-      delta: S('δ', 'dynamics', '—', 0.05, 1),
+      alpha: S('猎物增长 α', 'dynamics', '—', 0.1, 3),
+      beta: S('捕食率 β', 'dynamics', '—', 0.05, 1),
+      gamma: S('捕食者死亡 γ', 'dynamics', '—', 0.1, 3),
+      delta: S('转化率 δ', 'dynamics', '—', 0.05, 1),
+      x: S('猎物 x₀', 'initial', '—', 0, 20),
+      y: S('捕食者 y₀', 'initial', '—', 0, 20),
     },
     init(state) {
       state.x = P(state.params, 'x', 4);
@@ -860,9 +863,10 @@ function stress(spec, topic) {
       assumptions: '理想轴心受压、弹性、端部系数 μ',
       params: { E: 200, I: 1e-6, L: 2, mu: 1 },
       schema: {
-        E: S('E', 'dynamics', 'GPa', 10, 300),
-        L: S('L', 'dynamics', 'm', 0.3, 8),
-        mu: S('μ', 'dynamics', '—', 0.5, 2),
+        E: S('模量 E', 'dynamics', 'GPa', 10, 300),
+        I: S('惯性矩 I', 'dynamics', 'm⁴', 1e-8, 1e-4),
+        L: S('长度 L', 'dynamics', 'm', 0.3, 8),
+        mu: S('端部 μ', 'dynamics', '—', 0.5, 2),
       },
       tick(state) {
         const E = P(state.params, 'E', 200) * 1e9;
@@ -900,8 +904,9 @@ function stress(spec, topic) {
       assumptions: '圆截面、线弹性',
       params: { T: 200, rho: 0.02, J: 2.5e-7 },
       schema: {
-        T: S('T', 'dynamics', 'N·m', 0, 2000),
-        rho: S('ρ', 'dynamics', 'm', 0.001, 0.1),
+        T: S('扭矩 T', 'dynamics', 'N·m', 0, 2000),
+        rho: S('半径 ρ', 'dynamics', 'm', 0.001, 0.1),
+        J: S('极惯矩 J', 'dynamics', 'm⁴', 1e-8, 1e-5),
       },
       tick(state) {
         state.tau = P(state.params, 'T', 200) * P(state.params, 'rho', 0.02) / Math.max(1e-12, P(state.params, 'J', 2.5e-7));
@@ -1729,9 +1734,10 @@ function doppler(spec) {
     assumptions: '介质静止声速 v；符号：观察者朝源 vo>0，源朝观察者 vs<0 需自行取号。此处 vs 以离开观察者为正（分母 v+vs）',
     params: { f: 440, v: 340, vo: 0, vs: 20 },
     schema: {
-      f: S('f', 'dynamics', 'Hz', 50, 2000),
-      vo: S('v_o', 'dynamics', 'm/s', -50, 50),
-      vs: S('v_s', 'dynamics', 'm/s', -50, 50),
+      f: S('源频 f', 'dynamics', 'Hz', 50, 2000),
+      v: S('声速 v', 'dynamics', 'm/s', 200, 400),
+      vo: S('观察者 vo', 'dynamics', 'm/s', -50, 50),
+      vs: S('声源 vs', 'dynamics', 'm/s', -50, 50),
     },
     tick(state) {
       const v = P(state.params, 'v', 340);
@@ -1903,8 +1909,9 @@ function clift(spec) {
     assumptions: '给定 C_L，不求解流场',
     params: { rho: 1.2, v: 50, S: 16, Cl: 0.5 },
     schema: {
-      v: S('v', 'dynamics', 'm/s', 0, 200),
-      S: S('S', 'dynamics', 'm²', 1, 80),
+      rho: S('密度 ρ', 'dynamics', 'kg/m³', 0.5, 2),
+      v: S('速度 v', 'dynamics', 'm/s', 0, 200),
+      S: S('面积 S', 'dynamics', 'm²', 1, 80),
       Cl: S('C_L', 'dynamics', '—', 0, 1.6),
     },
     tick(state) {
@@ -1923,9 +1930,10 @@ function reynolds(spec) {
     assumptions: '特征长度 D',
     params: { rho: 1000, v: 1, D: 0.05, mu: 0.001 },
     schema: {
-      v: S('v', 'dynamics', 'm/s', 0, 10),
-      D: S('D', 'dynamics', 'm', 0.001, 1),
-      mu: S('μ', 'dynamics', 'Pa·s', 1e-5, 0.1),
+      rho: S('密度 ρ', 'dynamics', 'kg/m³', 100, 2000),
+      v: S('流速 v', 'dynamics', 'm/s', 0, 10),
+      D: S('特征长 D', 'dynamics', 'm', 0.001, 1),
+      mu: S('粘度 μ', 'dynamics', 'Pa·s', 1e-5, 0.1),
     },
     tick(state) {
       state.Re = P(state.params, 'rho', 1000) * P(state.params, 'v', 1) * P(state.params, 'D', 0.05) / Math.max(1e-8, P(state.params, 'mu', 0.001));
@@ -1942,9 +1950,10 @@ function bernoulli(spec) {
     assumptions: '定常、不可压、沿流线、无摩擦',
     params: { P: 1e5, rho: 1000, v: 2, h: 1 },
     schema: {
-      P: S('P', 'dynamics', 'Pa', 0, 3e5),
-      v: S('v', 'dynamics', 'm/s', 0, 15),
-      h: S('h', 'dynamics', 'm', 0, 20),
+      P: S('静压 P', 'dynamics', 'Pa', 0, 3e5),
+      rho: S('密度 ρ', 'dynamics', 'kg/m³', 100, 2000),
+      v: S('流速 v', 'dynamics', 'm/s', 0, 15),
+      h: S('高度 h', 'dynamics', 'm', 0, 20),
     },
     tick(state) {
       const rho = P(state.params, 'rho', 1000);
@@ -2259,8 +2268,9 @@ function doubleSlit(spec) {
     assumptions: '远场、小角',
     params: { lambda: 550e-9, L: 1, d: 0.2e-3 },
     schema: {
-      L: S('L', 'dynamics', 'm', 0.2, 3),
-      d: S('d', 'dynamics', 'm', 0.05e-3, 1e-3),
+      lambda: S('波长 λ', 'dynamics', 'm', 400e-9, 700e-9),
+      L: S('屏距 L', 'dynamics', 'm', 0.2, 3),
+      d: S('缝距 d', 'dynamics', 'm', 0.05e-3, 1e-3),
     },
     tick(state) {
       state.dy = P(state.params, 'lambda', 550e-9) * P(state.params, 'L', 1) / Math.max(1e-6, P(state.params, 'd', 2e-4));
@@ -3306,6 +3316,7 @@ function hohmann(spec) {
     schema: {
       r1: S('r₁', 'dynamics', 'm', 6.4e6, 2e7),
       r2: S('r₂', 'dynamics', 'm', 7e6, 5e7),
+      mu: S('引力参数 μ', 'dynamics', 'm³/s²', 1e14, 5e14),
     },
     tick(state) {
       const mu = P(state.params, 'mu', 3.986e14);
@@ -4167,6 +4178,7 @@ function rossler(spec) {
     params: { a: 0.2, b: 0.2, c: 5.7 },
     schema: {
       a: S('a', 'dynamics', '—', 0.05, 0.4),
+      b: S('b', 'dynamics', '—', 0.05, 0.4),
       c: S('c', 'dynamics', '—', 2, 10),
     },
     init(state) {
@@ -4222,10 +4234,10 @@ function neutronDiffusion(spec) {
   return shell(spec, {
     equation: '一维平板基模 φ=φ₀ cos(π x / a)，临界条件 B²=π²/a²=(νΣ_f−Σ_a)/D',
     authority: 'Lamarsh, Introduction to Nuclear Engineering, 一群扩散',
-    assumptions: '一群、均匀平板、外推边界略去；公开教科书临界条件，非设计',
+    assumptions: "一群、均匀平板、外推边界略去；公开教科书临界条件，非设计。Keep fidelity=principle until: (1) multi-group or explicit D,Σa,νΣf knobs matching Lamarsh §5–6, (2) extrapolated boundary / buckling vs geometry validated against a textbook numerical example, (3) no design / criticality-safety claims in description.",
     fidelity: 'principle',
     params: { a: 1 },
-    schema: { a: S('a', 'dynamics', 'm', 0.2, 3) },
+    schema: { a: S('半宽 a', 'dynamics', 'm', 0.2, 3) },
     tick(state) {
       const a = Math.max(0.05, P(state.params, 'a', 1));
       state.B2 = (Math.PI / a) ** 2;
@@ -4466,119 +4478,8 @@ function limitCycleNote(spec) {
 }
 
 const PREFIX = {
-  运动学: (s, t) => kin(s, t),
-  动力学: (s, t) => newton(s, t),
-  碰撞: (s, t) => collision(s, t),
-  刚体: (s, t) => (has(t, /滚动/) ? rolling(s) : has(t, /欧拉/) ? rigidEuler(s) : has(t, /凸轮/) ? camHarmonic(s) : has(t, /连杆|机构/) ? grashof(s) : rigidEuler(s)),
-  振动: (s, t) => shmFamily(s, t),
-  波: (s, t) => waveTravel(s),
-  声学: (s, t) => (has(t, /声压/) ? spl(s) : has(t, /拍/) ? beats(s) : has(t, /声速|温度/) ? soundSpeed(s) : has(t, /混响/) ? sabine(s) : has(t, /声源|多普勒/) ? doppler(s) : spl(s)),
-  热力学: (s, t) => (has(t, /卡诺|效率/) ? carnot(s, t) : has(t, /气体|状态/) ? gasLaw(s) : carnot(s, t)),
-  统计物理: (s, t) => (has(t, /麦克斯韦/) ? maxwell(s) : has(t, /伊辛/) ? isingEnergy(s) : has(t, /游走|扩散/) ? brownian(s) : has(t, /渗流/) ? percolation(s) : has(t, /熵/) ? entropyMix(s) : maxwell(s)),
-  流体: (s, t) => (has(t, /雷诺/) ? reynolds(s) : has(t, /泊|管/) ? poiseuille(s) : bernoulli(s)),
-  流体2: (s, t) => (has(t, /边界/) ? blasius(s) : has(t, /湍流|雷诺/) ? reynolds(s) : poiseuille(s)),
-  静电: (s, t) => (has(t, /偶极/) ? dipole(s) : has(t, /电容/) ? capacitor(s) : has(t, /高斯|库仑|电场/) ? coulomb(s) : gaussPoint(s)),
-  电路: (s, t) => (has(t, /欧姆|电阻/) ? ohm(s) : has(t, /电容/) ? capacitor(s) : has(t, /RL|电感|自感/) ? selfL(s) : rcCircuit(s)),
-  磁学: (s, t) => (has(t, /霍尔/) ? hall(s) : has(t, /安培/) ? ampere(s) : has(t, /变压器/) ? transformer(s) : has(t, /互感/) ? mutual(s) : has(t, /自感/) ? selfL(s) : has(t, /感应|楞次|法拉第/) ? faraday(s) : lorentzRadius(s)),
-  电磁波: (s, t) => waveTravel(s),
-  光学: (s, t) => (has(t, /Malus|偏振/) ? malus(s) : has(t, /透镜|成像/) ? lens(s) : has(t, /折射|反射|斯涅尔/) ? snell(s) : has(t, /光纤|全反射/) ? fiberNA(s) : snell(s)),
-  波动光学: (s, t) => (has(t, /双缝|杨氏|干涉/) ? doubleSlit(s) : doubleSlit(s)),
-  近代: (s, t) => (has(t, /光电/) ? photo(s) : has(t, /康普顿/) ? compton(s) : has(t, /德布罗意/) ? debroglie(s) : has(t, /不确定/) ? uncertainty(s) : has(t, /隧|势垒|阱/) ? (has(t, /阱/) ? well(s) : tunnel(s)) : has(t, /黑体/) ? stefan(s) : photo(s)),
-  量子: (s, t) => (has(t, /势阱|无限/) ? well(s) : has(t, /隧|势垒/) ? tunnel(s) : has(t, /谐振子/) ? qho(s) : has(t, /贝尔/) ? bellCHSH(s) : has(t, /自旋/) ? spinOrbit(s) : well(s)),
-  相对论: (s, t) => gamma(s, t),
-  天体: (s, t) => (has(t, /开普勒|轨道/) ? kepler(s) : kepler(s)),
-  宇宙: (s, t) => (has(t, /红移|哈勃|膨胀/) ? hubble(s) : has(t, /黑体|核合成|温度/) ? blackbodyPeak(s) : hubble(s)),
-  粒子: (s, t) => debroglie(s),
-  核物理: (s, t) => (has(t, /屏蔽|衰减/) ? shieldLaw(s) : has(t, /磁共振|拉莫/) ? larmor(s) : has(t, /临界|裂变|链式|反应堆/) ? criticality(s) : has(t, /剂量/) ? shell(s, {
-    equation: 'H = w_R D，默认光子/电子 w_R = 1，H = 1 mSv',
-    authority: 'ICRP 103 公开的辐射权重因子与当量剂量定义（教学）',
-    assumptions: '定义式。默认光子和电子 w_R=1；质子 w_R=2；α 粒子 w_R=20。中子的 w_R 随能量变化，这里不是剂量评估',
-    fidelity: 'principle',
-    params: { D: 0.001, w: 1 },
-    schema: { D: S('D', 'dynamics', 'Gy', 0, 5), w: S('w_R', 'dynamics', '—', 1, 20) },
-    tick(st) {
-      const w = P(st.params, 'w', 1);
-      st.H = P(st.params, 'D', 0.001) * w;
-      st.rad = radiationKind(w);
-    },
-    plot: (st) => st.H,
-    rows: (st) => [['H', st.H, 'Sv'], ['辐射', st.rad, '']],
-  }) : decay(s)),
-  凝聚态: (s, t) => (has(t, /半导体|PN|MOS/) ? pnBarrier(s) : has(t, /量子霍尔|霍尔/) ? (has(t, /量子/) ? quantumHall(s) : hall(s)) : has(t, /超导/) ? shell(s, {
-    equation: '伦敦穿透深度关系的教学式 λ_L = √(m / (μ₀ n_s e²))',
-    authority: 'Tinkham, Introduction to Superconductivity, London 深度',
-    assumptions: '给定超流密度，不是材料设计',
-    fidelity: 'principle',
-    params: { ns: 1e28 },
-    schema: { ns: S('n_s', 'dynamics', '1/m³', 1e27, 1e29) },
-    tick(st) {
-      const m = 9.109e-31;
-      const e = 1.602e-19;
-      const mu0 = 1.256637e-6;
-      st.lam = Math.sqrt(m / (mu0 * P(st.params, 'ns', 1e28) * e * e));
-    },
-    plot: (st) => st.lam * 1e9,
-    rows: (st) => [['λ_L', st.lam * 1e9, 'nm']],
-  }) : isingEnergy(s)),
-  非线性: (s, t) => (has(t, /同步/) ? lyapunovNote(s) : has(t, /Duffing|达芬/) ? duffing(s) : has(t, /范德波尔|极限/) ? vanderPol(s) : logisticMap(s)),
-  计算物理: (s, t) => (has(t, /欧拉|数值/) ? eulerMethod(s) : heatMode(s)),
-  生物物理: (s, t) => (has(t, /膜|Goldman|神经/) ? membraneTransport(s) : has(t, /折叠/) ? proteinFoldNote(s) : membraneHHNote(s)),
-  等离子体: (s, t) => lorentzRadius(s),
-  排序: (s) => binarySearchSteps(s),
-  查找: (s) => binarySearchSteps(s),
-  图算法: (s) => dijkstraBound(s),
-  字符串: (s) => editDistance(s),
-  动态规划: (s) => editDistance(s),
-  数据结构: (s, t) => (has(t, /哈希|散列/) ? hashLoad(s) : binarySearchSteps(s)),
-  计算理论: (s) => binarySearchSteps(s),
-  密码学: (s, t) => (has(t, /RSA|模/) ? rsaMod(s) : caesar(s)),
-  信息论: (s, t) => (has(t, /容量|信道/) ? shell(s, {
-    equation: 'C = B log2(1+SNR)',
-    authority: 'Cover & Thomas, 带限 AWGN 容量',
-    assumptions: 'AWGN',
-    params: { B: 1000, snr: 10 },
-    schema: { B: S('B', 'dynamics', 'Hz', 1, 1e6), snr: S('SNR', 'dynamics', '—', 0.1, 100) },
-    tick(st) { st.C = P(st.params, 'B', 1000) * Math.log2(1 + P(st.params, 'snr', 10)); },
-    plot: (st) => st.C,
-    rows: (st) => [['C', st.C, 'bit/s']],
-  }) : binaryEntropy(s)),
-  监督学习: (s) => gdQuadratic(s),
-  无监督: (s, t) => (has(t, /K-means|聚类/) ? kmeans1d(s) : matrix2(s, '特征')),
-  神经网络: (s) => gdQuadratic(s),
-  强化学习: (s) => shell(s, {
-    equation: '贝尔曼：V = r + γ V′（单状态示意）',
-    authority: 'Sutton & Barto, Reinforcement Learning',
-    assumptions: '确定性单备份',
-    params: { r: 1, gamma: 0.9, Vp: 2 },
-    schema: { r: S('r', 'dynamics', '—', -5, 5), gamma: S('γ', 'dynamics', '—', 0, 0.99), Vp: S('V′', 'dynamics', '—', 0, 10) },
-    tick(st) { st.V = P(st.params, 'r', 1) + P(st.params, 'gamma', 0.9) * P(st.params, 'Vp', 2); },
-    plot: (st) => st.V,
-    rows: (st) => [['V', st.V, '']],
-  }),
-  优化: (s) => gdQuadratic(s),
-  图形学: (s) => shell(s, {
-    equation: 'Lambert：L = (I/π) max(0, n·l)',
-    authority: 'Pharr, Humphreys, Physically Based Rendering, Lambert',
-    assumptions: '漫反射、光与法线夹角',
-    params: { ndotl: 0.5, I: 1 },
-    schema: { ndotl: S('n·l', 'dynamics', '—', -1, 1), I: S('I', 'dynamics', '—', 0, 5) },
-    tick(st) { st.L = (P(st.params, 'I', 1) / Math.PI) * Math.max(0, P(st.params, 'ndotl', 0.5)); },
-    plot: (st) => st.L,
-    rows: (st) => [['L', st.L, '']],
-  }),
-  数据库: (s) => shell(s, {
-    equation: '选择率 sel ≈ 1/N 的均匀假设下期望扫描代价 ∝ N',
-    authority: 'Ramakrishnan & Gehrke, Database Management Systems, 选择扫描',
-    assumptions: '全表扫描代价与行数成正比',
-    params: { N: 1000 },
-    schema: { N: S('N', 'dynamics', '—', 1, 1e6) },
-    tick(st) { st.cost = P(st.params, 'N', 1000); },
-    plot: (st) => st.cost,
-    rows: (st) => [['cost', st.cost, '']],
-  }),
-  网络: (s, t) => (has(t, /握手|TCP/) ? tcpStates(s) : littleLaw(s)),
-  操作系统: (s, t) => (has(t, /银行/) ? bankerNeed(s) : has(t, /LRU|页/) ? pageReplace(s) : rrWait(s)),
-  编译: (s) => binarySearchSteps(s),
+  // Course-style subject routing removed; keep only aliases still referenced
+  // by keywordModel / familyFallback.
   分布式与安全: (s) => shell(s, {
     equation: '多数派法定人数 q = ⌊n/2⌋+1',
     authority: 'Tanenbaum, Distributed Systems, 多数派',
@@ -4588,24 +4489,7 @@ const PREFIX = {
     tick(st) { st.q = Math.floor(P(st.params, 'n', 5) / 2) + 1; },
     plot: (st) => st.q,
     rows: (st) => [['q', st.q, '']],
-  }),
-  数字逻辑: (s, t) => boolGate(s, t),
-  组合逻辑: (s, t) => boolGate(s, t || '与'),
-  时序逻辑: (s) => shell(s, {
-    equation: '分频：f_out = f_in / N',
-    authority: 'Mano, 计数器分频',
-    assumptions: '整数分频',
-    params: { fin: 1000, N: 4 },
-    schema: { fin: S('f_in', 'dynamics', 'Hz', 1, 1e6), N: S('N', 'dynamics', '—', 1, 64) },
-    tick(st) { st.fo = P(st.params, 'fin', 1000) / Math.max(1, Math.round(P(st.params, 'N', 4))); },
-    plot: (st) => st.fo,
-    rows: (st) => [['f_out', st.fo, 'Hz']],
-  }),
-  计算机体系: (s) => amdahl(s),
-  存储层次: (s, t) => (has(t, /LRU/) ? pageReplace(s) : amdahl(s)),
-  嵌入式: (s, t) => (has(t, /PWM|占空/) ? pwm(s) : nyquist(s)),
-  通信编码: (s) => binaryEntropy(s),
-  调制: (s) => shell(s, {
+  }),  调制: (s) => shell(s, {
     equation: 'AM：s(t)=(A+m cos ω_m t) cos ω_c t 的调制度 μ',
     authority: 'Proakis, Communication Systems, AM',
     assumptions: '常规调幅、μ≤1',
@@ -4614,173 +4498,8 @@ const PREFIX = {
     tick(st) { st.mu = P(st.params, 'm', 0.5) / Math.max(1e-3, P(st.params, 'A', 1)); },
     plot: (st) => st.mu,
     rows: (st) => [['μ', st.mu, '']],
-  }),
-  差错控制: (s) => shell(s, {
-    equation: '汉明界示意：最少校验 n−k ≥ log2(n+1)（纠正 1 位）',
-    authority: 'Lin & Costello, Error Control Coding, 汉明码参数',
-    assumptions: '纠正单错的汉明界',
-    params: { n: 7 },
-    schema: { n: S('n', 'dynamics', '—', 3, 31) },
-    tick(st) {
-      const n = Math.max(3, Math.round(P(st.params, 'n', 7)));
-      st.r = Math.ceil(Math.log2(n + 1));
-    },
-    plot: (st) => st.r,
-    rows: (st) => [['r_min', st.r, '']],
-  }),
-  网络协议: (s) => tcpStates(s),
-  'VLSI-FPGA': (s) => cmosDelay(s),
-  信号处理: (s, t) => (has(t, /采样|Nyquist/) ? nyquist(s) : fftBin(s)),
-  控制: (s, t) => (has(t, /电机/) ? dcMotor(s) : has(t, /PID|阶跃|二阶/) ? secondOrderStep(s) : secondOrderStep(s)),
-  机器人: (s) => forwardKinematics(s),
-  电力电子与电机: (s, t) => (has(t, /感应|异步|转差/) ? slipMotor(s) : has(t, /变压器/) ? transformer(s) : has(t, /因数/) ? powerFactor(s) : dcMotor(s)),
-  机械机构: (s, t) => (has(t, /凸轮/) ? camHarmonic(s) : has(t, /齿轮/) ? gearOrBelt(s, '齿轮') : grashof(s)),
-  传动: (s, t) => gearOrBelt(s, t),
-  机械振动: (s, t) => (has(t, /隔振|传递/) ? isolation(s) : shmFamily(s, t)),
-  疲劳断裂: (s) => stress(s, '断裂'),
-  流体机械: (s, t) => (has(t, /泵|功率|水轮机/) ? shell(s, {
-    equation: 'P = ρ g Q H / η',
-    authority: 'White, 水力机械功率',
-    assumptions: '给定效率',
-    params: { Q: 0.05, H: 20, eta: 0.75 },
-    schema: { Q: S('Q', 'dynamics', 'm³/s', 0.001, 1), H: S('H', 'dynamics', 'm', 1, 100), eta: S('η', 'dynamics', '—', 0.3, 0.95) },
-    tick(st) { st.P = 1000 * 9.81 * P(st.params, 'Q', 0.05) * P(st.params, 'H', 20) / Math.max(0.2, P(st.params, 'eta', 0.75)); },
-    plot: (st) => st.P,
-    rows: (st) => [['P', st.P, 'W']],
-  }) : bernoulli(s)),
-  材料力学: (s, t) => stress(s, t),
-  材料科学: (s, t) => (has(t, /相/) ? leverRule(s) : stress(s, t)),
-  相图: (s) => leverRule(s),
-  扩散: (s) => brownian(s),
-  断裂力学: (s) => stress(s, '断裂'),
-  复合材料: (s) => shell(s, {
-    equation: '纵向混合律 E = E_f V_f + E_m (1−V_f)',
-    authority: 'Kaw, Mechanics of Composite Materials, Voigt 混合律',
-    assumptions: '单向、等应变',
-    params: { Ef: 200, Em: 3, Vf: 0.6 },
-    schema: { Ef: S('E_f', 'dynamics', 'GPa', 10, 400), Em: S('E_m', 'dynamics', 'GPa', 0.5, 20), Vf: S('V_f', 'dynamics', '—', 0, 1) },
-    tick(st) {
-      const vf = Math.min(1, Math.max(0, P(st.params, 'Vf', 0.6)));
-      st.E = P(st.params, 'Ef', 200) * vf + P(st.params, 'Em', 3) * (1 - vf);
-    },
-    plot: (st) => st.E,
-    rows: (st) => [['E', st.E, 'GPa']],
-  }),
-  结构工程: (s, t) => stress(s, t),
-  岩土工程: (s) => rankineSoil(s),
-  桥梁: (s) => stress(s, '弯曲'),
-  地震工程: (s) => secondOrderStep(s),
-  航空气动: (s, t) => (has(t, /马赫/) ? shell(s, {
-    equation: 'M = v / a',
-    authority: 'Anderson, 马赫数定义',
-    assumptions: '当地声速给定',
-    params: { v: 200, a: 340 },
-    schema: { v: S('v', 'dynamics', 'm/s', 0, 600), a: S('a', 'dynamics', 'm/s', 200, 400) },
-    tick(st) { st.M = P(st.params, 'v', 200) / Math.max(1, P(st.params, 'a', 340)); },
-    plot: (st) => st.M,
-    rows: (st) => [['M', st.M, '']],
-  }) : clift(s)),
-  飞行力学: (s, t) => (has(t, /浮沉|长周期/) ? phugoid(s) : phugoid(s)),
-  推进: (s) => rocket(s),
-  轨道: (s, t) => (has(t, /霍曼/) ? hohmann(s) : kepler(s)),
-  明渠水力学: (s, t) => (has(t, /水跃|共轭/) ? hydraulicJump(s) : has(t, /闸/) ? sluice(s) : manning(s)),
-  水工结构: (s) => shell(s, {
-    equation: '静水压力合力 P = ½ ρ g h²（单位宽度）',
-    authority: '静水压强三角形',
-    assumptions: '竖直迎水面、单位宽度',
-    params: { h: 10 },
-    schema: { h: S('h', 'dynamics', 'm', 0.5, 80) },
-    tick(st) { st.P = 0.5 * 1000 * 9.81 * P(st.params, 'h', 10) ** 2; },
-    plot: (st) => st.P / 1000,
-    rows: (st) => [['P', st.P / 1000, 'kN/m']],
-  }),
-  交通流: (s) => naschFlow(s),
-  化工反应器: (s, t) => (has(t, /PFR|平推/) ? pfr(s) : has(t, /当量/) ? equivalence(s) : cstr(s)),
-  化工分离: (s, t) => (has(t, /精馏|操作线/) ? mccabe(s) : has(t, /吸收/) ? absorptionLG(s) : has(t, /干燥/) ? dryingPage(s) : has(t, /萃取/) ? extractStages(s) : has(t, /结晶|过饱和/) ? supersat(s) : has(t, /流化/) ? fluidization(s) : mccabe(s)),
-  工业工程: (s, t) => (has(t, /EOQ|库存/) ? eoq(s) : has(t, /排队|M\/M/) ? mm1(s) : has(t, /可靠/) ? reliability(s) : littleLaw(s)),
-  核工程: (s, t) => (has(t, /屏蔽/) ? shieldLaw(s) : has(t, /衰变|链/) ? bateman(s) : has(t, /扩散/) ? neutronDiffusion(s) : criticality(s)),
-  生物医学工程: (s, t) => (has(t, /Hodgkin|膜|动作电位/) ? membraneHHNote(s) : has(t, /ECG|心电/) ? ecgPeriod(s) : has(t, /呼吸/) ? respiratory(s) : has(t, /药/) ? pkOneCompartment(s) : ecgPeriod(s)),
-  环境工程: (s, t) => (has(t, /氧|污泥|Monod/) ? asmSubstrate(s) : has(t, /河|扩散/) ? riverDisp(s) : doBalance(s)),
-  电气电机: (s, t) => (has(t, /异步|转差/) ? slipMotor(s) : has(t, /变压器/) ? transformer(s) : dcMotor(s)),
-  电力系统: (s, t) => (has(t, /因数/) ? powerFactor(s) : has(t, /MPPT|光伏/) ? mppt(s) : powerFactor(s)),
-  能源: (s, t) => (has(t, /电池/) ? batteryOcv(s) : has(t, /燃料电池/) ? fuelCellV(s) : has(t, /光伏|MPPT/) ? mppt(s) : stefan(s)),
-  矿业冶金: (s) => shell(s, {
-    equation: '邦德功指数示意：E = W_i (10/√P − 10/√F)',
-    authority: 'Bond 粉碎功指数公式（选矿教材）',
-    assumptions: 'P、F 为 80% 通过粒径 μm',
-    fidelity: 'principle',
-    params: { Wi: 12, P: 100, F: 1000 },
-    schema: { Wi: S('W_i', 'dynamics', 'kWh/t', 5, 30), P: S('P', 'dynamics', 'μm', 10, 500), F: S('F', 'dynamics', 'μm', 100, 5000) },
-    tick(st) {
-      st.E = P(st.params, 'Wi', 12) * (10 / Math.sqrt(Math.max(1, P(st.params, 'P', 100))) - 10 / Math.sqrt(Math.max(1, P(st.params, 'F', 1000))));
-    },
-    plot: (st) => st.E,
-    rows: (st) => [['E', st.E, 'kWh/t']],
-  }),
-  纺织食品: (s, t) => (has(t, /干燥/) ? dryingPage(s) : has(t, /纺|牵伸/) ? draftRatio(s) : draftRatio(s)),
-  农业船舶汽车: (s, t) => (has(t, /灌溉/) ? irrigation(s) : has(t, /阻力/) ? shell(s, {
-    equation: '摩擦阻力 R = ½ ρ v² S C_f',
-    authority: '船舶阻力的二次阻力定义',
-    assumptions: '给定 C_f',
-    params: { v: 5, S: 20, Cf: 0.002 },
-    schema: { v: S('v', 'dynamics', 'm/s', 0, 20), S: S('S', 'dynamics', 'm²', 1, 200), Cf: S('C_f', 'dynamics', '—', 0.0005, 0.01) },
-    tick(st) { st.R = 0.5 * 1025 * P(st.params, 'v', 5) ** 2 * P(st.params, 'S', 20) * P(st.params, 'Cf', 0.002); },
-    plot: (st) => st.R,
-    rows: (st) => [['R', st.R, 'N']],
-  }) : has(t, /悬架/) ? isolation(s) : irrigation(s)),
-  铁路建筑测绘安全: (s) => shell(s, {
-    equation: '制动距离近似 s = v² / (2 a)',
-    authority: '匀减速运动学',
-    assumptions: '常减速度',
-    params: { v: 20, a: 1 },
-    schema: { v: S('v', 'dynamics', 'm/s', 0, 80), a: S('a', 'dynamics', 'm/s²', 0.2, 4) },
-    tick(st) { st.s = P(st.params, 'v', 20) ** 2 / (2 * Math.max(0.05, P(st.params, 'a', 1))); },
-    plot: (st) => st.s,
-    rows: (st) => [['s', st.s, 'm']],
-  }),
-  微积分: (s, t) => derivativeLesson(s, t),
-  线性代数: (s, t) => matrix2(s, t),
-  概率统计: (s, t) => (has(t, /贝叶斯/) ? shell(s, {
-    equation: 'P(A|B)= P(B|A)P(A)/P(B)',
-    authority: 'Ross, 贝叶斯公式',
-    assumptions: 'P(B)>0',
-    params: { pba: 0.9, pa: 0.2, pb: 0.3 },
-    schema: { pba: S('P(B|A)', 'dynamics', '—', 0, 1), pa: S('P(A)', 'dynamics', '—', 0, 1), pb: S('P(B)', 'dynamics', '—', 0.01, 1) },
-    tick(st) { st.p = P(st.params, 'pba', 0.9) * P(st.params, 'pa', 0.2) / Math.max(1e-3, P(st.params, 'pb', 0.3)); },
-    plot: (st) => st.p,
-    rows: (st) => [['P(A|B)', st.p, '']],
-  }) : has(t, /中心极限|大数/) ? shell(s, {
-    equation: 'se = σ / √n',
-    authority: 'Ross, 样本均值标准误',
-    assumptions: '独立同分布、有限方差',
-    params: { sigma: 2, n: 25 },
-    schema: { sigma: S('σ', 'dynamics', '—', 0.1, 10), n: S('n', 'dynamics', '—', 1, 400) },
-    tick(st) { st.se = P(st.params, 'sigma', 2) / Math.sqrt(Math.max(1, P(st.params, 'n', 25))); },
-    plot: (st) => st.se,
-    rows: (st) => [['se', st.se, '']],
-  }) : normalPdf(s, t)),
-  动力系统: (s, t) => (has(t, /极限/) ? vanderPol(s) : lyapunovNote(s)),
-  优化图论: (s, t) => (has(t, /线性规划/) ? shell(s, {
-    equation: '在 x+y≤1, x,y≥0 上 z=c₁x+c₂y，顶点最优 z*=max(c₁,c₂)（默认 c₁=3, c₂=2）',
-    authority: 'Dantzig 单纯形所依据的顶点最优（线性规划基本定理）',
-    assumptions: '该可行域的最优值在顶点 (1,0) 或 (0,1)',
-    params: { c1: 3, c2: 2 },
-    schema: {
-      c1: S('c₁', 'dynamics', '—', 0, 10),
-      c2: S('c₂', 'dynamics', '—', 0, 10),
-    },
-    tick(st) { st.z = Math.max(P(st.params, 'c1', 3), P(st.params, 'c2', 2)); },
-    plot: (st) => st.z,
-    rows: (st) => [['z*', st.z, '']],
-  }) : dijkstraBound(s)),
-  反应: (s, t) => (has(t, /阿伦尼|活化/) ? arrhenius(s) : firstOrderReaction(s, t)),
-  平衡与电化学: (s, t) => (has(t, /缓冲|pH|滴定/) ? (has(t, /滴定/) ? titration(s) : hhBuffer(s)) : has(t, /能斯特|电池|氧化还原/) ? nernst(s) : has(t, /腐蚀/) ? corrosionRate(s) : has(t, /燃料/) ? fuelCellV(s) : hhBuffer(s)),
-  结构与光谱: (s) => beerLambert(s),
-  生态生理: (s, t) => (has(t, /Lotka|捕食/) ? lotka(s) : has(t, /SIR|SEIR|传染/) ? sir(s, t) : has(t, /Logistic|种群/) ? logistic(s) : logistic(s)),
-  气候: (s, t) => (has(t, /温室/) ? greenhouse(s) : radiationBalance(s)),
-  微观: (s, t) => (has(t, /囚徒|博弈/) ? prisoner(s) : supplyDemand(s)),
-  金融: (s, t) => (has(t, /期权|Black|BS/) ? blackScholes(s) : compound(s)),
-};
+  }),};
+
 
 function singleSlitModel(spec) {
   return shell(spec, {
@@ -4866,6 +4585,7 @@ function keywordModel(spec) {
     [/量子谐振子/, () => qho(spec)],
     [/多普勒/, () => doppler(spec)],
     [/声压/, () => spl(spec)],
+    [/视角因子/, () => viewFactor(spec)],
     [/σT|斯特藩|辐射/, () => stefan(spec)],
     [/麦克斯韦/, () => maxwell(spec)],
     [/Ising|伊辛/, () => isingEnergy(spec)],
@@ -4918,7 +4638,6 @@ function keywordModel(spec) {
     [/Hodgkin|动作电位/, () => membraneHHNote(spec)],
     [/阵列因子|天线/, () => antennaArray(spec)],
     [/温室/, () => greenhouse(spec)],
-    [/视角因子/, () => viewFactor(spec)],
     [/PN|半导体/, () => pnBarrier(spec)],
     [/贝尔/, () => bellCHSH(spec)],
     [/自旋/, () => spinOrbit(spec)],
@@ -4987,7 +4706,8 @@ function familyFallback(spec) {
     circuit: () => rcCircuit(spec),
     induction: () => faraday(spec),
     rays: () => snell(spec),
-    gauge: () => malus(spec),
+    // gauge remounted off catalog; keep a neutral fallback if a stale family slips through
+    gauge: () => kin(spec, spec.name || ''),
     bohr: () => bohr(spec),
     decay: () => decay(spec),
     discrete: () => binarySearchSteps(spec),

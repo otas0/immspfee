@@ -1,4 +1,4 @@
-/* inlined chunk-chunk-4PMPDTZN.js */
+/* inlined chunk-chunk-4QGOOICJ.js */
 // js/utils/zhLabels.js
 var ZH_LABELS = {
   g: "\u91CD\u529B g",
@@ -247,6 +247,10 @@ var HAND_FORMALISM = {
   lorentz: "ode",
   "rc-circuit": "circuit",
   rlc: "circuit",
+  "rl-circuit": "circuit",
+  "ohms-law": "circuit",
+  polarization: "optics",
+  photoelectric: "quantum",
   orbit: "ode",
   sorting: "discrete",
   "bfs-grid": "network",
@@ -1351,7 +1355,7 @@ var __export = (target, all) => {
 };
 
 
-/* static chunk inlined: chunk-chunk-4PMPDTZN.js */
+/* static chunk inlined: chunk-chunk-4QGOOICJ.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
@@ -1561,7 +1565,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-ZWQQTKSN.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-2ZTY5WBV.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -4188,11 +4192,6 @@ var authority_templates_default = {
       authority: "Tolstov, Fourier Series",
       assumptions: "\u5947\u6B21\u6B63\u5F26\u9879"
     },
-    "matrix-transform": {
-      fidelity: "engineering",
-      authority: "Strang, Introduction to Linear Algebra, 2\xD72",
-      assumptions: "\u5B9E 2\xD72\uFF1BPCA/SVD \u6B64\u5904\u7ED9\u51FA\u534F\u65B9\u5DEE\u6700\u5927\u7279\u5F81\u503C\uFF0C\u4E0D\u662F\u7EDF\u8BA1\u8F6F\u4EF6"
-    },
     "titration-curve": {
       fidelity: "principle",
       authority: "Harris, Quantitative Chemical Analysis, \u5F3A\u9178\u5F3A\u78B1\u6EF4\u5B9A",
@@ -5276,7 +5275,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-KXUE7I4C.js").then((mod) => {
+    handsPending = import("./chunk-handModels-P2LMSDFA.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -11071,4 +11070,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-ZWQQTKSN.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-2ZTY5WBV.js");

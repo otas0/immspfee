@@ -2,7 +2,7 @@ import {
   applyLowInkStrokeBoost,
   familyCapabilities,
   localizeSchema
-} from "./chunk-chunk-4PMPDTZN.js";
+} from "./chunk-chunk-4QGOOICJ.js";
 import {
   overrideOptions
 } from "./chunk-chunk-54AD6SA2.js";
@@ -496,13 +496,6 @@ function shell(spec, o) {
     }
   };
 }
-function radiationKind(w) {
-  const x = Number(w);
-  if (Math.abs(x - 1) < 1e-6) return "\u5149\u5B50/\u7535\u5B50";
-  if (Math.abs(x - 2) < 1e-6) return "\u8D28\u5B50";
-  if (Math.abs(x - 20) < 1e-6) return "\u03B1 \u7C92\u5B50";
-  return "\u4E2D\u5B50\uFF08w_R \u968F\u80FD\u91CF\uFF09";
-}
 function has(topic, re) {
   return re.test(topic || "");
 }
@@ -771,40 +764,6 @@ function atwood(spec) {
     rows: (s) => [["a", s.a, "m/s\xB2"], ["v", s.v, "m/s"]]
   });
 }
-function collision(spec, topic) {
-  let e = 0.6;
-  if (has(topic, /弹性/) && !has(topic, /非弹性/)) e = 1;
-  if (has(topic, /完全非弹性|爆炸/)) e = 0;
-  if (has(topic, /非弹性/) && !has(topic, /完全/)) e = 0.4;
-  return shell(spec, {
-    equation: `v\u2081,v\u2082 \u7531\u52A8\u91CF\u5B88\u6052\u4E0E\u6062\u590D\u7CFB\u6570\u51B3\u5B9A\uFF08\u9ED8\u8BA4 e = ${e}\uFF09`,
-    authority: "Hibbeler, Dynamics, \u5BF9\u5FC3\u78B0\u649E\u4E0E\u6062\u590D\u7CFB\u6570",
-    assumptions: "\u4E00\u7EF4\u5BF9\u5FC3\u3001\u78B0\u649E\u77AC\u95F4\u5916\u529B\u51B2\u91CF\u53EF\u5FFD\u7565\uFF1B\u4E8C\u7EF4\u659C\u78B0\u6B64\u5904\u53EA\u7ED9\u51FA\u6CD5\u5411\u5206\u91CF\u540C\u4E00\u516C\u5F0F",
-    params: { m1: 2, m2: 1, u1: 4, u2: 0, e },
-    schema: {
-      m1: S("m\u2081", "dynamics", "kg", 0.1, 20),
-      m2: S("m\u2082", "dynamics", "kg", 0.1, 20),
-      u1: S("u\u2081", "initial", "m/s", -20, 20),
-      u2: S("u\u2082", "initial", "m/s", -20, 20),
-      e: S("e", "dynamics", "\u2014", 0, 1)
-    },
-    tick(state) {
-      const m1 = P(state.params, "m1", 2);
-      const m2 = P(state.params, "m2", 1);
-      const u1 = P(state.params, "u1", 4);
-      const u2 = P(state.params, "u2", 0);
-      const er = Math.min(1, Math.max(0, P(state.params, "e", e)));
-      const den = m1 + m2;
-      state.v1 = ((m1 - er * m2) * u1 + (1 + er) * m2 * u2) / den;
-      state.v2 = ((m2 - er * m1) * u2 + (1 + er) * m1 * u1) / den;
-      state.p = m1 * state.v1 + m2 * state.v2;
-      state.p0 = m1 * u1 + m2 * u2;
-      state.J = m1 * (state.v1 - u1);
-    },
-    plot: (s) => s.v1,
-    rows: (s) => [["v\u2081", s.v1, "m/s"], ["v\u2082", s.v2, "m/s"], ["p", s.p, "kg\xB7m/s"], ["J", s.J, "N\xB7s"]]
-  });
-}
 function shmFamily(spec, topic) {
   if (has(topic, /阻尼|欠|过|临界/)) {
     return shell(spec, {
@@ -908,8 +867,8 @@ function ohm(spec) {
     assumptions: "\u96C6\u603B\u3001\u7EBF\u6027\u7535\u963B\u3001\u76F4\u6D41",
     params: { I: 0.5, R: 10 },
     schema: {
-      I: S("I", "dynamics", "A", 0, 5),
-      R: S("R", "dynamics", "\u03A9", 0.1, 100)
+      I: S("\u7535\u6D41 I", "dynamics", "A", 0, 5),
+      R: S("\u7535\u963B R", "dynamics", "\u03A9", 0.1, 100)
     },
     tick(state) {
       state.V = P(state.params, "I", 0.5) * P(state.params, "R", 10);
@@ -944,9 +903,9 @@ function photo(spec) {
     assumptions: "hf and W both in eV; no space charge; R is a relative yield, not a calibrated current",
     params: { hf: 3, W: 2, intensity: 1 },
     schema: {
-      hf: S("hf", "dynamics", "eV", 0, 12),
-      W: S("W", "dynamics", "eV", 0, 10),
-      intensity: S("I", "dynamics", "\u2014", 0, 10)
+      hf: S("\u5149\u5B50\u80FD hf", "dynamics", "eV", 0, 12),
+      W: S("\u9038\u51FA\u529F W", "dynamics", "eV", 0, 10),
+      intensity: S("\u5149\u5F3A I", "dynamics", "\u2014", 0, 10)
     },
     tick(state) {
       state.K = Math.max(0, P(state.params, "hf", 3) - P(state.params, "W", 2));
@@ -966,7 +925,8 @@ function gamma(spec, topic) {
     schema: {
       beta: S("\u03B2", "dynamics", "\u2014", 0, 0.99),
       tau: S("\u0394\u03C4", "dynamics", "s", 0, 20),
-      L0: S("L\u2080", "dynamics", "m", 0.1, 10)
+      L0: S("L\u2080", "dynamics", "m", 0.1, 10),
+      m: S("\u9759\u8D28\u91CF m", "dynamics", "\u2014", 0.1, 10)
     },
     tick(state) {
       const b = Math.min(0.999, Math.max(0, P(state.params, "beta", 0.6)));
@@ -1008,10 +968,12 @@ function lotka(spec) {
     fidelity: "principle",
     params: { alpha: 1, beta: 0.2, gamma: 0.8, delta: 0.2, x: 4, y: 2 },
     schema: {
-      alpha: S("\u03B1", "dynamics", "\u2014", 0.1, 3),
-      beta: S("\u03B2", "dynamics", "\u2014", 0.05, 1),
-      gamma: S("\u03B3", "dynamics", "\u2014", 0.1, 3),
-      delta: S("\u03B4", "dynamics", "\u2014", 0.05, 1)
+      alpha: S("\u730E\u7269\u589E\u957F \u03B1", "dynamics", "\u2014", 0.1, 3),
+      beta: S("\u6355\u98DF\u7387 \u03B2", "dynamics", "\u2014", 0.05, 1),
+      gamma: S("\u6355\u98DF\u8005\u6B7B\u4EA1 \u03B3", "dynamics", "\u2014", 0.1, 3),
+      delta: S("\u8F6C\u5316\u7387 \u03B4", "dynamics", "\u2014", 0.05, 1),
+      x: S("\u730E\u7269 x\u2080", "initial", "\u2014", 0, 20),
+      y: S("\u6355\u98DF\u8005 y\u2080", "initial", "\u2014", 0, 20)
     },
     init(state) {
       state.x = P(state.params, "x", 4);
@@ -1212,9 +1174,10 @@ function stress(spec, topic) {
       assumptions: "\u7406\u60F3\u8F74\u5FC3\u53D7\u538B\u3001\u5F39\u6027\u3001\u7AEF\u90E8\u7CFB\u6570 \u03BC",
       params: { E: 200, I: 1e-6, L: 2, mu: 1 },
       schema: {
-        E: S("E", "dynamics", "GPa", 10, 300),
-        L: S("L", "dynamics", "m", 0.3, 8),
-        mu: S("\u03BC", "dynamics", "\u2014", 0.5, 2)
+        E: S("\u6A21\u91CF E", "dynamics", "GPa", 10, 300),
+        I: S("\u60EF\u6027\u77E9 I", "dynamics", "m\u2074", 1e-8, 1e-4),
+        L: S("\u957F\u5EA6 L", "dynamics", "m", 0.3, 8),
+        mu: S("\u7AEF\u90E8 \u03BC", "dynamics", "\u2014", 0.5, 2)
       },
       tick(state) {
         const E11 = P(state.params, "E", 200) * 1e9;
@@ -1252,8 +1215,9 @@ function stress(spec, topic) {
       assumptions: "\u5706\u622A\u9762\u3001\u7EBF\u5F39\u6027",
       params: { T: 200, rho: 0.02, J: 25e-8 },
       schema: {
-        T: S("T", "dynamics", "N\xB7m", 0, 2e3),
-        rho: S("\u03C1", "dynamics", "m", 1e-3, 0.1)
+        T: S("\u626D\u77E9 T", "dynamics", "N\xB7m", 0, 2e3),
+        rho: S("\u534A\u5F84 \u03C1", "dynamics", "m", 1e-3, 0.1),
+        J: S("\u6781\u60EF\u77E9 J", "dynamics", "m\u2074", 1e-8, 1e-5)
       },
       tick(state) {
         state.tau = P(state.params, "T", 200) * P(state.params, "rho", 0.02) / Math.max(1e-12, P(state.params, "J", 25e-8));
@@ -1295,39 +1259,6 @@ function stress(spec, topic) {
     },
     plot: (s) => s.sig / 1e6,
     rows: (s) => [["\u03C3", s.sig / 1e6, "MPa"], ["\u03B5", s.eps, ""]]
-  });
-}
-function gearOrBelt(spec, topic) {
-  const belt = has(topic, /带|摩擦轮/);
-  return shell(spec, {
-    equation: belt ? "i = D\u2082/D\u2081\uFF0Cv = \u03C0 D n" : "i = z\u2082/z\u2081\uFF0C\u03C9\u2082 = \u03C9\u2081 / i",
-    authority: belt ? "Shigley, Mechanical Engineering Design, \u5E26\u4F20\u52A8\u901F\u6BD4" : "Shigley, Mechanical Engineering Design, \u9F7F\u8F6E\u901F\u6BD4",
-    assumptions: "\u65E0\u6ED1\u52A8\uFF08\u5E26\u4F20\u52A8\u4E3A\u7406\u60F3\uFF09\uFF1B\u9F7F\u6570\u6216\u76F4\u5F84\u4E3A\u6B63",
-    params: belt ? { D1: 0.1, D2: 0.2, n: 10 } : { z1: 20, z2: 40, w1: 10 },
-    schema: belt ? {
-      D1: S("D\u2081", "dynamics", "m", 0.02, 1),
-      D2: S("D\u2082", "dynamics", "m", 0.02, 1),
-      n: S("n", "dynamics", "rev/s", 0.1, 50)
-    } : {
-      z1: S("z\u2081", "dynamics", "\u2014", 8, 120),
-      z2: S("z\u2082", "dynamics", "\u2014", 8, 200),
-      w1: S("\u03C9\u2081", "dynamics", "rad/s", 0, 100)
-    },
-    tick(state) {
-      if (belt) {
-        const D1 = Math.max(1e-3, P(state.params, "D1", 0.1));
-        const D2 = Math.max(1e-3, P(state.params, "D2", 0.2));
-        state.i = D2 / D1;
-        state.v = Math.PI * D1 * P(state.params, "n", 10);
-      } else {
-        const z1 = Math.max(1, P(state.params, "z1", 20));
-        const z2 = Math.max(1, P(state.params, "z2", 40));
-        state.i = z2 / z1;
-        state.w2 = P(state.params, "w1", 10) / state.i;
-      }
-    },
-    plot: (s) => s.i,
-    rows: (s) => [["i", s.i, ""], belt ? ["v", s.v, "m/s"] : ["\u03C9\u2082", s.w2, "rad/s"]]
   });
 }
 function carnot(spec, topic) {
@@ -1567,204 +1498,6 @@ function supplyDemand(spec) {
     rows: (s) => [["P*", s.Pstar, ""], ["Q*", s.Q, ""]]
   });
 }
-function normalPdf(spec, topic) {
-  if (has(topic, /泊松/)) {
-    return shell(spec, {
-      equation: "P(k)= e^{\u2212\u03BB} \u03BB^k / k!",
-      authority: "Ross, A First Course in Probability, \u6CCA\u677E\u5206\u5E03",
-      assumptions: "\u72EC\u7ACB\u7A00\u6709\u4E8B\u4EF6",
-      params: { lambda: 3, k: 2 },
-      schema: {
-        lambda: S("\u03BB", "dynamics", "\u2014", 0.1, 12),
-        k: S("k", "dynamics", "\u2014", 0, 15)
-      },
-      tick(state) {
-        const lam = P(state.params, "lambda", 3);
-        const k = Math.max(0, Math.round(P(state.params, "k", 2)));
-        let fact = 1;
-        for (let i = 2; i <= k; i += 1) fact *= i;
-        state.p = Math.exp(-lam) * lam ** k / fact;
-      },
-      plot: (s) => s.p,
-      rows: (s) => [["P(k)", s.p, ""]]
-    });
-  }
-  if (has(topic, /二项/)) {
-    return shell(spec, {
-      equation: "P(k)= C(n,k) p^k (1\u2212p)^{n\u2212k}",
-      authority: "Ross, A First Course in Probability, \u4E8C\u9879\u5206\u5E03",
-      assumptions: "n \u6B21\u72EC\u7ACB\u4F2F\u52AA\u5229",
-      params: { n: 10, p: 0.4, k: 4 },
-      schema: {
-        n: S("n", "dynamics", "\u2014", 1, 30),
-        p: S("p", "dynamics", "\u2014", 0, 1),
-        k: S("k", "dynamics", "\u2014", 0, 30)
-      },
-      tick(state) {
-        const n = Math.max(1, Math.round(P(state.params, "n", 10)));
-        const k = Math.min(n, Math.max(0, Math.round(P(state.params, "k", 4))));
-        const p = Math.min(1, Math.max(0, P(state.params, "p", 0.4)));
-        let c = 1;
-        for (let i = 1; i <= k; i += 1) c = c * (n - k + i) / i;
-        state.p = c * p ** k * (1 - p) ** (n - k);
-      },
-      plot: (s) => s.p,
-      rows: (s) => [["P(k)", s.p, ""]]
-    });
-  }
-  if (has(topic, /指数/)) {
-    return shell(spec, {
-      equation: "f(t)= \u03BB e^{\u2212\u03BB t}",
-      authority: "Ross, \u6307\u6570\u5206\u5E03",
-      assumptions: "\u65E0\u8BB0\u5FC6",
-      params: { lambda: 0.5 },
-      schema: { lambda: S("\u03BB", "dynamics", "1/s", 0.05, 3) },
-      tick(state) {
-        const lam = P(state.params, "lambda", 0.5);
-        state.f = lam * Math.exp(-lam * state.t);
-      },
-      plot: (s) => s.f,
-      rows: (s) => [["f", s.f, ""]]
-    });
-  }
-  return shell(spec, {
-    equation: "\u03C6(x) = (1/\u221A(2\u03C0)\u03C3) exp(\u2212(x\u2212\u03BC)\xB2/(2\u03C3\xB2))",
-    authority: "Ross, \u6B63\u6001\u5206\u5E03",
-    assumptions: "\u4E00\u5143\u6B63\u6001",
-    params: { mu: 0, sigma: 1 },
-    schema: {
-      mu: S("\u03BC", "dynamics", "\u2014", -5, 5),
-      sigma: S("\u03C3", "dynamics", "\u2014", 0.2, 4)
-    },
-    tick(state) {
-      const mu = P(state.params, "mu", 0);
-      const sg = Math.max(0.05, P(state.params, "sigma", 1));
-      const x = mu + 2 * sg * Math.sin(state.t);
-      state.f = Math.exp(-0.5 * ((x - mu) / sg) ** 2) / (sg * Math.sqrt(2 * Math.PI));
-      state.x = x;
-    },
-    plot: (s) => s.f,
-    rows: (s) => [["\u03C6", s.f, ""], ["x", s.x, ""]]
-  });
-}
-function derivativeLesson(spec, topic) {
-  if (has(topic, /积分/) && !has(topic, /数值|微分/)) {
-    return shell(spec, {
-      equation: "\u222B x^n dx = x^{n+1}/(n+1)\uFF08n\u2260\u22121\uFF09",
-      authority: "Stewart, Calculus, \u5E42\u51FD\u6570\u79EF\u5206",
-      assumptions: "n\u2260\u22121",
-      params: { n: 2, x: 2 },
-      schema: {
-        n: S("n", "dynamics", "\u2014", 0, 6),
-        x: S("x", "dynamics", "\u2014", 0, 5)
-      },
-      tick(state) {
-        const n = P(state.params, "n", 2);
-        const x = P(state.params, "x", 2);
-        state.y = x ** (n + 1) / (n + 1);
-      },
-      plot: (s) => s.y,
-      rows: (s) => [["\u222B", s.y, ""]]
-    });
-  }
-  if (has(topic, /泰勒/)) {
-    return shell(spec, {
-      equation: "e^x \u2248 \u03A3 x^k/k!\uFF08\u5230 n \u9879\uFF09",
-      authority: "Stewart, Calculus, \u6CF0\u52D2\u7EA7\u6570",
-      assumptions: "\u5728 0 \u5904\u5C55\u5F00",
-      params: { x: 1, n: 6 },
-      schema: {
-        x: S("x", "dynamics", "\u2014", -2, 3),
-        n: S("n", "dynamics", "\u2014", 1, 12)
-      },
-      tick(state) {
-        const x = P(state.params, "x", 1);
-        const n = Math.max(1, Math.round(P(state.params, "n", 6)));
-        let s = 1;
-        let term = 1;
-        for (let k = 1; k <= n; k += 1) {
-          term *= x / k;
-          s += term;
-        }
-        state.y = s;
-        state.ex = Math.exp(x);
-      },
-      plot: (s) => s.y,
-      rows: (s) => [["series", s.y, ""], ["exp", s.ex, ""]]
-    });
-  }
-  if (has(topic, /拉普拉斯/)) {
-    return shell(spec, {
-      equation: "L{e^{\u2212at}} = 1/(s+a)",
-      authority: "Oppenheim, Signals and Systems, \u62C9\u666E\u62C9\u65AF\u53D8\u6362",
-      assumptions: "\u56E0\u679C\u6307\u6570\u3001Re(s)>\u2212a \u4EE5\u5B9E s \u8868\u793A",
-      params: { a: 1, s: 2 },
-      schema: {
-        a: S("a", "dynamics", "\u2014", 0, 5),
-        s: S("s", "dynamics", "\u2014", 0.1, 10)
-      },
-      tick(state) {
-        state.F = 1 / (P(state.params, "s", 2) + P(state.params, "a", 1));
-      },
-      plot: (s) => s.F,
-      rows: (s) => [["F(s)", s.F, ""]]
-    });
-  }
-  if (has(topic, /极限/)) {
-    return shell(spec, {
-      equation: "lim_{x\u21920} sin x / x = 1",
-      authority: "Stewart, Calculus, \u6807\u51C6\u6781\u9650",
-      assumptions: "x \u4EE5\u5F27\u5EA6\u3001\u907F\u5F00 0 \u7528\u5C0F\u91CF",
-      params: { x: 0.1 },
-      schema: { x: S("x", "dynamics", "rad", 1e-3, 1) },
-      tick(state) {
-        const x = Math.max(1e-4, P(state.params, "x", 0.1));
-        state.y = Math.sin(x) / x;
-      },
-      plot: (s) => s.y,
-      rows: (s) => [["sinx/x", s.y, ""]]
-    });
-  }
-  return shell(spec, {
-    equation: "d/dx x^n = n x^{n\u22121}",
-    authority: "Stewart, Calculus, \u5E42\u51FD\u6570\u5BFC\u6570",
-    assumptions: "\u5B9E\u5E42\u3001x>0 \u5F53 n \u975E\u6574\u6570",
-    params: { n: 3, x: 2 },
-    schema: {
-      n: S("n", "dynamics", "\u2014", 1, 6),
-      x: S("x", "dynamics", "\u2014", 0.1, 5)
-    },
-    tick(state) {
-      const n = P(state.params, "n", 3);
-      const x = Math.max(1e-3, P(state.params, "x", 2));
-      state.y = n * x ** (n - 1);
-    },
-    plot: (s) => s.y,
-    rows: (s) => [["dy/dx", s.y, ""]]
-  });
-}
-function rankineSoil(spec) {
-  return shell(spec, {
-    equation: "K_a=(1\u2212sin\u03C6)/(1+sin\u03C6)\uFF0CP_a=\xBD \u03B3 H\xB2 K_a",
-    authority: "Das, Principles of Geotechnical Engineering, Rankine \u4E3B\u52A8\u571F\u538B\u529B",
-    assumptions: "\u65E0\u7C98\u6027\u3001\u5899\u80CC\u7AD6\u76F4\u5149\u6ED1\u3001\u6C34\u5E73\u586B\u571F",
-    params: { phi: 30, gamma: 18, H: 4 },
-    schema: {
-      phi: S("\u03C6", "dynamics", "\xB0", 10, 45),
-      gamma: S("\u03B3", "dynamics", "kN/m\xB3", 10, 22),
-      H: S("H", "dynamics", "m", 1, 12)
-    },
-    tick(state) {
-      const phi = P(state.params, "phi", 30) * Math.PI / 180;
-      const Ka = (1 - Math.sin(phi)) / (1 + Math.sin(phi));
-      const H = P(state.params, "H", 4);
-      state.Pa = 0.5 * P(state.params, "gamma", 18) * H * H * Ka;
-      state.Ka = Ka;
-    },
-    plot: (s) => s.Pa,
-    rows: (s) => [["K_a", s.Ka, ""], ["P_a", s.Pa, "kN/m"]]
-  });
-}
 function manning(spec) {
   return shell(spec, {
     equation: "V = (1/n) R^{2/3} S^{1/2}",
@@ -1803,98 +1536,6 @@ function darcy(spec) {
     },
     plot: (s) => s.hf,
     rows: (s) => [["h_f", s.hf, "m"]]
-  });
-}
-function shieldLaw(spec) {
-  return shell(spec, {
-    equation: "I = I\u2080 e^{\u2212\u03BC x}",
-    authority: "Krane, Introductory Nuclear Physics, \u7A84\u675F\u6307\u6570\u8870\u51CF",
-    assumptions: "\u7A84\u675F\u3001\u5355\u4E00 \u03BC\uFF1B\u516C\u5F00\u6559\u79D1\u4E66\u8870\u51CF\uFF0C\u975E\u5C4F\u853D\u8BBE\u8BA1",
-    fidelity: "principle",
-    params: { I0: 1, mu: 0.1, x: 5 },
-    schema: {
-      mu: S("\u03BC", "dynamics", "1/m", 0.01, 2),
-      x: S("x", "dynamics", "m", 0, 20)
-    },
-    tick(state) {
-      state.I = P(state.params, "I0", 1) * Math.exp(-P(state.params, "mu", 0.1) * P(state.params, "x", 5));
-    },
-    plot: (s) => s.I,
-    rows: (s) => [["I/I\u2080", s.I, ""]]
-  });
-}
-function larmor(spec) {
-  return shell(spec, {
-    equation: "\u03C9 = \u03B3 B",
-    authority: "Levitt, Spin Dynamics, \u62C9\u83AB\u5C14\u8FDB\u52A8\uFF08\u516C\u5F00\u5B9A\u4E49\uFF09",
-    assumptions: "\u4EC5\u8FDB\u52A8\u89D2\u9891\u7387\uFF0C\u65E0\u8109\u51B2\u5E8F\u5217\u3001\u65E0\u4E34\u5E8A\u65B9\u6848",
-    fidelity: "principle",
-    params: { gamma: 2675e5, B: 1 },
-    schema: {
-      B: S("B", "dynamics", "T", 0.1, 7)
-    },
-    tick(state) {
-      state.w = P(state.params, "gamma", 2675e5) * P(state.params, "B", 1);
-    },
-    plot: (s) => s.w / 1e6,
-    rows: (s) => [["\u03C9/2\u03C0", s.w / (2 * Math.PI) / 1e6, "MHz"]]
-  });
-}
-function criticality(spec) {
-  return shell(spec, {
-    equation: "\u03C1 = (k \u2212 1)/k\uFF0Cn(t)=n\u2080 exp(\u03C1 t / \u039B)\uFF08\u70B9\u5806\u65E0\u7F13\u53D1\uFF09",
-    authority: "Lamarsh & Baratta, Introduction to Nuclear Engineering, \u70B9\u5806\u53CD\u5E94\u6027\u5B9A\u4E49",
-    assumptions: "\u65E0\u7F13\u53D1\u4E2D\u5B50\u3001\u5E38 \u039B\uFF1B\u516C\u5F00\u6559\u79D1\u4E66\u5B9A\u4E49\uFF0C\u975E\u5806\u82AF\u8BBE\u8BA1",
-    fidelity: "principle",
-    params: { k: 1.001, Lambda: 1e-4, n0: 1 },
-    schema: {
-      k: S("k_eff", "dynamics", "\u2014", 0.9, 1.05),
-      Lambda: S("\u039B", "dynamics", "s", 1e-5, 0.01)
-    },
-    tick(state) {
-      const k = Math.max(0.5, P(state.params, "k", 1.001));
-      const Lam = Math.max(1e-6, P(state.params, "Lambda", 1e-4));
-      state.rho = (k - 1) / k;
-      const expo = state.rho / Lam * Math.min(state.t, 0.05);
-      state.n = P(state.params, "n0", 1) * Math.exp(Math.max(-20, Math.min(20, expo)));
-    },
-    plot: (s) => s.rho,
-    rows: (s) => [["\u03C1", s.rho, ""], ["n", s.n, ""]]
-  });
-}
-function hhBuffer(spec) {
-  return shell(spec, {
-    equation: "pH = pKa + log10([A\u207B]/[HA])",
-    authority: "Harris, Quantitative Chemical Analysis, Henderson\u2013Hasselbalch",
-    assumptions: "\u7406\u60F3\u7F13\u51B2\u3001\u6D53\u5EA6\u6BD4\u5373\u6D3B\u5EA6\u6BD4",
-    params: { pKa: 4.76, ratio: 1 },
-    schema: {
-      pKa: S("pKa", "dynamics", "\u2014", 2, 12),
-      ratio: S("[A\u207B]/[HA]", "dynamics", "\u2014", 0.05, 20)
-    },
-    tick(state) {
-      state.pH = P(state.params, "pKa", 4.76) + Math.log10(Math.max(1e-4, P(state.params, "ratio", 1)));
-    },
-    plot: (s) => s.pH,
-    rows: (s) => [["pH", s.pH, ""]]
-  });
-}
-function beerLambert(spec) {
-  return shell(spec, {
-    equation: "A = \u03B5 c l",
-    authority: "Harris, Quantitative Chemical Analysis, Beer\u2013Lambert",
-    assumptions: "\u7A00\u6EB6\u6DB2\u3001\u5355\u8272\u5149",
-    params: { eps: 100, c: 0.01, l: 1 },
-    schema: {
-      eps: S("\u03B5", "dynamics", "L/mol\xB7cm", 1, 1e4),
-      c: S("c", "dynamics", "mol/L", 0, 0.1),
-      l: S("l", "dynamics", "cm", 0.1, 5)
-    },
-    tick(state) {
-      state.A = P(state.params, "eps", 100) * P(state.params, "c", 0.01) * P(state.params, "l", 1);
-    },
-    plot: (s) => s.A,
-    rows: (s) => [["A", s.A, ""]]
   });
 }
 function cstr(spec) {
@@ -1962,65 +1603,6 @@ function dcMotor(spec) {
     rows: (s) => [["\u03C9", s.w, "rad/s"], ["\u03C4", s.torque, "N\xB7m"]]
   });
 }
-function grashof(spec) {
-  return shell(spec, {
-    equation: "Grashof\uFF1As+l \u2264 p+q \u5219\u53EF\u6574\u5468\u8F6C\u52A8",
-    authority: "Norton, Design of Machinery, Grashof \u51C6\u5219",
-    assumptions: "\u5E73\u9762\u56DB\u6746\u3001\u6746\u957F\u4E3A\u6B63",
-    params: { s: 1, l: 4, p: 3, q: 3 },
-    schema: {
-      s: S("\u6700\u77ED", "dynamics", "\u2014", 0.2, 5),
-      l: S("\u6700\u957F", "dynamics", "\u2014", 1, 8),
-      p: S("\u5176\u4F591", "dynamics", "\u2014", 0.5, 8),
-      q: S("\u5176\u4F592", "dynamics", "\u2014", 0.5, 8)
-    },
-    tick(state) {
-      const lens2 = [P(state.params, "s", 1), P(state.params, "l", 4), P(state.params, "p", 3), P(state.params, "q", 3)].sort((a, b) => a - b);
-      state.g = lens2[0] + lens2[3] <= lens2[1] + lens2[2] ? 1 : 0;
-    },
-    plot: (s) => s.g,
-    rows: (s) => [["Grashof", s.g, ""]]
-  });
-}
-function camHarmonic(spec) {
-  return shell(spec, {
-    equation: "s = (h/2) (1 \u2212 cos \u03C9 t)\uFF08\u7B80\u8C10\u51F8\u8F6E\u5347\u7A0B\uFF09",
-    authority: "Norton, Design of Machinery, \u7B80\u8C10\u8FD0\u52A8\u89C4\u5F8B",
-    assumptions: "\u5347\u7A0B\u6BB5\u3001\u65E0\u51B2\u51FB\u4FEE\u6B63",
-    params: { h: 20, w: 2 },
-    schema: {
-      h: S("h", "dynamics", "mm", 1, 80),
-      w: S("\u03C9", "dynamics", "rad/s", 0.2, 8)
-    },
-    tick(state) {
-      state.s = 0.5 * P(state.params, "h", 20) * (1 - Math.cos(P(state.params, "w", 2) * state.t));
-    },
-    plot: (s) => s.s,
-    rows: (s) => [["s", s.s, "mm"]]
-  });
-}
-function leverRule(spec) {
-  return shell(spec, {
-    equation: "\u56FA\u76F8\u5206\u6570 f_s = (c_L \u2212 c\u2080)/(c_L \u2212 c_S)",
-    authority: "Callister, Materials Science and Engineering, \u6760\u6746\u5B9A\u5F8B",
-    assumptions: "\u4E8C\u5143\u5E73\u8861\u3001\u6760\u6746\u5728\u540C\u4E00\u6E29\u5EA6\u7ED3\u7EBF",
-    params: { cL: 0.6, cS: 0.1, c0: 0.3 },
-    schema: {
-      cL: S("c_L", "dynamics", "\u2014", 0, 1),
-      cS: S("c_S", "dynamics", "\u2014", 0, 1),
-      c0: S("c\u2080", "dynamics", "\u2014", 0, 1)
-    },
-    tick(state) {
-      const cL = P(state.params, "cL", 0.6);
-      const cS = P(state.params, "cS", 0.1);
-      const c0 = P(state.params, "c0", 0.3);
-      const den = cL - cS;
-      state.fs = Math.abs(den) < 1e-9 ? 0 : Math.min(1, Math.max(0, (cL - c0) / den));
-    },
-    plot: (s) => s.fs,
-    rows: (s) => [["f_s", s.fs, ""]]
-  });
-}
 function maxwell(spec) {
   return shell(spec, {
     equation: "f(v) \u221D v\xB2 exp(\u2212m v\xB2 / 2 k T)",
@@ -2046,9 +1628,10 @@ function doppler(spec) {
     assumptions: "\u4ECB\u8D28\u9759\u6B62\u58F0\u901F v\uFF1B\u7B26\u53F7\uFF1A\u89C2\u5BDF\u8005\u671D\u6E90 vo>0\uFF0C\u6E90\u671D\u89C2\u5BDF\u8005 vs<0 \u9700\u81EA\u884C\u53D6\u53F7\u3002\u6B64\u5904 vs \u4EE5\u79BB\u5F00\u89C2\u5BDF\u8005\u4E3A\u6B63\uFF08\u5206\u6BCD v+vs\uFF09",
     params: { f: 440, v: 340, vo: 0, vs: 20 },
     schema: {
-      f: S("f", "dynamics", "Hz", 50, 2e3),
-      vo: S("v_o", "dynamics", "m/s", -50, 50),
-      vs: S("v_s", "dynamics", "m/s", -50, 50)
+      f: S("\u6E90\u9891 f", "dynamics", "Hz", 50, 2e3),
+      v: S("\u58F0\u901F v", "dynamics", "m/s", 200, 400),
+      vo: S("\u89C2\u5BDF\u8005 vo", "dynamics", "m/s", -50, 50),
+      vs: S("\u58F0\u6E90 vs", "dynamics", "m/s", -50, 50)
     },
     tick(state) {
       const v = P(state.params, "v", 340);
@@ -2211,8 +1794,9 @@ function clift(spec) {
     assumptions: "\u7ED9\u5B9A C_L\uFF0C\u4E0D\u6C42\u89E3\u6D41\u573A",
     params: { rho: 1.2, v: 50, S: 16, Cl: 0.5 },
     schema: {
-      v: S("v", "dynamics", "m/s", 0, 200),
-      S: S("S", "dynamics", "m\xB2", 1, 80),
+      rho: S("\u5BC6\u5EA6 \u03C1", "dynamics", "kg/m\xB3", 0.5, 2),
+      v: S("\u901F\u5EA6 v", "dynamics", "m/s", 0, 200),
+      S: S("\u9762\u79EF S", "dynamics", "m\xB2", 1, 80),
       Cl: S("C_L", "dynamics", "\u2014", 0, 1.6)
     },
     tick(state) {
@@ -2230,9 +1814,10 @@ function reynolds(spec) {
     assumptions: "\u7279\u5F81\u957F\u5EA6 D",
     params: { rho: 1e3, v: 1, D: 0.05, mu: 1e-3 },
     schema: {
-      v: S("v", "dynamics", "m/s", 0, 10),
-      D: S("D", "dynamics", "m", 1e-3, 1),
-      mu: S("\u03BC", "dynamics", "Pa\xB7s", 1e-5, 0.1)
+      rho: S("\u5BC6\u5EA6 \u03C1", "dynamics", "kg/m\xB3", 100, 2e3),
+      v: S("\u6D41\u901F v", "dynamics", "m/s", 0, 10),
+      D: S("\u7279\u5F81\u957F D", "dynamics", "m", 1e-3, 1),
+      mu: S("\u7C98\u5EA6 \u03BC", "dynamics", "Pa\xB7s", 1e-5, 0.1)
     },
     tick(state) {
       state.Re = P(state.params, "rho", 1e3) * P(state.params, "v", 1) * P(state.params, "D", 0.05) / Math.max(1e-8, P(state.params, "mu", 1e-3));
@@ -2248,9 +1833,10 @@ function bernoulli(spec) {
     assumptions: "\u5B9A\u5E38\u3001\u4E0D\u53EF\u538B\u3001\u6CBF\u6D41\u7EBF\u3001\u65E0\u6469\u64E6",
     params: { P: 1e5, rho: 1e3, v: 2, h: 1 },
     schema: {
-      P: S("P", "dynamics", "Pa", 0, 3e5),
-      v: S("v", "dynamics", "m/s", 0, 15),
-      h: S("h", "dynamics", "m", 0, 20)
+      P: S("\u9759\u538B P", "dynamics", "Pa", 0, 3e5),
+      rho: S("\u5BC6\u5EA6 \u03C1", "dynamics", "kg/m\xB3", 100, 2e3),
+      v: S("\u6D41\u901F v", "dynamics", "m/s", 0, 15),
+      h: S("\u9AD8\u5EA6 h", "dynamics", "m", 0, 20)
     },
     tick(state) {
       const rho = P(state.params, "rho", 1e3);
@@ -2409,24 +1995,6 @@ function faraday(spec) {
     rows: (s) => [["\u03B5", s.eps, "V"]]
   });
 }
-function transformer(spec) {
-  return shell(spec, {
-    equation: "V\u2082/V\u2081 = N\u2082/N\u2081\uFF08\u7406\u60F3\u53D8\u538B\u5668\uFF09",
-    authority: "Nilsson & Riedel, \u7406\u60F3\u53D8\u538B\u5668",
-    assumptions: "\u5168\u8026\u5408\u3001\u65E0\u635F\u8017",
-    params: { V1: 220, N1: 100, N2: 20 },
-    schema: {
-      V1: S("V\u2081", "dynamics", "V", 1, 500),
-      N1: S("N\u2081", "dynamics", "\u2014", 1, 500),
-      N2: S("N\u2082", "dynamics", "\u2014", 1, 500)
-    },
-    tick(state) {
-      state.V2 = P(state.params, "V1", 220) * P(state.params, "N2", 20) / Math.max(1, P(state.params, "N1", 100));
-    },
-    plot: (s) => s.V2,
-    rows: (s) => [["V\u2082", s.V2, "V"]]
-  });
-}
 function capacitor(spec) {
   return shell(spec, {
     equation: "C = \u03B5\u2080 \u03B5_r A / d\uFF0CQ = C V\uFF0CU = \xBD C V\xB2",
@@ -2470,77 +2038,6 @@ function lorentzRadius(spec) {
     rows: (s) => [["R", s.R, "m"], ["\u03C9", s.w, "rad/s"]]
   });
 }
-function ampere(spec) {
-  return shell(spec, {
-    equation: "F = I L B sin\u03B8",
-    authority: "Halliday, \u5B89\u57F9\u529B",
-    assumptions: "\u76F4\u5BFC\u7EBF\u3001\u5747\u5300\u573A",
-    params: { I: 2, L: 0.3, B: 0.4, theta: 90 },
-    schema: {
-      I: S("I", "dynamics", "A", 0, 20),
-      L: S("L", "dynamics", "m", 0.05, 2),
-      B: S("B", "dynamics", "T", 0, 2),
-      theta: S("\u03B8", "dynamics", "\xB0", 0, 180)
-    },
-    tick(state) {
-      state.F = P(state.params, "I", 2) * P(state.params, "L", 0.3) * P(state.params, "B", 0.4) * Math.sin(P(state.params, "theta", 90) * Math.PI / 180);
-    },
-    plot: (s) => s.F,
-    rows: (s) => [["F", s.F, "N"]]
-  });
-}
-function beats(spec) {
-  return shell(spec, {
-    equation: "y = 2 cos(\u0394\u03C9 t / 2) sin(\u03C9 t)",
-    authority: "French, Vibrations and Waves, \u62CD",
-    assumptions: "\u4E24\u7B49\u5E45\u8FD1\u9891\u7B80\u8C10\u53E0\u52A0",
-    params: { w1: 8, w2: 9 },
-    schema: {
-      w1: S("\u03C9\u2081", "dynamics", "rad/s", 1, 20),
-      w2: S("\u03C9\u2082", "dynamics", "rad/s", 1, 20)
-    },
-    tick(state) {
-      const w1 = P(state.params, "w1", 8);
-      const w2 = P(state.params, "w2", 9);
-      const dw = w2 - w1;
-      const w = 0.5 * (w1 + w2);
-      state.y = 2 * Math.cos(0.5 * dw * state.t) * Math.sin(w * state.t);
-    },
-    plot: (s) => s.y,
-    rows: (s) => [["y", s.y, ""]]
-  });
-}
-function soundSpeed(spec) {
-  return shell(spec, {
-    equation: "v \u2248 331 \u221A(T/273) m/s\uFF08\u5E72\u71E5\u7A7A\u6C14\u8FD1\u4F3C\uFF09",
-    authority: "Kinsler, Fundamentals of Acoustics, \u58F0\u901F\u4E0E\u6E29\u5EA6",
-    assumptions: "\u7406\u60F3\u6C14\u4F53\u7A7A\u6C14\u30010 \xB0C \u4E3A 331 m/s \u7684\u5E38\u7528\u8FD1\u4F3C",
-    params: { T: 293 },
-    schema: { T: S("T", "dynamics", "K", 230, 350) },
-    tick(state) {
-      state.v = 331 * Math.sqrt(Math.max(1, P(state.params, "T", 293)) / 273.15);
-    },
-    plot: (s) => s.v,
-    rows: (s) => [["v", s.v, "m/s"]]
-  });
-}
-function sabine(spec) {
-  return shell(spec, {
-    equation: "T60 = 0.161 V / A",
-    authority: "Kuttruff, Room Acoustics, Sabine \u516C\u5F0F",
-    assumptions: "\u6269\u6563\u573A\u3001A \u4E3A\u603B\u5438\u58F0\u91CF m\xB2",
-    params: { V: 200, A: 20 },
-    schema: {
-      V: S("V", "dynamics", "m\xB3", 10, 2e3),
-      A: S("A", "dynamics", "m\xB2", 1, 200)
-    },
-    tick(state) {
-      state.T60 = 0.161 * P(state.params, "V", 200) / Math.max(0.1, P(state.params, "A", 20));
-    },
-    plot: (s) => s.T60,
-    rows: (s) => [["T60", s.T60, "s"]]
-  });
-}
 function doubleSlit(spec) {
   return shell(spec, {
     equation: "\u0394y = \u03BB L / d",
@@ -2548,8 +2045,9 @@ function doubleSlit(spec) {
     assumptions: "\u8FDC\u573A\u3001\u5C0F\u89D2",
     params: { lambda: 55e-8, L: 1, d: 2e-4 },
     schema: {
-      L: S("L", "dynamics", "m", 0.2, 3),
-      d: S("d", "dynamics", "m", 5e-5, 1e-3)
+      lambda: S("\u6CE2\u957F \u03BB", "dynamics", "m", 4e-7, 7e-7),
+      L: S("\u5C4F\u8DDD L", "dynamics", "m", 0.2, 3),
+      d: S("\u7F1D\u8DDD d", "dynamics", "m", 5e-5, 1e-3)
     },
     tick(state) {
       state.dy = P(state.params, "lambda", 55e-8) * P(state.params, "L", 1) / Math.max(1e-6, P(state.params, "d", 2e-4));
@@ -2735,34 +2233,6 @@ function binarySearchSteps(spec) {
     rows: (s) => [["steps", s.steps, ""]]
   });
 }
-function editDistance(spec) {
-  return shell(spec, {
-    equation: "Levenshtein\uFF1A\u63D2\u5165/\u5220\u9664/\u66FF\u6362\u4EE3\u4EF7 1",
-    authority: "CLRS, \u7F16\u8F91\u8DDD\u79BB",
-    assumptions: "\u56FA\u5B9A\u4E32 kitten \u2192 sitting \u7684\u957F\u5EA6\u6F14\u793A\u6539\u4E3A\u957F\u5EA6\u5DEE\u4E0A\u754C\uFF1B\u7528\u4E24\u77ED\u4E32 a,b \u7684\u957F\u5EA6\u53C2\u6570\u505A\u7CBE\u786E DP",
-    params: { la: 4, lb: 6 },
-    schema: {
-      la: S("|a|", "dynamics", "\u2014", 0, 8),
-      lb: S("|b|", "dynamics", "\u2014", 0, 8)
-    },
-    tick(state) {
-      const la = Math.max(0, Math.round(P(state.params, "la", 4)));
-      const lb = Math.max(0, Math.round(P(state.params, "lb", 6)));
-      const dp = Array.from({ length: la + 1 }, () => Array(lb + 1).fill(0));
-      for (let i = 0; i <= la; i += 1) dp[i][0] = i;
-      for (let j = 0; j <= lb; j += 1) dp[0][j] = j;
-      for (let i = 1; i <= la; i += 1) {
-        for (let j = 1; j <= lb; j += 1) {
-          const cost = i === j ? 0 : 1;
-          dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
-        }
-      }
-      state.d = dp[la][lb];
-    },
-    plot: (s) => s.d,
-    rows: (s) => [["d", s.d, ""]]
-  });
-}
 function nyquist(spec) {
   return shell(spec, {
     equation: "f_s \u2265 2 f_max",
@@ -2813,113 +2283,6 @@ function reflectionCoeff(spec) {
     rows: (s) => [["\u0393", s.G, ""]]
   });
 }
-function blackbodyPeak(spec) {
-  return shell(spec, {
-    equation: "\u03BB_max T = 2.897\xD710\u207B\xB3 m\xB7K\uFF08\u7EF4\u6069\u4F4D\u79FB\uFF09",
-    authority: "Rybicki & Lightman, \u7EF4\u6069\u4F4D\u79FB\u5B9A\u5F8B",
-    assumptions: "\u9ED1\u4F53\u8C31\u5CF0",
-    params: { T: 5800 },
-    schema: { T: S("T", "dynamics", "K", 300, 1e4) },
-    tick(state) {
-      state.lam = 2897e-6 / Math.max(1, P(state.params, "T", 5800));
-    },
-    plot: (s) => s.lam * 1e9,
-    rows: (s) => [["\u03BB_max", s.lam * 1e9, "nm"]]
-  });
-}
-function hubble(spec) {
-  return shell(spec, {
-    equation: "v = H\u2080 d\uFF0Cz \u2248 v/c\uFF08\u4F4E\u7EA2\u79FB\uFF09",
-    authority: "Ryden, Introduction to Cosmology, \u54C8\u52C3\u2013\u52D2\u6885\u7279\u5B9A\u5F8B",
-    assumptions: "\u4F4E\u7EA2\u79FB\u3001H\u2080=70 km/s/Mpc",
-    fidelity: "principle",
-    params: { d: 100 },
-    schema: { d: S("d", "dynamics", "Mpc", 1, 1e3) },
-    tick(state) {
-      const H0 = 70;
-      state.v = H0 * P(state.params, "d", 100);
-      state.z = state.v * 1e3 / 299792458;
-    },
-    plot: (s) => s.v,
-    rows: (s) => [["v", s.v, "km/s"], ["z", s.z, ""]]
-  });
-}
-function prisoner(spec) {
-  return shell(spec, {
-    equation: "\u56DA\u5F92\u56F0\u5883\uFF1A\u53CC\u65B9\u80CC\u53DB\u662F\u7EAF\u7B56\u7565\u7EB3\u4EC0\uFF08\u6536\u76CA T>R>P>S\uFF09",
-    authority: "Osborne, An Introduction to Game Theory",
-    assumptions: "\u6807\u51C6\u6392\u5E8F T>R>P>S",
-    params: { T: 5, R: 3, P: 1, S: 0 },
-    schema: {
-      T: S("T", "dynamics", "\u2014", 0, 10),
-      R: S("R", "dynamics", "\u2014", 0, 10),
-      P: S("P", "dynamics", "\u2014", 0, 10),
-      S: S("S", "dynamics", "\u2014", 0, 10)
-    },
-    tick(state) {
-      state.nash = P(state.params, "P", 1);
-    },
-    plot: (s) => s.nash,
-    rows: (s) => [["u(\u80CC\u53DB,\u80CC\u53DB)", s.nash, ""]]
-  });
-}
-function draftRatio(spec) {
-  return shell(spec, {
-    equation: "\u7275\u4F38\u6BD4 E = v\u2082 / v\u2081",
-    authority: "Lawrence, Fundamentals of Spun Yarn Technology, \u7275\u4F38\u5B9A\u4E49",
-    assumptions: "\u4E24\u7F57\u62C9\u7EBF\u901F\u5EA6\u3001\u65E0\u6ED1\u6E9C",
-    params: { v1: 1, v2: 8 },
-    schema: {
-      v1: S("v\u2081", "dynamics", "m/min", 0.1, 20),
-      v2: S("v\u2082", "dynamics", "m/min", 0.1, 80)
-    },
-    tick(state) {
-      state.E = P(state.params, "v2", 8) / Math.max(1e-3, P(state.params, "v1", 1));
-    },
-    plot: (s) => s.E,
-    rows: (s) => [["E", s.E, ""]]
-  });
-}
-function irrigation(spec) {
-  return shell(spec, {
-    equation: "Q = A d / t",
-    authority: "\u704C\u6E89\u6C34\u91CF\u5E73\u8861\uFF08\u4F53\u79EF = \u9762\u79EF \xD7 \u6C34\u6DF1\uFF09",
-    assumptions: "\u5747\u5300\u704C\u6C34\u6DF1\u3001\u65E0\u635F\u5931\uFF1B\u4E0D\u662F\u6E20\u9053\u8BBE\u8BA1\u5DE5\u5177",
-    params: { A: 1e3, d: 0.03, duration: 3600 },
-    schema: {
-      A: S("\u9762\u79EF A", "dynamics", "m\xB2", 10, 1e5),
-      d: S("\u6C34\u6DF1 d", "dynamics", "m", 1e-3, 0.2),
-      duration: S("\u65F6\u957F t", "dynamics", "s", 60, 86400)
-    },
-    tick(state) {
-      const duration = Math.max(1, P(state.params, "duration", 3600));
-      state.Q = P(state.params, "A", 1e3) * P(state.params, "d", 0.03) / duration;
-    },
-    plot: (s) => s.Q,
-    rows: (s) => [["Q", s.Q, "m\xB3/s"]]
-  });
-}
-function isolation(spec) {
-  return shell(spec, {
-    equation: "T_r = \u221A( (1+(2\u03B6r)\xB2) / ((1\u2212r\xB2)\xB2+(2\u03B6r)\xB2) )",
-    authority: "Inman, Engineering Vibration, \u529B\u4F20\u9012\u7387",
-    assumptions: "\u5355\u81EA\u7531\u5EA6\u3001\u7C98\u6EDE\u963B\u5C3C\u3001\u57FA\u5EA7\u56FA\u5B9A",
-    params: { r: 1.5, zeta: 0.1 },
-    schema: {
-      r: S("\u03C9/\u03C9\u2099", "dynamics", "\u2014", 0, 4),
-      zeta: S("\u03B6", "dynamics", "\u2014", 0.01, 0.5)
-    },
-    tick(state) {
-      const r = P(state.params, "r", 1.5);
-      const z = P(state.params, "zeta", 0.1);
-      const num = 1 + (2 * z * r) ** 2;
-      const den = (1 - r * r) ** 2 + (2 * z * r) ** 2;
-      state.Tr = Math.sqrt(num / Math.max(1e-9, den));
-    },
-    plot: (s) => s.Tr,
-    rows: (s) => [["T_r", s.Tr, ""]]
-  });
-}
 function phugoid(spec) {
   return shell(spec, {
     equation: "T \u2248 \u03C0 \u221A2 \xB7 V / g\uFF08\u6D6E\u6C89\u6A21\u6001\u5468\u671F\u8FD1\u4F3C\uFF09",
@@ -2933,46 +2296,6 @@ function phugoid(spec) {
     },
     plot: (s) => s.T,
     rows: (s) => [["T", s.T, "s"]]
-  });
-}
-function arrhenius(spec) {
-  return shell(spec, {
-    equation: "k = A exp(\u2212E_a / R T)",
-    authority: "Fogler, CRE, Arrhenius",
-    assumptions: "R=8.314 J/mol\xB7K\uFF1B\u4E0D\u662F\u53CD\u5E94\u5668\u8BBE\u8BA1",
-    params: { A: 1e6, Ea: 5e4, T: 350 },
-    schema: {
-      Ea: S("E_a", "dynamics", "J/mol", 1e3, 12e4),
-      T: S("T", "dynamics", "K", 250, 800)
-    },
-    tick(state) {
-      const R = 8.314;
-      state.k = P(state.params, "A", 1e6) * Math.exp(-P(state.params, "Ea", 5e4) / (R * Math.max(1, P(state.params, "T", 350))));
-    },
-    plot: (s) => s.k,
-    rows: (s) => [["k", s.k, ""]]
-  });
-}
-function nernst(spec) {
-  return shell(spec, {
-    equation: "E = E\u2070 \u2212 (RT/nF) ln Q",
-    authority: "Bard & Faulkner, Electrochemical Methods, \u80FD\u65AF\u7279\u65B9\u7A0B",
-    assumptions: "\u6D3B\u5EA6\u4EE5\u6D53\u5EA6\u4EE3\u66FF\u3002\u7B49\u4EF7\u6307\u6570 e^{nFE/RT} \u6309\u53CC\u7CBE\u5EA6\u8BA1\u7B97\uFF0C\u4E0D\u5728 \xB140 \u5904\u622A\u65AD\uFF1Bln \u7684\u81EA\u53D8\u91CF\u4F4E\u4E8E 10\u207B\u2076 \u65F6\u6309 10\u207B\u2076",
-    params: { E0: 1, n: 1, Q: 0.1, T: 298 },
-    schema: {
-      E0: S("E\u2070", "dynamics", "V", -2, 2),
-      n: S("n", "dynamics", "\u2014", 1, 4),
-      Q: S("Q", "dynamics", "\u2014", 0.01, 10),
-      T: S("T", "dynamics", "K", 273, 373)
-    },
-    tick(state) {
-      const R = 8.314;
-      const F = 96485;
-      const n = Math.max(1, P(state.params, "n", 1));
-      state.E = P(state.params, "E0", 1) - R * P(state.params, "T", 298) / (n * F) * Math.log(Math.max(1e-6, P(state.params, "Q", 0.1)));
-    },
-    plot: (s) => s.E,
-    rows: (s) => [["E", s.E, "V"]]
   });
 }
 function blackScholes(spec) {
@@ -3011,78 +2334,6 @@ function erf(x) {
   const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a);
   return sign * y;
 }
-function forwardKinematics(spec) {
-  return shell(spec, {
-    equation: "\u5E73\u9762 2R\uFF1Ax = l\u2081 cos\u03B8\u2081 + l\u2082 cos(\u03B8\u2081+\u03B8\u2082)",
-    authority: "Craig, Introduction to Robotics, \u5E73\u9762\u53CC\u8FDE\u6746\u6B63\u8FD0\u52A8\u5B66",
-    assumptions: "\u5E73\u9762\u3001\u4E24\u8F6C\u52A8\u5173\u8282",
-    params: { l1: 1, l2: 0.8, th1: 30, th2: 20 },
-    schema: {
-      l1: S("l\u2081", "dynamics", "m", 0.2, 2),
-      l2: S("l\u2082", "dynamics", "m", 0.2, 2),
-      th1: S("\u03B8\u2081", "dynamics", "\xB0", -180, 180),
-      th2: S("\u03B8\u2082", "dynamics", "\xB0", -180, 180)
-    },
-    tick(state) {
-      const th1 = P(state.params, "th1", 30) * Math.PI / 180;
-      const th2 = P(state.params, "th2", 20) * Math.PI / 180;
-      state.x = P(state.params, "l1", 1) * Math.cos(th1) + P(state.params, "l2", 0.8) * Math.cos(th1 + th2);
-      state.y = P(state.params, "l1", 1) * Math.sin(th1) + P(state.params, "l2", 0.8) * Math.sin(th1 + th2);
-    },
-    plot: (s) => s.x,
-    rows: (s) => [["x", s.x, "m"], ["y", s.y, "m"]]
-  });
-}
-function reliability(spec) {
-  return shell(spec, {
-    equation: "R(t) = exp(\u2212\u03BB t)",
-    authority: "Ebeling, An Introduction to Reliability and Maintainability Engineering",
-    assumptions: "\u5E38\u6570\u5931\u6548\u7387",
-    params: { lambda: 0.01 },
-    schema: { lambda: S("\u03BB", "dynamics", "1/h", 1e-4, 0.2) },
-    tick(state) {
-      state.R = Math.exp(-P(state.params, "lambda", 0.01) * state.t);
-    },
-    plot: (s) => s.R,
-    rows: (s) => [["R", s.R, ""]]
-  });
-}
-function littleLaw(spec) {
-  return shell(spec, {
-    equation: "L = \u03BB W",
-    authority: "Little, Oper. Res. 9 (1961)",
-    assumptions: "\u7A33\u6001\u3001\u5B88\u6052\u6D41",
-    params: { lambda: 2, W: 3 },
-    schema: {
-      lambda: S("\u03BB", "dynamics", "1/s", 0, 20),
-      W: S("W", "dynamics", "s", 0, 30)
-    },
-    tick(state) {
-      state.L = P(state.params, "lambda", 2) * P(state.params, "W", 3);
-    },
-    plot: (s) => s.L,
-    rows: (s) => [["L", s.L, ""]]
-  });
-}
-function dipole(spec) {
-  return shell(spec, {
-    equation: "\u8F74\u4E0A E \u2248 (1/4\u03C0\u03B5\u2080) 2 p / r\xB3",
-    authority: "Griffiths, Ch. 3 \u7535\u5076\u6781\u5B50\u8FDC\u573A\uFF08\u8F74\u4E0A\uFF09",
-    assumptions: "r \u8FDC\u5927\u4E8E\u5076\u6781\u5C3A\u5EA6",
-    params: { p: 1e-9, r: 0.2 },
-    schema: {
-      p: S("p", "dynamics", "C\xB7m", 1e-12, 1e-6),
-      r: S("r", "dynamics", "m", 0.05, 2)
-    },
-    tick(state) {
-      const k = 89875517923e-1;
-      const r = Math.max(0.02, P(state.params, "r", 0.2));
-      state.E = k * 2 * P(state.params, "p", 1e-9) / r ** 3;
-    },
-    plot: (s) => s.E,
-    rows: (s) => [["E", s.E, "V/m"]]
-  });
-}
 function gaussPoint(spec) {
   return shell(spec, {
     equation: "\u70B9\u7535\u8377 E = k |q| / r\xB2\uFF08\u9AD8\u65AF\u5B9A\u7406\u7684\u7403\u5BF9\u79F0\u7ED3\u679C\uFF09",
@@ -3100,45 +2351,6 @@ function gaussPoint(spec) {
     },
     plot: (s) => s.E,
     rows: (s) => [["E", s.E, "V/m"]]
-  });
-}
-function mutual(spec) {
-  return shell(spec, {
-    equation: "\u03B5\u2082 = \u2212 M dI\u2081/dt\uFF0C\u53D6 I\u2081 = I sin(\u03C9t) \u5219\u5E45\u503C M I \u03C9",
-    authority: "Nilsson, \u4E92\u611F",
-    assumptions: "\u5E38\u4E92\u611F M",
-    params: { M: 0.01, I: 2, w: 50 },
-    schema: {
-      M: S("M", "dynamics", "H", 1e-4, 0.2),
-      I: S("I", "dynamics", "A", 0, 10),
-      w: S("\u03C9", "dynamics", "rad/s", 0, 400)
-    },
-    tick(state) {
-      state.eps = P(state.params, "M", 0.01) * P(state.params, "I", 2) * P(state.params, "w", 50) * Math.cos(P(state.params, "w", 50) * state.t);
-    },
-    plot: (s) => s.eps,
-    rows: (s) => [["\u03B5\u2082", s.eps, "V"]]
-  });
-}
-function selfL(spec) {
-  return shell(spec, {
-    equation: "i(t) = (V/R) (1 \u2212 e^{\u2212(R/L) t})",
-    authority: "Nilsson, \u4E00\u9636 RL",
-    assumptions: "\u76F4\u6D41\u9636\u8DC3\u3001\u96F6\u521D\u59CB\u3002t\u2080 \u662F\u53EF\u9009\u89C2\u5BDF\u65F6\u523B\uFF0C\u9ED8\u8BA4\u4E00\u4E2A\u65F6\u95F4\u5E38\u6570 L/R",
-    params: { V: 10, R: 5, L: 0.2, t0: 0.04 },
-    schema: {
-      V: S("V", "dynamics", "V", 0, 48),
-      R: S("R", "dynamics", "\u03A9", 0.2, 50),
-      L: S("L", "dynamics", "H", 0.01, 2),
-      t0: S("\u89C2\u5BDF\u65F6\u523B t\u2080", "initial", "s", 0, 60)
-    },
-    tick(state) {
-      const R = Math.max(1e-3, P(state.params, "R", 5));
-      const L = Math.max(1e-4, P(state.params, "L", 0.2));
-      state.i = P(state.params, "V", 10) / R * (1 - Math.exp(-(R / L) * state.t));
-    },
-    plot: (s) => s.i,
-    rows: (s) => [["i", s.i, "A"]]
   });
 }
 function qho(spec) {
@@ -3263,24 +2475,6 @@ function rigidEuler(spec) {
     rows: (s) => [["\u03B1", s.alpha, "rad/s\xB2"], ["\u03C9", s.omega, "rad/s"]]
   });
 }
-function rolling(spec) {
-  return shell(spec, {
-    equation: "a = g sin\u03B8 / (1 + I /(m R\xB2))",
-    authority: "Hibbeler, Dynamics, \u6CBF\u659C\u9762\u7EAF\u6EDA\u52A8",
-    assumptions: "\u7EAF\u6EDA\u52A8\u3001\u65E0\u6ED1\uFF1BI=k m R\xB2\uFF0Ck \u53EF\u8C03\uFF08\u5706\u67F1 0.5\uFF0C\u7403 0.4\uFF09",
-    params: { theta: 20, k: 0.5 },
-    schema: {
-      theta: S("\u03B8", "dynamics", "\xB0", 0, 40),
-      k: S("I/(mR\xB2)", "dynamics", "\u2014", 0, 1)
-    },
-    tick(state) {
-      const th = P(state.params, "theta", 20) * Math.PI / 180;
-      state.a = 9.81 * Math.sin(th) / (1 + P(state.params, "k", 0.5));
-    },
-    plot: (s) => s.a,
-    rows: (s) => [["a", s.a, "m/s\xB2"]]
-  });
-}
 function coriolis(spec) {
   return shell(spec, {
     equation: "a_cor = \u22122 \u03C9 \xD7 v\uFF0C\u5927\u5C0F 2 \u03C9 v sin\u03C6",
@@ -3354,23 +2548,6 @@ function duffing(spec) {
     rows: (s) => [["x", s.x, ""], ["v", s.v, ""]]
   });
 }
-function fftBin(spec) {
-  return shell(spec, {
-    equation: "DFT \u9891\u7387\u5206\u8FA8\u7387 \u0394f = f_s / N",
-    authority: "Oppenheim & Schafer, DFT",
-    assumptions: "\u5747\u5300\u91C7\u6837",
-    params: { fs: 1e3, N: 256 },
-    schema: {
-      fs: S("f_s", "dynamics", "Hz", 10, 1e5),
-      N: S("N", "dynamics", "\u2014", 8, 4096)
-    },
-    tick(state) {
-      state.df = P(state.params, "fs", 1e3) / Math.max(1, P(state.params, "N", 256));
-    },
-    plot: (s) => s.df,
-    rows: (s) => [["\u0394f", s.df, "Hz"]]
-  });
-}
 function tcpStates(spec) {
   return shell(spec, {
     equation: "\u4E09\u6B21\u63E1\u624B\uFF1ASYN \u2192 SYN-ACK \u2192 ACK\uFF08\u6B65 0\u20132\uFF0C\u9ED8\u8BA4 RTT = 1 s\uFF09",
@@ -3424,23 +2601,6 @@ function rrWait(spec) {
     rows: (s) => [["\u03A3T", s.Tsum, "s"]]
   });
 }
-function cmosDelay(spec) {
-  return shell(spec, {
-    equation: "t_p \u2248 0.69 R_eq C_L",
-    authority: "Rabaey, Digital Integrated Circuits, RC \u5EF6\u8FDF",
-    assumptions: "\u4E00\u9636 RC\u3001\u7B49\u6548\u7535\u963B\u7ED9\u5B9A",
-    params: { R: 1e4, C: 1e-14 },
-    schema: {
-      R: S("R_eq", "dynamics", "\u03A9", 100, 1e5),
-      C: S("C_L", "dynamics", "F", 1e-15, 1e-12)
-    },
-    tick(state) {
-      state.tp = 0.69 * P(state.params, "R", 1e4) * P(state.params, "C", 1e-14);
-    },
-    plot: (s) => s.tp * 1e12,
-    rows: (s) => [["t_p", s.tp * 1e12, "ps"]]
-  });
-}
 function hohmann(spec) {
   return shell(spec, {
     equation: "\u0394v = \u221A(\u03BC/r1) (\u221A(2 r2/(r1+r2)) \u2212 1) + \u221A(\u03BC/r2) (1 \u2212 \u221A(2 r1/(r1+r2)))",
@@ -3449,7 +2609,8 @@ function hohmann(spec) {
     params: { r1: 6671e3, r2: 42164e3, mu: 3986e11 },
     schema: {
       r1: S("r\u2081", "dynamics", "m", 64e5, 2e7),
-      r2: S("r\u2082", "dynamics", "m", 7e6, 5e7)
+      r2: S("r\u2082", "dynamics", "m", 7e6, 5e7),
+      mu: S("\u5F15\u529B\u53C2\u6570 \u03BC", "dynamics", "m\xB3/s\xB2", 1e14, 5e14)
     },
     tick(state) {
       const mu = P(state.params, "mu", 3986e11);
@@ -3555,39 +2716,6 @@ function pkOneCompartment(spec) {
     rows: (s) => [["C", s.C, "mg/L"]]
   });
 }
-function respiratory(spec) {
-  return shell(spec, {
-    equation: "\u80BA\u987A\u5E94\u6027 C = \u0394V / \u0394P",
-    authority: "West, Respiratory Physiology, \u987A\u5E94\u6027\u5B9A\u4E49",
-    assumptions: "\u51C6\u9759\u6001\u3001\u5355\u4E00\u987A\u5E94\u6027",
-    fidelity: "principle",
-    params: { dV: 0.5, dP: 5 },
-    schema: {
-      dV: S("\u0394V", "dynamics", "L", 0.05, 2),
-      dP: S("\u0394P", "dynamics", "cmH2O", 0.5, 30)
-    },
-    tick(state) {
-      state.C = P(state.params, "dV", 0.5) / Math.max(0.1, P(state.params, "dP", 5));
-    },
-    plot: (s) => s.C,
-    rows: (s) => [["C", s.C, "L/cmH2O"]]
-  });
-}
-function ecgPeriod(spec) {
-  return shell(spec, {
-    equation: "\u5FC3\u7387 HR = 60 / RR",
-    authority: "Guyton & Hall, \u5FC3\u52A8\u5468\u671F\u4E0E\u5FC3\u7387\u5B9A\u4E49",
-    assumptions: "\u53EA\u7531 RR \u95F4\u671F\u5B9A\u4E49\u5FC3\u7387\uFF0C\u4E0D\u5408\u6210\u4E34\u5E8A\u8BCA\u65AD\u6CE2\u5F62",
-    fidelity: "principle",
-    params: { RR: 0.8 },
-    schema: { RR: S("RR", "dynamics", "s", 0.3, 2) },
-    tick(state) {
-      state.HR = 60 / Math.max(0.2, P(state.params, "RR", 0.8));
-    },
-    plot: (s) => s.HR,
-    rows: (s) => [["HR", s.HR, "1/min"]]
-  });
-}
 function membraneHHNote(spec) {
   return shell(spec, {
     equation: "\u9759\u606F\uFF1AV \u2248 (gK EK + gNa ENa) / (gK + gNa)\uFF08\u4E24\u7535\u5BFC\u5206\u538B\uFF09",
@@ -3629,26 +2757,6 @@ function antennaArray(spec) {
     rows: (s) => [["|AF|", s.AF, ""]]
   });
 }
-function radiationBalance(spec) {
-  return shell(spec, {
-    equation: "\u03C3 T\u2074 = (S/4) (1 \u2212 A)\uFF08\u884C\u661F\u6709\u6548\u6E29\u5EA6\uFF0C\u65E0\u5927\u6C14\uFF09",
-    authority: "Pierrehumbert, Principles of Planetary Climate, \u80FD\u91CF\u5E73\u8861\u96F6\u7EF4",
-    assumptions: "\u5168\u7403\u5E74\u5E73\u5747\u3001\u53CD\u7167\u7387 A\u3001\u65E0\u5927\u6C14\u6E29\u5BA4\u9879\uFF1B\u6E29\u5BA4\u6761\u76EE\u5728\u6B64\u5F0F\u4E0A\u4E58 1/(1\u2212\u03B5/2) \u7684\u5355\u5C42\u8FD1\u4F3C\u9700\u53E6\u5F00\u53C2\u6570",
-    fidelity: "principle",
-    params: { S: 1361, A: 0.3 },
-    schema: {
-      S: S("S", "dynamics", "W/m\xB2", 100, 2e3),
-      A: S("A", "dynamics", "\u2014", 0, 0.8)
-    },
-    tick(state) {
-      const sigma = 5670374419e-17;
-      const rhs = P(state.params, "S", 1361) / 4 * (1 - P(state.params, "A", 0.3));
-      state.T = (Math.max(0, rhs) / sigma) ** 0.25;
-    },
-    plot: (s) => s.T,
-    rows: (s) => [["T_e", s.T, "K"]]
-  });
-}
 function greenhouse(spec) {
   return shell(spec, {
     equation: "\u5355\u5C42\u5927\u6C14\uFF1A\u03C3 T_s\u2074 = (S/4)(1\u2212A) / (1 \u2212 \u03B5/2)",
@@ -3668,25 +2776,6 @@ function greenhouse(spec) {
     },
     plot: (s) => s.T,
     rows: (s) => [["T_s", s.T, "K"]]
-  });
-}
-function fiberNA(spec) {
-  return shell(spec, {
-    equation: "NA = \u221A(n\u2081\xB2 \u2212 n\u2082\xB2)\uFF0C\u03B8_c = arcsin(n\u2082/n\u2081)",
-    authority: "Hecht, Optics, \u9636\u8DC3\u5149\u7EA4\u6570\u503C\u5B54\u5F84",
-    assumptions: "\u5B50\u5348\u5149\u7EBF\u3001n\u2081>n\u2082",
-    params: { n1: 1.48, n2: 1.46 },
-    schema: {
-      n1: S("n\u2081", "dynamics", "\u2014", 1.3, 1.7),
-      n2: S("n\u2082", "dynamics", "\u2014", 1.3, 1.7)
-    },
-    tick(state) {
-      const n1 = P(state.params, "n1", 1.48);
-      const n2 = Math.min(n1 - 1e-3, P(state.params, "n2", 1.46));
-      state.NA = Math.sqrt(Math.max(0, n1 * n1 - n2 * n2));
-    },
-    plot: (s) => s.NA,
-    rows: (s) => [["NA", s.NA, ""]]
   });
 }
 function laserThreshold(spec) {
@@ -3873,197 +2962,6 @@ function brayton(spec) {
     rows: (s) => [["\u03B7", s.eta, ""]]
   });
 }
-function equivalence(spec) {
-  return shell(spec, {
-    equation: "\u03C6 = (F/A) / (F/A)_st",
-    authority: "Turns, An Introduction to Combustion, \u5F53\u91CF\u6BD4\u5B9A\u4E49",
-    assumptions: "\u53EA\u8BA1\u7B97\u5F53\u91CF\u6BD4\uFF0C\u4E0D\u8BA1\u7B97\u706B\u7130\u6E29\u5EA6\u6216\u7206\u8F70",
-    fidelity: "principle",
-    params: { FA: 0.06, FAst: 0.068 },
-    schema: {
-      FA: S("F/A", "dynamics", "\u2014", 0.01, 0.2),
-      FAst: S("(F/A)_st", "dynamics", "\u2014", 0.02, 0.15)
-    },
-    tick(state) {
-      state.phi = P(state.params, "FA", 0.06) / Math.max(1e-4, P(state.params, "FAst", 0.068));
-    },
-    plot: (s) => s.phi,
-    rows: (s) => [["\u03C6", s.phi, ""]]
-  });
-}
-function slipMotor(spec) {
-  return shell(spec, {
-    equation: "s = (n_s \u2212 n) / n_s",
-    authority: "Chapman, Electric Machinery Fundamentals, \u8F6C\u5DEE\u7387",
-    assumptions: "\u540C\u6B65\u901F\u7ED9\u5B9A",
-    params: { ns: 1500, n: 1450 },
-    schema: {
-      ns: S("n_s", "dynamics", "rpm", 100, 3600),
-      n: S("n", "dynamics", "rpm", 0, 3600)
-    },
-    tick(state) {
-      const ns = Math.max(1, P(state.params, "ns", 1500));
-      state.s = (ns - P(state.params, "n", 1450)) / ns;
-    },
-    plot: (s) => s.s,
-    rows: (s) => [["s", s.s, ""]]
-  });
-}
-function powerFactor(spec) {
-  return shell(spec, {
-    equation: "pf = cos\u03C6\uFF0CP = V I pf",
-    authority: "Nilsson, \u4EA4\u6D41\u529F\u7387",
-    assumptions: "\u6B63\u5F26\u7A33\u6001",
-    params: { V: 220, I: 5, phi: 30 },
-    schema: {
-      V: S("V", "dynamics", "V", 0, 400),
-      I: S("I", "dynamics", "A", 0, 50),
-      phi: S("\u03C6", "dynamics", "\xB0", -90, 90)
-    },
-    tick(state) {
-      state.pf = Math.cos(P(state.params, "phi", 30) * Math.PI / 180);
-      state.P = P(state.params, "V", 220) * P(state.params, "I", 5) * state.pf;
-    },
-    plot: (s) => s.P,
-    rows: (s) => [["pf", s.pf, ""], ["P", s.P, "W"]]
-  });
-}
-function mppt(spec) {
-  return shell(spec, {
-    equation: "\u5355\u4E8C\u6781\u7BA1\u8FD1\u4F3C\u4E0B P=V I\uFF0CI=I_ph \u2212 I0 (e^{V/V_t}\u22121)\uFF0C\u5728\u626B\u63CF\u4E2D\u53D6\u6700\u5927",
-    authority: "Messenger & Ventre, Photovoltaic Systems Engineering, \u5355\u4E8C\u6781\u7BA1",
-    assumptions: "\u5FFD\u7565\u4E32\u8054\u7535\u963B\uFF1B\u626B\u63CF\u627E P \u6700\u5927\uFF0C\u4E0D\u662F\u5177\u4F53\u9006\u53D8\u5668\u7B97\u6CD5\u5B9E\u73B0",
-    fidelity: "principle",
-    params: { Iph: 5, I0: 1e-8, Vt: 0.7 },
-    schema: {
-      Iph: S("I_ph", "dynamics", "A", 0.5, 10),
-      Vt: S("V_scale", "dynamics", "V", 0.3, 2)
-    },
-    tick(state) {
-      const Iph = P(state.params, "Iph", 5);
-      const I0 = P(state.params, "I0", 1e-8);
-      const Vt = Math.max(0.05, P(state.params, "Vt", 0.7));
-      let best = 0;
-      for (let i = 1; i <= 40; i += 1) {
-        const V = i / 40 * 0.8;
-        const I = Math.max(0, Iph - I0 * (Math.exp(V / (Vt / 20)) - 1));
-        best = Math.max(best, V * I);
-      }
-      state.P = best;
-    },
-    plot: (s) => s.P,
-    rows: (s) => [["P_max", s.P, "W"]]
-  });
-}
-function batteryOcv(spec) {
-  return shell(spec, {
-    equation: "V = OCV \u2212 I R",
-    authority: "\u7535\u6C60\u7B49\u6548\u7535\u8DEF\u7684\u6B27\u59C6\u538B\u964D\uFF08\u96C6\u603B\uFF09",
-    assumptions: "\u77AC\u65F6\u6B27\u59C6\u6A21\u578B\uFF0C\u4E0D\u542B\u6269\u6563\u4E0E\u70ED\u5931\u63A7",
-    params: { OCV: 3.7, I: 2, R: 0.05 },
-    schema: {
-      OCV: S("OCV", "dynamics", "V", 2, 4.2),
-      I: S("I", "dynamics", "A", 0, 20),
-      R: S("R", "dynamics", "\u03A9", 1e-3, 0.5)
-    },
-    tick(state) {
-      state.V = P(state.params, "OCV", 3.7) - P(state.params, "I", 2) * P(state.params, "R", 0.05);
-    },
-    plot: (s) => s.V,
-    rows: (s) => [["V", s.V, "V"]]
-  });
-}
-function absorptionLG(spec) {
-  return shell(spec, {
-    equation: "\u6700\u5C0F\u6DB2\u6C14\u6BD4\u9644\u8FD1\uFF1A\u64CD\u4F5C\u7EBF\u659C\u7387 L/G",
-    authority: "Treybal, Mass-Transfer Operations, \u5438\u6536\u64CD\u4F5C\u7EBF",
-    assumptions: "\u7A00\u6EB6\u6DB2\u3001\u76F4\u7EBF\u5E73\u8861 y*=m x \u65F6 (L/G)_min = (y_in\u2212y_out)/(x_out* \u2212 x_in)",
-    params: { yin: 0.1, yout: 0.01, m: 1, xin: 0 },
-    schema: {
-      yin: S("y_in", "dynamics", "\u2014", 0.01, 0.3),
-      yout: S("y_out", "dynamics", "\u2014", 1e-3, 0.1),
-      m: S("m", "dynamics", "\u2014", 0.2, 3)
-    },
-    tick(state) {
-      const yin = P(state.params, "yin", 0.1);
-      const yout = Math.min(yin, P(state.params, "yout", 0.01));
-      const m = Math.max(0.05, P(state.params, "m", 1));
-      const xout = yout / m;
-      state.LGmin = (yin - yout) / Math.max(1e-6, xout - P(state.params, "xin", 0));
-    },
-    plot: (s) => s.LGmin,
-    rows: (s) => [["(L/G)_min", s.LGmin, ""]]
-  });
-}
-function dryingPage(spec) {
-  return shell(spec, {
-    equation: "MR = exp(\u2212k t^n)\uFF08Page \u5E72\u71E5\u6A21\u578B\uFF09",
-    authority: "Page, 1949\uFF1B\u8584\u5C42\u5E72\u71E5\u7ECF\u9A8C\u65B9\u7A0B\u7684\u5E38\u7528\u5F62\u5F0F",
-    assumptions: "\u8584\u5C42\u3001\u62DF\u5408\u53C2\u6570 k,n\uFF0C\u4E0D\u662F\u8BBE\u5907\u8BBE\u8BA1",
-    fidelity: "principle",
-    params: { k: 0.2, n: 1 },
-    schema: {
-      k: S("k", "dynamics", "\u2014", 0.01, 2),
-      n: S("n", "dynamics", "\u2014", 0.5, 2)
-    },
-    tick(state) {
-      const n = P(state.params, "n", 1);
-      state.MR = Math.exp(-P(state.params, "k", 0.2) * state.t ** n);
-    },
-    plot: (s) => s.MR,
-    rows: (s) => [["MR", s.MR, ""]]
-  });
-}
-function extractStages(spec) {
-  return shell(spec, {
-    equation: "\u9519\u6D41\u8403\u53D6\u7406\u60F3\u7EA7\uFF1A\u5355\u7EA7\u8403\u53D6\u7387 E = K / (1+K)\uFF0CK=E_factor",
-    authority: "Treybal, \u5355\u7EA7\u8403\u53D6\u5206\u914D",
-    assumptions: "\u7EBF\u6027\u5206\u914D\u3001\u4E00\u6B21\u63A5\u89E6",
-    params: { K: 2 },
-    schema: { K: S("K", "dynamics", "\u2014", 0.1, 10) },
-    tick(state) {
-      const K = Math.max(0, P(state.params, "K", 2));
-      state.E = K / (1 + K);
-    },
-    plot: (s) => s.E,
-    rows: (s) => [["E", s.E, ""]]
-  });
-}
-function fluidization(spec) {
-  return shell(spec, {
-    equation: "\u0394P / H = (1 \u2212 \u03B5) (\u03C1_s \u2212 \u03C1) g\uFF08\u5E8A\u5C42\u538B\u964D\uFF0C\u5FFD\u7565\u58C1\u6469\u64E6\uFF09",
-    authority: "Kunii & Levenspiel, Fluidization Engineering, \u5E8A\u5C42\u9759\u538B\u964D",
-    assumptions: "\u5747\u5300\u7A7A\u9699\u7387",
-    params: { eps: 0.45, rhos: 1500, rho: 1.2, H: 0.4 },
-    schema: {
-      eps: S("\u03B5", "dynamics", "\u2014", 0.3, 0.8),
-      H: S("H", "dynamics", "m", 0.05, 2)
-    },
-    tick(state) {
-      const eps = P(state.params, "eps", 0.45);
-      state.dP = (1 - eps) * (P(state.params, "rhos", 1500) - P(state.params, "rho", 1.2)) * 9.81 * P(state.params, "H", 0.4);
-    },
-    plot: (s) => s.dP,
-    rows: (s) => [["\u0394P", s.dP, "Pa"]]
-  });
-}
-function supersat(spec) {
-  return shell(spec, {
-    equation: "\u8FC7\u9971\u548C\u6BD4 S = c / c*",
-    authority: "Mullin, Crystallization, \u8FC7\u9971\u548C\u6BD4\u5B9A\u4E49",
-    assumptions: "\u6D53\u5EA6\u4E0E\u6EB6\u89E3\u5EA6\u7ED9\u5B9A",
-    params: { c: 1.2, cstar: 1 },
-    schema: {
-      c: S("c", "dynamics", "\u2014", 0, 3),
-      cstar: S("c*", "dynamics", "\u2014", 0.1, 3)
-    },
-    tick(state) {
-      state.S = P(state.params, "c", 1.2) / Math.max(1e-3, P(state.params, "cstar", 1));
-    },
-    plot: (s) => s.S,
-    rows: (s) => [["S", s.S, ""]]
-  });
-}
 function pfr(spec) {
   return shell(spec, {
     equation: "\u4E00\u7EA7 PFR\uFF1AX = 1 \u2212 exp(\u2212k \u03C4)",
@@ -4098,43 +2996,6 @@ function titration(spec) {
     },
     plot: (s) => s.pH,
     rows: (s) => [["pH", s.pH, ""]]
-  });
-}
-function corrosionRate(spec) {
-  return shell(spec, {
-    equation: "\u5747\u5300\u8150\u8680\u6DF1\u5EA6\u901F\u7387 r = i M / (n F \u03C1)\uFF08\u6CD5\u62C9\u7B2C\uFF09",
-    authority: "Fontana, Corrosion Engineering, \u6CD5\u62C9\u7B2C\u8150\u8680\u901F\u7387",
-    assumptions: "\u5747\u5300\u6EB6\u89E3\u3001\u5DF2\u77E5\u7535\u6D41\u5BC6\u5EA6\uFF1B\u975E\u9632\u62A4\u914D\u65B9",
-    fidelity: "principle",
-    params: { i: 1e-5, M: 0.056, n: 2, rho: 7800 },
-    schema: {
-      i: S("i", "dynamics", "A/m\xB2", 1e-7, 1)
-    },
-    tick(state) {
-      const F = 96485;
-      state.r = P(state.params, "i", 1e-5) * P(state.params, "M", 0.056) / (Math.max(1, P(state.params, "n", 2)) * F * P(state.params, "rho", 7800));
-    },
-    plot: (s) => s.r * 3154e4 * 1e3,
-    rows: (s) => [["r", s.r * 3154e4 * 1e3, "mm/yr"]]
-  });
-}
-function fuelCellV(spec) {
-  return shell(spec, {
-    equation: "V = E \u2212 i r \u2212 A ln(i)\uFF08\u7B80\u5316\u6781\u5316\uFF0CA,r \u7ECF\u9A8C\uFF09",
-    authority: "O'Hayre, Fuel Cell Fundamentals, \u6781\u5316\u5206\u89E3\u7684\u6559\u5B66\u5F0F",
-    assumptions: "\u5BF9\u6570\u6D3B\u5316\u9879\u5728 i>0\uFF1B\u4E0D\u662F\u7535\u5806\u8BBE\u8BA1",
-    fidelity: "principle",
-    params: { E: 1.2, i: 0.3, r: 0.1, A: 0.05 },
-    schema: {
-      i: S("i", "dynamics", "A/cm\xB2", 0.01, 1.5),
-      r: S("r", "dynamics", "\u03A9\xB7cm\xB2", 0.01, 0.5)
-    },
-    tick(state) {
-      const i = Math.max(1e-3, P(state.params, "i", 0.3));
-      state.V = P(state.params, "E", 1.2) - i * P(state.params, "r", 0.1) - P(state.params, "A", 0.05) * Math.log(i);
-    },
-    plot: (s) => s.V,
-    rows: (s) => [["V", s.V, "V"]]
   });
 }
 function seismicTravel(spec) {
@@ -4207,6 +3068,7 @@ function rossler(spec) {
     params: { a: 0.2, b: 0.2, c: 5.7 },
     schema: {
       a: S("a", "dynamics", "\u2014", 0.05, 0.4),
+      b: S("b", "dynamics", "\u2014", 0.05, 0.4),
       c: S("c", "dynamics", "\u2014", 2, 10)
     },
     init(state) {
@@ -4235,35 +3097,14 @@ function rossler(spec) {
     rows: (s) => [["x", s.x, ""], ["y", s.y, ""], ["z", s.z, ""]]
   });
 }
-function eulerMethod(spec) {
-  return shell(spec, {
-    equation: "y\u2032=\u2212y\uFF0CEuler\uFF1Ay_{n+1}=y_n+h f",
-    authority: "Burden & Faires, Numerical Analysis, \u663E\u5F0F\u6B27\u62C9",
-    assumptions: "\u4E0E\u7CBE\u786E\u89E3 e^{\u2212t} \u5BF9\u7167",
-    params: { h: 0.2, y0: 1 },
-    schema: { h: S("h", "numerics", "\u2014", 0.01, 0.5) },
-    init(state) {
-      state.y = P(state.params, "y0", 1);
-      state.n = 0;
-    },
-    tick(state, dt) {
-      if (dt <= 0) return;
-      const h = P(state.params, "h", 0.2);
-      state.y += h * -state.y;
-      state.exact = Math.exp(-state.t);
-    },
-    plot: (s) => s.y,
-    rows: (s) => [["y_E", s.y, ""], ["e^{\u2212t}", s.exact, ""]]
-  });
-}
 function neutronDiffusion(spec) {
   return shell(spec, {
     equation: "\u4E00\u7EF4\u5E73\u677F\u57FA\u6A21 \u03C6=\u03C6\u2080 cos(\u03C0 x / a)\uFF0C\u4E34\u754C\u6761\u4EF6 B\xB2=\u03C0\xB2/a\xB2=(\u03BD\u03A3_f\u2212\u03A3_a)/D",
     authority: "Lamarsh, Introduction to Nuclear Engineering, \u4E00\u7FA4\u6269\u6563",
-    assumptions: "\u4E00\u7FA4\u3001\u5747\u5300\u5E73\u677F\u3001\u5916\u63A8\u8FB9\u754C\u7565\u53BB\uFF1B\u516C\u5F00\u6559\u79D1\u4E66\u4E34\u754C\u6761\u4EF6\uFF0C\u975E\u8BBE\u8BA1",
+    assumptions: "\u4E00\u7FA4\u3001\u5747\u5300\u5E73\u677F\u3001\u5916\u63A8\u8FB9\u754C\u7565\u53BB\uFF1B\u516C\u5F00\u6559\u79D1\u4E66\u4E34\u754C\u6761\u4EF6\uFF0C\u975E\u8BBE\u8BA1\u3002Keep fidelity=principle until: (1) multi-group or explicit D,\u03A3a,\u03BD\u03A3f knobs matching Lamarsh \xA75\u20136, (2) extrapolated boundary / buckling vs geometry validated against a textbook numerical example, (3) no design / criticality-safety claims in description.",
     fidelity: "principle",
     params: { a: 1 },
-    schema: { a: S("a", "dynamics", "m", 0.2, 3) },
+    schema: { a: S("\u534A\u5BBD a", "dynamics", "m", 0.2, 3) },
     tick(state) {
       const a = Math.max(0.05, P(state.params, "a", 1));
       state.B2 = (Math.PI / a) ** 2;
@@ -4272,317 +3113,9 @@ function neutronDiffusion(spec) {
     rows: (s) => [["B\xB2", s.B2, "1/m\xB2"]]
   });
 }
-function bateman(spec) {
-  return shell(spec, {
-    equation: "\u4E24\u4EE3 Bateman\uFF1AN2 = N10 \u03BB1/(\u03BB2\u2212\u03BB1) (e^{\u2212\u03BB1 t}\u2212e^{\u2212\u03BB2 t})",
-    authority: "Krane, \u4E24\u4EE3\u653E\u5C04\u6027\u8870\u53D8\u94FE",
-    assumptions: "N2(0)=0\u3001\u03BB1\u2260\u03BB2\u3002t\u2080 \u662F\u53EF\u9009\u89C2\u5BDF\u65F6\u523B\uFF0C\u9ED8\u8BA4 2 s\uFF0C\u907F\u514D\u53EA\u770B\u89C1\u5B50\u4F53\u4E3A\u96F6",
-    params: { l1: 0.3, l2: 0.1, N10: 100, t0: 2 },
-    schema: {
-      l1: S("\u03BB1", "dynamics", "1/s", 0.05, 2),
-      l2: S("\u03BB2", "dynamics", "1/s", 0.05, 2),
-      t0: S("\u89C2\u5BDF\u65F6\u523B t\u2080", "initial", "s", 0, 60)
-    },
-    tick(state) {
-      const l1 = P(state.params, "l1", 0.3);
-      const l2 = P(state.params, "l2", 0.1);
-      const den = l2 - l1;
-      state.N2 = Math.abs(den) < 1e-6 ? P(state.params, "N10", 100) * l1 * state.t * Math.exp(-l1 * state.t) : P(state.params, "N10", 100) * l1 / den * (Math.exp(-l1 * state.t) - Math.exp(-l2 * state.t));
-    },
-    plot: (s) => s.N2,
-    rows: (s) => [["N2", s.N2, ""]]
-  });
-}
-function doBalance(spec) {
-  return shell(spec, {
-    equation: "Streeter\u2013Phelps\uFF1A\u4E8F\u6C27 D(t) \u7684\u7ECF\u5178\u89E3\uFF08\u70B9\u6E90\uFF09",
-    authority: "Metcalf & Eddy / Chapra, Surface Water-Quality Modeling, Streeter\u2013Phelps",
-    assumptions: "\u4E00\u9636\u590D\u6C27\u4E0E\u8017\u6C27\u3001\u6052\u5B9A\u6D41\u901F\u5316\u4E3A\u65F6\u95F4",
-    fidelity: "principle",
-    params: { k1: 0.3, k2: 0.5, L0: 20, D0: 1 },
-    schema: {
-      k1: S("k1", "dynamics", "1/d", 0.05, 1),
-      k2: S("k2", "dynamics", "1/d", 0.05, 1),
-      L0: S("L0", "initial", "mg/L", 0, 40)
-    },
-    tick(state) {
-      const kd = P(state.params, "k1", 0.3);
-      const ka = P(state.params, "k2", 0.5);
-      const t = state.t;
-      const L = P(state.params, "L0", 20) * Math.exp(-kd * t);
-      state.D = Math.abs(ka - kd) < 1e-6 ? P(state.params, "D0", 1) * Math.exp(-ka * t) + kd * P(state.params, "L0", 20) * t * Math.exp(-ka * t) : P(state.params, "D0", 1) * Math.exp(-ka * t) + kd * P(state.params, "L0", 20) / (ka - kd) * (Math.exp(-kd * t) - Math.exp(-ka * t));
-      state.L = L;
-    },
-    plot: (s) => s.D,
-    rows: (s) => [["D", s.D, "mg/L"], ["L", s.L, "mg/L"]]
-  });
-}
-function asmSubstrate(spec) {
-  return shell(spec, {
-    equation: "Monod\uFF1A\u03BC = \u03BC_max S / (K_s + S)",
-    authority: "Henze et al., Activated Sludge Models, Monod \u751F\u957F\u9879",
-    assumptions: "\u5355\u4E00\u5E95\u7269\u3001\u65E0\u6291\u5236\uFF1B\u4E0D\u662F\u6574\u5EA7\u6C61\u6C34\u5382",
-    fidelity: "principle",
-    params: { umax: 2, Ks: 10, S: 8 },
-    schema: {
-      umax: S("\u03BC_max", "dynamics", "1/d", 0.2, 8),
-      Ks: S("K_s", "dynamics", "mg/L", 1, 50),
-      S: S("S", "dynamics", "mg/L", 0, 80)
-    },
-    tick(state) {
-      const S2 = Math.max(0, P(state.params, "S", 8));
-      state.mu = P(state.params, "umax", 2) * S2 / (P(state.params, "Ks", 10) + S2);
-    },
-    plot: (s) => s.mu,
-    rows: (s) => [["\u03BC", s.mu, "1/d"]]
-  });
-}
-function riverDisp(spec) {
-  return shell(spec, {
-    equation: "\u4E00\u7EF4\u8109\u51B2\uFF1Ac = M/A / \u221A(4\u03C0 E t) exp(\u2212\u03BE\xB2/(4 E t))\uFF0C\u63A2\u9488\u5728\u5CF0\u4F4D x = u t + \u03BE\uFF0C\u9ED8\u8BA4 \u03BE = 0",
-    authority: "Fischer et al., Mixing in Inland and Coastal Waters",
-    assumptions: "\u6052\u5B9A\u65AD\u9762\u4E0E\u6D41\u901F\u3001\u77AC\u65F6\u6295\u653E\u5728 x=0\u3002t>0 \u65F6\u9ED8\u8BA4\u63A2\u9488\u8DDF\u7740\u5CF0\u8D70\uFF08\u03BE=0\uFF09\uFF0C\u4E0D\u8BFB\u9AD8\u65AF\u8FDC\u5C3E",
-    params: { M: 10, A: 20, E: 5, u: 0.4, xi: 0 },
-    schema: {
-      u: S("u", "dynamics", "m/s", 0.05, 2),
-      E: S("E", "dynamics", "m\xB2/s", 0.1, 50),
-      xi: S("\u8DDD\u5CF0 \u03BE", "dynamics", "m", -30, 30)
-    },
-    tick(state) {
-      const t = Math.max(0.05, state.t);
-      const u = P(state.params, "u", 0.4);
-      const E11 = Math.max(1e-3, P(state.params, "E", 5));
-      const xi = P(state.params, "xi", 0);
-      state.xPeak = u * t;
-      state.c = P(state.params, "M", 10) / Math.max(0.1, P(state.params, "A", 20)) / Math.sqrt(4 * Math.PI * E11 * t) * Math.exp(-(xi * xi) / (4 * E11 * t));
-    },
-    plot: (s) => s.c,
-    rows: (s) => [["c", s.c, ""]]
-  });
-}
-function proteinFoldNote(spec) {
-  return shell(spec, {
-    equation: "\u4E24\u6001\uFF1AK = exp(\u2212\u0394G / RT)\uFF0C\u6298\u53E0\u5206\u6570 f = K/(1+K)",
-    authority: "Dill & Bromberg, Molecular Driving Forces, \u4E24\u6001\u6298\u53E0",
-    assumptions: "\u4E24\u6001\u3001\u5FFD\u7565\u4E2D\u95F4\u4F53",
-    fidelity: "principle",
-    params: { dG: -5 },
-    schema: { dG: S("\u0394G", "dynamics", "kJ/mol", -30, 20) },
-    tick(state) {
-      const R = 8314e-6;
-      const T = 298;
-      const K = Math.exp(-P(state.params, "dG", -5) / (R * T));
-      state.f = K / (1 + K);
-    },
-    plot: (s) => s.f,
-    rows: (s) => [["f_fold", s.f, ""]]
-  });
-}
-function membraneTransport(spec) {
-  return shell(spec, {
-    equation: "Goldman\uFF1AV_m = (RT/F) ln( (P_K K_o)/(P_K K_i) )\uFF08\u4EC5\u94BE\uFF0C\u7B80\u5316\uFF09",
-    authority: "Hille, Ion Channels of Excitable Membranes, Goldman \u65B9\u7A0B",
-    assumptions: "\u53EA\u6709\u94BE\u901A\u900F\u65F6\u9000\u5316\u4E3A Nernst",
-    fidelity: "principle",
-    params: { Ko: 4, Ki: 140 },
-    schema: {
-      Ko: S("K_o", "dynamics", "mM", 1, 20),
-      Ki: S("K_i", "dynamics", "mM", 50, 200)
-    },
-    tick(state) {
-      const R = 8.314;
-      const T = 310;
-      const F = 96485;
-      state.V = R * T / F * Math.log(Math.max(0.1, P(state.params, "Ko", 4)) / Math.max(1, P(state.params, "Ki", 140))) * 1e3;
-    },
-    plot: (s) => s.V,
-    rows: (s) => [["V_m", s.V, "mV"]]
-  });
-}
-function logisticMap(spec) {
-  return shell(spec, {
-    equation: "x \u2190 r x (1 \u2212 x)",
-    authority: "May, Nature 261 (1976)\uFF1BStrogatz",
-    assumptions: "\u79BB\u6563\u903B\u8F91\u65AF\u8482\u6620\u5C04",
-    params: { r: 3.2, x: 0.2 },
-    schema: {
-      r: S("r", "dynamics", "\u2014", 0, 4)
-    },
-    init(state) {
-      state.x = P(state.params, "x", 0.2);
-    },
-    tick(state, h) {
-      if (h <= 0) return;
-      const r = P(state.params, "r", 3.2);
-      state.x = r * state.x * (1 - state.x);
-    },
-    plot: (s) => s.x,
-    rows: (s) => [["x", s.x, ""]]
-  });
-}
-function vanderPol(spec) {
-  return shell(spec, {
-    equation: "x\u2033 \u2212 \u03BC(1\u2212x\xB2)x\u2032 + x = 0",
-    authority: "Strogatz, van der Pol",
-    assumptions: "\u6781\u9650\u73AF\u793A\u610F",
-    fidelity: "principle",
-    params: { mu: 0.5 },
-    schema: { mu: S("\u03BC", "dynamics", "\u2014", 0.05, 3) },
-    init(state) {
-      state.x = 0.1;
-      state.v = 0;
-    },
-    tick(state, h) {
-      if (h <= 0) return;
-      const mu = P(state.params, "mu", 0.5);
-      const n = 8;
-      const dt = h / n;
-      for (let i = 0; i < n; i += 1) {
-        const acc = mu * (1 - state.x * state.x) * state.v - state.x;
-        state.v += acc * dt;
-        state.x += state.v * dt;
-      }
-    },
-    plot: (s) => s.x,
-    rows: (s) => [["x", s.x, ""]]
-  });
-}
-function lyapunovNote(spec) {
-  return shell(spec, {
-    equation: "\u7EBF\u6027\u5316 x\u2032=a x\uFF0C\u03BB=a\uFF08\u4E00\u7EF4\u674E\u96C5\u666E\u8BFA\u592B\u6307\u6570\uFF09",
-    authority: "Strogatz, \u7EBF\u6027\u7A33\u5B9A\u6027",
-    assumptions: "\u4E00\u7EF4\u7EBF\u6027",
-    params: { a: -0.5 },
-    schema: { a: S("a", "dynamics", "\u2014", -2, 2) },
-    tick(state) {
-      state.x = Math.exp(P(state.params, "a", -0.5) * state.t);
-    },
-    plot: (s) => s.x,
-    rows: (s) => [["x", s.x, ""], ["\u03BB", P(s.params, "a", 0), ""]]
-  });
-}
 var PREFIX = {
-  \u8FD0\u52A8\u5B66: (s, t) => kin(s, t),
-  \u52A8\u529B\u5B66: (s, t) => newton(s, t),
-  \u78B0\u649E: (s, t) => collision(s, t),
-  \u521A\u4F53: (s, t) => has(t, /滚动/) ? rolling(s) : has(t, /欧拉/) ? rigidEuler(s) : has(t, /凸轮/) ? camHarmonic(s) : has(t, /连杆|机构/) ? grashof(s) : rigidEuler(s),
-  \u632F\u52A8: (s, t) => shmFamily(s, t),
-  \u6CE2: (s, t) => waveTravel(s),
-  \u58F0\u5B66: (s, t) => has(t, /声压/) ? spl(s) : has(t, /拍/) ? beats(s) : has(t, /声速|温度/) ? soundSpeed(s) : has(t, /混响/) ? sabine(s) : has(t, /声源|多普勒/) ? doppler(s) : spl(s),
-  \u70ED\u529B\u5B66: (s, t) => has(t, /卡诺|效率/) ? carnot(s, t) : has(t, /气体|状态/) ? gasLaw(s) : carnot(s, t),
-  \u7EDF\u8BA1\u7269\u7406: (s, t) => has(t, /麦克斯韦/) ? maxwell(s) : has(t, /伊辛/) ? isingEnergy(s) : has(t, /游走|扩散/) ? brownian(s) : has(t, /渗流/) ? percolation(s) : has(t, /熵/) ? entropyMix(s) : maxwell(s),
-  \u6D41\u4F53: (s, t) => has(t, /雷诺/) ? reynolds(s) : has(t, /泊|管/) ? poiseuille(s) : bernoulli(s),
-  \u6D41\u4F532: (s, t) => has(t, /边界/) ? blasius(s) : has(t, /湍流|雷诺/) ? reynolds(s) : poiseuille(s),
-  \u9759\u7535: (s, t) => has(t, /偶极/) ? dipole(s) : has(t, /电容/) ? capacitor(s) : has(t, /高斯|库仑|电场/) ? coulomb(s) : gaussPoint(s),
-  \u7535\u8DEF: (s, t) => has(t, /欧姆|电阻/) ? ohm(s) : has(t, /电容/) ? capacitor(s) : has(t, /RL|电感|自感/) ? selfL(s) : rcCircuit(s),
-  \u78C1\u5B66: (s, t) => has(t, /霍尔/) ? hall(s) : has(t, /安培/) ? ampere(s) : has(t, /变压器/) ? transformer(s) : has(t, /互感/) ? mutual(s) : has(t, /自感/) ? selfL(s) : has(t, /感应|楞次|法拉第/) ? faraday(s) : lorentzRadius(s),
-  \u7535\u78C1\u6CE2: (s, t) => waveTravel(s),
-  \u5149\u5B66: (s, t) => has(t, /Malus|偏振/) ? malus(s) : has(t, /透镜|成像/) ? lens(s) : has(t, /折射|反射|斯涅尔/) ? snell(s) : has(t, /光纤|全反射/) ? fiberNA(s) : snell(s),
-  \u6CE2\u52A8\u5149\u5B66: (s, t) => has(t, /双缝|杨氏|干涉/) ? doubleSlit(s) : doubleSlit(s),
-  \u8FD1\u4EE3: (s, t) => has(t, /光电/) ? photo(s) : has(t, /康普顿/) ? compton(s) : has(t, /德布罗意/) ? debroglie(s) : has(t, /不确定/) ? uncertainty(s) : has(t, /隧|势垒|阱/) ? has(t, /阱/) ? well(s) : tunnel(s) : has(t, /黑体/) ? stefan(s) : photo(s),
-  \u91CF\u5B50: (s, t) => has(t, /势阱|无限/) ? well(s) : has(t, /隧|势垒/) ? tunnel(s) : has(t, /谐振子/) ? qho(s) : has(t, /贝尔/) ? bellCHSH(s) : has(t, /自旋/) ? spinOrbit(s) : well(s),
-  \u76F8\u5BF9\u8BBA: (s, t) => gamma(s, t),
-  \u5929\u4F53: (s, t) => has(t, /开普勒|轨道/) ? kepler(s) : kepler(s),
-  \u5B87\u5B99: (s, t) => has(t, /红移|哈勃|膨胀/) ? hubble(s) : has(t, /黑体|核合成|温度/) ? blackbodyPeak(s) : hubble(s),
-  \u7C92\u5B50: (s, t) => debroglie(s),
-  \u6838\u7269\u7406: (s, t) => has(t, /屏蔽|衰减/) ? shieldLaw(s) : has(t, /磁共振|拉莫/) ? larmor(s) : has(t, /临界|裂变|链式|反应堆/) ? criticality(s) : has(t, /剂量/) ? shell(s, {
-    equation: "H = w_R D\uFF0C\u9ED8\u8BA4\u5149\u5B50/\u7535\u5B50 w_R = 1\uFF0CH = 1 mSv",
-    authority: "ICRP 103 \u516C\u5F00\u7684\u8F90\u5C04\u6743\u91CD\u56E0\u5B50\u4E0E\u5F53\u91CF\u5242\u91CF\u5B9A\u4E49\uFF08\u6559\u5B66\uFF09",
-    assumptions: "\u5B9A\u4E49\u5F0F\u3002\u9ED8\u8BA4\u5149\u5B50\u548C\u7535\u5B50 w_R=1\uFF1B\u8D28\u5B50 w_R=2\uFF1B\u03B1 \u7C92\u5B50 w_R=20\u3002\u4E2D\u5B50\u7684 w_R \u968F\u80FD\u91CF\u53D8\u5316\uFF0C\u8FD9\u91CC\u4E0D\u662F\u5242\u91CF\u8BC4\u4F30",
-    fidelity: "principle",
-    params: { D: 1e-3, w: 1 },
-    schema: { D: S("D", "dynamics", "Gy", 0, 5), w: S("w_R", "dynamics", "\u2014", 1, 20) },
-    tick(st) {
-      const w = P(st.params, "w", 1);
-      st.H = P(st.params, "D", 1e-3) * w;
-      st.rad = radiationKind(w);
-    },
-    plot: (st) => st.H,
-    rows: (st) => [["H", st.H, "Sv"], ["\u8F90\u5C04", st.rad, ""]]
-  }) : decay(s),
-  \u51DD\u805A\u6001: (s, t) => has(t, /半导体|PN|MOS/) ? pnBarrier(s) : has(t, /量子霍尔|霍尔/) ? has(t, /量子/) ? quantumHall(s) : hall(s) : has(t, /超导/) ? shell(s, {
-    equation: "\u4F26\u6566\u7A7F\u900F\u6DF1\u5EA6\u5173\u7CFB\u7684\u6559\u5B66\u5F0F \u03BB_L = \u221A(m / (\u03BC\u2080 n_s e\xB2))",
-    authority: "Tinkham, Introduction to Superconductivity, London \u6DF1\u5EA6",
-    assumptions: "\u7ED9\u5B9A\u8D85\u6D41\u5BC6\u5EA6\uFF0C\u4E0D\u662F\u6750\u6599\u8BBE\u8BA1",
-    fidelity: "principle",
-    params: { ns: 1e28 },
-    schema: { ns: S("n_s", "dynamics", "1/m\xB3", 1e27, 1e29) },
-    tick(st) {
-      const m = 9109e-34;
-      const e = 1602e-22;
-      const mu0 = 1256637e-12;
-      st.lam = Math.sqrt(m / (mu0 * P(st.params, "ns", 1e28) * e * e));
-    },
-    plot: (st) => st.lam * 1e9,
-    rows: (st) => [["\u03BB_L", st.lam * 1e9, "nm"]]
-  }) : isingEnergy(s),
-  \u975E\u7EBF\u6027: (s, t) => has(t, /同步/) ? lyapunovNote(s) : has(t, /Duffing|达芬/) ? duffing(s) : has(t, /范德波尔|极限/) ? vanderPol(s) : logisticMap(s),
-  \u8BA1\u7B97\u7269\u7406: (s, t) => has(t, /欧拉|数值/) ? eulerMethod(s) : heatMode(s),
-  \u751F\u7269\u7269\u7406: (s, t) => has(t, /膜|Goldman|神经/) ? membraneTransport(s) : has(t, /折叠/) ? proteinFoldNote(s) : membraneHHNote(s),
-  \u7B49\u79BB\u5B50\u4F53: (s, t) => lorentzRadius(s),
-  \u6392\u5E8F: (s) => binarySearchSteps(s),
-  \u67E5\u627E: (s) => binarySearchSteps(s),
-  \u56FE\u7B97\u6CD5: (s) => dijkstraBound(s),
-  \u5B57\u7B26\u4E32: (s) => editDistance(s),
-  \u52A8\u6001\u89C4\u5212: (s) => editDistance(s),
-  \u6570\u636E\u7ED3\u6784: (s, t) => has(t, /哈希|散列/) ? hashLoad(s) : binarySearchSteps(s),
-  \u8BA1\u7B97\u7406\u8BBA: (s) => binarySearchSteps(s),
-  \u5BC6\u7801\u5B66: (s, t) => has(t, /RSA|模/) ? rsaMod(s) : caesar(s),
-  \u4FE1\u606F\u8BBA: (s, t) => has(t, /容量|信道/) ? shell(s, {
-    equation: "C = B log2(1+SNR)",
-    authority: "Cover & Thomas, \u5E26\u9650 AWGN \u5BB9\u91CF",
-    assumptions: "AWGN",
-    params: { B: 1e3, snr: 10 },
-    schema: { B: S("B", "dynamics", "Hz", 1, 1e6), snr: S("SNR", "dynamics", "\u2014", 0.1, 100) },
-    tick(st) {
-      st.C = P(st.params, "B", 1e3) * Math.log2(1 + P(st.params, "snr", 10));
-    },
-    plot: (st) => st.C,
-    rows: (st) => [["C", st.C, "bit/s"]]
-  }) : binaryEntropy(s),
-  \u76D1\u7763\u5B66\u4E60: (s) => gdQuadratic(s),
-  \u65E0\u76D1\u7763: (s, t) => has(t, /K-means|聚类/) ? kmeans1d(s) : matrix2(s, "\u7279\u5F81"),
-  \u795E\u7ECF\u7F51\u7EDC: (s) => gdQuadratic(s),
-  \u5F3A\u5316\u5B66\u4E60: (s) => shell(s, {
-    equation: "\u8D1D\u5C14\u66FC\uFF1AV = r + \u03B3 V\u2032\uFF08\u5355\u72B6\u6001\u793A\u610F\uFF09",
-    authority: "Sutton & Barto, Reinforcement Learning",
-    assumptions: "\u786E\u5B9A\u6027\u5355\u5907\u4EFD",
-    params: { r: 1, gamma: 0.9, Vp: 2 },
-    schema: { r: S("r", "dynamics", "\u2014", -5, 5), gamma: S("\u03B3", "dynamics", "\u2014", 0, 0.99), Vp: S("V\u2032", "dynamics", "\u2014", 0, 10) },
-    tick(st) {
-      st.V = P(st.params, "r", 1) + P(st.params, "gamma", 0.9) * P(st.params, "Vp", 2);
-    },
-    plot: (st) => st.V,
-    rows: (st) => [["V", st.V, ""]]
-  }),
-  \u4F18\u5316: (s) => gdQuadratic(s),
-  \u56FE\u5F62\u5B66: (s) => shell(s, {
-    equation: "Lambert\uFF1AL = (I/\u03C0) max(0, n\xB7l)",
-    authority: "Pharr, Humphreys, Physically Based Rendering, Lambert",
-    assumptions: "\u6F2B\u53CD\u5C04\u3001\u5149\u4E0E\u6CD5\u7EBF\u5939\u89D2",
-    params: { ndotl: 0.5, I: 1 },
-    schema: { ndotl: S("n\xB7l", "dynamics", "\u2014", -1, 1), I: S("I", "dynamics", "\u2014", 0, 5) },
-    tick(st) {
-      st.L = P(st.params, "I", 1) / Math.PI * Math.max(0, P(st.params, "ndotl", 0.5));
-    },
-    plot: (st) => st.L,
-    rows: (st) => [["L", st.L, ""]]
-  }),
-  \u6570\u636E\u5E93: (s) => shell(s, {
-    equation: "\u9009\u62E9\u7387 sel \u2248 1/N \u7684\u5747\u5300\u5047\u8BBE\u4E0B\u671F\u671B\u626B\u63CF\u4EE3\u4EF7 \u221D N",
-    authority: "Ramakrishnan & Gehrke, Database Management Systems, \u9009\u62E9\u626B\u63CF",
-    assumptions: "\u5168\u8868\u626B\u63CF\u4EE3\u4EF7\u4E0E\u884C\u6570\u6210\u6B63\u6BD4",
-    params: { N: 1e3 },
-    schema: { N: S("N", "dynamics", "\u2014", 1, 1e6) },
-    tick(st) {
-      st.cost = P(st.params, "N", 1e3);
-    },
-    plot: (st) => st.cost,
-    rows: (st) => [["cost", st.cost, ""]]
-  }),
-  \u7F51\u7EDC: (s, t) => has(t, /握手|TCP/) ? tcpStates(s) : littleLaw(s),
-  \u64CD\u4F5C\u7CFB\u7EDF: (s, t) => has(t, /银行/) ? bankerNeed(s) : has(t, /LRU|页/) ? pageReplace(s) : rrWait(s),
-  \u7F16\u8BD1: (s) => binarySearchSteps(s),
+  // Course-style subject routing removed; keep only aliases still referenced
+  // by keywordModel / familyFallback.
   \u5206\u5E03\u5F0F\u4E0E\u5B89\u5168: (s) => shell(s, {
     equation: "\u591A\u6570\u6D3E\u6CD5\u5B9A\u4EBA\u6570 q = \u230An/2\u230B+1",
     authority: "Tanenbaum, Distributed Systems, \u591A\u6570\u6D3E",
@@ -4595,24 +3128,6 @@ var PREFIX = {
     plot: (st) => st.q,
     rows: (st) => [["q", st.q, ""]]
   }),
-  \u6570\u5B57\u903B\u8F91: (s, t) => boolGate(s, t),
-  \u7EC4\u5408\u903B\u8F91: (s, t) => boolGate(s, t || "\u4E0E"),
-  \u65F6\u5E8F\u903B\u8F91: (s) => shell(s, {
-    equation: "\u5206\u9891\uFF1Af_out = f_in / N",
-    authority: "Mano, \u8BA1\u6570\u5668\u5206\u9891",
-    assumptions: "\u6574\u6570\u5206\u9891",
-    params: { fin: 1e3, N: 4 },
-    schema: { fin: S("f_in", "dynamics", "Hz", 1, 1e6), N: S("N", "dynamics", "\u2014", 1, 64) },
-    tick(st) {
-      st.fo = P(st.params, "fin", 1e3) / Math.max(1, Math.round(P(st.params, "N", 4)));
-    },
-    plot: (st) => st.fo,
-    rows: (st) => [["f_out", st.fo, "Hz"]]
-  }),
-  \u8BA1\u7B97\u673A\u4F53\u7CFB: (s) => amdahl(s),
-  \u5B58\u50A8\u5C42\u6B21: (s, t) => has(t, /LRU/) ? pageReplace(s) : amdahl(s),
-  \u5D4C\u5165\u5F0F: (s, t) => has(t, /PWM|占空/) ? pwm(s) : nyquist(s),
-  \u901A\u4FE1\u7F16\u7801: (s) => binaryEntropy(s),
   \u8C03\u5236: (s) => shell(s, {
     equation: "AM\uFF1As(t)=(A+m cos \u03C9_m t) cos \u03C9_c t \u7684\u8C03\u5236\u5EA6 \u03BC",
     authority: "Proakis, Communication Systems, AM",
@@ -4624,188 +3139,7 @@ var PREFIX = {
     },
     plot: (st) => st.mu,
     rows: (st) => [["\u03BC", st.mu, ""]]
-  }),
-  \u5DEE\u9519\u63A7\u5236: (s) => shell(s, {
-    equation: "\u6C49\u660E\u754C\u793A\u610F\uFF1A\u6700\u5C11\u6821\u9A8C n\u2212k \u2265 log2(n+1)\uFF08\u7EA0\u6B63 1 \u4F4D\uFF09",
-    authority: "Lin & Costello, Error Control Coding, \u6C49\u660E\u7801\u53C2\u6570",
-    assumptions: "\u7EA0\u6B63\u5355\u9519\u7684\u6C49\u660E\u754C",
-    params: { n: 7 },
-    schema: { n: S("n", "dynamics", "\u2014", 3, 31) },
-    tick(st) {
-      const n = Math.max(3, Math.round(P(st.params, "n", 7)));
-      st.r = Math.ceil(Math.log2(n + 1));
-    },
-    plot: (st) => st.r,
-    rows: (st) => [["r_min", st.r, ""]]
-  }),
-  \u7F51\u7EDC\u534F\u8BAE: (s) => tcpStates(s),
-  "VLSI-FPGA": (s) => cmosDelay(s),
-  \u4FE1\u53F7\u5904\u7406: (s, t) => has(t, /采样|Nyquist/) ? nyquist(s) : fftBin(s),
-  \u63A7\u5236: (s, t) => has(t, /电机/) ? dcMotor(s) : has(t, /PID|阶跃|二阶/) ? secondOrderStep(s) : secondOrderStep(s),
-  \u673A\u5668\u4EBA: (s) => forwardKinematics(s),
-  \u7535\u529B\u7535\u5B50\u4E0E\u7535\u673A: (s, t) => has(t, /感应|异步|转差/) ? slipMotor(s) : has(t, /变压器/) ? transformer(s) : has(t, /因数/) ? powerFactor(s) : dcMotor(s),
-  \u673A\u68B0\u673A\u6784: (s, t) => has(t, /凸轮/) ? camHarmonic(s) : has(t, /齿轮/) ? gearOrBelt(s, "\u9F7F\u8F6E") : grashof(s),
-  \u4F20\u52A8: (s, t) => gearOrBelt(s, t),
-  \u673A\u68B0\u632F\u52A8: (s, t) => has(t, /隔振|传递/) ? isolation(s) : shmFamily(s, t),
-  \u75B2\u52B3\u65AD\u88C2: (s) => stress(s, "\u65AD\u88C2"),
-  \u6D41\u4F53\u673A\u68B0: (s, t) => has(t, /泵|功率|水轮机/) ? shell(s, {
-    equation: "P = \u03C1 g Q H / \u03B7",
-    authority: "White, \u6C34\u529B\u673A\u68B0\u529F\u7387",
-    assumptions: "\u7ED9\u5B9A\u6548\u7387",
-    params: { Q: 0.05, H: 20, eta: 0.75 },
-    schema: { Q: S("Q", "dynamics", "m\xB3/s", 1e-3, 1), H: S("H", "dynamics", "m", 1, 100), eta: S("\u03B7", "dynamics", "\u2014", 0.3, 0.95) },
-    tick(st) {
-      st.P = 1e3 * 9.81 * P(st.params, "Q", 0.05) * P(st.params, "H", 20) / Math.max(0.2, P(st.params, "eta", 0.75));
-    },
-    plot: (st) => st.P,
-    rows: (st) => [["P", st.P, "W"]]
-  }) : bernoulli(s),
-  \u6750\u6599\u529B\u5B66: (s, t) => stress(s, t),
-  \u6750\u6599\u79D1\u5B66: (s, t) => has(t, /相/) ? leverRule(s) : stress(s, t),
-  \u76F8\u56FE: (s) => leverRule(s),
-  \u6269\u6563: (s) => brownian(s),
-  \u65AD\u88C2\u529B\u5B66: (s) => stress(s, "\u65AD\u88C2"),
-  \u590D\u5408\u6750\u6599: (s) => shell(s, {
-    equation: "\u7EB5\u5411\u6DF7\u5408\u5F8B E = E_f V_f + E_m (1\u2212V_f)",
-    authority: "Kaw, Mechanics of Composite Materials, Voigt \u6DF7\u5408\u5F8B",
-    assumptions: "\u5355\u5411\u3001\u7B49\u5E94\u53D8",
-    params: { Ef: 200, Em: 3, Vf: 0.6 },
-    schema: { Ef: S("E_f", "dynamics", "GPa", 10, 400), Em: S("E_m", "dynamics", "GPa", 0.5, 20), Vf: S("V_f", "dynamics", "\u2014", 0, 1) },
-    tick(st) {
-      const vf = Math.min(1, Math.max(0, P(st.params, "Vf", 0.6)));
-      st.E = P(st.params, "Ef", 200) * vf + P(st.params, "Em", 3) * (1 - vf);
-    },
-    plot: (st) => st.E,
-    rows: (st) => [["E", st.E, "GPa"]]
-  }),
-  \u7ED3\u6784\u5DE5\u7A0B: (s, t) => stress(s, t),
-  \u5CA9\u571F\u5DE5\u7A0B: (s) => rankineSoil(s),
-  \u6865\u6881: (s) => stress(s, "\u5F2F\u66F2"),
-  \u5730\u9707\u5DE5\u7A0B: (s) => secondOrderStep(s),
-  \u822A\u7A7A\u6C14\u52A8: (s, t) => has(t, /马赫/) ? shell(s, {
-    equation: "M = v / a",
-    authority: "Anderson, \u9A6C\u8D6B\u6570\u5B9A\u4E49",
-    assumptions: "\u5F53\u5730\u58F0\u901F\u7ED9\u5B9A",
-    params: { v: 200, a: 340 },
-    schema: { v: S("v", "dynamics", "m/s", 0, 600), a: S("a", "dynamics", "m/s", 200, 400) },
-    tick(st) {
-      st.M = P(st.params, "v", 200) / Math.max(1, P(st.params, "a", 340));
-    },
-    plot: (st) => st.M,
-    rows: (st) => [["M", st.M, ""]]
-  }) : clift(s),
-  \u98DE\u884C\u529B\u5B66: (s, t) => has(t, /浮沉|长周期/) ? phugoid(s) : phugoid(s),
-  \u63A8\u8FDB: (s) => rocket(s),
-  \u8F68\u9053: (s, t) => has(t, /霍曼/) ? hohmann(s) : kepler(s),
-  \u660E\u6E20\u6C34\u529B\u5B66: (s, t) => has(t, /水跃|共轭/) ? hydraulicJump(s) : has(t, /闸/) ? sluice(s) : manning(s),
-  \u6C34\u5DE5\u7ED3\u6784: (s) => shell(s, {
-    equation: "\u9759\u6C34\u538B\u529B\u5408\u529B P = \xBD \u03C1 g h\xB2\uFF08\u5355\u4F4D\u5BBD\u5EA6\uFF09",
-    authority: "\u9759\u6C34\u538B\u5F3A\u4E09\u89D2\u5F62",
-    assumptions: "\u7AD6\u76F4\u8FCE\u6C34\u9762\u3001\u5355\u4F4D\u5BBD\u5EA6",
-    params: { h: 10 },
-    schema: { h: S("h", "dynamics", "m", 0.5, 80) },
-    tick(st) {
-      st.P = 0.5 * 1e3 * 9.81 * P(st.params, "h", 10) ** 2;
-    },
-    plot: (st) => st.P / 1e3,
-    rows: (st) => [["P", st.P / 1e3, "kN/m"]]
-  }),
-  \u4EA4\u901A\u6D41: (s) => naschFlow(s),
-  \u5316\u5DE5\u53CD\u5E94\u5668: (s, t) => has(t, /PFR|平推/) ? pfr(s) : has(t, /当量/) ? equivalence(s) : cstr(s),
-  \u5316\u5DE5\u5206\u79BB: (s, t) => has(t, /精馏|操作线/) ? mccabe(s) : has(t, /吸收/) ? absorptionLG(s) : has(t, /干燥/) ? dryingPage(s) : has(t, /萃取/) ? extractStages(s) : has(t, /结晶|过饱和/) ? supersat(s) : has(t, /流化/) ? fluidization(s) : mccabe(s),
-  \u5DE5\u4E1A\u5DE5\u7A0B: (s, t) => has(t, /EOQ|库存/) ? eoq(s) : has(t, /排队|M\/M/) ? mm1(s) : has(t, /可靠/) ? reliability(s) : littleLaw(s),
-  \u6838\u5DE5\u7A0B: (s, t) => has(t, /屏蔽/) ? shieldLaw(s) : has(t, /衰变|链/) ? bateman(s) : has(t, /扩散/) ? neutronDiffusion(s) : criticality(s),
-  \u751F\u7269\u533B\u5B66\u5DE5\u7A0B: (s, t) => has(t, /Hodgkin|膜|动作电位/) ? membraneHHNote(s) : has(t, /ECG|心电/) ? ecgPeriod(s) : has(t, /呼吸/) ? respiratory(s) : has(t, /药/) ? pkOneCompartment(s) : ecgPeriod(s),
-  \u73AF\u5883\u5DE5\u7A0B: (s, t) => has(t, /氧|污泥|Monod/) ? asmSubstrate(s) : has(t, /河|扩散/) ? riverDisp(s) : doBalance(s),
-  \u7535\u6C14\u7535\u673A: (s, t) => has(t, /异步|转差/) ? slipMotor(s) : has(t, /变压器/) ? transformer(s) : dcMotor(s),
-  \u7535\u529B\u7CFB\u7EDF: (s, t) => has(t, /因数/) ? powerFactor(s) : has(t, /MPPT|光伏/) ? mppt(s) : powerFactor(s),
-  \u80FD\u6E90: (s, t) => has(t, /电池/) ? batteryOcv(s) : has(t, /燃料电池/) ? fuelCellV(s) : has(t, /光伏|MPPT/) ? mppt(s) : stefan(s),
-  \u77FF\u4E1A\u51B6\u91D1: (s) => shell(s, {
-    equation: "\u90A6\u5FB7\u529F\u6307\u6570\u793A\u610F\uFF1AE = W_i (10/\u221AP \u2212 10/\u221AF)",
-    authority: "Bond \u7C89\u788E\u529F\u6307\u6570\u516C\u5F0F\uFF08\u9009\u77FF\u6559\u6750\uFF09",
-    assumptions: "P\u3001F \u4E3A 80% \u901A\u8FC7\u7C92\u5F84 \u03BCm",
-    fidelity: "principle",
-    params: { Wi: 12, P: 100, F: 1e3 },
-    schema: { Wi: S("W_i", "dynamics", "kWh/t", 5, 30), P: S("P", "dynamics", "\u03BCm", 10, 500), F: S("F", "dynamics", "\u03BCm", 100, 5e3) },
-    tick(st) {
-      st.E = P(st.params, "Wi", 12) * (10 / Math.sqrt(Math.max(1, P(st.params, "P", 100))) - 10 / Math.sqrt(Math.max(1, P(st.params, "F", 1e3))));
-    },
-    plot: (st) => st.E,
-    rows: (st) => [["E", st.E, "kWh/t"]]
-  }),
-  \u7EBA\u7EC7\u98DF\u54C1: (s, t) => has(t, /干燥/) ? dryingPage(s) : has(t, /纺|牵伸/) ? draftRatio(s) : draftRatio(s),
-  \u519C\u4E1A\u8239\u8236\u6C7D\u8F66: (s, t) => has(t, /灌溉/) ? irrigation(s) : has(t, /阻力/) ? shell(s, {
-    equation: "\u6469\u64E6\u963B\u529B R = \xBD \u03C1 v\xB2 S C_f",
-    authority: "\u8239\u8236\u963B\u529B\u7684\u4E8C\u6B21\u963B\u529B\u5B9A\u4E49",
-    assumptions: "\u7ED9\u5B9A C_f",
-    params: { v: 5, S: 20, Cf: 2e-3 },
-    schema: { v: S("v", "dynamics", "m/s", 0, 20), S: S("S", "dynamics", "m\xB2", 1, 200), Cf: S("C_f", "dynamics", "\u2014", 5e-4, 0.01) },
-    tick(st) {
-      st.R = 0.5 * 1025 * P(st.params, "v", 5) ** 2 * P(st.params, "S", 20) * P(st.params, "Cf", 2e-3);
-    },
-    plot: (st) => st.R,
-    rows: (st) => [["R", st.R, "N"]]
-  }) : has(t, /悬架/) ? isolation(s) : irrigation(s),
-  \u94C1\u8DEF\u5EFA\u7B51\u6D4B\u7ED8\u5B89\u5168: (s) => shell(s, {
-    equation: "\u5236\u52A8\u8DDD\u79BB\u8FD1\u4F3C s = v\xB2 / (2 a)",
-    authority: "\u5300\u51CF\u901F\u8FD0\u52A8\u5B66",
-    assumptions: "\u5E38\u51CF\u901F\u5EA6",
-    params: { v: 20, a: 1 },
-    schema: { v: S("v", "dynamics", "m/s", 0, 80), a: S("a", "dynamics", "m/s\xB2", 0.2, 4) },
-    tick(st) {
-      st.s = P(st.params, "v", 20) ** 2 / (2 * Math.max(0.05, P(st.params, "a", 1)));
-    },
-    plot: (st) => st.s,
-    rows: (st) => [["s", st.s, "m"]]
-  }),
-  \u5FAE\u79EF\u5206: (s, t) => derivativeLesson(s, t),
-  \u7EBF\u6027\u4EE3\u6570: (s, t) => matrix2(s, t),
-  \u6982\u7387\u7EDF\u8BA1: (s, t) => has(t, /贝叶斯/) ? shell(s, {
-    equation: "P(A|B)= P(B|A)P(A)/P(B)",
-    authority: "Ross, \u8D1D\u53F6\u65AF\u516C\u5F0F",
-    assumptions: "P(B)>0",
-    params: { pba: 0.9, pa: 0.2, pb: 0.3 },
-    schema: { pba: S("P(B|A)", "dynamics", "\u2014", 0, 1), pa: S("P(A)", "dynamics", "\u2014", 0, 1), pb: S("P(B)", "dynamics", "\u2014", 0.01, 1) },
-    tick(st) {
-      st.p = P(st.params, "pba", 0.9) * P(st.params, "pa", 0.2) / Math.max(1e-3, P(st.params, "pb", 0.3));
-    },
-    plot: (st) => st.p,
-    rows: (st) => [["P(A|B)", st.p, ""]]
-  }) : has(t, /中心极限|大数/) ? shell(s, {
-    equation: "se = \u03C3 / \u221An",
-    authority: "Ross, \u6837\u672C\u5747\u503C\u6807\u51C6\u8BEF",
-    assumptions: "\u72EC\u7ACB\u540C\u5206\u5E03\u3001\u6709\u9650\u65B9\u5DEE",
-    params: { sigma: 2, n: 25 },
-    schema: { sigma: S("\u03C3", "dynamics", "\u2014", 0.1, 10), n: S("n", "dynamics", "\u2014", 1, 400) },
-    tick(st) {
-      st.se = P(st.params, "sigma", 2) / Math.sqrt(Math.max(1, P(st.params, "n", 25)));
-    },
-    plot: (st) => st.se,
-    rows: (st) => [["se", st.se, ""]]
-  }) : normalPdf(s, t),
-  \u52A8\u529B\u7CFB\u7EDF: (s, t) => has(t, /极限/) ? vanderPol(s) : lyapunovNote(s),
-  \u4F18\u5316\u56FE\u8BBA: (s, t) => has(t, /线性规划/) ? shell(s, {
-    equation: "\u5728 x+y\u22641, x,y\u22650 \u4E0A z=c\u2081x+c\u2082y\uFF0C\u9876\u70B9\u6700\u4F18 z*=max(c\u2081,c\u2082)\uFF08\u9ED8\u8BA4 c\u2081=3, c\u2082=2\uFF09",
-    authority: "Dantzig \u5355\u7EAF\u5F62\u6240\u4F9D\u636E\u7684\u9876\u70B9\u6700\u4F18\uFF08\u7EBF\u6027\u89C4\u5212\u57FA\u672C\u5B9A\u7406\uFF09",
-    assumptions: "\u8BE5\u53EF\u884C\u57DF\u7684\u6700\u4F18\u503C\u5728\u9876\u70B9 (1,0) \u6216 (0,1)",
-    params: { c1: 3, c2: 2 },
-    schema: {
-      c1: S("c\u2081", "dynamics", "\u2014", 0, 10),
-      c2: S("c\u2082", "dynamics", "\u2014", 0, 10)
-    },
-    tick(st) {
-      st.z = Math.max(P(st.params, "c1", 3), P(st.params, "c2", 2));
-    },
-    plot: (st) => st.z,
-    rows: (st) => [["z*", st.z, ""]]
-  }) : dijkstraBound(s),
-  \u53CD\u5E94: (s, t) => has(t, /阿伦尼|活化/) ? arrhenius(s) : firstOrderReaction(s, t),
-  \u5E73\u8861\u4E0E\u7535\u5316\u5B66: (s, t) => has(t, /缓冲|pH|滴定/) ? has(t, /滴定/) ? titration(s) : hhBuffer(s) : has(t, /能斯特|电池|氧化还原/) ? nernst(s) : has(t, /腐蚀/) ? corrosionRate(s) : has(t, /燃料/) ? fuelCellV(s) : hhBuffer(s),
-  \u7ED3\u6784\u4E0E\u5149\u8C31: (s) => beerLambert(s),
-  \u751F\u6001\u751F\u7406: (s, t) => has(t, /Lotka|捕食/) ? lotka(s) : has(t, /SIR|SEIR|传染/) ? sir(s, t) : has(t, /Logistic|种群/) ? logistic(s) : logistic(s),
-  \u6C14\u5019: (s, t) => has(t, /温室/) ? greenhouse(s) : radiationBalance(s),
-  \u5FAE\u89C2: (s, t) => has(t, /囚徒|博弈/) ? prisoner(s) : supplyDemand(s),
-  \u91D1\u878D: (s, t) => has(t, /期权|Black|BS/) ? blackScholes(s) : compound(s)
+  })
 };
 function singleSlitModel(spec) {
   return shell(spec, {
@@ -4889,6 +3223,7 @@ function keywordModel(spec) {
     [/量子谐振子/, () => qho(spec)],
     [/多普勒/, () => doppler(spec)],
     [/声压/, () => spl(spec)],
+    [/视角因子/, () => viewFactor(spec)],
     [/σT|斯特藩|辐射/, () => stefan(spec)],
     [/麦克斯韦/, () => maxwell(spec)],
     [/Ising|伊辛/, () => isingEnergy(spec)],
@@ -4941,7 +3276,6 @@ function keywordModel(spec) {
     [/Hodgkin|动作电位/, () => membraneHHNote(spec)],
     [/阵列因子|天线/, () => antennaArray(spec)],
     [/温室/, () => greenhouse(spec)],
-    [/视角因子/, () => viewFactor(spec)],
     [/PN|半导体/, () => pnBarrier(spec)],
     [/贝尔/, () => bellCHSH(spec)],
     [/自旋/, () => spinOrbit(spec)],
@@ -5011,7 +3345,8 @@ function familyFallback(spec) {
     circuit: () => rcCircuit(spec),
     induction: () => faraday(spec),
     rays: () => snell(spec),
-    gauge: () => malus(spec),
+    // gauge remounted off catalog; keep a neutral fallback if a stale family slips through
+    gauge: () => kin(spec, spec.name || ""),
     bohr: () => bohr(spec),
     decay: () => decay(spec),
     discrete: () => binarySearchSteps(spec),

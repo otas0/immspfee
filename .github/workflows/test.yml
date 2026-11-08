@@ -77,6 +77,9 @@ jobs:
       - name: Schema coverage report
         run: npm run report:schema
 
+      - name: Fake-data audit must stay clean
+        run: npm run report:fake-data
+
       - name: Rebuild lab bundle for CI fingerprint
         run: |
           npm run build:bundle

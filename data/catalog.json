@@ -390,7 +390,7 @@
     "name": "简单电路/欧姆定律",
     "formula": "V=IR",
     "description": "电池、电阻、电流动画；调电压、电阻、串并联",
-    "family": "circuit",
+    "family": "hand",
     "authority": "Nilsson & Riedel, Electric Circuits, 欧姆定律",
     "assumptions": "集总、线性电阻、直流",
     "fidelity": "engineering"
@@ -426,8 +426,8 @@
     "name": "RL 电路",
     "formula": "τ=L/R",
     "description": "电感、电流曲线；调 R、L、初始电流",
-    "family": "circuit",
-    "authority": "一阶 RL",
+    "family": "hand",
+    "authority": "Nilsson & Riedel, Electric Circuits, 一阶 RL",
     "assumptions": "零状态、恒压。e^{−Rt/L} 按双精度计算，不在 ±40 处截断",
     "fidelity": "engineering"
   },
@@ -508,11 +508,11 @@
     "sub": "光学",
     "id": "polarization",
     "name": "偏振",
-    "formula": "Malus 定律",
+    "formula": "I=I₀ cos²θ",
     "description": "偏振片、光强变化；调偏振角、偏振片数",
-    "family": "interference",
-    "authority": "Hecht, Optics, Malus 定律",
-    "assumptions": "入射光已线偏振；理想偏振片；θ 为偏振方向夹角",
+    "family": "hand",
+    "authority": "Hecht, Optics, Malus’s law",
+    "assumptions": "入射光已线偏振；理想偏振片；θ 为偏振方向夹角；忽略吸收与双折射",
     "fidelity": "engineering"
   },
   {
@@ -532,11 +532,11 @@
     "sub": "近代物理",
     "id": "photoelectric",
     "name": "光电效应",
-    "formula": "K_max=hf-W",
+    "formula": "K_max=hf−W",
     "description": "光子、电子逸出、I-V 曲线；调频率、光强、逸出功",
-    "family": "particles",
-    "authority": "Einstein photoelectric equation; Halliday (K_max independent of intensity; yield ∝ I above threshold)",
-    "assumptions": "hf and W both in eV; no space charge; R is a relative yield, not a calibrated current",
+    "family": "hand",
+    "authority": "Einstein photoelectric equation (1905); Halliday (K_max independent of intensity)",
+    "assumptions": "hf and W both in eV; no space charge; R is relative yield, not calibrated current",
     "fidelity": "engineering"
   },
   {
@@ -2252,7 +2252,7 @@
     "description": "中子通量分布、临界尺寸；调材料截面、几何",
     "family": "field2d",
     "authority": "Lamarsh, Introduction to Nuclear Engineering, 一群扩散",
-    "assumptions": "一群、均匀平板、外推边界略去；公开教科书临界条件，非设计",
+    "assumptions": "一群、均匀平板、外推边界略去；公开教科书临界条件，非设计。Keep fidelity=principle until: (1) multi-group or explicit D,Σa,νΣf knobs matching Lamarsh §5–6, (2) extrapolated boundary / buckling vs geometry validated against a textbook numerical example, (3) no design / criticality-safety claims in description.",
     "fidelity": "principle"
   },
   {
@@ -2445,18 +2445,6 @@
     "family": "wave1d",
     "authority": "Tolstov, Fourier Series",
     "assumptions": "奇次正弦项",
-    "fidelity": "engineering"
-  },
-  {
-    "domain": "数学",
-    "sub": "线性代数",
-    "id": "matrix-transform",
-    "name": "线性变换（矩阵）",
-    "formula": "x'=Ax",
-    "description": "2D 向量/网格的拉伸/旋转/剪切；调 2×2 矩阵",
-    "family": "discrete",
-    "authority": "Strang, Introduction to Linear Algebra, 2×2",
-    "assumptions": "实 2×2；PCA/SVD 此处给出协方差最大特征值，不是统计软件",
     "fidelity": "engineering"
   },
   {
@@ -3655,7 +3643,7 @@
     "name": "热辐射",
     "formula": "σT⁴",
     "description": "物理/热力学：热辐射；维度 发射率、温度；参数见工作台",
-    "family": "gauge",
+    "family": "cycle",
     "generated": true,
     "variantOf": "radiation",
     "axes": [
@@ -4684,7 +4672,7 @@
     "name": "偏振",
     "formula": "Malus",
     "description": "物理/光学：偏振；维度 偏振角、相位差；参数见工作台",
-    "family": "gauge",
+    "family": "interference",
     "generated": true,
     "variantOf": "polarization",
     "axes": [
@@ -4771,7 +4759,7 @@
     "name": "激光",
     "formula": "增益/谐振腔",
     "description": "物理/光学：激光；维度 腔长、增益、损耗；参数见工作台",
-    "family": "gauge",
+    "family": "rays",
     "generated": true,
     "variantOf": "laser",
     "axes": [
@@ -4819,7 +4807,7 @@
     "name": "非线性光学",
     "formula": "倍频/OPA",
     "description": "物理/光学：非线性光学；维度 非线性系数、相位失配；参数见工作台",
-    "family": "gauge",
+    "family": "rays",
     "generated": true,
     "variantOf": "nlo",
     "axes": [
@@ -4858,7 +4846,7 @@
     "name": "量子光学",
     "formula": "压缩态/Wigner",
     "description": "物理/光学：量子光学；维度 压缩参数、相干振幅；参数见工作台",
-    "family": "gauge",
+    "family": "bohr",
     "generated": true,
     "variantOf": "qoptics",
     "axes": [
@@ -8188,7 +8176,7 @@
     "name": "角动量",
     "formula": "自旋/轨道耦合",
     "description": "物理/近代物理：角动量；维度 量子数、耦合；参数见工作台",
-    "family": "gauge",
+    "family": "particles",
     "generated": true,
     "variantOf": "angmom",
     "axes": [
@@ -8227,7 +8215,7 @@
     "name": "纠缠与贝尔态",
     "formula": "贝尔不等式示意",
     "description": "物理/近代物理：纠缠与贝尔态；维度 纠缠度、测量基；参数见工作台",
-    "family": "gauge",
+    "family": "particles",
     "generated": true,
     "variantOf": "entangle",
     "axes": [
@@ -8383,7 +8371,7 @@
     "name": "相对论运动学",
     "formula": "γ、时间膨胀",
     "description": "物理/近代物理：相对论运动学；维度 β=v/c；参数见工作台",
-    "family": "gauge",
+    "family": "ode1d",
     "generated": true,
     "variantOf": "rel-kin",
     "axes": [
@@ -8452,7 +8440,7 @@
     "name": "光电效应",
     "formula": "K=hf-W",
     "description": "物理/近代物理：光电效应；维度 频率、光强、逸出功；参数见工作台",
-    "family": "gauge",
+    "family": "particles",
     "generated": true,
     "variantOf": "photoelectric",
     "axes": [
@@ -8908,7 +8896,7 @@
     "name": "半导体",
     "formula": "PN/MOS",
     "description": "物理/流体：半导体；维度 掺杂浓度、能带偏移；参数见工作台",
-    "family": "gauge",
+    "family": "circuit",
     "generated": true,
     "variantOf": "semiconductor",
     "axes": [
@@ -9163,7 +9151,7 @@
     "name": "信息论",
     "formula": "熵/容量",
     "description": "计算机科学/密码学：信息论；维度 分布、信噪比；参数见工作台",
-    "family": "gauge",
+    "family": "discrete",
     "generated": true,
     "variantOf": "infotheory",
     "axes": [
@@ -9778,7 +9766,7 @@
     "name": "辐射换热",
     "formula": "视角因子",
     "description": "工程/流体与热工：辐射换热；维度 发射率、温度；参数见工作台",
-    "family": "gauge",
+    "family": "cycle",
     "generated": true,
     "variantOf": "rad-eng",
     "axes": [

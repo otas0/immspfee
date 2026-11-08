@@ -19,6 +19,10 @@ import pipeline from './pipeline.js';
 import fifo from './fifo.js';
 import rcCircuit from './rcCircuit.js';
 import rlc from './rlc.js';
+import rlCircuit from './rlCircuit.js';
+import ohmsLaw from './ohmsLaw.js';
+import polarization from './polarization.js';
+import photoelectric from './photoelectric.js';
 import inclinedPlane from './inclinedPlane.js';
 import collision2d from './collision2d.js';
 import dijkstra from './dijkstra.js';
@@ -31,6 +35,7 @@ import compoundMicroscope from './compoundMicroscope.js';
 export const HANDS = [
   projectile, spring, pendulum, collision, doublePendulum, wave, heat,
   orbit, lorentz, sorting, bfsGrid, life, cacheLru, pipeline, fifo, rcCircuit, rlc,
+  rlCircuit, ohmsLaw, polarization, photoelectric,
   inclinedPlane, collision2d, dijkstra, logicGates, beamSfdBmd, pidTune,
   hodgkinHuxley, compoundMicroscope,
 ];
