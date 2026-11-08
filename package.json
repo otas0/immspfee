@@ -67,7 +67,8 @@
     "gen:lab-qr": "node scripts/gen-lab-qr.mjs",
     "assert:poster": "node scripts/assert-poster-lab.mjs",
     "test:poster": "npm run sync:poster && npm run assert:poster && node scripts/poster-print.mjs",
-    "poster:pdf": "npm run sync:poster && node scripts/poster-print.mjs --pdf"
+    "poster:pdf": "npm run sync:poster && node scripts/poster-print.mjs --pdf",
+    "test:sidebar-left": "node scripts/sidebar-left-probe.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

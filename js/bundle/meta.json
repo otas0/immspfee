@@ -1,25 +1,25 @@
 {
-  "at": "2026-11-07T12:53:13.032Z",
+  "at": "2026-11-08T06:37:26.301Z",
   "outputs": [
     {
-      "file": "chunk-factory-HW6M73DX.js",
-      "bytes": 477793
+      "file": "chunk-factory-FST72QDY.js",
+      "bytes": 492093
     },
     {
       "file": "lab.js",
-      "bytes": 365034
+      "bytes": 371215
     },
     {
       "file": "chunk-chunk-54AD6SA2.js",
       "bytes": 269853
     },
     {
-      "file": "chunk-handModels-N7ZWXPSA.js",
-      "bytes": 161191
+      "file": "chunk-handModels-D5F2TFSL.js",
+      "bytes": 161917
     },
     {
-      "file": "chunk-microscopeWebgl-3B6R52DP.js",
-      "bytes": 75593
+      "file": "chunk-microscopeWebgl-TDPHDHJ2.js",
+      "bytes": 75629
     },
     {
       "file": "chunk-chunk-RJLELWJ4.js",
@@ -46,8 +46,12 @@
       "bytes": 1172
     },
     {
-      "file": "chunk-topicOverrides-SU674NSK.js",
-      "bytes": 323
+      "file": "chunk-topicOverrides-PWFOK47O.js",
+      "bytes": 359
+    },
+    {
+      "file": "chunk-chunk-KX6VIJEB.js",
+      "bytes": 191
     }
   ],
   "cold": {

@@ -274,6 +274,25 @@ export function runSuite() {
     assert('弦振动 step 累计完整 dt', Math.abs(ws.t - frames * dt) < 1e-6, `t=${ws.t}`);
   }
 
+  {
+    // Fresh undamped string: Velocity-Verlet + CFL substeps keep discrete energy in gate.
+    const we = {
+      params: { ...wave.params, N: 48, L: 1, c: 1.2, damp: 0, A1: 0.08, A2: 0, A3: 0 },
+    };
+    wave.init(we);
+    const dtE = 1 / 120;
+    const e0 = wave.getEnergy(we);
+    const E0 = e0.kinetic + e0.potential;
+    let maxRel = 0;
+    for (let n = 0; n < 240; n += 1) {
+      wave.step(we, dtE);
+      const e = wave.getEnergy(we);
+      const E = e.kinetic + e.potential;
+      if (E0 > 1e-12) maxRel = Math.max(maxRel, Math.abs(E - E0) / E0);
+    }
+    assert('无阻尼波能量漂移门 < 5%', maxRel < 0.05, `maxRel=${(maxRel * 100).toFixed(4)}% E0=${E0}`);
+  }
+
   // 参数显示 / 钳制工具
   {
     assert('formatParamNumber 截断长小数', formatParamNumber(1 / 240) === '0.004167', formatParamNumber(1 / 240));
@@ -971,8 +990,50 @@ export function runSuite() {
         assert('fam-lens 1/v=1/f−1/u', almostEqual(st.v, -20, 1e-9, 1e-9), `v=${st.v}`);
         const vRead = shown(model, st, 'v');
         st.params.f = -5;
+        model.refresh(st);
+        assert('fam-lens refresh 驱动像距', almostEqual(st.v, -20 / 3, 1e-9, 1e-9) && shown(model, st, 'v') !== vRead, `v=${st.v}`);
+        assert('fam-lens 画布为光线草图', st.drawKind === 'lens', st.drawKind);
+      }
+      {
+        const { model, st } = boot('fam-projectile-v01', { g: 9.81, v0: 10, theta: 45, k: 0 });
         model.step(st, 0);
-        assert('fam-lens f 改变像距', almostEqual(st.v, -20 / 3, 1e-9, 1e-9) && shown(model, st, 'v') !== vRead, `v=${st.v}`);
+        assert('fam-projectile 轨迹点数', Array.isArray(st.xy) && st.xy.length > 8, `n=${st.xy?.length}`);
+        assert('fam-projectile getTrajectory', (model.getTrajectory?.(st) || []).length > 8);
+      }
+      {
+        const { model, st } = boot('fam-variable-mass-v01', { uRel: 100, dmdt: 0.2 });
+        assert('fam-rocket a0=u ṁ/m0', almostEqual(st.a0, 20, 1e-12, 1e-12), `a0=${st.a0}`);
+        model.step(st, 1);
+        const vExpect = -100 * Math.log(Math.max(0.05, 1 - 0.2));
+        assert('fam-rocket Tsiolkovsky Δv', almostEqual(st.v, vExpect, 1e-9, 1e-9), `v=${st.v}`);
+        st.params.uRel = 200;
+        model.refresh(st);
+        assert('fam-rocket uRel 驱动 Δv', almostEqual(st.v, 2 * vExpect, 1e-9, 1e-9), `v=${st.v}`);
+      }
+      {
+        const { model, st } = boot('fam-orbit-v01', { M: 1, r0: 1, v0: 1, e: 0.5 });
+        assert('fam-kepler a=M/r²', almostEqual(st.ac, 1, 1e-12, 1e-12), `a=${st.ac}`);
+        assert('fam-kepler r_a=r_p(1+e)/(1−e)', almostEqual(st.rA, 3, 1e-12, 1e-12), `ra=${st.rA}`);
+        assert('fam-kepler 画布为圆锥曲线', st.drawKind === 'xy' && st.xy?.length > 16, `kind=${st.drawKind}`);
+        st.params.e = 0.2;
+        model.refresh(st);
+        assert('fam-kepler e 驱动远点', almostEqual(st.rA, 1.5, 1e-12, 1e-12), `ra=${st.rA}`);
+      }
+      {
+        const { model, st } = boot('fam-nonlinear-osc-v01', { beta: 0, drive: 0 });
+        assert('fam-duffing β=0 初值 a=−x', almostEqual(st.a, -1, 1e-9, 1e-9), `a=${st.a}`);
+        st.params.beta = 1;
+        model.refresh(st);
+        assert('fam-duffing β 进入加速度', almostEqual(st.a, -2, 1e-9, 1e-9), `a=${st.a}`);
+        model.step(st, 0.2);
+        assert('fam-duffing 积分推进有限', Number.isFinite(st.x) && Number.isFinite(st.v), `x=${st.x}`);
+      }
+      {
+        const { model, st } = boot('fam-diffract-v01', { a: 0.5, lam: 500, L: 2 });
+        assert('fam-slit y_min=λL/a', almostEqual(st.yMin, 2000, 1e-12, 1e-9), `y=${st.yMin}`);
+        st.params.a = 1;
+        model.refresh(st);
+        assert('fam-slit a 驱动第一暗纹', almostEqual(st.yMin, 1000, 1e-12, 1e-9), `y=${st.yMin}`);
       }
       {
         const { model, st } = boot('fam-polarization-v01', { ang: 60, dphi: 0 });
@@ -986,7 +1047,7 @@ export function runSuite() {
         assert('fam-axial σ=F/A', almostEqual(st.sigma, 1e5, 1e-9, 1e-6), `σ=${st.sigma}`);
         const sRead = shown(model, st, 'σ');
         st.params.F = 2000;
-        model.step(st, 0);
+        model.refresh(st);
         assert('fam-axial F 线性进入应力', almostEqual(st.sigma, 2e5, 1e-9, 1e-6) && shown(model, st, 'σ') !== sRead, `σ=${st.sigma}`);
       }
       {

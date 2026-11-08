@@ -9,6 +9,7 @@ import {
 import {
   mobileBudget
 } from "./chunk-chunk-6F5B3IST.js";
+import "./chunk-chunk-KX6VIJEB.js";
 
 // js/viz/microscopeLayout.js
 function MagScale(m) {

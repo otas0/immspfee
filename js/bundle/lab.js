@@ -1348,6 +1348,8 @@ function ringLast(ring) {
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
 /* static chunk inlined: chunk-chunk-6F5B3IST.js */
+import "./chunk-chunk-KX6VIJEB.js";
+
 // js/models/freeFall.js
 var freeFall_default = {
   id: "free-fall",
@@ -1552,7 +1554,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-HW6M73DX.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-FST72QDY.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3259,7 +3261,7 @@ function emptyMiss() {
 var topicMissNote = emptyMiss;
 function ensureTopicRows() {
   if (topicMissNote !== emptyMiss) return Promise.resolve();
-  return import("./chunk-topicOverrides-SU674NSK.js").then((mod) => {
+  return import("./chunk-topicOverrides-PWFOK47O.js").then((mod) => {
     topicMissNote = mod.topicMissNote;
   });
 }
@@ -3426,7 +3428,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-N7ZWXPSA.js").then((mod) => {
+    handsPending = import("./chunk-handModels-D5F2TFSL.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -5053,6 +5055,35 @@ var PUNCT = {
   de: { "\u3001": "; ", "\uFF1B": "; ", "\uFF0C": ", ", "\u3002": ". " }
 };
 var PHRASE_TABLE = [
+  ["\u6C34\u8F6E\u673A\uFF08\u4F69\u5C14\u987F/\u5F17\u6717\u897F\u65AF\uFF09", "Pelton/Francis turbine", "\u30DA\u30EB\u30C8\u30F3/\u30D5\u30E9\u30F3\u30B7\u30B9\u6C34\u8ECA", "\uD3A0\uD134/\uD504\uB79C\uC2DC\uC2A4 \uC218\uCC28", "turbina Pelton/Francis", "turbine Pelton/Francis", "Pelton-/Francis-Turbine"],
+  ["\u7EC6\u80DE\u81EA\u52A8\u673A/\u751F\u547D\u6E38\u620F", "cellular automaton / Game of Life", "\u30BB\u30EB\u30AA\u30FC\u30C8\u30DE\u30C8\u30F3\uFF0F\u30E9\u30A4\u30D5\u30B2\u30FC\u30E0", "\uC138\uD3EC \uC790\uB3D9\uC790 / \uC0DD\uBA85 \uAC8C\uC784", "aut\xF3mata celular / Juego de la vida", "automate cellulaire / jeu de la vie", "Zellul\xE4rer Automat / Game of Life"],
+  ["\u6307\u4EE4\u5468\u671F/\u6C47\u7F16\u6267\u884C", "instruction cycle / assembly execution", "\u547D\u4EE4\u30B5\u30A4\u30AF\u30EB\uFF0F\u30A2\u30BB\u30F3\u30D6\u30EA\u5B9F\u884C", "\uBA85\uB839 \uC8FC\uAE30 / \uC5B4\uC148\uBE14\uB9AC \uC2E4\uD589", "ciclo de instrucci\xF3n / ejecuci\xF3n ensamblador", "cycle d\u2019instruction / ex\xE9cution assembleur", "Befehlszyklus / Assembler-Ausf\xFChrung"],
+  ["\u7C92\u5B50\u3001\u989C\u8272\u6620\u5C04\u3001\u4EA4\u4E92\u6270\u52A8", "particles, colormap, interactive perturbation", "\u7C92\u5B50\u30FB\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7\u30FB\u76F8\u4E92\u4F5C\u7528", "\uC785\uC790, \uCEEC\uB7EC\uB9F5, \uC0C1\uD638\uC791\uC6A9 \uC12D\uB3D9", "part\xEDculas, mapa de color, perturbaci\xF3n", "particules, carte de couleurs, perturbation", "Teilchen, Farbkarte, St\xF6rung"],
+  ["\u7EF3\u4E0A\u9A7B\u6CE2\u3001\u8282\u70B9/\u8179\u70B9", "standing wave on a string; nodes/antinodes", "\u5F26\u306E\u5B9A\u5E38\u6CE2\u30FB\u7BC0\uFF0F\u8179", "\uD604\uC758 \uC815\uC0C1\uD30C\xB7\uB9C8\uB514/\uBC30", "onda estacionaria; nodos/antinodos", "onde stationnaire; n\u0153uds/ventres", "stehende Welle; Knoten/B\xE4uche"],
+  ["\u5149\u8F74\u3001\u7269/\u50CF\u3001\u4E09\u6761\u7279\u6B8A\u5149\u7EBF", "optical axis; object/image; three principal rays", "\u5149\u8EF8\u30FB\u7269\uFF0F\u50CF\u30FB3\u672C\u306E\u4E3B\u5149\u7DDA", "\uAD11\uCD95\xB7\uBB3C/\uC0C1\xB7\uC138 \uC8FC\uC694 \uAD11\uC120", "eje \xF3ptico; objeto/imagen; tres rayos", "axe optique; objet/image; trois rayons", "optische Achse; Gegenstand/Bild; drei Hauptstrahlen"],
+  ["\u53CC\u7F1D\u3001\u5C4F\u5E55\u6761\u7EB9", "double slit; screen fringes", "\u4E8C\u91CD\u30B9\u30EA\u30C3\u30C8\u30FB\u30B9\u30AF\u30EA\u30FC\u30F3\u7E1E", "\uC774\uC911 \uC2AC\uB9BF\xB7\uC2A4\uD06C\uB9B0 \uBB34\uB2AC", "doble rendija; franjas", "double fente; franges", "Doppelspalt; Schirmstreifen"],
+  ["\u7F51\u683C\u3001\u989C\u8272\u6620\u5C04\u3001\u6A21\u6001", "grid, colormap, modes", "\u683C\u5B50\u30FB\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7\u30FB\u30E2\u30FC\u30C9", "\uACA9\uC790, \uCEEC\uB7EC\uB9F5, \uBAA8\uB4DC", "malla, mapa de color, modos", "grille, carte de couleurs, modes", "Gitter, Farbkarte, Moden"],
+  ["\u5F15\u529B\u5F39\u5F13", "gravitational slingshot", "\u91CD\u529B\u30B9\u30A4\u30F3\u30B0\u30D0\u30A4", "\uC911\uB825 \uC2AC\uB9C1\uC0F7", "asistencia gravitatoria", "assistance gravitationnelle", "Swing-by"],
+  ["\u603B\u7EBF/\u4EF2\u88C1", "bus / arbitration", "\u30D0\u30B9\uFF0F\u8ABF\u505C", "\uBC84\uC2A4 / \uC911\uC7AC", "bus / arbitraje", "bus / arbitrage", "Bus / Arbitration"],
+  ["\u989C\u8272\u6620\u5C04", "colormap", "\u30AB\u30E9\u30FC\u30DE\u30C3\u30D7", "\uCEEC\uB7EC\uB9F5", "mapa de color", "carte de couleurs", "Farbkarte"],
+  ["\u4EA4\u4E92\u6270\u52A8", "interactive perturbation", "\u76F8\u4E92\u4F5C\u7528\u306B\u3088\u308B\u6442\u52D5", "\uC0C1\uD638\uC791\uC6A9 \uC12D\uB3D9", "perturbaci\xF3n interactiva", "perturbation interactive", "interaktive St\xF6rung"],
+  ["\u4F69\u5C14\u987F", "Pelton", "\u30DA\u30EB\u30C8\u30F3", "\uD3A0\uD134", "Pelton", "Pelton", "Pelton"],
+  ["\u5F17\u6717\u897F\u65AF", "Francis", "\u30D5\u30E9\u30F3\u30B7\u30B9", "\uD504\uB79C\uC2DC\uC2A4", "Francis", "Francis", "Francis"],
+  ["\u6C34\u8F6E\u673A", "water turbine", "\u6C34\u8ECA", "\uC218\uCC28", "turbina hidr\xE1ulica", "turbine hydraulique", "Wasserturbine"],
+  ["\u7EC6\u80DE\u81EA\u52A8\u673A", "cellular automaton", "\u30BB\u30EB\u30AA\u30FC\u30C8\u30DE\u30C8\u30F3", "\uC138\uD3EC \uC790\uB3D9\uC790", "aut\xF3mata celular", "automate cellulaire", "Zellul\xE4rer Automat"],
+  ["\u751F\u547D\u6E38\u620F", "Game of Life", "\u30E9\u30A4\u30D5\u30B2\u30FC\u30E0", "\uC0DD\uBA85 \uAC8C\uC784", "Juego de la vida", "jeu de la vie", "Game of Life"],
+  ["\u6307\u4EE4\u5468\u671F", "instruction cycle", "\u547D\u4EE4\u30B5\u30A4\u30AF\u30EB", "\uBA85\uB839 \uC8FC\uAE30", "ciclo de instrucci\xF3n", "cycle d\u2019instruction", "Befehlszyklus"],
+  ["\u6C47\u7F16\u6267\u884C", "assembly execution", "\u30A2\u30BB\u30F3\u30D6\u30EA\u5B9F\u884C", "\uC5B4\uC148\uBE14\uB9AC \uC2E4\uD589", "ejecuci\xF3n ensamblador", "ex\xE9cution assembleur", "Assembler-Ausf\xFChrung"],
+  ["\u7279\u6B8A\u5149\u7EBF", "principal rays", "\u4E3B\u5149\u7DDA", "\uC8FC\uC694 \uAD11\uC120", "rayos principales", "rayons principaux", "Hauptstrahlen"],
+  ["\u5C4F\u5E55\u6761\u7EB9", "screen fringes", "\u30B9\u30AF\u30EA\u30FC\u30F3\u7E1E", "\uC2A4\uD06C\uB9B0 \uBB34\uB2AC", "franjas en pantalla", "franges d\u2019\xE9cran", "Schirmstreifen"],
+  ["\u9A7B\u6CE2", "standing wave", "\u5B9A\u5E38\u6CE2", "\uC815\uC0C1\uD30C", "onda estacionaria", "onde stationnaire", "stehende Welle"],
+  ["\u8179\u70B9", "antinode", "\u8179", "\uBC30", "antinodo", "ventre", "Bauch"],
+  ["\u8282\u70B9", "node", "\u7BC0", "\uB9C8\uB514", "nodo", "n\u0153ud", "Knoten"],
+  ["\u4EF2\u88C1", "arbitration", "\u8ABF\u505C", "\uC911\uC7AC", "arbitraje", "arbitrage", "Arbitration"],
+  ["\u603B\u7EBF", "bus", "\u30D0\u30B9", "\uBC84\uC2A4", "bus", "bus", "Bus"],
+  ["\u5F39\u5F13", "slingshot", "\u30B9\u30A4\u30F3\u30B0\u30D0\u30A4", "\uC2AC\uB9C1\uC0F7", "honda", "fronde", "Schleuder"],
+  ["\u7C98\u5EA6", "viscosity", "\u7C98\u5EA6", "\uC810\uB3C4", "viscosidad", "viscosit\xE9", "Viskosit\xE4t"],
+  ["\u7C92\u5B50\u6570", "particle count", "\u7C92\u5B50\u6570", "\uC785\uC790 \uC218", "n\xFAmero de part\xEDculas", "nombre de particules", "Teilchenzahl"],
   ["\u683C\u5B50\u73BB\u5C14\u5179\u66FC", "lattice Boltzmann", "\u683C\u5B50\u30DC\u30EB\u30C4\u30DE\u30F3", "\uACA9\uC790 \uBCFC\uCE20\uB9CC", "Boltzmann en red", "Boltzmann sur r\xE9seau", "Lattice-Boltzmann"],
   ["\u9EA6\u514B\u65AF\u97E6\u901F\u7387\u5206\u5E03", "Maxwell speed distribution", "\u30DE\u30AF\u30B9\u30A6\u30A7\u30EB\u306E\u901F\u3055\u5206\u5E03", "\uB9E5\uC2A4\uC6F0 \uC18D\uB825 \uBD84\uD3EC", "distribuci\xF3n de rapidez de Maxwell", "distribution des vitesses de Maxwell", "Maxwell-Geschwindigkeitsverteilung"],
   ["\u4E00\u81F4\u6027\u54C8\u5E0C", "consistent hashing", "\u30B3\u30F3\u30B7\u30B9\u30C6\u30F3\u30C8\u30CF\u30C3\u30B7\u30E5", "\uC77C\uAD00\uB41C \uD574\uC2F1", "hash consistente", "hachage coh\xE9rent", "konsistentes Hashing"],
@@ -7653,7 +7684,7 @@ function updateHud(opts = {}) {
 var webglCreatePromise = null;
 function loadMicroscopeWebgl() {
   if (!webglCreatePromise) {
-    webglCreatePromise = import("./chunk-microscopeWebgl-3B6R52DP.js").then((mod) => mod.createMicroscopeWebgl);
+    webglCreatePromise = import("./chunk-microscopeWebgl-TDPHDHJ2.js").then((mod) => mod.createMicroscopeWebgl);
   }
   return webglCreatePromise;
 }
@@ -9076,4 +9107,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-HW6M73DX.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-FST72QDY.js");

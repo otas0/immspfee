@@ -29,6 +29,9 @@ import {
   ringLast,
   ringPush
 } from "./chunk-chunk-6F5B3IST.js";
+import {
+  __export
+} from "./chunk-chunk-KX6VIJEB.js";
 
 // js/lab/sketches.js
 function ink() {
@@ -1214,11 +1217,11 @@ function stress(spec, topic) {
         mu: S("\u03BC", "dynamics", "\u2014", 0.5, 2)
       },
       tick(state) {
-        const E = P(state.params, "E", 200) * 1e9;
+        const E9 = P(state.params, "E", 200) * 1e9;
         const I = P(state.params, "I", 1e-6);
         const L = Math.max(0.05, P(state.params, "L", 2));
         const mu = Math.max(0.5, P(state.params, "mu", 1));
-        state.Pcr = Math.PI ** 2 * E * I / (mu * L) ** 2;
+        state.Pcr = Math.PI ** 2 * E9 * I / (mu * L) ** 2;
       },
       plot: (s) => s.Pcr / 1e3,
       rows: (s) => [["P_cr", s.Pcr / 1e3, "kN"]]
@@ -2104,9 +2107,9 @@ function isingEnergy(spec) {
       const n = Math.max(2, Math.round(P(state.params, "n", 10)));
       const up = Math.max(0, Math.min(n, Math.round(P(state.params, "up", 8))));
       const spins = Array.from({ length: n }, (_, i) => i < up ? 1 : -1);
-      let E = 0;
-      for (let i = 0; i < n; i += 1) E += spins[i] * spins[(i + 1) % n];
-      state.E = -P(state.params, "J", 1) * E;
+      let E9 = 0;
+      for (let i = 0; i < n; i += 1) E9 += spins[i] * spins[(i + 1) % n];
+      state.E = -P(state.params, "J", 1) * E9;
     },
     plot: (s) => s.E,
     rows: (s) => [["E", s.E, ""]]
@@ -2319,9 +2322,9 @@ function tunnel(spec) {
       const m = 91093837e-38;
       const eV = 1602176634e-28;
       const V = P(state.params, "V", 5);
-      const E = Math.min(V - 0.01, P(state.params, "E", 2));
+      const E9 = Math.min(V - 0.01, P(state.params, "E", 2));
       const L = P(state.params, "L", 0.5) * 1e-9;
-      const kappa = Math.sqrt(2 * m * (V - E) * eV) / hbar;
+      const kappa = Math.sqrt(2 * m * (V - E9) * eV) / hbar;
       state.T = Math.exp(-2 * kappa * L);
     },
     plot: (s) => s.T,
@@ -4348,10 +4351,10 @@ function riverDisp(spec) {
     tick(state) {
       const t = Math.max(0.05, state.t);
       const u = P(state.params, "u", 0.4);
-      const E = Math.max(1e-3, P(state.params, "E", 5));
+      const E9 = Math.max(1e-3, P(state.params, "E", 5));
       const xi = P(state.params, "xi", 0);
       state.xPeak = u * t;
-      state.c = P(state.params, "M", 10) / Math.max(0.1, P(state.params, "A", 20)) / Math.sqrt(4 * Math.PI * E * t) * Math.exp(-(xi * xi) / (4 * E * t));
+      state.c = P(state.params, "M", 10) / Math.max(0.1, P(state.params, "A", 20)) / Math.sqrt(4 * Math.PI * E9 * t) * Math.exp(-(xi * xi) / (4 * E9 * t));
     },
     plot: (s) => s.c,
     rows: (s) => [["c", s.c, ""]]
@@ -5051,7 +5054,7 @@ function buildTopicModel(spec) {
   return keywordModel(spec) || familyFallback(spec);
 }
 
-// js/models/famPhysics.js
+// js/models/fam/common.js
 var G = 9.81;
 var EPS0 = 8854187817e-21;
 var KE = 1 / (4 * Math.PI * EPS0);
@@ -5111,27 +5114,167 @@ function baseMeta(spec) {
     governing: true
   };
 }
-function paint(ctx, state, view, name) {
+function paintFrame(ctx, view) {
   const W = view?.width || 320;
   const H = view?.height || 200;
   const m = 36;
   const top = 46;
-  const l = m;
-  const r = W - m;
-  const t = top;
-  const b = H - m;
-  const w = Math.max(1, r - l);
-  const h = Math.max(1, b - t);
+  return {
+    W,
+    H,
+    l: m,
+    r: W - m,
+    t: top,
+    b: H - m,
+    w: Math.max(1, W - 2 * m),
+    h: Math.max(1, H - m - top)
+  };
+}
+function paintTitle(ctx, name) {
   ctx.fillStyle = C.muted || "#666";
   ctx.font = "600 13px IBM Plex Mono, monospace";
   ctx.fillText(String(name || ""), 14, 26);
+}
+function paintXy(ctx, state, view, name) {
+  const box = paintFrame(ctx, view);
+  paintTitle(ctx, name);
   ctx.strokeStyle = C.axis || "#888";
-  ctx.strokeRect(l, t, w, h);
+  ctx.strokeRect(box.l, box.t, box.w, box.h);
+  const pts = Array.isArray(state.xy) ? state.xy : [];
+  if (pts.length < 2) {
+    ctx.fillStyle = C.accent || "#c45";
+    ctx.font = "13px IBM Plex Mono, monospace";
+    ctx.fillText(formatNum(state.val, 3), box.l + 8, box.t + 18);
+    return;
+  }
+  let xLo = Infinity;
+  let xHi = -Infinity;
+  let yLo = Infinity;
+  let yHi = -Infinity;
+  for (const p of pts) {
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    if (p.x < xLo) xLo = p.x;
+    if (p.x > xHi) xHi = p.x;
+    if (p.y < yLo) yLo = p.y;
+    if (p.y > yHi) yHi = p.y;
+  }
+  if (!Number.isFinite(xLo) || !Number.isFinite(yLo)) return;
+  if (yLo > 0) yLo = 0;
+  if (xLo > 0) xLo = 0;
+  const xSpan = Math.max(1e-9, xHi - xLo);
+  const ySpan = Math.max(1e-9, yHi - yLo);
+  const sx = (x) => box.l + (x - xLo) / xSpan * box.w;
+  const sy = (y) => box.t + (1 - (y - yLo) / ySpan) * box.h;
+  ctx.strokeStyle = C.muted || "#aaa";
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(box.l, sy(0));
+  ctx.lineTo(box.r, sy(0));
+  ctx.moveTo(sx(0), box.t);
+  ctx.lineTo(sx(0), box.b);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.strokeStyle = C.body || "#222";
+  ctx.lineWidth = 1.6;
+  let started = false;
+  for (const p of pts) {
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    const X = sx(p.x);
+    const Y = sy(p.y);
+    if (!started) {
+      ctx.moveTo(X, Y);
+      started = true;
+    } else ctx.lineTo(X, Y);
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  const last = pts[pts.length - 1];
+  if (last && Number.isFinite(last.x) && Number.isFinite(last.y)) {
+    ctx.fillStyle = C.accent || "#c45";
+    ctx.beginPath();
+    ctx.arc(sx(last.x), sy(last.y), 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = C.accent || "#c45";
+  ctx.font = "13px IBM Plex Mono, monospace";
+  ctx.fillText(formatNum(state.val, 3), box.l + 8, box.t + 18);
+}
+function paintLens(ctx, state, view, name) {
+  const box = paintFrame(ctx, view);
+  paintTitle(ctx, name);
+  ctx.strokeStyle = C.axis || "#888";
+  ctx.strokeRect(box.l, box.t, box.w, box.h);
+  const u = Number(state.u);
+  const v = Number(state.v);
+  const f = Number(state.f);
+  const h = Number(state.h) || 1;
+  const hi = Number(state.hi);
+  const absU = Math.abs(u) || 1;
+  const absV = Math.abs(v) || absU;
+  const span = Math.max(absU, absV, Math.abs(f) || 0) * 1.25;
+  const ox = box.l + box.w * 0.45;
+  const oy = box.t + box.h * 0.5;
+  const sx = (x) => ox + x / span * (box.w * 0.42);
+  const sy = (y) => oy - y / span * (box.h * 0.38);
+  ctx.strokeStyle = C.muted || "#aaa";
+  ctx.beginPath();
+  ctx.moveTo(box.l + 8, oy);
+  ctx.lineTo(box.r - 8, oy);
+  ctx.stroke();
+  ctx.strokeStyle = C.body || "#222";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(ox, box.t + 10);
+  ctx.lineTo(ox, box.b - 10);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  const ou = -Math.abs(u);
+  const iv = Number.isFinite(v) ? v : 0;
+  ctx.strokeStyle = C.accent || "#c45";
+  ctx.beginPath();
+  ctx.moveTo(sx(ou), oy);
+  ctx.lineTo(sx(ou), sy(h));
+  ctx.stroke();
+  if (Number.isFinite(hi)) {
+    ctx.strokeStyle = C.theory || "#2a6";
+    ctx.beginPath();
+    ctx.moveTo(sx(iv), oy);
+    ctx.lineTo(sx(iv), sy(hi));
+    ctx.stroke();
+  }
+  ctx.strokeStyle = C.body || "#222";
+  ctx.beginPath();
+  ctx.moveTo(sx(ou), sy(h));
+  ctx.lineTo(sx(iv), sy(hi));
+  ctx.moveTo(sx(ou), sy(h));
+  ctx.lineTo(ox, sy(h));
+  if (Number.isFinite(f) && Math.abs(f) > 1e-9) {
+    ctx.lineTo(sx(iv), sy(hi));
+  }
+  ctx.stroke();
+  ctx.fillStyle = C.accent || "#c45";
+  ctx.font = "13px IBM Plex Mono, monospace";
+  ctx.fillText(`v=${formatNum(v, 3)}`, box.l + 8, box.t + 18);
+}
+function paint(ctx, state, view, name) {
+  if (state.drawKind === "xy") {
+    paintXy(ctx, state, view, name);
+    return;
+  }
+  if (state.drawKind === "lens") {
+    paintLens(ctx, state, view, name);
+    return;
+  }
+  const box = paintFrame(ctx, view);
+  paintTitle(ctx, name);
+  ctx.strokeStyle = C.axis || "#888";
+  ctx.strokeRect(box.l, box.t, box.w, box.h);
   const series = Array.isArray(state.curve) && state.curve.length > 1 ? state.curve : state.hist;
   if (!Array.isArray(series) || series.length < 2) {
     ctx.fillStyle = C.accent || "#c45";
     ctx.font = "13px IBM Plex Mono, monospace";
-    ctx.fillText(formatNum(state.val, 3), l + 8, t + 18);
+    ctx.fillText(formatNum(state.val, 3), box.l + 8, box.t + 18);
     return;
   }
   let lo = Infinity;
@@ -5150,8 +5293,8 @@ function paint(ctx, state, view, name) {
   for (let i = 0; i < series.length; i += 1) {
     const v = series[i];
     if (!Number.isFinite(v)) continue;
-    const x = l + i / Math.max(1, series.length - 1) * w;
-    const y = t + (1 - (v - lo) / span) * h;
+    const x = box.l + i / Math.max(1, series.length - 1) * box.w;
+    const y = box.t + (1 - (v - lo) / span) * box.h;
     if (!started) {
       ctx.moveTo(x, y);
       started = true;
@@ -5161,7 +5304,7 @@ function paint(ctx, state, view, name) {
   ctx.lineWidth = 1;
   ctx.fillStyle = C.accent || "#c45";
   ctx.font = "13px IBM Plex Mono, monospace";
-  ctx.fillText(formatNum(state.val, 3), l + 8, t + 18);
+  ctx.fillText(formatNum(state.val, 3), box.l + 8, box.t + 18);
 }
 function algebraic(spec, def) {
   const { params, paramSchema } = knobs(spec, def.initial);
@@ -5177,7 +5320,13 @@ function algebraic(spec, def) {
       state.t = 0;
       state.hist = [];
       state.curve = null;
+      state.xy = null;
+      state.drawKind = def.drawKind || null;
       if (def.reset) def.reset(state);
+      this.step(state, 0);
+    },
+    /** Live dynamics knobs must recompute closed forms (main skips step unless refresh exists). */
+    refresh(state) {
       this.step(state, 0);
     },
     step(state, dt) {
@@ -5198,14 +5347,29 @@ function algebraic(spec, def) {
         else state[k] = v;
       }
       state.val = finiteOr(out.val, 0);
+      if (out.drawKind) state.drawKind = out.drawKind;
+      else if (def.drawKind) state.drawKind = def.drawKind;
       if (advance > 0) {
         if (!state.hist) state.hist = [];
         state.hist.push(state.val);
         if (state.hist.length > 160) state.hist.shift();
+        if (state.drawKind === "xy" && Number.isFinite(state.x) && Number.isFinite(state.y)) {
+          if (!Array.isArray(state.trail)) state.trail = [];
+          state.trail.push({ x: state.x, y: state.y });
+          if (state.trail.length > 240) state.trail.shift();
+        }
+      }
+      if (state.drawKind === "xy") {
+        if (Array.isArray(out.xy) && out.xy.length > 1) state.xy = out.xy;
+        else if (Array.isArray(state.trail) && state.trail.length > 1) state.xy = state.trail;
       }
     },
     draw(ctx, state, view) {
       paint(ctx, state, view, spec.name);
+    },
+    getTrajectory(state) {
+      if (Array.isArray(state?.xy) && state.xy.length) return state.xy;
+      return state?.trail || [];
     },
     getReadouts(state, opts = {}) {
       const d = opts.digits ?? 3;
@@ -5271,6 +5435,27 @@ function fnv1a(len, byte) {
   }
   return h >>> 0;
 }
+
+// js/models/fam/evals-mechanics.js
+var evals_mechanics_exports = {};
+__export(evals_mechanics_exports, {
+  atwoodEval: () => atwoodEval,
+  circularEval: () => circularEval,
+  collisionEval: () => collisionEval,
+  coupledEval: () => coupledEval,
+  dampedEval: () => dampedEval,
+  duffingEval: () => duffingEval,
+  duffingReset: () => duffingReset,
+  forcedEval: () => forcedEval,
+  inclinedEval: () => inclinedEval,
+  noninertialEval: () => noninertialEval,
+  orbitEval: () => orbitEval,
+  pendulumEval: () => pendulumEval,
+  pendulumReset: () => pendulumReset,
+  projectileEval: () => projectileEval,
+  rocketEval: () => rocketEval,
+  shoEval: () => shoEval
+});
 function projectileEval(p, t) {
   const g = pos(P(p, "g", G), 1e-6);
   const v0 = P(p, "v0", 0);
@@ -5296,13 +5481,20 @@ function projectileEval(p, t) {
     x = vx0 / k * (1 - e);
     y = (vy0 + g / k) / k * (1 - e) - g / k * t;
   }
-  const curve = linspace(48, (u) => {
-    const tt = u * Math.max(t, 0.8);
-    if (k < 1e-10) return vy0 * tt - 0.5 * g * tt * tt;
+  const tEnd = Math.max(t, 1.2);
+  const xy = linspace(64, (u) => {
+    const tt = u * tEnd;
+    if (k < 1e-10) {
+      return { x: vx0 * tt, y: vy0 * tt - 0.5 * g * tt * tt };
+    }
     const e = Math.exp(-k * tt);
-    return (vy0 + g / k) / k * (1 - e) - g / k * tt;
+    return {
+      x: vx0 / k * (1 - e),
+      y: (vy0 + g / k) / k * (1 - e) - g / k * tt
+    };
   });
-  return { val: y, x, y, vx, vy, curve };
+  const curve = xy.map((p2) => p2.y);
+  return { val: y, x, y, vx, vy, curve, xy, drawKind: "xy" };
 }
 function inclinedEval(p, t) {
   const th = P(p, "theta", 15) * Math.PI / 180;
@@ -5387,12 +5579,12 @@ function pendulumEval(p, t, state, dt) {
     }
   }
   const alpha = accel(state.theta);
-  const E = m * G * L * (1 - Math.cos(state.theta)) + 0.5 * m * (L * state.omega) ** 2;
+  const E9 = m * G * L * (1 - Math.cos(state.theta)) + 0.5 * m * (L * state.omega) ** 2;
   return {
     val: alpha,
     alpha,
     thetaDeg: state.theta * 180 / Math.PI,
-    E
+    E: E9
   };
 }
 function orbitEval(p) {
@@ -5408,7 +5600,25 @@ function orbitEval(p) {
   const unbound = eReq >= 1 ? 1 : 0;
   const rA = eReq < 0.999 ? r0 * (1 + eReq) / (1 - eReq) : r0;
   const vPeri = Math.sqrt(M * (1 + Math.min(eReq, 10)) / r0);
-  return { val: ac, ac, eOsc, rA, vPeri, unbound };
+  const eDraw = Math.min(eReq, 0.92);
+  const pConic = r0 * (1 + eDraw);
+  const xy = linspace(96, (u) => {
+    const th = u * 2 * Math.PI;
+    const r = pConic / (1 + eDraw * Math.cos(th));
+    return { x: r * Math.cos(th), y: r * Math.sin(th) };
+  });
+  return {
+    val: ac,
+    ac,
+    eOsc,
+    rA,
+    vPeri,
+    unbound,
+    x: r0,
+    y: 0,
+    xy,
+    drawKind: "xy"
+  };
 }
 function shoEval(p, t) {
   const k = pos(P(p, "k", 1), 1e-12);
@@ -5497,6 +5707,26 @@ function duffingEval(p, t, state, dt) {
   const a = accel(state.x, t + (dt || 0));
   return { val: a, a, x: state.x, v: state.v };
 }
+
+// js/models/fam/evals-waves.js
+var evals_waves_exports = {};
+__export(evals_waves_exports, {
+  diffractEval: () => diffractEval,
+  dopplerEval: () => dopplerEval,
+  fiberEval: () => fiberEval,
+  interfereEval: () => interfereEval,
+  laserEval: () => laserEval,
+  lensEval: () => lensEval,
+  malusEval: () => malusEval,
+  nloEval: () => nloEval,
+  optDiffractEval: () => optDiffractEval,
+  optInterfereEval: () => optInterfereEval,
+  prismEval: () => prismEval,
+  qopticsEval: () => qopticsEval,
+  snellEval: () => snellEval,
+  wave1dEval: () => wave1dEval,
+  wave2dEval: () => wave2dEval
+});
 function wave1dEval(p, t) {
   const c = pos(P(p, "c", 1), 1e-9);
   const f = pos(P(p, "f", 1), 1e-9);
@@ -5562,7 +5792,7 @@ function lensEval(p) {
   const den = (Math.abs(f) < 1e-8 ? 0 : 1 / f) - (Math.abs(u) < 1e-8 ? 0 : 1 / u);
   const v = Math.abs(den) < 1e-10 ? 0 : 1 / den;
   const m = Math.abs(u) < 1e-8 ? 0 : -v / u;
-  return { val: v, v, m, hi: m * h };
+  return { val: v, v, m, hi: m * h, f, u, h, drawKind: "lens" };
 }
 function prismEval(p) {
   const A = P(p, "A", 30);
@@ -5622,6 +5852,20 @@ function qopticsEval(p) {
   const nbar = alpha * alpha + Math.sinh(r) ** 2;
   return { val: V, V, nbar: finiteOr(nbar) };
 }
+
+// js/models/fam/evals-thermo.js
+var evals_thermo_exports = {};
+__export(evals_thermo_exports, {
+  brownianEval: () => brownianEval,
+  convectionEval: () => convectionEval,
+  entropyEval: () => entropyEval,
+  heatEngineEval: () => heatEngineEval,
+  idealGasEval: () => idealGasEval,
+  isingEval: () => isingEval,
+  kineticEval: () => kineticEval,
+  percolationEval: () => percolationEval,
+  radiationEval: () => radiationEval
+});
 function idealGasEval(p) {
   const n = P(p, "n", 1);
   const T0 = P(p, "T0", 300);
@@ -5691,24 +5935,43 @@ function entropyEval(p) {
   const gOverR = P(p, "T", 300) * -sOverR;
   return { val: sOverR, sOverR, gOverR };
 }
+
+// js/models/fam/evals-em.js
+var evals_em_exports = {};
+__export(evals_em_exports, {
+  acEval: () => acEval,
+  antennaEval: () => antennaEval,
+  biotEval: () => biotEval,
+  capacitorEval: () => capacitorEval,
+  coulombEval: () => coulombEval,
+  dcEval: () => dcEval,
+  dipoleEval: () => dipoleEval,
+  faradayEval: () => faradayEval,
+  gaussEval: () => gaussEval,
+  lorentzEval: () => lorentzEval,
+  maxwellEval: () => maxwellEval,
+  mutualEval: () => mutualEval,
+  rlcEval: () => rlcEval,
+  tlineEval: () => tlineEval
+});
 function coulombEval(p) {
   const q = P(p, "q", 1);
   const r = pos(P(p, "geom", 1), 1e-6);
-  const E = KE * q / (r * r);
-  return { val: E, E };
+  const E9 = KE * q / (r * r);
+  return { val: E9, E: E9 };
 }
 function dipoleEval(p) {
   const moment = P(p, "p", 1);
   const r = pos(P(p, "sep", 1), 1e-4);
-  const E = KE * 2 * moment / r ** 3;
-  return { val: E, E };
+  const E9 = KE * 2 * moment / r ** 3;
+  return { val: E9, E: E9 };
 }
 function gaussEval(p) {
   const rho = P(p, "rho", 1);
   const R = pos(P(p, "R", 1), 1e-9);
-  const E = rho * R / (3 * EPS0);
+  const E9 = rho * R / (3 * EPS0);
   const Q = rho * (4 / 3) * Math.PI * R ** 3;
-  return { val: E, E, Q };
+  return { val: E9, E: E9, Q };
 }
 function capacitorEval(p) {
   const er = P(p, "eps", 1);
@@ -5719,9 +5982,9 @@ function capacitorEval(p) {
 }
 function dcEval(p) {
   const R = pos(P(p, "R", 1), 1e-9);
-  const E = P(p, "E", 0);
-  const I = E / R;
-  return { val: I, I, V: E };
+  const E9 = P(p, "E", 0);
+  const I = E9 / R;
+  return { val: I, I, V: E9 };
 }
 function rlcEval(p) {
   const R = Math.max(0, P(p, "R", 1));
@@ -5748,10 +6011,10 @@ function biotEval(p) {
   return { val: B, B };
 }
 function lorentzEval(p) {
-  const E = P(p, "E", 0);
+  const E9 = P(p, "E", 0);
   const B = P(p, "B", 0);
   const v = P(p, "v", 0);
-  const FE = E;
+  const FE = E9;
   const FB = Math.abs(v * B);
   const rC = Math.abs(B) > 1e-12 ? Math.abs(v / B) : 0;
   return { val: FE, FE, FB, rC };
@@ -5790,6 +6053,24 @@ function antennaEval(p) {
   const AF = Math.abs(Math.cos(psi / 2));
   return { val: AF, AF, elem: elem * elem };
 }
+
+// js/models/fam/evals-quantum.js
+var evals_quantum_exports = {};
+__export(evals_quantum_exports, {
+  angmomEval: () => angmomEval,
+  comptonEval: () => comptonEval,
+  decayEval: () => decayEval,
+  entangleEval: () => entangleEval,
+  groverEval: () => groverEval,
+  hydrogenEval: () => hydrogenEval,
+  packetEval: () => packetEval,
+  qgateEval: () => qgateEval,
+  qhoEval: () => qhoEval,
+  relDynEval: () => relDynEval,
+  relKinEval: () => relKinEval,
+  tunnelEval: () => tunnelEval,
+  wellEval: () => wellEval
+});
 function wellEval(p) {
   const a = pos(P(p, "a", 1), 1e-9);
   const E1 = Math.PI ** 2 / (2 * a * a);
@@ -5798,10 +6079,10 @@ function wellEval(p) {
 }
 function tunnelEval(p) {
   const V0 = P(p, "V0", 1);
-  const E = P(p, "E", 0);
+  const E9 = P(p, "E", 0);
   const w = Math.max(0, P(p, "w", 0));
-  if (E >= V0) return { val: 1, T: 1, kappa: 0 };
-  const kappa = Math.sqrt(2 * (V0 - E));
+  if (E9 >= V0) return { val: 1, T: 1, kappa: 0 };
+  const kappa = Math.sqrt(2 * (V0 - E9));
   const T = Math.exp(-2 * kappa * w);
   return { val: T, T, kappa };
 }
@@ -5816,9 +6097,9 @@ function hydrogenEval(p) {
   const n = Math.max(1, Math.round(P(p, "n", 1)));
   const l = Math.max(0, Math.round(P(p, "l", 0)));
   const m = Math.round(P(p, "m", 0));
-  const E = -13.6 / (n * n);
+  const E9 = -13.6 / (n * n);
   const valid = l <= n - 1 && Math.abs(m) <= l ? 1 : 0;
-  return { val: E, E, valid };
+  return { val: E9, E: E9, valid };
 }
 function angmomEval(p) {
   const j = pos(P(p, "j", 0.5), 1e-6);
@@ -5855,8 +6136,8 @@ function packetEval(p, t) {
   const sigma = pos(P(p, "sigma", 1), 1e-6);
   const V = P(p, "V", 0);
   const spread = sigma * Math.sqrt(1 + (t / (2 * sigma * sigma)) ** 2);
-  const E = 1 / (8 * sigma * sigma) + V;
-  return { val: E, E, sigmaT: finiteOr(spread) };
+  const E9 = 1 / (8 * sigma * sigma) + V;
+  return { val: E9, E: E9, sigmaT: finiteOr(spread) };
 }
 function relKinEval(p) {
   const beta = clamp(Math.abs(P(p, "beta", 0)), 0, 0.999999);
@@ -5864,17 +6145,17 @@ function relKinEval(p) {
   return { val: gamma2, gamma: gamma2, contract: 1 / gamma2 };
 }
 function relDynEval(p) {
-  const E = P(p, "E", 1);
+  const E9 = P(p, "E", 1);
   const mom = P(p, "p", 0);
-  const disc = E * E - mom * mom;
+  const disc = E9 * E9 - mom * mom;
   const m = disc > 0 ? Math.sqrt(disc) : 0;
   return { val: m, m, timelike: disc > 0 ? 1 : 0 };
 }
 function comptonEval(p) {
   const th = P(p, "theta", 0) * Math.PI / 180;
-  const E = pos(P(p, "E", 50), 1e-9);
+  const E9 = pos(P(p, "E", 50), 1e-9);
   const dLam = LAMBDA_C_PM * (1 - Math.cos(th));
-  const lam = HC_KEV_PM / E;
+  const lam = HC_KEV_PM / E9;
   const Ep = HC_KEV_PM / (lam + dLam);
   return { val: dLam, dLam, Ep };
 }
@@ -5886,6 +6167,21 @@ function decayEval(p, t) {
   const half = lam > 1e-15 ? Math.LN2 / lam : 0;
   return { val: N, N, A, half };
 }
+
+// js/models/fam/evals-structures.js
+var evals_structures_exports = {};
+__export(evals_structures_exports, {
+  axialEval: () => axialEval,
+  beamBendEval: () => beamBendEval,
+  beamDeflEval: () => beamDeflEval,
+  bucklingEval: () => bucklingEval,
+  combinedEval: () => combinedEval,
+  frameEval: () => frameEval,
+  sdofEval: () => sdofEval,
+  seismicEval: () => seismicEval,
+  torsionEval: () => torsionEval,
+  trussEval: () => trussEval
+});
 function axialEval(p) {
   const A = pos(P(p, "A", 1), 1e-15);
   const F = P(p, "F", 0);
@@ -5952,6 +6248,47 @@ function seismicEval(p) {
   const amp = pga / (2 * zeta);
   return { val: amp, amp };
 }
+
+// js/models/fam/evals-fluids.js
+var evals_fluids_exports = {};
+__export(evals_fluids_exports, {
+  absorbEval: () => absorbEval,
+  bernoulliEval: () => bernoulliEval,
+  blasiusEval: () => blasiusEval,
+  buckEval: () => buckEval,
+  capillaryEval: () => capillaryEval,
+  combustionEval: () => combustionEval,
+  convEngEval: () => convEngEval,
+  crystalEval: () => crystalEval,
+  cstrEval: () => cstrEval,
+  darcyEval: () => darcyEval,
+  dryingEval: () => dryingEval,
+  extractEval: () => extractEval,
+  fenskeEval: () => fenskeEval,
+  fluidbedEval: () => fluidbedEval,
+  hxEval: () => hxEval,
+  magnetismEval: () => magnetismEval,
+  manningEval: () => manningEval,
+  motorDcEval: () => motorDcEval,
+  motorIndEval: () => motorIndEval,
+  motorSyncEval: () => motorSyncEval,
+  pinchEval: () => pinchEval,
+  plasmaEval: () => plasmaEval,
+  poiseuilleEval: () => poiseuilleEval,
+  powerflowEval: () => powerflowEval,
+  pumpEval: () => pumpEval,
+  radEngEval: () => radEngEval,
+  renewableEval: () => renewableEval,
+  semiconductorEval: () => semiconductorEval,
+  storageEval: () => storageEval,
+  superconEval: () => superconEval,
+  swingEval: () => swingEval,
+  thermoCycleEval: () => thermoCycleEval,
+  topoEval: () => topoEval,
+  transformerEval: () => transformerEval,
+  turbEval: () => turbEval,
+  weirEval: () => weirEval
+});
 function bernoulliEval(p) {
   const v = P(p, "v", 0);
   const A = Math.max(0, P(p, "A", 0));
@@ -6133,9 +6470,9 @@ function renewableEval(p) {
   return { val: Ppv, Ppv, Pwind };
 }
 function storageEval(p) {
-  const E = P(p, "E", 0);
+  const E9 = P(p, "E", 0);
   const power = pos(P(p, "P", 1), 1e-9);
-  const hours = E / power;
+  const hours = E9 / power;
   return { val: hours, hours };
 }
 function cstrEval(p) {
@@ -6202,6 +6539,32 @@ function crystalEval(p) {
   const S2 = pos(P(p, "S", 1), 1e-9);
   return { val: Math.log(S2), lnS: Math.log(S2), T: P(p, "T", 300) };
 }
+
+// js/models/fam/evals-discrete.js
+var evals_discrete_exports = {};
+__export(evals_discrete_exports, {
+  bfsDist: () => bfsDist,
+  binaryEntropy: () => binaryEntropy2,
+  branchMisrate: () => branchMisrate,
+  caPopulation: () => caPopulation,
+  cacheHitRate: () => cacheHitRate,
+  dijkstraDist: () => dijkstraDist,
+  fcfsWait: () => fcfsWait,
+  heapComps: () => heapComps,
+  insertionComps: () => insertionComps,
+  kmeansInertia: () => kmeansInertia,
+  kmpComparisons: () => kmpComparisons,
+  knapsack: () => knapsack,
+  mstWeight: () => mstWeight,
+  nnForward: () => nnForward,
+  pcaFraction: () => pcaFraction,
+  sandTopples: () => sandTopples,
+  searchProbes: () => searchProbes,
+  tcpMbps: () => tcpMbps,
+  treeHeights: () => treeHeights,
+  ufOps: () => ufOps,
+  zipfEntropy: () => zipfEntropy
+});
 function insertionComps(n, sortedness) {
   const N = Math.max(1, Math.min(256, Math.round(n)));
   const a = [];
@@ -6637,32 +7000,36 @@ function tcpMbps(bw, rttMs, loss) {
   const mathis = mssBits / rtt * Math.sqrt(1.5 / loss) / 1e6;
   return Math.min(bw, mathis);
 }
-var BUILDERS = {
+
+// js/models/fam/builders-mechanics.js
+var E = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_MECHANICS = {
   projectile: (spec) => algebraic(spec, {
     equation: "x=v0 cos\u03B8 t, y=v0 sin\u03B8 t\u2212\xBD g t\xB2; linear drag k=b/m",
-    assumptions: "Plane motion. k=0 is the vacuum parabola. k>0 is linear drag with k=b/m. The curve is not stopped at y=0.",
+    assumptions: "Plane motion. k=0 is the vacuum parabola. k>0 is linear drag with k=b/m. The canvas draws the (x,y) trajectory, not a scalar hist.",
     initial: ["v0", "theta"],
+    drawKind: "xy",
     rows: [["y", "y", "m"], ["x", "x", "m"], ["vx", "vx", "m/s"], ["vy", "vy", "m/s"]],
-    eval: projectileEval
+    eval: E.projectileEval
   }),
   inclined: (spec) => algebraic(spec, {
     equation: "a=g(sin\u03B8\u2212\u03BC cos\u03B8), g=9.81",
     assumptions: "Constant g=9.81 m/s\xB2. +s is down the plane. Friction points up the plane, which is the catalog formula. N=m g cos\u03B8.",
     initial: ["v0"],
     rows: [["a", "a", "m/s\xB2"], ["v", "v", "m/s"], ["s", "s", "m"], ["N", "N", "N"]],
-    eval: inclinedEval
+    eval: E.inclinedEval
   }),
   atwood: (spec) => algebraic(spec, {
     equation: "a=(m1\u2212m2)/(m1+m2)\xB7g, m1=mRatio, m2=1 kg",
     assumptions: "Ideal vertical Atwood machine, g=9.81. \u03BC does not enter: a vertical string has no surface for Coulomb friction.",
     rows: [["a", "a", "m/s\xB2"], ["m1", "m1", "kg"], ["m2", "m2", "kg"]],
-    eval: (p) => atwoodEval(p)
+    eval: (p) => E.atwoodEval(p)
   }),
   circular: (spec) => algebraic(spec, {
     equation: "a=\u03C9\xB2 r",
     assumptions: "Uniform circular motion.",
     rows: [["a", "ac", "m/s\xB2"], ["x", "x", "m"], ["y", "y", "m"]],
-    eval: circularEval
+    eval: E.circularEval
   }),
   "rigid-plane": (spec) => algebraic(spec, {
     equation: "I \u03B1 = torque; rolling a=g sin\u03B8/(1+I/(m r\xB2)) with m=r=1",
@@ -6679,441 +7046,526 @@ var BUILDERS = {
     equation: "v1n=(m1\u2212e m2)/(m1+m2)\xB7u1n, v2n=m1(1+e)/(m1+m2)\xB7u1n",
     assumptions: "m2=1, u1=1, u2=0. e is the normal restitution. Tangential velocity is unchanged. angle is the impact normal.",
     rows: [["v1", "v1", "m/s"], ["v2", "v2", "m/s"], ["e", "e"]],
-    eval: (p) => collisionEval(p)
+    eval: (p) => E.collisionEval(p)
   }),
   "variable-mass": (spec) => algebraic(spec, {
     equation: "v=\u2212u ln(m/m0), m0=1 kg, a(0)=u \u1E41/m0",
     assumptions: "Tsiolkovsky, no gravity, no external force. \u1E41 is the propellant mass-loss rate. m is held at or above 0.05 kg.",
     rows: [["a0", "a0", "m/s\xB2"], ["v", "v", "m/s"], ["m", "m", "kg"]],
-    eval: rocketEval
+    eval: E.rocketEval
   }),
   noninertial: (spec) => algebraic(spec, {
     equation: "a=a_frame\u22122 \u03C9\xD7v, v0=(1,0) m/s",
     assumptions: "Horizontal frame. \u03C9 is vertical. The initial velocity is 1 m/s along x so the Coriolis term is defined.",
     rows: [["ay", "ay", "m/s\xB2"], ["ax", "ax", "m/s\xB2"], ["|a|", "aMag", "m/s\xB2"]],
-    eval: (p) => noninertialEval(p)
+    eval: (p) => E.noninertialEval(p)
   }),
   "pendulum-chain": (spec) => algebraic(spec, {
     equation: "\u03B8''=\u2212(g/L) sin\u03B8",
     assumptions: "Simple pendulum. Mass cancels in the acceleration and remains in the energy. g=9.81.",
     initial: ["theta0"],
     rows: [["\u03B1", "alpha", "rad/s\xB2"], ["\u03B8", "thetaDeg", "\xB0"], ["E", "E", "J"]],
-    reset: pendulumReset,
+    reset: E.pendulumReset,
     integrate: true,
-    eval: pendulumEval
+    eval: E.pendulumEval
   }),
   orbit: (spec) => algebraic(spec, {
     equation: "a=M/r\xB2 (G=1); r_a=r_p(1+e)/(1\u2212e) for e<1",
-    assumptions: "G=1. a_c uses r0. e_osc is the osculating eccentricity of a perpendicular launch at speed v0. r_a uses the eccentricity knob with periapsis r0.",
+    assumptions: "G=1. a_c uses r0. e_osc is the osculating eccentricity of a perpendicular launch at speed v0. r_a uses the eccentricity knob with periapsis r0. Canvas draws the focus-origin conic for the e knob.",
     initial: ["v0", "r0"],
+    drawKind: "xy",
     rows: [["a", "ac"], ["e_osc", "eOsc"], ["r_a", "rA"], ["v_peri", "vPeri"]],
-    eval: (p) => orbitEval(p)
+    eval: (p) => E.orbitEval(p)
   }),
   sho: (spec) => algebraic(spec, {
     equation: "x''=\u2212(k/m) x",
     assumptions: "Closed form x=x0 cos(\u03C9 t), \u03C9=sqrt(k/m), from t=0.",
     initial: ["x0"],
     rows: [["a", "a", "m/s\xB2"], ["x", "x", "m"], ["\u03C9", "omega", "rad/s"]],
-    eval: shoEval
+    eval: E.shoEval
   }),
   damped: (spec) => algebraic(spec, {
     equation: "m x''+c x'+k x=0, m=1, x(0)=1, v(0)=0",
     assumptions: "Mass is 1 kg. \u03B6=c/(2\u221Ak). The closed form covers under-, critical, and over-damping.",
     rows: [["\u03B6", "zeta"], ["x", "x", "m"], ["\u03C90", "omega0", "rad/s"]],
-    eval: dampedEval
+    eval: E.dampedEval
   }),
   forced: (spec) => algebraic(spec, {
     equation: "x''+c x'+x=F0 cos(2\u03C0 f t), m=k=1",
     assumptions: "Steady-state amplitude. \u03C90=1 because k=m=1. fDrive is in hertz.",
     rows: [["A", "A", "m"], ["\u03C6", "phi", "rad"]],
-    eval: (p) => forcedEval(p)
+    eval: (p) => E.forcedEval(p)
   }),
   coupled: (spec) => algebraic(spec, {
     equation: "x_i''=\u2212x_i+\u03BA(x_{i\u22121}\u22122x_i+x_{i+1}), fixed ends",
     assumptions: "Unit on-site springs. Highest-mode \u03C9^2=1+4\u03BA sin^2(q/2), q=N\u03C0/(N+1).",
     rows: [["\u03C9_max", "omegaMax", "rad/s"], ["a1", "a1", "m/s\xB2"], ["N", "N"]],
-    eval: (p) => coupledEval(p)
+    eval: (p) => E.coupledEval(p)
   }),
   "nonlinear-osc": (spec) => algebraic(spec, {
     equation: "x''+x+\u03B2 x\xB3=F cos(t), x(0)=1, v(0)=0",
     assumptions: "Undamped driven Duffing with \u03C9=1. No van der Pol term: the knobs are \u03B2 and the drive.",
     rows: [["a", "a"], ["x", "x"], ["v", "v"]],
-    reset: duffingReset,
+    reset: E.duffingReset,
     integrate: true,
-    eval: duffingEval
-  }),
+    eval: E.duffingEval
+  })
+};
+
+// js/models/fam/builders-waves.js
+var E2 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_WAVES = {
   wave1d: (spec) => algebraic(spec, {
     equation: "y=sin(kx\u2212\u03C9t), \u03C9=2\u03C0f, k=\u03C9/c, A=1",
     assumptions: "Unit amplitude. \u03BB=c/f.",
     rows: [["\u03BB", "lam"], ["k", "k"], ["y(1)", "yProbe"]],
-    eval: wave1dEval
+    eval: E2.wave1dEval
   }),
   wave2d: (spec) => algebraic(spec, {
     equation: "c=\u221A(T/\u03C1), \u03C9_11=\u03C0 c \u221A2 on the unit square",
     assumptions: "Linear membrane, mode (1,1). Pain.",
     rows: [["c", "c"], ["\u03C9", "omega", "rad/s"], ["y", "yMid"]],
-    eval: wave2dEval
+    eval: E2.wave2dEval
   }),
   interfere: (spec) => algebraic(spec, {
     equation: "I/I0=cos\xB2(\u03C6/2), \u03B2=\u03BB/d",
     assumptions: "Equal amplitudes. On-axis phase is the phi knob. Screen distance L=1 for the fringe spacing.",
     rows: [["I", "I"], ["\u03B2", "beta"]],
-    eval: (p) => interfereEval(p)
+    eval: (p) => E2.interfereEval(p)
   }),
   diffract: (spec) => algebraic(spec, {
     equation: "y_min=\u03BB L/a",
     assumptions: "Paraxial single-slit first minimum. Same length unit for a, \u03BB, and L.",
     rows: [["y1", "yMin"], ["\u03B2", "beta"]],
-    eval: (p) => diffractEval(p)
+    eval: (p) => E2.diffractEval(p)
   }),
   doppler: (spec) => algebraic(spec, {
     equation: "f'/f=(1+vo cos\u03B8)/(1\u2212vs cos\u03B8)",
     assumptions: "vs and vo are fractions of the wave speed. Positive vs is toward the observer. Positive vo is toward the source.",
     rows: [["f'/f", "ratio"]],
-    eval: (p) => dopplerEval(p)
-  }),
-  "ideal-gas": (spec) => algebraic(spec, {
-    equation: "P2/P0=2^{\u2212n}, T2=T0\xB72^{1\u2212n}",
-    assumptions: "Polytropic ideal gas probed at V/V0=2. \xC7engel & Boles.",
-    rows: [["P2/P0", "pRatio"], ["T2", "T2", "K"]],
-    eval: (p) => idealGasEval(p)
-  }),
-  "heat-engine": (spec) => algebraic(spec, {
-    equation: "\u03B7_C=1\u22121/TR, \u03B7_Otto=1\u2212r^{1\u2212\u03B3}, \u03B3=1.4",
-    assumptions: "TR=Th/Tc. Otto uses cold air \u03B3=1.4.",
-    rows: [["\u03B7_C", "etaC"], ["\u03B7_Otto", "etaO"]],
-    eval: (p) => heatEngineEval(p)
-  }),
-  convection: (spec) => algebraic(spec, {
-    equation: "q=h\xB71 K; Nu=0.664 Re^{1/2} Pr^{1/3}",
-    assumptions: "Newton cooling per kelvin. Blasius flat plate, L=1 m, air \u03BD=1.5e\u22125, Pr=0.7, k=0.026.",
-    rows: [["q", "q", "W/m\xB2"], ["h_Bl", "hBl", "W/(m\xB2K)"]],
-    eval: (p) => convectionEval(p)
-  }),
-  radiation: (spec) => algebraic(spec, {
-    equation: "q=\u03B5 \u03C3 T\u2074",
-    assumptions: "Surface exitance. \u03C3=5.670374419e\u22128. No incoming irradiation.",
-    rows: [["q", "q", "W/m\xB2"]],
-    eval: (p) => radiationEval(p)
-  }),
-  "kinetic-gas": (spec) => algebraic(spec, {
-    equation: "v_rms=\u221A(3 R T / M)",
-    assumptions: "Ideal gas. mMol is the molar mass in g/mol. R=8.314 J/(mol\xB7K).",
-    rows: [["v_rms", "vrms", "m/s"], ["v_p", "vp", "m/s"]],
-    eval: (p) => kineticEval(p)
-  }),
-  brownian: (spec) => algebraic(spec, {
-    equation: "<x\xB2>=2 D \u03C4",
-    assumptions: "Ensemble mean-square displacement in one dimension. \u03C4 is the time knob. No random path is drawn.",
-    rows: [["<x\xB2>", "msd"]],
-    eval: (p) => brownianEval(p)
-  }),
-  ising: (spec) => algebraic(spec, {
-    equation: "m=tanh((4 J m+H)/T)",
-    assumptions: "Mean-field Ising, coordination 4. Negative J is not a staggered antiferromagnet in this scalar equation.",
-    rows: [["m", "m"]],
-    eval: (p) => isingEval(p)
-  }),
-  percolation: (spec) => algebraic(spec, {
-    equation: "S=(1+p)/(1\u2212p)",
-    assumptions: "Exact one-dimensional site percolation. Not a 2D random lattice.",
-    rows: [["S", "S"]],
-    eval: (p) => percolationEval(p)
-  }),
-  "entropy-mix": (spec) => algebraic(spec, {
-    equation: "\u0394s/R=\u2212x ln x\u2212(1\u2212x) ln(1\u2212x)",
-    assumptions: "Ideal binary mixture, one mole. Temperature cancels in \u0394s and remains in \u0394g=\u2212T \u0394s.",
-    rows: [["\u0394s/R", "sOverR"], ["\u0394g/R", "gOverR", "K"]],
-    eval: (p) => entropyEval(p)
-  }),
-  electrostatic: (spec) => algebraic(spec, {
-    equation: "E=q/(4 \u03C0 \u03B50 r\xB2)",
-    assumptions: "Point charge in SI. r is the geometry knob. Griffiths Ch. 2.",
-    rows: [["E", "E", "N/C"]],
-    eval: (p) => coulombEval(p)
-  }),
-  fieldlines: (spec) => algebraic(spec, {
-    equation: "E_axis=(1/(4\u03C0\u03B50)) 2p/r\xB3",
-    assumptions: "Ideal dipole on axis. r is the separation knob. Griffiths Ch. 3.",
-    rows: [["E", "E", "N/C"]],
-    eval: (p) => dipoleEval(p)
-  }),
-  gauss: (spec) => algebraic(spec, {
-    equation: "E(R)=\u03C1 R/(3 \u03B50)",
-    assumptions: "Uniform ball, field at the surface. Griffiths Ch. 2.",
-    rows: [["E", "E", "N/C"], ["Q", "Q", "C"]],
-    eval: (p) => gaussEval(p)
-  }),
-  capacitor: (spec) => algebraic(spec, {
-    equation: "C=\u03B5_r \u03B50 A/d",
-    assumptions: "Parallel plate. eps is the relative permittivity.",
-    rows: [["C", "C", "F"]],
-    eval: (p) => capacitorEval(p)
-  }),
-  "dc-network": (spec) => algebraic(spec, {
-    equation: "I=E/R",
-    assumptions: "Single-loop Ohm law. Nilsson.",
-    rows: [["I", "I", "A"], ["V", "V", "V"]],
-    eval: (p) => dcEval(p)
-  }),
-  rlc: (spec) => algebraic(spec, {
-    equation: "\u03C90=1/\u221A(LC), \u03B1=R/(2L)",
-    assumptions: "Series RLC. wd=sqrt(\u03C90\xB2\u2212\u03B1\xB2) when underdamped, otherwise 0.",
-    rows: [["\u03C90", "w0", "rad/s"], ["\u03B1", "alpha", "1/s"], ["\u03C9d", "wd", "rad/s"]],
-    eval: (p) => rlcEval(p)
-  }),
-  ac: (spec) => algebraic(spec, {
-    equation: "|Z|=sec \u03C6 for R=1 \u03A9; L_eq=tan\u03C6 / \u03C9",
-    assumptions: "phi is the impedance angle. Frequency enters the inductance that would produce that angle.",
-    rows: [["|Z|", "Z", "\u03A9"], ["L_eq", "Leq", "H"]],
-    eval: (p) => acEval(p)
-  }),
-  magnetostat: (spec) => algebraic(spec, {
-    equation: "B=\u03BC0 I/(2 R)",
-    assumptions: "Center of a current loop. Griffiths Ch. 5.",
-    rows: [["B", "B", "T"]],
-    eval: (p) => biotEval(p)
-  }),
-  lorentz: (spec) => algebraic(spec, {
-    equation: "F_E=q E, r_c=m v/(|q| B), q=m=1",
-    assumptions: "Normalized charge and mass. Magnetic force magnitude is |q| v B for v perpendicular to B.",
-    rows: [["F_E", "FE", "N"], ["F_B", "FB", "N"], ["r_c", "rC", "m"]],
-    eval: (p) => lorentzEval(p)
-  }),
-  induction: (spec) => algebraic(spec, {
-    equation: "\u03B5=\u2212N d\u03A6/dt",
-    assumptions: "The dPhi knob is the flux derivative. Griffiths Ch. 7.",
-    rows: [["\u03B5", "emf", "V"]],
-    eval: (p) => faradayEval(p)
-  }),
-  inductance: (spec) => algebraic(spec, {
-    equation: "M=k L",
-    assumptions: "L1=L2=L, so M=k sqrt(L1 L2)=k L.",
-    rows: [["M", "M", "H"]],
-    eval: (p) => mutualEval(p)
-  }),
-  maxwell: (spec) => algebraic(spec, {
-    equation: "\u03BB=c/f",
-    assumptions: "Vacuum plane wave. The cavity comparison uses a 1 m cube and mode index n: f=(c/2)sqrt(1+n\xB2).",
-    rows: [["\u03BB", "lam", "m"], ["f_cav", "fCav", "Hz"]],
-    eval: (p) => maxwellEval(p)
-  }),
-  tline: (spec) => algebraic(spec, {
-    equation: "\u03C4=len/c, Z=Z0",
-    assumptions: "Lossless TEM line at vacuum speed. Length is in meters.",
-    rows: [["Z0", "Z0", "\u03A9"], ["\u03C4", "delay", "s"]],
-    eval: (p) => tlineEval(p)
-  }),
-  antenna: (spec) => algebraic(spec, {
-    equation: "AF=|cos((2\u03C0 d+\u03B4)/2)| at endfire",
-    assumptions: "Balanis. len and d are in wavelengths. phi is the inter-element phase in degrees. Element factor (1\u2212cos(\u03C0 len))\xB2 at broadside.",
-    rows: [["AF", "AF"], ["F", "elem"]],
-    eval: (p) => antennaEval(p)
+    eval: (p) => E2.dopplerEval(p)
   }),
   "geo-optics": (spec) => algebraic(spec, {
     equation: "n1 sin\u03B81=n2 sin\u03B82, n1=1",
     assumptions: "Snell. tir=1 when the ray is totally reflected. Hecht.",
     rows: [["\u03B82", "theta2", "\xB0"], ["TIR", "tir"]],
-    eval: (p) => snellEval(p)
+    eval: (p) => E2.snellEval(p)
   }),
   lens: (spec) => algebraic(spec, {
     equation: "1/u+1/v=1/f",
-    assumptions: "Signed distances as stored. Lateral magnification m=\u2212v/u.",
+    assumptions: "Signed distances as stored. Lateral magnification m=\u2212v/u. Canvas is a thin-lens ray sketch (Hecht).",
+    drawKind: "lens",
     rows: [["v", "v", "cm"], ["m", "m"], ["h_i", "hi", "cm"]],
-    eval: (p) => lensEval(p)
+    eval: (p) => E2.lensEval(p)
   }),
   prism: (spec) => algebraic(spec, {
     equation: "\u03B4\u2248(n\u22121)A",
     assumptions: "Thin-prism limit, A in degrees. deltaMin is the exact symmetric minimum deviation.",
     rows: [["\u03B4", "delta", "\xB0"], ["\u03B4_min", "deltaMin", "\xB0"]],
-    eval: (p) => prismEval(p)
+    eval: (p) => E2.prismEval(p)
   }),
   "opt-interfere": (spec) => algebraic(spec, {
     equation: "\u03B2=\u03BB L/d, L=1 m",
     assumptions: "Young. d is in mm, \u03BB in nm. Hecht.",
     rows: [["\u03B2", "betaMm", "mm"]],
-    eval: (p) => optInterfereEval(p)
+    eval: (p) => E2.optInterfereEval(p)
   }),
   "opt-diffract": (spec) => algebraic(spec, {
     equation: "y=\u03BB L/a",
     assumptions: "Fraunhofer slit. a in mm, \u03BB in nm, L in m.",
     rows: [["y", "yMm", "mm"]],
-    eval: (p) => optDiffractEval(p)
+    eval: (p) => E2.optDiffractEval(p)
   }),
   polarization: (spec) => algebraic(spec, {
     equation: "I=I0 cos\xB2\u03B8",
     assumptions: "Malus. I0=1. dphi is retarder phase in degrees and does not change this intensity.",
     rows: [["I", "I"], ["\u03B4", "dphi", "\xB0"]],
-    eval: (p) => malusEval(p)
+    eval: (p) => E2.malusEval(p)
   }),
   fiber: (spec) => algebraic(spec, {
     equation: "NA=\u221A(n_core\xB2\u2212n_clad\xB2)",
     assumptions: "Step-index acceptance. Hecht.",
     rows: [["NA", "NA"], ["\u03B8_c", "thetaC", "\xB0"]],
-    eval: (p) => fiberEval(p)
+    eval: (p) => E2.fiberEval(p)
   }),
   laser: (spec) => algebraic(spec, {
     equation: "net=g L\u2212loss",
     assumptions: "g is a gain coefficient (1/m) and loss is a dimensionless single-pass loss. Siegman.",
     rows: [["net", "net"], ["gL", "gL"]],
-    eval: (p) => laserEval(p)
+    eval: (p) => E2.laserEval(p)
   }),
   nlo: (spec) => algebraic(spec, {
     equation: "\u03B7\u221D\u03C7\xB2 sinc\xB2(\u0394k/2), L=1",
     assumptions: "Plane-wave second harmonic, Boyd. L=1 in the knob units.",
     rows: [["\u03B7", "eta"]],
-    eval: (p) => nloEval(p)
+    eval: (p) => E2.nloEval(p)
   }),
   qoptics: (spec) => algebraic(spec, {
     equation: "V=e^{\u22122r}, n\u0304=|\u03B1|\xB2+sinh\xB2 r",
     assumptions: "Single-mode squeezed state. Gerry & Knight.",
     rows: [["V", "V"], ["n", "nbar"]],
-    eval: (p) => qopticsEval(p)
+    eval: (p) => E2.qopticsEval(p)
+  })
+};
+
+// js/models/fam/builders-thermo.js
+var E3 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_THERMO = {
+  "ideal-gas": (spec) => algebraic(spec, {
+    equation: "P2/P0=2^{\u2212n}, T2=T0\xB72^{1\u2212n}",
+    assumptions: "Polytropic ideal gas probed at V/V0=2. \xC7engel & Boles.",
+    rows: [["P2/P0", "pRatio"], ["T2", "T2", "K"]],
+    eval: (p) => E3.idealGasEval(p)
   }),
+  "heat-engine": (spec) => algebraic(spec, {
+    equation: "\u03B7_C=1\u22121/TR, \u03B7_Otto=1\u2212r^{1\u2212\u03B3}, \u03B3=1.4",
+    assumptions: "TR=Th/Tc (Carnot). Otto \u03B7=1\u2212r^{1\u2212\u03B3} with fixed cold-air \u03B3=1.4 (\xC7engel & Boles); \u03B3 is not a live knob.",
+    rows: [["\u03B7_C", "etaC"], ["\u03B7_Otto", "etaO"]],
+    eval: (p) => E3.heatEngineEval(p)
+  }),
+  convection: (spec) => algebraic(spec, {
+    equation: "q=h\xB71 K; Nu=0.664 Re^{1/2} Pr^{1/3}",
+    assumptions: "Newton cooling per kelvin. Blasius flat plate, L=1 m, air \u03BD=1.5e\u22125, Pr=0.7, k=0.026.",
+    rows: [["q", "q", "W/m\xB2"], ["h_Bl", "hBl", "W/(m\xB2K)"]],
+    eval: (p) => E3.convectionEval(p)
+  }),
+  radiation: (spec) => algebraic(spec, {
+    equation: "q=\u03B5 \u03C3 T\u2074",
+    assumptions: "Surface exitance. \u03C3=5.670374419e\u22128. No incoming irradiation.",
+    rows: [["q", "q", "W/m\xB2"]],
+    eval: (p) => E3.radiationEval(p)
+  }),
+  "kinetic-gas": (spec) => algebraic(spec, {
+    equation: "v_rms=\u221A(3 R T / M)",
+    assumptions: "Ideal gas. mMol is the molar mass in g/mol. R=8.314 J/(mol\xB7K).",
+    rows: [["v_rms", "vrms", "m/s"], ["v_p", "vp", "m/s"]],
+    eval: (p) => E3.kineticEval(p)
+  }),
+  brownian: (spec) => algebraic(spec, {
+    equation: "<x\xB2>=2 D \u03C4",
+    assumptions: "Ensemble mean-square displacement in one dimension. \u03C4 is the time knob. No random path is drawn.",
+    rows: [["<x\xB2>", "msd"]],
+    eval: (p) => E3.brownianEval(p)
+  }),
+  ising: (spec) => algebraic(spec, {
+    equation: "m=tanh((4 J m+H)/T)",
+    assumptions: "Mean-field Ising, coordination 4. Negative J is not a staggered antiferromagnet in this scalar equation.",
+    rows: [["m", "m"]],
+    eval: (p) => E3.isingEval(p)
+  }),
+  percolation: (spec) => algebraic(spec, {
+    equation: "S=(1+p)/(1\u2212p)",
+    assumptions: "Exact one-dimensional site percolation. Not a 2D random lattice.",
+    rows: [["S", "S"]],
+    eval: (p) => E3.percolationEval(p)
+  }),
+  "entropy-mix": (spec) => algebraic(spec, {
+    equation: "\u0394s/R=\u2212x ln x\u2212(1\u2212x) ln(1\u2212x)",
+    assumptions: "Ideal binary mixture, one mole. Temperature cancels in \u0394s and remains in \u0394g=\u2212T \u0394s.",
+    rows: [["\u0394s/R", "sOverR"], ["\u0394g/R", "gOverR", "K"]],
+    eval: (p) => E3.entropyEval(p)
+  })
+};
+
+// js/models/fam/builders-em.js
+var E4 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_EM = {
+  electrostatic: (spec) => algebraic(spec, {
+    equation: "E=q/(4 \u03C0 \u03B50 r\xB2)",
+    assumptions: "Point charge in SI. r is the geometry knob. Griffiths Ch. 2.",
+    rows: [["E", "E", "N/C"]],
+    eval: (p) => E4.coulombEval(p)
+  }),
+  fieldlines: (spec) => algebraic(spec, {
+    equation: "E_axis=(1/(4\u03C0\u03B50)) 2p/r\xB3",
+    assumptions: "Ideal dipole on axis. r is the separation knob. Griffiths Ch. 3.",
+    rows: [["E", "E", "N/C"]],
+    eval: (p) => E4.dipoleEval(p)
+  }),
+  gauss: (spec) => algebraic(spec, {
+    equation: "E(R)=\u03C1 R/(3 \u03B50)",
+    assumptions: "Uniform ball, field at the surface. Griffiths Ch. 2.",
+    rows: [["E", "E", "N/C"], ["Q", "Q", "C"]],
+    eval: (p) => E4.gaussEval(p)
+  }),
+  capacitor: (spec) => algebraic(spec, {
+    equation: "C=\u03B5_r \u03B50 A/d",
+    assumptions: "Parallel plate. eps is the relative permittivity.",
+    rows: [["C", "C", "F"]],
+    eval: (p) => E4.capacitorEval(p)
+  }),
+  "dc-network": (spec) => algebraic(spec, {
+    equation: "I=E/R",
+    assumptions: "Single-loop Ohm law. Nilsson.",
+    rows: [["I", "I", "A"], ["V", "V", "V"]],
+    eval: (p) => E4.dcEval(p)
+  }),
+  rlc: (spec) => algebraic(spec, {
+    equation: "\u03C90=1/\u221A(LC), \u03B1=R/(2L)",
+    assumptions: "Series RLC. wd=sqrt(\u03C90\xB2\u2212\u03B1\xB2) when underdamped, otherwise 0.",
+    rows: [["\u03C90", "w0", "rad/s"], ["\u03B1", "alpha", "1/s"], ["\u03C9d", "wd", "rad/s"]],
+    eval: (p) => E4.rlcEval(p)
+  }),
+  ac: (spec) => algebraic(spec, {
+    equation: "|Z|=sec \u03C6 for R=1 \u03A9; L_eq=tan\u03C6 / \u03C9",
+    assumptions: "phi is the impedance angle. Frequency enters the inductance that would produce that angle.",
+    rows: [["|Z|", "Z", "\u03A9"], ["L_eq", "Leq", "H"]],
+    eval: (p) => E4.acEval(p)
+  }),
+  magnetostat: (spec) => algebraic(spec, {
+    equation: "B=\u03BC0 I/(2 R)",
+    assumptions: "Center of a current loop. Griffiths Ch. 5.",
+    rows: [["B", "B", "T"]],
+    eval: (p) => E4.biotEval(p)
+  }),
+  lorentz: (spec) => algebraic(spec, {
+    equation: "F_E=q E, r_c=m v/(|q| B), q=m=1",
+    assumptions: "Normalized charge and mass. Magnetic force magnitude is |q| v B for v perpendicular to B.",
+    rows: [["F_E", "FE", "N"], ["F_B", "FB", "N"], ["r_c", "rC", "m"]],
+    eval: (p) => E4.lorentzEval(p)
+  }),
+  induction: (spec) => algebraic(spec, {
+    equation: "\u03B5=\u2212N d\u03A6/dt",
+    assumptions: "The dPhi knob is the flux derivative. Griffiths Ch. 7.",
+    rows: [["\u03B5", "emf", "V"]],
+    eval: (p) => E4.faradayEval(p)
+  }),
+  inductance: (spec) => algebraic(spec, {
+    equation: "M=k L",
+    assumptions: "L1=L2=L, so M=k sqrt(L1 L2)=k L.",
+    rows: [["M", "M", "H"]],
+    eval: (p) => E4.mutualEval(p)
+  }),
+  maxwell: (spec) => algebraic(spec, {
+    equation: "\u03BB=c/f",
+    assumptions: "Vacuum plane wave. The cavity comparison uses a 1 m cube and mode index n: f=(c/2)sqrt(1+n\xB2).",
+    rows: [["\u03BB", "lam", "m"], ["f_cav", "fCav", "Hz"]],
+    eval: (p) => E4.maxwellEval(p)
+  }),
+  tline: (spec) => algebraic(spec, {
+    equation: "\u03C4=len/c, Z=Z0",
+    assumptions: "Lossless TEM line at vacuum speed. Length is in meters.",
+    rows: [["Z0", "Z0", "\u03A9"], ["\u03C4", "delay", "s"]],
+    eval: (p) => E4.tlineEval(p)
+  }),
+  antenna: (spec) => algebraic(spec, {
+    equation: "AF=|cos((2\u03C0 d+\u03B4)/2)| at endfire",
+    assumptions: "Balanis. len and d are in wavelengths. phi is the inter-element phase in degrees. Element factor (1\u2212cos(\u03C0 len))\xB2 at broadside.",
+    rows: [["AF", "AF"], ["F", "elem"]],
+    eval: (p) => E4.antennaEval(p)
+  })
+};
+
+// js/models/fam/builders-quantum.js
+var E5 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_QUANTUM = {
   well1d: (spec) => algebraic(spec, {
     equation: "E1=\u03C0\xB2/(2 a\xB2), \u210F=m=1",
     assumptions: "Infinite square well, n=1. V0 is only a comparison with the finite-well depth.",
     rows: [["E1", "E1"], ["E1<V0", "above"]],
-    eval: (p) => wellEval(p)
+    eval: (p) => E5.wellEval(p)
   }),
   tunnel: (spec) => algebraic(spec, {
     equation: "T\u2248exp(\u22122 \u03BA w), \u03BA=\u221A(2(V0\u2212E))",
     assumptions: "Thick-barrier estimate, \u210F=m=1. T=1 when E\u2265V0. Griffiths QM.",
     rows: [["T", "T"], ["\u03BA", "kappa"]],
-    eval: (p) => tunnelEval(p)
+    eval: (p) => E5.tunnelEval(p)
   }),
   qho: (spec) => algebraic(spec, {
     equation: "E0=\u210F\u03C9/2, \u03C9_+=\u03C9\u221A(1+coup)",
     assumptions: "\u210F=1. The coupling raises one normal frequency of two oscillators.",
     rows: [["E0", "E0"], ["\u03C9+", "wPlus"]],
-    eval: (p) => qhoEval(p)
+    eval: (p) => E5.qhoEval(p)
   }),
   hydrogen: (spec) => algebraic(spec, {
     equation: "E=\u221213.6 eV/n\xB2",
     assumptions: "n, l, m are rounded to integers. valid=1 when 0\u2264l\u2264n\u22121 and |m|\u2264l.",
     rows: [["E", "E", "eV"], ["valid", "valid"]],
-    eval: (p) => hydrogenEval(p)
+    eval: (p) => E5.hydrogenEval(p)
   }),
   angmom: (spec) => algebraic(spec, {
     equation: "g_J=1+[j(j+1)+s(s+1)\u2212l(l+1)]/(2j(j+1))",
     assumptions: "s=1/2 and l=j\u22121/2. Fine-structure shift is coup\xB7L\xB7S.",
     rows: [["g_J", "gJ"], ["E_fs", "Efs"]],
-    eval: (p) => angmomEval(p)
+    eval: (p) => E5.angmomEval(p)
   }),
   entangle: (spec) => algebraic(spec, {
     equation: "S=2\u221A(1+C\xB2)",
     assumptions: "Two-qubit CHSH maximum for concurrence C. The correlator uses the measurement angle.",
     rows: [["S", "S"], ["E", "corr"]],
-    eval: (p) => entangleEval(p)
+    eval: (p) => E5.entangleEval(p)
   }),
   qgate: (spec) => algebraic(spec, {
     equation: "P(1)=sin\xB2(\u03B8/2)",
     assumptions: "Ry on |0>. flipped=1 when the control knob is nonzero.",
     rows: [["P1", "P1"], ["flip", "flipped"]],
-    eval: (p) => qgateEval(p)
+    eval: (p) => E5.qgateEval(p)
   }),
   qalgo: (spec) => algebraic(spec, {
     equation: "P=sin\xB2((2k+1)\u03B8), sin\u03B8=1/\u221AN",
     assumptions: "Grover on N=2^{nBits} with one marked item. Nielsen & Chuang.",
     rows: [["P", "prob"], ["N", "N"]],
-    eval: (p) => groverEval(p)
+    eval: (p) => E5.groverEval(p)
   }),
   wavepacket: (spec) => algebraic(spec, {
     equation: "E=1/(8\u03C3\xB2)+V, \u03C3(t)=\u03C3\u221A(1+(t/(2\u03C3\xB2))\xB2)",
     assumptions: "Free Gaussian packet plus a constant potential. \u210F=m=1. Griffiths QM.",
     rows: [["E", "E"], ["\u03C3(t)", "sigmaT"]],
-    eval: packetEval
+    eval: E5.packetEval
   }),
   "rel-kin": (spec) => algebraic(spec, {
     equation: "\u03B3=1/\u221A(1\u2212\u03B2\xB2)",
     assumptions: "Special relativity, French. \u03B2 is clamped below 1.",
     rows: [["\u03B3", "gamma"], ["1/\u03B3", "contract"]],
-    eval: (p) => relKinEval(p)
+    eval: (p) => E5.relKinEval(p)
   }),
   "rel-dyn": (spec) => algebraic(spec, {
     equation: "m c\xB2=\u221A(E\xB2\u2212p\xB2 c\xB2), c=1",
     assumptions: "Timelike interval. A spacelike pair reports m=0 and timelike=0.",
     rows: [["m", "m"], ["timelike", "timelike"]],
-    eval: (p) => relDynEval(p)
+    eval: (p) => E5.relDynEval(p)
   }),
   compton: (spec) => algebraic(spec, {
     equation: "\u0394\u03BB=\u03BB_C(1\u2212cos\u03B8)",
     assumptions: "Electron at rest. \u0394\u03BB is in pm. E is in keV. \u03BB_C=2.42631023867 pm.",
     rows: [["\u0394\u03BB", "dLam", "pm"], ["E'", "Ep", "keV"]],
-    eval: (p) => comptonEval(p)
+    eval: (p) => E5.comptonEval(p)
   }),
   radioactive: (spec) => algebraic(spec, {
     equation: "N=N0 e^{\u2212\u03BB t}",
     assumptions: "Single exponential. Krane. Activity A=\u03BB N.",
     rows: [["N", "N"], ["A", "A"], ["t_half", "half"]],
-    eval: decayEval
+    eval: E5.decayEval
+  })
+};
+
+// js/models/fam/builders-structures.js
+var E6 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_STRUCTURES = {
+  axial: (spec) => algebraic(spec, {
+    equation: "\u03C3=F/A",
+    assumptions: "Uniform uniaxial stress. Hibbeler.",
+    rows: [["\u03C3", "sigma", "Pa"]],
+    eval: (p) => E6.axialEval(p)
   }),
+  "beam-bend": (spec) => algebraic(spec, {
+    equation: "M=P L/4, \u03B4=P L\xB3/(48 EI)",
+    assumptions: "Simply supported, center point load, Euler\u2013Bernoulli.",
+    rows: [["M", "M", "N\xB7m"], ["\u03B4", "delta", "m"], ["M/EI", "curvature", "1/m"]],
+    eval: (p) => E6.beamBendEval(p)
+  }),
+  "beam-defl": (spec) => algebraic(spec, {
+    equation: "residual=\u03B4\u2212\u03B8/2 on a unit length",
+    assumptions: "Pure end moment on a beam of length 1: the tip values satisfy \u03B4=\u03B8 L/2. The residual is that check.",
+    rows: [["resid", "residual"], ["\u03B4", "delta"], ["\u03B8", "theta"]],
+    eval: (p) => E6.beamDeflEval(p)
+  }),
+  buckling: (spec) => algebraic(spec, {
+    equation: "Pcr=\u03C0\xB2 EI/L\xB2",
+    assumptions: "Pinned\u2013pinned Euler column. Hibbeler.",
+    rows: [["Pcr", "Pcr", "N"]],
+    eval: (p) => E6.bucklingEval(p)
+  }),
+  torsion: (spec) => algebraic(spec, {
+    equation: "\u03C4=16 T/(\u03C0 d\xB3)",
+    assumptions: "Solid circular shaft. Hibbeler.",
+    rows: [["\u03C4", "tau", "Pa"]],
+    eval: (p) => E6.torsionEval(p)
+  }),
+  combined: (spec) => algebraic(spec, {
+    equation: "\u03C31=\u03C3x/2+\u221A((\u03C3x/2)\xB2+\u03C4\xB2), \u03C3x=N+M, \u03C4=T",
+    assumptions: "Section moduli normalized to 1 in the catalog units.",
+    rows: [["\u03C31", "s1"], ["\u03C3x", "sx"]],
+    eval: (p) => E6.combinedEval(p)
+  }),
+  truss: (spec) => algebraic(spec, {
+    equation: "i=b\u2212(2j\u22123)",
+    assumptions: "Plane-truss Maxwell count. Positive i is indeterminate; negative i is a mechanism.",
+    rows: [["i", "indeterminacy"]],
+    eval: (p) => E6.trussEval(p)
+  }),
+  frame: (spec) => algebraic(spec, {
+    equation: "drift=1/k under a unit load",
+    assumptions: "Stated story stiffness. Aspect ratio is span/story.",
+    rows: [["drift", "drift"], ["aspect", "aspect"]],
+    eval: (p) => E6.frameEval(p)
+  })
+};
+
+// js/models/fam/builders-fluids.js
+var E7 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_FLUIDS = {
   "ideal-fluid": (spec) => algebraic(spec, {
     equation: "q=\xBD \u03C1 v\xB2, Q=A v, \u03C1=1000",
     assumptions: "Water. One section, so the Bernoulli term shown is the dynamic pressure.",
     rows: [["q", "q", "Pa"], ["Q", "Q", "m\xB3/s"]],
-    eval: (p) => bernoulliEval(p)
+    eval: (p) => E7.bernoulliEval(p)
   }),
   viscous: (spec) => algebraic(spec, {
     equation: "Q=\u03C0 R\u2074 \u0394P/(8 \u03BC L), \u0394P/L=1; \u03C4=\u03BC U/D",
     assumptions: "Reference pressure gradient 1 Pa/m. Couette gap equals D.",
     rows: [["Q", "Q", "m\xB3/s"], ["\u03C4", "tau", "Pa"]],
-    eval: (p) => poiseuilleEval(p)
+    eval: (p) => E7.poiseuilleEval(p)
   }),
   "boundary-layer": (spec) => algebraic(spec, {
     equation: "c_f=0.664/\u221ARe, \u03B4/x=5/\u221ARe",
     assumptions: "Smooth-plate Blasius. rough is \u03B5/L and enters only Re_\u03B5=Re\xB7rough.",
     rows: [["cf", "cf"], ["\u03B4/x", "delta"], ["Re_\u03B5", "ReEps"]],
-    eval: (p) => blasiusEval(p)
+    eval: (p) => E7.blasiusEval(p)
   }),
   turbulence: (spec) => algebraic(spec, {
     equation: "\u03BD_t=C\u03BC k\xB2/\u03B5",
     assumptions: "C\u03BC and the filter width are the supplied closure parameters. k and \u03B5 are not invented.",
     rows: [["C\u03BC", "Cmu"], ["\u0394", "Delta"]],
-    eval: (p) => turbEval(p)
+    eval: (p) => E7.turbEval(p)
   }),
   multiphase: (spec) => algebraic(spec, {
     equation: "\u03BB_c=\u221A(\u03C3/(\u0394\u03C1 g))",
     assumptions: "g=9.81. White capillary length.",
     rows: [["\u03BB_c", "lam", "m"]],
-    eval: (p) => capillaryEval(p)
+    eval: (p) => E7.capillaryEval(p)
   }),
   plasma: (spec) => algebraic(spec, {
     equation: "\u03C9_p=\u221A(n e\xB2/(\u03B50 m)), \u03C9_c=eB/m",
     assumptions: "Electron mass. T is in eV for the Debye length. Chen.",
     rows: [["\u03C9_p", "wp", "rad/s"], ["\u03C9_c", "wc", "rad/s"], ["\u03BB_D", "lamD", "m"]],
-    eval: (p) => plasmaEval(p)
+    eval: (p) => E7.plasmaEval(p)
   }),
   supercon: (spec) => algebraic(spec, {
     equation: "\u03BA=\u03BB/\u03BE",
     assumptions: "Ginzburg\u2013Landau. typeII=1 when \u03BA>1/\u221A2. Tinkham.",
     rows: [["\u03BA", "kappa"], ["II", "typeII"]],
-    eval: (p) => superconEval(p)
+    eval: (p) => E7.superconEval(p)
   }),
   magnetism: (spec) => algebraic(spec, {
     equation: "kT_C=(2/3) z J S(S+1), z=6, S=1/2",
     assumptions: "k_B=1. Anisotropy K is reported separately and is not folded into T_C.",
     rows: [["T_C", "Tc"], ["K", "K"]],
-    eval: (p) => magnetismEval(p)
+    eval: (p) => E7.magnetismEval(p)
   }),
   semiconductor: (spec) => algebraic(spec, {
     equation: "V_bi=(kT/q) ln(Nd\xB2/ni\xB2)",
     assumptions: "300 K, Na=Nd, ni=1e10 cm^{\u22123}. Nd is in cm^{\u22123}. dE is the band offset in eV.",
     rows: [["Vbi", "Vbi", "V"], ["\u0394E", "dE", "eV"]],
-    eval: (p) => semiconductorEval(p)
+    eval: (p) => E7.semiconductorEval(p)
   }),
   topo: (spec) => algebraic(spec, {
     equation: "\u03C3_xy/(e\xB2/h)=C",
     assumptions: "Integer quantum Hall. Edge channels equal |C| only when the boundary knob is on.",
     rows: [["\u03C3", "sigma"], ["edge", "edge"]],
-    eval: (p) => topoEval(p)
-  }),
+    eval: (p) => E7.topoEval(p)
+  })
+};
+
+// js/models/fam/builders-discrete.js
+var E8 = { ...evals_mechanics_exports, ...evals_waves_exports, ...evals_thermo_exports, ...evals_em_exports, ...evals_quantum_exports, ...evals_structures_exports, ...evals_fluids_exports, ...evals_discrete_exports };
+var BUILDERS_DISCRETE = {
   sort: (spec) => algebraic(spec, {
     equation: "insertion-sort comparisons",
     assumptions: "CLRS insertion sort. The array is 0..n\u22121 with a reversed prefix of length (1\u2212sortedness)\xB7n. n is capped at 256.",
     rows: [["comps", "comps"]],
     eval: (p) => {
-      const comps = insertionComps(P(p, "n", 16), P(p, "sortedness", 0));
+      const comps = E8.insertionComps(P(p, "n", 16), P(p, "sortedness", 0));
       return { val: comps, comps };
     }
   }),
@@ -7122,7 +7574,7 @@ var BUILDERS = {
     assumptions: "collide selects the strategy: 0 linear worst case, 1 binary worst case, 2 interpolation average for uniform keys (CLRS).",
     rows: [["probes", "probes"]],
     eval: (p) => {
-      const probes = searchProbes(P(p, "n", 32), P(p, "collide", 0));
+      const probes = E8.searchProbes(P(p, "n", 32), P(p, "collide", 0));
       return { val: probes, probes };
     }
   }),
@@ -7131,7 +7583,7 @@ var BUILDERS = {
     assumptions: "CLRS BFS. Nodes are capped at 48. Chord i\u2014i+2 exists for the first floor(p(n\u22122)) vertices.",
     rows: [["dist", "dist"]],
     eval: (p) => {
-      const dist = bfsDist(P(p, "n", 10), P(p, "p", 0));
+      const dist = E8.bfsDist(P(p, "n", 10), P(p, "p", 0));
       return { val: dist, dist };
     }
   }),
@@ -7140,7 +7592,7 @@ var BUILDERS = {
     assumptions: "CLRS Dijkstra. Nonnegative weights. Distance to the last node is (n\u22121)\xB7w, computed by the algorithm.",
     rows: [["dist", "dist"]],
     eval: (p) => {
-      const dist = dijkstraDist(P(p, "n", 10), P(p, "wSpread", 1));
+      const dist = E8.dijkstraDist(P(p, "n", 10), P(p, "wSpread", 1));
       return { val: dist, dist };
     }
   }),
@@ -7149,7 +7601,7 @@ var BUILDERS = {
     assumptions: "CLRS Kruskal. Path edges weigh 3. Chords i\u2014i+2 weigh 1 for the first floor(p(n\u22122)) indices. n\u226440.",
     rows: [["weight", "weight"]],
     eval: (p) => {
-      const weight = mstWeight(P(p, "n", 12), P(p, "p", 0));
+      const weight = E8.mstWeight(P(p, "n", 12), P(p, "p", 0));
       return { val: weight, weight };
     }
   }),
@@ -7158,7 +7610,7 @@ var BUILDERS = {
     assumptions: "CLRS KMP. Pattern is a\u2026ab of length m. Text is a\u2026a of length n. Lengths are capped.",
     rows: [["comps", "comps"]],
     eval: (p) => {
-      const comps = kmpComparisons(P(p, "m", 4), P(p, "n", 50));
+      const comps = E8.kmpComparisons(P(p, "m", 4), P(p, "n", 50));
       return { val: comps, comps };
     }
   }),
@@ -7167,7 +7619,7 @@ var BUILDERS = {
     assumptions: "CLRS. Item i has weight (i mod 5)+1 and value (i mod 3)+1. n\u226432, capacity\u226480.",
     rows: [["value", "value"]],
     eval: (p) => {
-      const value = knapsack(P(p, "n", 8), P(p, "cap", 10));
+      const value = E8.knapsack(P(p, "n", 8), P(p, "cap", 10));
       return { val: value, value };
     }
   }),
@@ -7176,7 +7628,7 @@ var BUILDERS = {
     assumptions: "Sequential insertion degenerates a BST. AVL height is the balanced bound. B-tree minimum degree is `order` (CLRS).",
     rows: [["h_BST", "hBst"], ["h_AVL", "hAvl"], ["h_B", "hB"]],
     eval: (p) => {
-      const h = treeHeights(P(p, "n", 20), P(p, "order", 2));
+      const h = E8.treeHeights(P(p, "n", 20), P(p, "order", 2));
       return { val: h.hAvl, ...h };
     }
   }),
@@ -7195,7 +7647,7 @@ var BUILDERS = {
     assumptions: "CLRS. Unions join i with i+1. The readout is the parent-access count.",
     rows: [["ops", "ops"]],
     eval: (p) => {
-      const ops = ufOps(P(p, "n", 32));
+      const ops = E8.ufOps(P(p, "n", 32));
       return { val: ops, ops };
     }
   }),
@@ -7204,7 +7656,7 @@ var BUILDERS = {
     assumptions: "CLRS sift-down heapify of n, n\u22121, \u2026, 1. n\u2264300.",
     rows: [["comps", "comps"]],
     eval: (p) => {
-      const comps = heapComps(P(p, "n", 20));
+      const comps = E8.heapComps(P(p, "n", 20));
       return { val: comps, comps };
     }
   }),
@@ -7289,7 +7741,7 @@ var BUILDERS = {
     initial: ["seed"],
     rows: [["pop", "pop"]],
     eval: (p) => {
-      const pop = caPopulation(P(p, "rule", 0), P(p, "seed", 1));
+      const pop = E8.caPopulation(P(p, "rule", 0), P(p, "seed", 1));
       return { val: pop, pop };
     }
   }),
@@ -7298,7 +7750,7 @@ var BUILDERS = {
     assumptions: "Height above thresh sends one grain to each neighbor. The first floor(p\xB716) sites start at threshold.",
     rows: [["topples", "topples"]],
     eval: (p) => {
-      const topples = sandTopples(P(p, "p", 0), P(p, "thresh", 2));
+      const topples = E8.sandTopples(P(p, "p", 0), P(p, "thresh", 2));
       return { val: topples, topples };
     }
   }),
@@ -7348,7 +7800,7 @@ var BUILDERS = {
     assumptions: "Eight fixed 1D points. metric 0 is squared distance, metric\u22651 is absolute distance with a median update.",
     rows: [["inertia", "inertia"]],
     eval: (p) => {
-      const inertia = kmeansInertia(P(p, "k", 2), P(p, "metric", 0));
+      const inertia = E8.kmeansInertia(P(p, "k", 2), P(p, "metric", 0));
       return { val: inertia, inertia };
     }
   }),
@@ -7357,7 +7809,7 @@ var BUILDERS = {
     assumptions: "2\xD72 covariance of a stated cloud. k\u22652 keeps both components. nn is the sample count. t-SNE is not computed.",
     rows: [["fraction", "fraction"]],
     eval: (p) => {
-      const fraction = pcaFraction(P(p, "k", 2), P(p, "nn", 10));
+      const fraction = E8.pcaFraction(P(p, "k", 2), P(p, "nn", 10));
       return { val: fraction, fraction };
     }
   }),
@@ -7366,7 +7818,7 @@ var BUILDERS = {
     assumptions: "Identical weights 0.1. act 0 ReLU, 1 tanh, 2 sigmoid, else linear. Not a trained model.",
     rows: [["y", "y"]],
     eval: (p) => {
-      const y = nnForward(P(p, "layers", 1), P(p, "width", 4), P(p, "act", 0));
+      const y = E8.nnForward(P(p, "layers", 1), P(p, "width", 4), P(p, "act", 0));
       return { val: y, y };
     }
   }),
@@ -7484,7 +7936,7 @@ var BUILDERS = {
   }),
   pubkey: (spec) => algebraic(spec, {
     equation: "c=m^e mod n, toy primes",
-    assumptions: "Classroom RSA. Primes are the largest primes at most 2^{k} and the next lower prime, k=clamp(bits/4,8,16). e=65537, m=42. Not a secure key.",
+    assumptions: "Classroom RSA toy only (not a secure key). Fixed constants: e=65537, plaintext m=42; primes = largest \u22642^k and next lower, k=clamp(bits/4,8,16). No padding, no CRT, no real entropy.",
     rows: [["c", "c"], ["n", "n"]],
     eval: (p) => {
       const bits = P(p, "bits", 64);
@@ -7532,7 +7984,7 @@ var BUILDERS = {
     assumptions: "Cover & Thomas. Binary entropy. Real AWGN spectral efficiency at the stated SNR in dB, bandwidth 1 Hz.",
     rows: [["H", "H", "bit"], ["C", "C", "bit"]],
     eval: (p) => {
-      const H = binaryEntropy2(P(p, "p", 0.5));
+      const H = E8.binaryEntropy(P(p, "p", 0.5));
       const snr = 10 ** (P(p, "snr", 0) / 10);
       const cap = 0.5 * Math.log2(1 + snr);
       return { val: H, H, C: cap };
@@ -7543,7 +7995,7 @@ var BUILDERS = {
     assumptions: "Zipf masses \u221D1/i. Huffman redundancy is less than 1 bit (Cover & Thomas). n=min(dict,512).",
     rows: [["H", "H", "bit"], ["L_hi", "Lhi", "bit"]],
     eval: (p) => {
-      const H = zipfEntropy(P(p, "dict", 16));
+      const H = E8.zipfEntropy(P(p, "dict", 16));
       return { val: H, H, Lhi: H + 1 };
     }
   }),
@@ -7562,7 +8014,7 @@ var BUILDERS = {
     assumptions: "Job i arrives at i\xB7arrival and runs for `burst`. Silberschatz.",
     rows: [["wait", "wait"]],
     eval: (p) => {
-      const wait = fcfsWait(P(p, "arrival", 0), P(p, "burst", 1));
+      const wait = E8.fcfsWait(P(p, "arrival", 0), P(p, "burst", 1));
       return { val: wait, wait };
     }
   }),
@@ -7603,7 +8055,7 @@ var BUILDERS = {
     assumptions: "Mathis et al. 1997, MSS=1460 bytes, bw in Mbps, rtt in ms. Zero loss returns bw.",
     rows: [["rate", "rate", "Mbps"]],
     eval: (p) => {
-      const rate = tcpMbps(P(p, "bw", 1), P(p, "rtt", 20), P(p, "loss", 0));
+      const rate = E8.tcpMbps(P(p, "bw", 1), P(p, "rtt", 20), P(p, "loss", 0));
       return { val: rate, rate };
     }
   }),
@@ -7612,7 +8064,7 @@ var BUILDERS = {
     assumptions: "Path graph, every hop weighs `cost`. CLRS.",
     rows: [["dist", "dist"]],
     eval: (p) => {
-      const dist = dijkstraDist(P(p, "n", 6), P(p, "cost", 1));
+      const dist = E8.dijkstraDist(P(p, "n", 6), P(p, "cost", 1));
       return { val: dist, dist };
     }
   }),
@@ -7758,7 +8210,7 @@ var BUILDERS = {
     assumptions: "Hennessy & Patterson. Capacity, block, and associativity define the sets. The scan is at most 2048 references.",
     rows: [["hit", "hit"]],
     eval: (p) => {
-      const hit = cacheHitRate(P(p, "cap", 16), P(p, "block", 4), P(p, "assoc", 1));
+      const hit = E8.cacheHitRate(P(p, "cap", 16), P(p, "block", 4), P(p, "assoc", 1));
       return { val: hit, hit };
     }
   }),
@@ -7776,7 +8228,7 @@ var BUILDERS = {
     assumptions: "Smith 2-bit counters on 64 phase-shifted loops. hist is the taken-run length. A table smaller than 64 aliases PCs.",
     rows: [["mis", "mis"]],
     eval: (p) => {
-      const mis = branchMisrate(P(p, "hist", 2), P(p, "table", 64));
+      const mis = E8.branchMisrate(P(p, "hist", 2), P(p, "table", 64));
       return { val: mis, mis };
     }
   }),
@@ -7977,222 +8429,186 @@ var BUILDERS = {
       return { val: tau, tau, jitter: P(p, "jitter", 0) };
     }
   }),
-  axial: (spec) => algebraic(spec, {
-    equation: "\u03C3=F/A",
-    assumptions: "Uniform uniaxial stress. Hibbeler.",
-    rows: [["\u03C3", "sigma", "Pa"]],
-    eval: (p) => axialEval(p)
-  }),
-  "beam-bend": (spec) => algebraic(spec, {
-    equation: "M=P L/4, \u03B4=P L\xB3/(48 EI)",
-    assumptions: "Simply supported, center point load, Euler\u2013Bernoulli.",
-    rows: [["M", "M", "N\xB7m"], ["\u03B4", "delta", "m"], ["M/EI", "curvature", "1/m"]],
-    eval: (p) => beamBendEval(p)
-  }),
-  "beam-defl": (spec) => algebraic(spec, {
-    equation: "residual=\u03B4\u2212\u03B8/2 on a unit length",
-    assumptions: "Pure end moment on a beam of length 1: the tip values satisfy \u03B4=\u03B8 L/2. The residual is that check.",
-    rows: [["resid", "residual"], ["\u03B4", "delta"], ["\u03B8", "theta"]],
-    eval: (p) => beamDeflEval(p)
-  }),
-  buckling: (spec) => algebraic(spec, {
-    equation: "Pcr=\u03C0\xB2 EI/L\xB2",
-    assumptions: "Pinned\u2013pinned Euler column. Hibbeler.",
-    rows: [["Pcr", "Pcr", "N"]],
-    eval: (p) => bucklingEval(p)
-  }),
-  torsion: (spec) => algebraic(spec, {
-    equation: "\u03C4=16 T/(\u03C0 d\xB3)",
-    assumptions: "Solid circular shaft. Hibbeler.",
-    rows: [["\u03C4", "tau", "Pa"]],
-    eval: (p) => torsionEval(p)
-  }),
-  combined: (spec) => algebraic(spec, {
-    equation: "\u03C31=\u03C3x/2+\u221A((\u03C3x/2)\xB2+\u03C4\xB2), \u03C3x=N+M, \u03C4=T",
-    assumptions: "Section moduli normalized to 1 in the catalog units.",
-    rows: [["\u03C31", "s1"], ["\u03C3x", "sx"]],
-    eval: (p) => combinedEval(p)
-  }),
-  truss: (spec) => algebraic(spec, {
-    equation: "i=b\u2212(2j\u22123)",
-    assumptions: "Plane-truss Maxwell count. Positive i is indeterminate; negative i is a mechanism.",
-    rows: [["i", "indeterminacy"]],
-    eval: (p) => trussEval(p)
-  }),
-  frame: (spec) => algebraic(spec, {
-    equation: "drift=1/k under a unit load",
-    assumptions: "Stated story stiffness. Aspect ratio is span/story.",
-    rows: [["drift", "drift"], ["aspect", "aspect"]],
-    eval: (p) => frameEval(p)
-  }),
   "struct-dyn": (spec) => algebraic(spec, {
     equation: "\u03C9n=\u221A(k/m), \u03B6=c/(2\u221A(km))",
     assumptions: "Viscously damped SDOF. Chopra / Hibbeler.",
     rows: [["\u03C9n", "wn", "rad/s"], ["\u03B6", "zeta"]],
-    eval: (p) => sdofEval(p)
+    eval: (p) => E8.sdofEval(p)
   }),
   seismic: (spec) => algebraic(spec, {
     equation: "u_amp=pga/(2\u03B6)",
     assumptions: "Harmonic base acceleration at resonance. Not a design spectrum. Chopra.",
     rows: [["amp", "amp"]],
-    eval: (p) => seismicEval(p)
+    eval: (p) => E8.seismicEval(p)
   }),
   "pipe-flow": (spec) => algebraic(spec, {
     equation: "f=64/Re (laminar) or Swamee\u2013Jain",
     assumptions: "Darcy friction factor. eps is relative roughness \u03B5/D. Laminar below Re=2300.",
     rows: [["f", "f"]],
-    eval: (p) => darcyEval(p)
+    eval: (p) => E8.darcyEval(p)
   }),
   "open-channel": (spec) => algebraic(spec, {
     equation: "y=(Q n / \u221AS)^{3/5}",
     assumptions: "SI Manning, unit width, hydraulic radius equal to depth.",
     rows: [["y", "y", "m"]],
-    eval: (p) => manningEval(p)
+    eval: (p) => E8.manningEval(p)
   }),
   weir: (spec) => algebraic(spec, {
     equation: "Q=(2/3) b \u221A(2g) H^{3/2}",
     assumptions: "Ideal sharp-crested weir, Cd=1. b is the opening knob. g=9.81.",
     rows: [["Q", "Q", "m\xB3/s"]],
-    eval: (p) => weirEval(p)
+    eval: (p) => E8.weirEval(p)
   }),
   "pump-fan": (spec) => algebraic(spec, {
     equation: "Q/Qref=(rpm/1450)\xB7units, H/Href=(rpm/1450)\xB2",
     assumptions: "Affinity laws about 1450 rpm. Qref=1 per machine.",
     rows: [["Q", "Q"], ["H", "H"]],
-    eval: (p) => pumpEval(p)
+    eval: (p) => E8.pumpEval(p)
   }),
   hx: (spec) => algebraic(spec, {
     equation: "UA=U A",
     assumptions: "Terminal temperatures are not in the catalog, so LMTD is not invented. The conductance is UA.",
     rows: [["UA", "UA", "W/K"]],
-    eval: (p) => hxEval(p)
+    eval: (p) => E8.hxEval(p)
   }),
   "conv-eng": (spec) => algebraic(spec, {
     equation: "q=h\xB71 K; Nu=0.664 Re^{1/2} Pr^{1/3}",
     assumptions: "Same Newton and Blasius relations as the convection family. Incropera.",
     rows: [["q", "q", "W/m\xB2"], ["h_Bl", "hBl", "W/(m\xB2K)"]],
-    eval: (p) => convEngEval(p)
+    eval: (p) => E8.convEngEval(p)
   }),
   "rad-eng": (spec) => algebraic(spec, {
     equation: "q=\u03B5 \u03C3 T\u2074, F12=1",
     assumptions: "Infinite parallel plates, view factor 1, enclosure at 0 K. Incropera.",
     rows: [["q", "q", "W/m\xB2"]],
-    eval: (p) => radEngEval(p)
+    eval: (p) => E8.radEngEval(p)
   }),
   "thermo-cycle": (spec) => algebraic(spec, {
     equation: "\u03B7=1\u2212rp^{(1\u2212\u03B3)/\u03B3}, rp=P/(1 bar), \u03B3=1.4",
-    assumptions: "Ideal-gas Brayton with the low side at 1 bar. Carnot uses Tc=298.15 K. Not a steam table.",
+    assumptions: "Ideal-gas Brayton. Fixed \u03B3=1.4 (cold air); rp=P/(1 bar) with P_low=1 bar. \u03B3 is not a live knob (\xC7engel & Boles).",
     rows: [["\u03B7_B", "etaB"], ["\u03B7_C", "etaC"]],
-    eval: (p) => thermoCycleEval(p)
+    eval: (p) => E8.thermoCycleEval(p)
   }),
   combustion: (spec) => algebraic(spec, {
     equation: "excess air=1/\u03C6\u22121",
     assumptions: "Turns. \u03C6>1 is fuel-rich and the excess-air term is negative. T is the reactant temperature, not an adiabatic flame temperature.",
     rows: [["\u03C6", "phi"], ["excess", "excess"]],
-    eval: (p) => combustionEval(p)
+    eval: (p) => E8.combustionEval(p)
   }),
   "dc-motor": (spec) => algebraic(spec, {
     equation: "\u03C9=(V\u2212TL Ra)/K, Ra=K=1",
     assumptions: "Steady separately excited machine in normalized units. Chapman.",
     rows: [["\u03C9", "omega", "rad/s"], ["I", "I", "A"]],
-    eval: (p) => motorDcEval(p)
+    eval: (p) => E8.motorDcEval(p)
   }),
   "ind-motor": (spec) => algebraic(spec, {
     equation: "n_s=120 f/4",
     assumptions: "Four poles. Voltage is reported and does not set the synchronous speed. Chapman.",
     rows: [["n_s", "ns", "rpm"], ["V", "V", "V"]],
-    eval: (p) => motorIndEval(p)
+    eval: (p) => E8.motorIndEval(p)
   }),
   "sync-motor": (spec) => algebraic(spec, {
     equation: "P_pu=If\xB7sin \u03B4",
     assumptions: "Per-unit V=Xs=1 and Ea proportional to field current. Chapman.",
     rows: [["P", "Ppu"]],
-    eval: (p) => motorSyncEval(p)
+    eval: (p) => E8.motorSyncEval(p)
   }),
   transformer: (spec) => algebraic(spec, {
     equation: "V2/V1=1/a",
     assumptions: "Ideal transformer. load is the per-unit secondary current and does not change the voltage ratio.",
     rows: [["V2/V1", "ratio"], ["I_pu", "Ipu"]],
-    eval: (p) => transformerEval(p)
+    eval: (p) => E8.transformerEval(p)
   }),
   pe: (spec) => algebraic(spec, {
     equation: "Vout/Vin=D, \u0394i\u221DD(1\u2212D)/fs",
     assumptions: "Ideal buck converter. Erickson. Inductance in the ripple factor is 1 H.",
     rows: [["D", "duty"], ["ripple", "ripple"]],
-    eval: (p) => buckEval(p)
+    eval: (p) => E8.buckEval(p)
   }),
   powerflow: (spec) => algebraic(spec, {
     equation: "DC power flow, X=0.1 pu",
     assumptions: "Radial feeder, equal bus injections. Angle is in radians.",
     rows: [["\u03B8", "theta", "rad"], ["P", "Ptot"]],
-    eval: (p) => powerflowEval(p)
+    eval: (p) => E8.powerflowEval(p)
   }),
   stability: (spec) => algebraic(spec, {
     equation: "\u03B4=asin(0.8)+\xBD\xB70.8\xB7t_clear\xB2 during a fault",
     assumptions: "Classical machine, Pm=0.8, Pe=0 while the fault knob is positive, M=1. fault=0 keeps the pre-fault angle.",
     rows: [["\u03B4", "delta", "rad"]],
-    eval: (p) => swingEval(p)
+    eval: (p) => E8.swingEval(p)
   }),
   renewable: (spec) => algebraic(spec, {
     equation: "P_pv=0.2\xB7irr\xB71 m\xB2; P_wind=\xBD\xB71.225\xB7v\xB3\xB70.4",
     assumptions: "Stated efficiency 0.2 and Cp=0.4. Cp is below the Betz limit 16/27. Not a measured turbine curve.",
     rows: [["P_pv", "Ppv", "W"], ["P_wind", "Pwind", "W"]],
-    eval: (p) => renewableEval(p)
+    eval: (p) => E8.renewableEval(p)
   }),
   storage: (spec) => algebraic(spec, {
     equation: "hours=E/P",
     assumptions: "E in kWh and P in kW, so the ratio is hours.",
     rows: [["t", "hours", "h"]],
-    eval: (p) => storageEval(p)
+    eval: (p) => E8.storageEval(p)
   }),
   reactor: (spec) => algebraic(spec, {
     equation: "X=k\u03C4/(1+k\u03C4), \u03C4=V/v",
     assumptions: "Isothermal irreversible first-order reaction. Fogler. Xp is the PFR conversion.",
     rows: [["X_cstr", "Xc"], ["X_pfr", "Xp"]],
-    eval: (p) => cstrEval(p)
+    eval: (p) => E8.cstrEval(p)
   }),
   distill: (spec) => algebraic(spec, {
     equation: "Nmin=ln[(xD/(1\u2212xD))((1\u2212xB)/xB)]/ln \u03B1",
     assumptions: "Fenske for \u03B1=2.5, xD=0.95, xB=0.05. feed/N is the relative feed location.",
     rows: [["feed/N", "feedFrac"], ["Nmin", "Nmin"]],
-    eval: (p) => fenskeEval(p)
+    eval: (p) => E8.fenskeEval(p)
   }),
   absorb: (spec) => algebraic(spec, {
     equation: "fraction=A/(1+A), A=L/G",
     assumptions: "Single equilibrium stage, equilibrium slope m=1. Temperature is recorded and does not change m.",
     rows: [["abs", "frac"], ["T", "T", "K"]],
-    eval: (p) => absorbEval(p)
+    eval: (p) => E8.absorbEval(p)
   }),
   extract: (spec) => algebraic(spec, {
     equation: "Kremser fraction (S^{N+1}\u2212S)/(S^{N+1}\u22121)",
     assumptions: "Extraction factor S, distribution ratio 1. At S=1 the fraction is N/(N+1).",
     rows: [["frac", "frac"]],
-    eval: (p) => extractEval(p)
+    eval: (p) => E8.extractEval(p)
   }),
   hen: (spec) => algebraic(spec, {
     equation: "UA=Q/\u0394T_min",
     assumptions: "Pinch conductance scale. Linnhoff. No stream set is invented.",
     rows: [["UA", "UA"]],
-    eval: (p) => pinchEval(p)
+    eval: (p) => E8.pinchEval(p)
   }),
   drying: (spec) => algebraic(spec, {
     equation: "\u0394p=p_sat(T)(1\u2212RH)",
     assumptions: "Antoine water constants A=8.07131, B=1730.63, C=233.426, P in mmHg. The fit is for about 1\u2013100 \xB0C.",
     rows: [["\u0394p", "drive", "mmHg"]],
-    eval: (p) => dryingEval(p)
+    eval: (p) => E8.dryingEval(p)
   }),
   fluidbed: (spec) => algebraic(spec, {
     equation: "Re_mf=\u221A(33.7\xB2+0.0408 Ar)\u221233.7",
     assumptions: "Wen & Yu 1966. Air and sand \u03C1s=2500 kg/m\xB3. dp is in \u03BCm.",
     rows: [["Umf", "Umf", "m/s"], ["above", "above"]],
-    eval: (p) => fluidbedEval(p)
+    eval: (p) => E8.fluidbedEval(p)
   }),
   crystal: (spec) => algebraic(spec, {
     equation: "ln S",
     assumptions: "Supersaturation ratio. No nucleation prefactor. Mullin.",
     rows: [["ln S", "lnS"], ["T", "T", "K"]],
-    eval: (p) => crystalEval(p)
+    eval: (p) => E8.crystalEval(p)
   })
+};
+
+// js/models/fam/index.js
+var BUILDERS = {
+  ...BUILDERS_MECHANICS,
+  ...BUILDERS_WAVES,
+  ...BUILDERS_THERMO,
+  ...BUILDERS_EM,
+  ...BUILDERS_QUANTUM,
+  ...BUILDERS_STRUCTURES,
+  ...BUILDERS_FLUIDS,
+  ...BUILDERS_DISCRETE
 };
 var sineWarned = /* @__PURE__ */ new Set();
 function warnDecorativeSine(spec) {
@@ -11387,7 +11803,7 @@ function buildOpt(spec) {
       ];
     },
     getTrajectory(state) {
-      return state.hist.map((E, i) => ({ i, E }));
+      return state.hist.map((E9, i) => ({ i, E: E9 }));
     }
   };
 }

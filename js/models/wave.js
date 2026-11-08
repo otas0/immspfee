@@ -46,6 +46,7 @@ export default {
     }
     state.y[0] = 0;
     state.y[N + 1] = 0;
+    state._aBuf = null;
   },
 
   /** Keep the samples; only the physical spacing follows L. */
@@ -75,19 +76,38 @@ export default {
       return;
     }
     const dtMax = dx / (c + 1e-6);
-    const hCap = dtMax * 0.9;
+    // Undamped needs a stricter Courant fraction for the discrete energy gate.
+    const hCap = dtMax * (Math.abs(damp) > 1e-12 ? 0.9 : 0.45);
     const nSub = Math.max(1, Math.ceil(frame / hCap));
     const c2 = c * c;
     const inv = 1 / (dx * dx);
+    const undamped = !(Math.abs(damp) > 1e-12);
     let left = frame;
     for (let s = 0; s < nSub && left > 0; s += 1) {
       const h = s === nSub - 1 ? left : Math.min(left, frame / nSub);
-      for (let i = 1; i <= N; i += 1) {
-        const a = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv - damp * v[i];
-        v[i] += a * h;
-      }
-      for (let i = 1; i <= N; i += 1) {
-        y[i] += v[i] * h;
+      if (undamped) {
+        // Velocity Verlet: near-conserving when damp=0 (Pain).
+        if (!state._aBuf || state._aBuf.length !== N + 2) state._aBuf = new Float64Array(N + 2);
+        const a0 = state._aBuf;
+        for (let i = 1; i <= N; i += 1) {
+          a0[i] = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv;
+        }
+        for (let i = 1; i <= N; i += 1) {
+          y[i] += v[i] * h + 0.5 * a0[i] * h * h;
+        }
+        pinEnds();
+        for (let i = 1; i <= N; i += 1) {
+          const a1 = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv;
+          v[i] += 0.5 * (a0[i] + a1) * h;
+        }
+      } else {
+        for (let i = 1; i <= N; i += 1) {
+          const a = c2 * (y[i + 1] - 2 * y[i] + y[i - 1]) * inv - damp * v[i];
+          v[i] += a * h;
+        }
+        for (let i = 1; i <= N; i += 1) {
+          y[i] += v[i] * h;
+        }
       }
       pinEnds();
       left -= h;
