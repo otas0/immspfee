@@ -494,7 +494,12 @@ async function updateShellStrip() {
   document.getElementById('shell-assumptions')?.remove();
   document.getElementById('shell-caveat')?.remove();
   const formulaEl = ensureLine('shell-formula', 'shell-formula');
-  if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
+  if (formulaEl) {
+    // Prefer the governing equation string from famPhysics / hand models.
+    const eq = String(app.model?.equation || '').trim();
+    if (eq) formulaEl.textContent = `${t('ui.eqPrefix')} ${eq}`;
+    else formulaEl.textContent = formulaLine(loc, app.model?.formula || '');
+  }
   // 课堂模式：时钟已暂停徽章 + 恢复自动步进
   let pauseBadge = document.getElementById('shell-pause-badge');
   if (!pauseBadge) {
@@ -926,14 +931,25 @@ function makeModelButton(raw) {
   if (active) btn.setAttribute('aria-current', 'page');
   const tags = (m.tags || []).filter((t) => !DOMAIN_ORDER.includes(t)).slice(0, 2)
     .map((t) => `<span class="tag">${t}</span>`);
+  const wiredEq = !!(m.variantOf || String(m.id || '').startsWith('fam-') || m.governing);
+  if (wiredEq) {
+    const hint = t('ui.eqTagHint');
+    tags.unshift(
+      `<span class="tag eq" title="${hint}" aria-label="${hint}">${t('ui.eqTag')}</span>`,
+    );
+  }
   if (heavy) {
     const hint = t('ui.perfHeavyHint');
     tags.unshift(
       `<span class="tag heavy" title="${hint}" aria-label="${hint}">${t('ui.perfHeavy')}</span>`,
     );
     btn.setAttribute('aria-label', `${m.name}. ${hint}`);
+  } else if (wiredEq) {
+    btn.setAttribute('aria-label', `${m.name}. ${t('ui.eqTagHint')}`);
   }
-  btn.title = heavy ? `${m.name} · ${t('ui.perfHeavyHint')}` : m.name;
+  btn.title = heavy
+    ? `${m.name} · ${t('ui.perfHeavyHint')}`
+    : (wiredEq ? `${m.name} · ${t('ui.eqTagHint')}` : m.name);
   btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags.join('')}</span>`;
   btn.addEventListener('click', () => {
     switchModel(m.id);

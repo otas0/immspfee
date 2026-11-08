@@ -894,6 +894,14 @@ html.hc .model-item.active { background: #fff; color: #000; }
   color: #c45c26;
   background: color-mix(in srgb, #c45c26 14%, var(--panel-2));
 }
+.model-item .tag.eq {
+  color: #1f6a4a;
+  background: color-mix(in srgb, #1f6a4a 12%, var(--panel-2));
+}
+.model-item.active .tag.eq {
+  color: #9de0c0;
+  background: rgba(157, 224, 192, 0.18);
+}
 .filter-chip {
   appearance: none;
   /* Same left edge as .fold-bar「全部展开 / 收起」— not trailing-end. */

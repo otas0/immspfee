@@ -1659,6 +1659,9 @@ var STRINGS = {
     "ui.perfHeavyHint": "\u79FB\u52A8\u7AEF\u8FDB\u9875\u6682\u505C \xB7 \u70B9\u64AD\u653E\u7EE7\u7EED",
     "ui.perfHeavyFilter": "\u91CD\u6A21\u578B",
     "ui.perfHeavyFilterHint": "\u53EA\u663E\u793A\u79FB\u52A8\u7AEF\u91CD\u6A21\u578B\uFF08\u8FDB\u9875\u6682\u505C\uFF09",
+    "ui.eqTag": "\u65B9\u7A0B",
+    "ui.eqTagHint": "\u6559\u79D1\u4E66\u65B9\u7A0B\u5DF2\u63A5\u5165 \xB7 \u65CB\u94AE\u9A71\u52A8\u8BFB\u6570\u4E0E\u753B\u5E03",
+    "ui.eqPrefix": "\u65B9\u7A0B",
     "ui.noMatch": "\u65E0\u5339\u914D",
     "ui.namesLoading": "\u52A0\u8F7D\u540D\u79F0",
     "ui.openMenu": "\u6253\u5F00\u6A21\u578B\u5217\u8868",
@@ -1817,6 +1820,9 @@ var STRINGS = {
     "ui.perfHeavyHint": "Paused on mobile enter \u2014 tap Play",
     "ui.perfHeavyFilter": "heavy",
     "ui.perfHeavyFilterHint": "Show heavy models only (auto-pause on mobile)",
+    "ui.eqTag": "eq",
+    "ui.eqTagHint": "Textbook equations wired \u2014 knobs drive readouts and canvas",
+    "ui.eqPrefix": "Equation",
     "ui.noMatch": "no match",
     "ui.namesLoading": "loading names",
     "ui.openMenu": "Open model list",
@@ -1906,6 +1912,9 @@ var STRINGS = {
     "toast.heavyPaused": "Heavy model paused on this device \u2014 tap Play"
   },
   ja: {
+    "ui.eqTag": "\u65B9\u7A0B\u5F0F",
+    "ui.eqTagHint": "\u6559\u79D1\u66F8\u306E\u65B9\u7A0B\u5F0F\u304C\u63A5\u7D9A\u6E08\u307F",
+    "ui.eqPrefix": "\u65B9\u7A0B\u5F0F",
     "ui.search": "\u691C\u7D22",
     "ui.searchPh": "\u5206\u985E / CS / CE / formula",
     "ui.tag": "\u30BF\u30B0",
@@ -2026,6 +2035,9 @@ var STRINGS = {
     "domain.\u5176\u4ED6": "\u305D\u306E\u4ED6"
   },
   ko: {
+    "ui.eqTag": "\uBC29\uC815\uC2DD",
+    "ui.eqTagHint": "\uAD50\uACFC\uC11C \uBC29\uC815\uC2DD \uC5F0\uACB0\uB428",
+    "ui.eqPrefix": "\uBC29\uC815\uC2DD",
     "ui.search": "\uAC80\uC0C9",
     "ui.searchPh": "\uBD84\uB958 / CS / CE / formula",
     "ui.tag": "\uD0DC\uADF8",
@@ -2146,6 +2158,9 @@ var STRINGS = {
     "domain.\u5176\u4ED6": "\uAE30\uD0C0"
   },
   es: {
+    "ui.eqTag": "eq",
+    "ui.eqTagHint": "Ecuaciones de libro conectadas",
+    "ui.eqPrefix": "Ecuaci\xF3n",
     "ui.search": "buscar",
     "ui.searchPh": "sub / CS / CE / formula",
     "ui.tag": "etiqueta",
@@ -2266,6 +2281,9 @@ var STRINGS = {
     "domain.\u5176\u4ED6": "Otros"
   },
   fr: {
+    "ui.eqTag": "\xE9q",
+    "ui.eqTagHint": "\xC9quations de manuel branch\xE9es",
+    "ui.eqPrefix": "\xC9quation",
     "ui.search": "rechercher",
     "ui.searchPh": "sous / CS / CE / formula",
     "ui.tag": "\xE9tiquette",
@@ -2386,6 +2404,9 @@ var STRINGS = {
     "domain.\u5176\u4ED6": "Autre"
   },
   de: {
+    "ui.eqTag": "Gl.",
+    "ui.eqTagHint": "Lehrbuchgleichungen angebunden",
+    "ui.eqPrefix": "Gleichung",
     "ui.search": "Suche",
     "ui.searchPh": "Unter / CS / CE / formula",
     "ui.tag": "Tag",
@@ -6717,7 +6738,11 @@ async function updateShellStrip() {
   document.getElementById("shell-assumptions")?.remove();
   document.getElementById("shell-caveat")?.remove();
   const formulaEl = ensureLine("shell-formula", "shell-formula");
-  if (formulaEl) formulaEl.textContent = formulaLine(loc, app.model?.formula || "");
+  if (formulaEl) {
+    const eq = String(app.model?.equation || "").trim();
+    if (eq) formulaEl.textContent = `${t("ui.eqPrefix")} ${eq}`;
+    else formulaEl.textContent = formulaLine(loc, app.model?.formula || "");
+  }
   let pauseBadge = document.getElementById("shell-pause-badge");
   if (!pauseBadge) {
     pauseBadge = document.createElement("span");
@@ -7138,14 +7163,23 @@ function makeModelButton(raw) {
   if (heavy) btn.dataset.perfClass = "heavy";
   if (active) btn.setAttribute("aria-current", "page");
   const tags = (m.tags || []).filter((t2) => !DOMAIN_ORDER.includes(t2)).slice(0, 2).map((t2) => `<span class="tag">${t2}</span>`);
+  const wiredEq = !!(m.variantOf || String(m.id || "").startsWith("fam-") || m.governing);
+  if (wiredEq) {
+    const hint = t("ui.eqTagHint");
+    tags.unshift(
+      `<span class="tag eq" title="${hint}" aria-label="${hint}">${t("ui.eqTag")}</span>`
+    );
+  }
   if (heavy) {
     const hint = t("ui.perfHeavyHint");
     tags.unshift(
       `<span class="tag heavy" title="${hint}" aria-label="${hint}">${t("ui.perfHeavy")}</span>`
     );
     btn.setAttribute("aria-label", `${m.name}. ${hint}`);
+  } else if (wiredEq) {
+    btn.setAttribute("aria-label", `${m.name}. ${t("ui.eqTagHint")}`);
   }
-  btn.title = heavy ? `${m.name} \xB7 ${t("ui.perfHeavyHint")}` : m.name;
+  btn.title = heavy ? `${m.name} \xB7 ${t("ui.perfHeavyHint")}` : wiredEq ? `${m.name} \xB7 ${t("ui.eqTagHint")}` : m.name;
   btn.innerHTML = `<span class="name">${m.name}</span><span class="tags">${tags.join("")}</span>`;
   btn.addEventListener("click", () => {
     switchModel(m.id);
