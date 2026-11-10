@@ -5231,6 +5231,633 @@ var compoundMicroscope_default = {
   }
 };
 
+// js/models/doubleSlit.js
+var doubleSlit_default = {
+  id: "double-slit",
+  name: "\u53CC\u7F1D\u5E72\u6D89",
+  equation: "\u0394y = \u03BB L / d\uFF08\u8FDC\u573A\u5C0F\u89D2\uFF09",
+  authority: "Hecht, Optics, Young\u2019s double-slit fringe spacing",
+  assumptions: "\u8FDC\u573A\u3001\u5C0F\u89D2\u3001\u5355\u8272\u3001\u7B49\u5E45\u53CC\u7F1D\uFF1B\u975E\u5B8C\u6574\u83F2\u6D85\u8033\u884D\u5C04\u79EF\u5206",
+  fidelity: "engineering",
+  params: {
+    lambda: 55e-8,
+    L: 1,
+    d: 2e-4,
+    showEnvelope: 1
+  },
+  paramSchema: {
+    lambda: { group: "dynamics", unit: "m", label: "\u6CE2\u957F \u03BB", min: 4e-7, max: 7e-7 },
+    L: { group: "dynamics", unit: "m", label: "\u5C4F\u8DDD L", min: 0.2, max: 3 },
+    d: { group: "dynamics", unit: "m", label: "\u7F1D\u8DDD d", min: 5e-5, max: 1e-3 },
+    showEnvelope: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u793A\u610F\u6761\u7EB9",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const lambda = P(state.params, "lambda", 55e-8);
+    const L = P(state.params, "L", 1);
+    const d = Math.max(1e-6, P(state.params, "d", 2e-4));
+    state.dy = finiteOr(lambda * L / d, 0);
+    state.y = state.dy;
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.dy);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 40, r: 28, t: 44, b: 36 };
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("\u0394y = \u03BB L / d", 14, 22);
+    const plotW = W - pad.l - pad.r;
+    const mid = pad.t + (H - pad.t - pad.b) * 0.55;
+    const dyPx = Math.min(plotW * 0.45, Math.max(8, state.dy * 8e3));
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, mid);
+    ctx.lineTo(pad.l + plotW, mid);
+    ctx.stroke();
+    if (Math.round(P(state.params, "showEnvelope", 1)) === 1) {
+      ctx.strokeStyle = C.body;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i <= 120; i += 1) {
+        const x = pad.l + i / 120 * plotW;
+        const u = (i / 120 - 0.5) * plotW;
+        const I = Math.cos(Math.PI * u / Math.max(1, dyPx)) ** 2;
+        const y = mid - I * (H - pad.t - pad.b) * 0.35;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    ctx.fillStyle = C.accent;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`\u0394y=${formatNum(state.dy * 1e3, 3)} mm`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "\u0394y", value: `${formatNum(state.dy * 1e3, d)} mm` },
+      { label: "\u03BB", value: `${formatNum(P(state.params, "lambda", 55e-8) * 1e9, d)} nm` },
+      { label: "L", value: `${formatNum(P(state.params, "L", 1), d)} m` },
+      { label: "d", value: `${formatNum(P(state.params, "d", 2e-4) * 1e3, d)} mm` }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, dy: v }));
+  }
+};
+
+// js/models/singleSlit.js
+var singleSlit_default = {
+  id: "single-slit",
+  name: "\u5355\u7F1D\u884D\u5C04",
+  equation: "\u7B2C\u4E00\u6781\u5C0F\uFF1Aa sin\u03B8 = \u03BB",
+  authority: "Hecht, Optics, single-slit Fraunhofer minimum",
+  assumptions: "\u592B\u7405\u79BE\u8D39\u8FDC\u573A\u3001\u5355\u8272\uFF1B\u53EA\u62A5\u7B2C\u4E00\u6781\u5C0F\u89D2\uFF0C\u4E0D\u662F\u5B8C\u6574\u5305\u7EDC\u79EF\u5206",
+  fidelity: "engineering",
+  params: {
+    a: 1e-4,
+    lambda: 55e-8,
+    showPattern: 1
+  },
+  paramSchema: {
+    a: { group: "dynamics", unit: "m", label: "\u7F1D\u5BBD a", min: 2e-5, max: 5e-4 },
+    lambda: { group: "dynamics", unit: "m", label: "\u6CE2\u957F \u03BB", min: 4e-7, max: 7e-7 },
+    showPattern: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u793A\u610F\u5305\u7EDC",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const a = Math.max(1e-6, P(state.params, "a", 1e-4));
+    const lambda = P(state.params, "lambda", 55e-8);
+    const arg = Math.min(1, lambda / a);
+    state.th = finiteOr(Math.asin(arg), 0);
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.th);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 40, r: 28, t: 44, b: 36 };
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("a sin\u03B8 = \u03BB", 14, 22);
+    const plotW = W - pad.l - pad.r;
+    const mid = pad.t + (H - pad.t - pad.b) * 0.55;
+    const thDeg = state.th * 180 / Math.PI;
+    if (Math.round(P(state.params, "showPattern", 1)) === 1) {
+      ctx.strokeStyle = C.body;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i <= 120; i += 1) {
+        const x = pad.l + i / 120 * plotW;
+        const beta = (i / 120 - 0.5) * 8;
+        const I = beta === 0 ? 1 : (Math.sin(beta) / beta) ** 2;
+        const y = mid - I * (H - pad.t - pad.b) * 0.38;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      const xMin = pad.l + plotW * 0.5 + state.th / 0.05 * (plotW * 0.2);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = C.theory || "#7c9cbf";
+      ctx.beginPath();
+      ctx.moveTo(xMin, pad.t);
+      ctx.lineTo(xMin, pad.t + (H - pad.t - pad.b));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle = C.accent;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`\u03B8\u2081=${formatNum(thDeg, 3)}\xB0`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "\u03B8", value: `${formatNum(state.th * 180 / Math.PI, d)} \xB0` },
+      { label: "a", value: `${formatNum(P(state.params, "a", 1e-4) * 1e3, d)} mm` },
+      { label: "\u03BB", value: `${formatNum(P(state.params, "lambda", 55e-8) * 1e9, d)} nm` }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, th: v }));
+  }
+};
+
+// js/models/standingWave.js
+var standingWave_default = {
+  id: "standing-wave",
+  name: "\u9A7B\u6CE2/\u5171\u632F",
+  equation: "y = 2A sin(kx) cos(\u03C9t)",
+  authority: "Halliday / French, standing wave on a string",
+  assumptions: "\u7B49\u5E45\u76F8\u5411\u884C\u6CE2\u3001\u7406\u60F3\u8FB9\u754C\uFF1B\u4E00\u7EF4\u793A\u610F\uFF0C\u975E\u4E09\u7EF4\u58F0\u573A",
+  fidelity: "engineering",
+  params: {
+    A: 0.01,
+    k: Math.PI,
+    w: 6,
+    showNodes: 1
+  },
+  paramSchema: {
+    A: { group: "dynamics", unit: "m", label: "\u632F\u5E45 A", min: 0, max: 0.05 },
+    k: { group: "dynamics", unit: "1/m", label: "\u6CE2\u6570 k", min: 0.5, max: 12 },
+    w: { group: "dynamics", unit: "rad/s", label: "\u89D2\u9891 \u03C9", min: 0.5, max: 20 },
+    showNodes: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u8282\u70B9\u6807\u8BB0",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const A = P(state.params, "A", 0.01);
+    const k = P(state.params, "k", Math.PI);
+    const w = P(state.params, "w", 6);
+    state.y = finiteOr(2 * A * Math.sin(k * 0.5) * Math.cos(w * state.t), 0);
+    state.nodes = Math.max(0, Math.floor(k / Math.PI));
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.y);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 36, r: 24, t: 44, b: 28 };
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+    const mid = pad.t + plotH * 0.5;
+    const A = P(state.params, "A", 0.01);
+    const k = P(state.params, "k", Math.PI);
+    const w = P(state.params, "w", 6);
+    const amp = Math.max(1e-6, 2 * A);
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("y = 2A sin(kx) cos(\u03C9t)", 14, 22);
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, mid);
+    ctx.lineTo(pad.l + plotW, mid);
+    ctx.stroke();
+    ctx.strokeStyle = C.body;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i += 1) {
+      const x = i / 100;
+      const y = 2 * A * Math.sin(k * x) * Math.cos(w * state.t);
+      const X = pad.l + x * plotW;
+      const Y = mid - y / amp * plotH * 0.4;
+      i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    if (Math.round(P(state.params, "showNodes", 1)) === 1) {
+      ctx.fillStyle = C.accent;
+      for (let n = 0; n <= Math.ceil(k / Math.PI); n += 1) {
+        const x = n * Math.PI / Math.max(1e-6, k);
+        if (x < 0 || x > 1) continue;
+        const X = pad.l + x * plotW;
+        ctx.beginPath();
+        ctx.arc(X, mid, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = C.muted;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`y(0.5)=${formatNum(state.y, 3)} m`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "y", value: `${formatNum(state.y, d)} m` },
+      { label: "A", value: `${formatNum(P(state.params, "A", 0.01), d)} m` },
+      { label: "k", value: `${formatNum(P(state.params, "k", Math.PI), d)} 1/m` },
+      { label: "\u03C9", value: `${formatNum(P(state.params, "w", 6), d)} rad/s` }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, y: v }));
+  }
+};
+
+// js/models/crcHamming.js
+var crcHamming_default = {
+  id: "crc-hamming",
+  name: "\u5DEE\u9519\u68C0\u6D4B CRC/\u6C49\u660E\u7801",
+  equation: "d_H(u,v)=\u03A3|u_i\u2212v_i|\uFF1B\u7EA0 1 \u9519\u9700\u6821\u9A8C\u4F4D\u6570 r\uFF0C2^r \u2265 m+r+1",
+  authority: "Lin & Costello, Error Control Coding, Hamming distance / parity-bit bound",
+  assumptions: "\u4E8C\u5143\u7801\u5B57\uFF1B\u53EA\u8BA1\u7B97\u6C49\u660E\u8DDD\u79BB\u4E0E\u5355\u9519\u6821\u9A8C\u4F4D\u6570\u4E0B\u754C\uFF0C\u4E0D\u662F CRC \u591A\u9879\u5F0F\u5B9E\u73B0\u4E5F\u4E0D\u662F\u7F16\u89E3\u7801\u5668",
+  fidelity: "principle",
+  params: {
+    m: 7,
+    flips: 1,
+    showBound: 1
+  },
+  paramSchema: {
+    m: { group: "dynamics", unit: "\u2014", label: "\u7801\u957F m", min: 3, max: 31 },
+    flips: { group: "dynamics", unit: "\u2014", label: "\u7FFB\u8F6C\u4F4D\u6570", min: 0, max: 8 },
+    showBound: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u793A\u610F\u6821\u9A8C\u4F4D",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const m = Math.max(1, Math.round(P(state.params, "m", 7)));
+    const flips = Math.max(0, Math.min(m, Math.round(P(state.params, "flips", 1))));
+    state.dH = flips;
+    let r = 0;
+    while (2 ** r < m + r + 1) r += 1;
+    state.r = r;
+    state.m = m;
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.dH);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("d_H \xB7 Hamming parity bound", 14, 22);
+    const m = state.m || 7;
+    const flips = state.dH || 0;
+    const cell = Math.min(28, (W - 48) / m);
+    const y0 = H * 0.42;
+    for (let i = 0; i < m; i += 1) {
+      const x = 28 + i * cell;
+      const flipped = i < flips;
+      ctx.fillStyle = flipped ? C.accent : C.body;
+      ctx.fillRect(x, y0, cell * 0.75, 22);
+      ctx.fillStyle = C.muted;
+      ctx.font = "10px IBM Plex Mono, monospace";
+      ctx.fillText(flipped ? "1" : "0", x + 4, y0 + 38);
+    }
+    if (Math.round(P(state.params, "showBound", 1)) === 1) {
+      ctx.fillStyle = C.theory || "#7c9cbf";
+      ctx.font = "12px IBM Plex Mono, monospace";
+      ctx.fillText(`r \u2265 ${state.r}  so  2^r \u2265 m+r+1`, 28, y0 + 70);
+    }
+    ctx.fillStyle = C.accent;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`d_H=${formatNum(state.dH, 0)}  r=${formatNum(state.r, 0)}`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "d_H", value: formatNum(state.dH, 0) },
+      { label: "r", value: formatNum(state.r, 0) },
+      { label: "m", value: formatNum(state.m, 0) }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, dH: v }));
+  }
+};
+
+// js/models/avlTree.js
+var avlTree_default = {
+  id: "avl-tree",
+  name: "\u5E73\u8861\u6811 AVL/\u7EA2\u9ED1",
+  equation: "AVL\uFF1Ah \u2264 \u230A1.4404 log\u2082(n+2) \u2212 0.3277\u230B",
+  authority: "Cormen et al., Introduction to Algorithms (CLRS), AVL height bound; Knuth Art of Computer Programming \xA76.2.3",
+  assumptions: "\u53EA\u7ED9\u51FA\u6700\u574F\u9AD8\u5EA6\u4E0A\u754C\u4E0E\u5E73\u8861\u56E0\u5B50 |bf|\u22641 \u7684\u5B9A\u4E49\u793A\u610F\uFF1B\u4E0D\u662F\u65CB\u8F6C\u52A8\u753B\u5B9E\u73B0\u4E5F\u4E0D\u662F\u7EA2\u9ED1\u6811\u8BC1\u660E",
+  fidelity: "principle",
+  params: {
+    n: 31,
+    showBound: 1
+  },
+  paramSchema: {
+    n: { group: "dynamics", unit: "\u2014", label: "\u7ED3\u70B9\u6570 n", min: 1, max: 1e4 },
+    showBound: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u793A\u610F\u5C42\u6570",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const n = Math.max(1, Math.round(P(state.params, "n", 31)));
+    const h = Math.floor(1.4404 * Math.log2(n + 2) - 0.3277);
+    state.n = n;
+    state.h = finiteOr(Math.max(0, h), 0);
+    state.hUnbal = finiteOr(Math.max(0, Math.floor(Math.log2(n))), 0);
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.h);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 40, r: 28, t: 48, b: 28 };
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("AVL height bound", 14, 22);
+    const levels = Math.max(1, state.h + 1);
+    const plotH = H - pad.t - pad.b;
+    for (let L = 0; L < levels; L += 1) {
+      const y = pad.t + L / Math.max(1, levels - 1 || 1) * plotH * 0.85;
+      const count = Math.min(16, 2 ** L);
+      const gap = (W - pad.l - pad.r) / (count + 1);
+      ctx.fillStyle = C.body;
+      for (let i = 0; i < count; i += 1) {
+        const x = pad.l + (i + 1) * gap;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = C.accent;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`h\u2264${formatNum(state.h, 0)}  (unbalanced ~${formatNum(state.hUnbal, 0)})`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    return [
+      { label: "h_max", value: formatNum(state.h, 0) },
+      { label: "n", value: formatNum(state.n, 0) },
+      { label: "h_raw", value: formatNum(state.hUnbal, 0) }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, h: v }));
+  }
+};
+
+// js/models/turingMachine.js
+var turingMachine_default = {
+  id: "turing",
+  name: "\u56FE\u7075\u673A",
+  equation: "\u5355\u5E26\u626B\u63CF\uFF1A\u81F3\u591A n \u6B65\u5199\u5B8C\u957F\u5EA6 n \u7684\u8F93\u5165\uFF08\u6559\u5B66\u4E0A\u754C\uFF09",
+  authority: "Sipser, Introduction to the Theory of Computation, Turing machine definition",
+  assumptions: "\u5355\u5E26\u3001\u5355\u5934\u3001\u786E\u5B9A\u6027\uFF1B\u53EA\u7EDF\u8BA1\u626B\u63CF\u4E0A\u754C\u4E0E\u5F53\u524D\u5934\u4F4D\u7F6E\uFF0C\u4E0D\u662F\u901A\u7528\u56FE\u7075\u673A\u6A21\u62DF\u5668\u4E5F\u4E0D\u662F\u505C\u673A\u5224\u5B9A",
+  fidelity: "principle",
+  params: {
+    n: 16,
+    head: 0,
+    mode: 1
+  },
+  paramSchema: {
+    n: { group: "dynamics", unit: "\u2014", label: "\u5E26\u957F n", min: 4, max: 64 },
+    head: { group: "initial", unit: "\u2014", label: "\u5934\u4F4D\u7F6E", min: 0, max: 63 },
+    mode: {
+      group: "dynamics",
+      unit: "\u2014",
+      label: "\u626B\u63CF(1)/\u505C(0)",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u626B\u63CF" }, { value: 0, label: "\u505C\u6B62" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.pos = Math.max(0, Math.round(P(state.params, "head", 0)));
+    state.steps = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const n = Math.max(1, Math.round(P(state.params, "n", 16)));
+    state.n = n;
+    state.bound = n;
+    state.pos = Math.max(0, Math.min(n - 1, state.pos | 0));
+  },
+  step(state, dt) {
+    const n = Math.max(1, Math.round(P(state.params, "n", 16)));
+    const run = P(state.params, "mode", 1) >= 0.5;
+    if (run) {
+      state.pos = (state.pos + 1) % n;
+      state.steps += 1;
+    }
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.pos);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const n = state.n || 16;
+    const cell = Math.min(26, (W - 48) / n);
+    const y = H * 0.45;
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("TM tape (scan bound \u2264 n)", 14, 22);
+    for (let i = 0; i < n; i += 1) {
+      const x = 28 + i * cell;
+      ctx.strokeStyle = C.axis;
+      ctx.strokeRect(x, y, cell * 0.85, 28);
+      if (i === state.pos) {
+        ctx.fillStyle = C.accent;
+        ctx.fillRect(x + 2, y + 2, cell * 0.85 - 4, 24);
+      }
+    }
+    ctx.fillStyle = C.muted;
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`head=${formatNum(state.pos, 0)}  steps=${formatNum(state.steps, 0)}  bound=${formatNum(state.bound, 0)}`, 14, 40);
+  },
+  getReadouts(state) {
+    return [
+      { label: "head", value: formatNum(state.pos, 0) },
+      { label: "steps", value: formatNum(state.steps, 0) },
+      { label: "bound", value: formatNum(state.bound, 0) },
+      { label: "n", value: formatNum(state.n, 0) }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, head: v }));
+  }
+};
+
+// js/models/huffman.js
+var huffman_default = {
+  id: "huffman",
+  name: "\u54C8\u592B\u66FC\u7F16\u7801",
+  equation: "H = \u2212\u03A3 p_i log\u2082 p_i\uFF1B\u6700\u4F18\u524D\u7F00\u7801\u5E73\u5747\u957F L \u6EE1\u8DB3 H \u2264 L < H+1",
+  authority: "Cormen et al., CLRS, Huffman codes; Cover & Thomas, Elements of Information Theory",
+  assumptions: "\u72EC\u7ACB\u7B26\u53F7\u3001\u5DF2\u77E5\u6982\u7387\uFF1B\u4E24\u7B26\u53F7\u793A\u610F p \u4E0E 1\u2212p\uFF1B\u4E0D\u662F\u901A\u7528\u591A\u7B26\u53F7\u5EFA\u6811\u52A8\u753B",
+  fidelity: "principle",
+  params: {
+    p: 0.3,
+    showBound: 1
+  },
+  paramSchema: {
+    p: { group: "dynamics", unit: "\u2014", label: "\u6982\u7387 p", min: 0.01, max: 0.99 },
+    showBound: {
+      group: "display",
+      unit: "\u2014",
+      label: "\u793A\u610F\u533A\u95F4",
+      min: 0,
+      max: 1,
+      options: [{ value: 1, label: "\u663E\u793A" }, { value: 0, label: "\u9690\u85CF" }]
+    }
+  },
+  init(state) {
+    state.t = 0;
+    state.hist = [];
+    this.refresh(state);
+  },
+  refresh(state) {
+    const p = Math.min(0.99, Math.max(0.01, P(state.params, "p", 0.3)));
+    const q = 1 - p;
+    const H = finiteOr(-(p * Math.log2(p) + q * Math.log2(q)), 0);
+    state.H = H;
+    state.L = 1;
+    state.p = p;
+  },
+  step(state, dt) {
+    state.t += dt;
+    this.refresh(state);
+    state.hist.push(state.H);
+    if (state.hist.length > 200) state.hist.shift();
+  },
+  draw(ctx, state, view) {
+    const { width: W, height: H } = view;
+    const pad = { l: 48, r: 28, t: 48, b: 36 };
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 13px IBM Plex Mono, monospace";
+    ctx.fillText("Huffman: H \u2264 L < H+1", 14, 22);
+    ctx.strokeStyle = C.axis;
+    ctx.strokeRect(pad.l, pad.t, plotW, plotH);
+    const X = (p) => pad.l + p * plotW;
+    const Y = (h) => pad.t + plotH - h / 1.05 * plotH;
+    ctx.strokeStyle = C.body;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 1; i < 80; i += 1) {
+      const p = i / 80;
+      const q = 1 - p;
+      const h = -(p * Math.log2(p) + q * Math.log2(q));
+      const x = X(p);
+      const y = Y(h);
+      i === 1 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    if (Math.round(P(state.params, "showBound", 1)) === 1) {
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = C.theory || "#7c9cbf";
+      ctx.beginPath();
+      ctx.moveTo(pad.l, Y(1));
+      ctx.lineTo(pad.l + plotW, Y(1));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle = C.accent;
+    ctx.beginPath();
+    ctx.arc(X(state.p), Y(state.H), 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "11px IBM Plex Mono, monospace";
+    ctx.fillText(`H=${formatNum(state.H, 3)}  L=${formatNum(state.L, 0)}`, 14, 40);
+  },
+  getReadouts(state, opts = {}) {
+    const d = opts.digits ?? 3;
+    return [
+      { label: "H", value: formatNum(state.H, d) },
+      { label: "L", value: formatNum(state.L, 0) },
+      { label: "p", value: formatNum(state.p, d) }
+    ];
+  },
+  getTrajectory(state) {
+    return state.hist.map((v, i) => ({ i, H: v }));
+  }
+};
+
 // js/models/handModels.js
 var HANDS = [
   projectile_default,
@@ -5261,7 +5888,14 @@ var HANDS = [
   beamSfdBmd_default,
   pidTune_default,
   hodgkinHuxley_default,
-  compoundMicroscope_default
+  compoundMicroscope_default,
+  doubleSlit_default,
+  singleSlit_default,
+  standingWave_default,
+  crcHamming_default,
+  avlTree_default,
+  turingMachine_default,
+  huffman_default
 ];
 export {
   HANDS

@@ -215,7 +215,9 @@ export function createFactoryModel(spec) {
   if (spec.dims || spec.generated) {
     return enrich(buildVariant(spec), spec);
   }
-  const build = builders[family] || buildGauge;
+  const build = builders[family];
+  // Unknown family: refuse silent gauge/binary fallback (catalog validate + user whitelist must catch first).
+  if (!build) return null;
   return enrich(build(spec), spec);
 }
 

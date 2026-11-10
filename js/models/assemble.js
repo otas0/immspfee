@@ -118,7 +118,11 @@ export function buildFromSpecs(specs, options = {}) {
         sub: spec.sub || '',
       }, spec)));
     } else {
-      list.push(ensureRefresh(applyCatalogPolicy(factoryBuilder()(spec), spec)));
+      const built = factoryBuilder()(spec);
+      if (!built) {
+        throw new Error(`catalog reject: no engine for id=${spec.id} family=${spec.family || '?'}`);
+      }
+      list.push(ensureRefresh(applyCatalogPolicy(built, spec)));
     }
   }
   if (leftovers) {

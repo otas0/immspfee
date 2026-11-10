@@ -86,6 +86,13 @@ export const HAND_FORMALISM = {
   'pid-tune': 'ode',
   'hodgkin-huxley': 'ode',
   'r016-显微镜': 'optics',
+  'double-slit': 'optics',
+  'single-slit': 'optics',
+  'standing-wave': 'pde',
+  'crc-hamming': 'discrete',
+  'avl-tree': 'network',
+  turing: 'discrete',
+  huffman: 'discrete',
 };
 
 export function formalismFor(entry) {

@@ -4543,6 +4543,61 @@ function boltzmannFactor(spec) {
   });
 }
 
+function dfaAccept(spec) {
+  return shell(spec, {
+    equation: 'DFA：δ: Q×Σ→Q；接受当 δ*(q0,w)∈F（两状态奇偶校验示意）',
+    authority: 'Sipser, Introduction to the Theory of Computation, DFA definition',
+    assumptions: '二元字母表、两状态奇偶 DFA；接受当且仅当输入中 1 的个数为偶数；不是通用 NFA 子集构造',
+    fidelity: 'principle',
+    params: { ones: 2, len: 4 },
+    schema: {
+      ones: S('符号 1 个数', 'dynamics', '—', 0, 16),
+      len: S('串长 |w|', 'dynamics', '—', 1, 16),
+    },
+    tick(st) {
+      const ones = Math.max(0, Math.round(P(st.params, 'ones', 2)));
+      st.accept = ones % 2 === 0 ? 1 : 0;
+      st.q = ones % 2;
+    },
+    plot: (st) => st.accept,
+    rows: (st) => [['accept', st.accept, ''], ['q', st.q, '']],
+  });
+}
+
+function rlGrid1d(spec) {
+  return shell(spec, {
+    equation: '1D 网格 TD(0)：V(s)←V(s)+α[r+γV(s′)−V(s)]（3 格示意）',
+    authority: 'Sutton & Barto, Reinforcement Learning, TD(0)',
+    assumptions: '3 状态线、右端吸收奖励 +1；示意一步 TD，不是深度 RL',
+    fidelity: 'principle',
+    params: { alpha: 0.3, gamma: 0.9, s: 1 },
+    schema: {
+      alpha: S('α', 'dynamics', '—', 0.05, 1),
+      gamma: S('γ', 'dynamics', '—', 0, 0.99),
+      s: S('状态 s', 'initial', '—', 0, 2),
+    },
+    init(st) {
+      st.V = [0, 0, 0];
+    },
+    tick(st, h) {
+      if (!Array.isArray(st.V)) st.V = [0, 0, 0];
+      if (h <= 0) return;
+      const a = P(st.params, 'alpha', 0.3);
+      const g = P(st.params, 'gamma', 0.9);
+      let s = Math.max(0, Math.min(2, Math.round(P(st.params, 's', 1))));
+      const sp = Math.min(2, s + 1);
+      const r = sp === 2 ? 1 : 0;
+      const target = r + g * st.V[sp];
+      st.V[s] += a * (target - st.V[s]);
+      st.Vs = st.V[s];
+      st.s = s;
+    },
+    plot: (st) => st.Vs || 0,
+    rows: (st) => [['V(s)', st.Vs || 0, ''], ['s', st.s || 0, '']],
+  });
+}
+
+
 function keywordModel(spec) {
   const blob = `${spec.id} ${spec.name} ${spec.formula || ''}`;
   if (/玻尔兹曼/.test(blob) && !/格子|斯特藩/.test(blob)) return boltzmannFactor(spec);
@@ -4617,6 +4672,8 @@ function keywordModel(spec) {
     [/复利|\(1\+r\)/, () => compound(spec)],
     [/pH|滴定/, () => titration(spec)],
     [/矩阵|x'=Ax/, () => matrix2(spec, '矩阵')],
+    [/dfa-nfa|有限自动机|DFA\/NFA|δ\(q/, () => dfaAccept(spec)],
+    [/rl-grid|强化学习网格|V←r|TD\(0\)/, () => rlGrid1d(spec)],
     [/二分|binary-search/, () => binarySearchSteps(spec)],
     [/Dijkstra|最短/, () => dijkstraBound(spec)],
     [/K-means|kmeans/, () => kmeans1d(spec)],
@@ -4658,7 +4715,7 @@ function keywordModel(spec) {
     })],
     [/全加器|进位/, () => boolGate(spec, '异或')],
     [/哈希/, () => hashLoad(spec)],
-    [/页表|TLB|虚拟/, () => pageReplace(spec)],
+    [/页表|TLB|虚拟内存|页置换|page-replace|cache-lru/, () => pageReplace(spec)],
     [/银行家/, () => bankerNeed(spec)],
     [/Raft|选举/, () => shell(spec, {
       equation: '任期投票：过半即当选',
@@ -4687,6 +4744,7 @@ function keywordModel(spec) {
   return null;
 }
 
+
 function familyFallback(spec) {
   const fam = spec.family || '';
   const map = {
@@ -4708,25 +4766,20 @@ function familyFallback(spec) {
     circuit: () => rcCircuit(spec),
     induction: () => faraday(spec),
     rays: () => snell(spec),
-    // gauge remounted off catalog; keep a neutral fallback if a stale family slips through
-    gauge: () => kin(spec, spec.name || ''),
+    // Dangerous silent aliases removed (tree/compile/turing/comm/discrete/gauge).
+    // Those families must hit keywordModel or a dedicated builder — never binary-search/Nyquist by default.
     bohr: () => bohr(spec),
     decay: () => decay(spec),
-    discrete: () => binarySearchSteps(spec),
     graph: () => dijkstraBound(spec),
-    tree: () => binarySearchSteps(spec),
     fsm: () => tcpStates(spec),
-    turing: () => binarySearchSteps(spec),
     crypto: () => caesar(spec),
     ml: () => gdQuadratic(spec),
     opt: () => gdQuadratic(spec),
     logic: () => boolGate(spec, '与'),
     arch: () => amdahl(spec),
     embed: () => pwm(spec),
-    comm: () => nyquist(spec),
     net: () => tcpStates(spec),
     os: () => rrWait(spec),
-    compile: () => binarySearchSteps(spec),
     dist: () => PREFIX['分布式与安全'](spec, ''),
     struct: () => stress(spec, spec.formula || ''),
     control: () => secondOrderStep(spec),
@@ -4736,7 +4789,8 @@ function familyFallback(spec) {
     aero: () => clift(spec),
   };
   const fn = map[fam];
-  return fn ? fn() : kin(spec, spec.name || '');
+  // Unknown / intentionally unwired families: refuse silent kin()/binary-search aliases.
+  return fn ? fn() : null;
 }
 
 export function buildTopicModel(spec) {

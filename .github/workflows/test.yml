@@ -71,6 +71,9 @@ jobs:
       - name: Forbid unfinished course-shell ids
         run: npm run assert:no-course-ids
 
+      - name: Forbid silent binary-search / Nyquist misbinds
+        run: npm run assert:no-misbind
+
       - name: Lab poster — no sibling TE markers
         run: npm run sync:poster && npm run assert:poster
 

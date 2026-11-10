@@ -16,8 +16,14 @@ const idMeta = Object.fromEntries(rows.map((r) => [r.id, { domain: r.domain || '
 
 const byKey = {};
 const idToKey = {};
+let skippedOrphans = 0;
 for (const [id, colors] of Object.entries(pal.models || {})) {
-  const meta = idMeta[id] || { domain: '其他', sub: '' };
+  // Never invent an 「其他」shard for ids already removed from the catalog.
+  if (!idMeta[id]) {
+    skippedOrphans += 1;
+    continue;
+  }
+  const meta = idMeta[id];
   const splitSubs = new Set(['物理', '工程', '计算机科学', '计算机工程', '数学', '化学']);
   const key = splitSubs.has(meta.domain) && meta.sub
     ? `${meta.domain}/${meta.sub}`
@@ -46,4 +52,24 @@ fs.writeFileSync(
   path.join(root, 'data/palettes/model-domain.json'),
   `${JSON.stringify(idToKey, null, 0)}\n`,
 );
-console.log('palette shards', Object.keys(byKey).length, 'maxBytes', max);
+// Drop stale color entries from the monolith so the next gen cannot resurrect orphans.
+let pruned = 0;
+for (const id of Object.keys(pal.models || {})) {
+  if (!idMeta[id]) {
+    delete pal.models[id];
+    pruned += 1;
+  }
+}
+if (pruned) {
+  fs.writeFileSync(path.join(root, 'data/palettes.json'), `${JSON.stringify(pal)}\n`);
+}
+console.log(
+  'palette shards',
+  Object.keys(byKey).length,
+  'maxBytes',
+  max,
+  'skippedOrphans',
+  skippedOrphans,
+  'prunedMonolith',
+  pruned,
+);

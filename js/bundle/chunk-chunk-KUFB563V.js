@@ -262,7 +262,14 @@ var HAND_FORMALISM = {
   "beam-sfd-bmd": "ode",
   "pid-tune": "ode",
   "hodgkin-huxley": "ode",
-  "r016-\u663E\u5FAE\u955C": "optics"
+  "r016-\u663E\u5FAE\u955C": "optics",
+  "double-slit": "optics",
+  "single-slit": "optics",
+  "standing-wave": "pde",
+  "crc-hamming": "discrete",
+  "avl-tree": "network",
+  turing: "discrete",
+  huffman: "discrete"
 };
 function formalismFor(entry) {
   if (!entry) return "";

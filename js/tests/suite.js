@@ -708,6 +708,10 @@ export function runSuite() {
     const polGate = models.find((m) => m.id === 'polarization');
     assert('偏振不再是占位 deprecated', polGate && polGate.deprecated !== true, String(polGate?.deprecated));
     assert('偏振已升手写 family=hand', polGate?.family === 'hand', polGate?.family);
+    for (const id of ['double-slit', 'single-slit', 'standing-wave', 'crc-hamming', 'avl-tree', 'turing', 'huffman']) {
+      const m = models.find((x) => x.id === id);
+      assert(`${id} 手写在库`, !!m && m.family === 'hand', m?.family);
+    }
     assert('偏振公式写的是 Malus', /cos|Malus/i.test(String(polGate?.formula || polGate?.equation || '')));
     assert('目录无 gauge family', models.every((m) => m.family !== 'gauge'), models.filter((m) => m.family === 'gauge').map((m) => m.id).join(','));
     assert('自建白名单不含 gauge', !USER_MODEL_FAMILIES.includes('gauge'), USER_MODEL_FAMILIES.join(','));
@@ -896,7 +900,7 @@ export function runSuite() {
       const decorative = fam.filter((m) => m.governing !== true);
       assert(
         'fam-* 不再使用装饰正弦',
-        fam.length >= 198 && decorative.length === 0,
+        fam.length >= 170 && decorative.length === 0,
         `n=${fam.length} sine=${decorative.map((m) => m.id).join(',')}`,
       );
       const boot = (id, patch = {}) => {

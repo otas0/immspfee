@@ -1,4 +1,4 @@
-/* inlined chunk-chunk-4QGOOICJ.js */
+/* inlined chunk-chunk-KUFB563V.js */
 // js/utils/zhLabels.js
 var ZH_LABELS = {
   g: "\u91CD\u529B g",
@@ -263,7 +263,14 @@ var HAND_FORMALISM = {
   "beam-sfd-bmd": "ode",
   "pid-tune": "ode",
   "hodgkin-huxley": "ode",
-  "r016-\u663E\u5FAE\u955C": "optics"
+  "r016-\u663E\u5FAE\u955C": "optics",
+  "double-slit": "optics",
+  "single-slit": "optics",
+  "standing-wave": "pde",
+  "crc-hamming": "discrete",
+  "avl-tree": "network",
+  turing: "discrete",
+  huffman: "discrete"
 };
 function formalismFor(entry) {
   if (!entry) return "";
@@ -1355,7 +1362,7 @@ var __export = (target, all) => {
 };
 
 
-/* static chunk inlined: chunk-chunk-4QGOOICJ.js */
+/* static chunk inlined: chunk-chunk-KUFB563V.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
 /* static chunk inlined: chunk-chunk-EW7TY4D2.js */
@@ -1565,7 +1572,7 @@ function factoryBuilder() {
 function ensureFactory() {
   if (builder) return Promise.resolve(builder);
   if (!pending) {
-    pending = import(globalThis.__stampedChunk("./chunk-factory-VRB5UK4M.js")).then((mod) => {
+    pending = import(globalThis.__stampedChunk("./chunk-factory-HGAYOUCE.js")).then((mod) => {
       builder = mod.createFactoryModel;
       const href = globalThis.__FACTORY_CHUNK;
       const sw = globalThis.navigator?.serviceWorker?.controller;
@@ -3672,16 +3679,6 @@ var authority_templates_default = {
       authority: "Silberschatz, CPU \u8C03\u5EA6",
       assumptions: "n \u4E2A\u7B49\u957F\u4F5C\u4E1A\u3001\u65E0\u5207\u6362\u5F00\u9500\u65F6\u603B\u5468\u8F6C\u548C\u4E3A n(n+1)/2 \xD7 q \u5F53\u4F5C\u4E1A\u6070\u4E3A 1 \u7247\u2014\u2014\u6B64\u5904\u4F5C\u4E1A\u957F\u5EA6 = q"
     },
-    "vm-interp": {
-      fidelity: "engineering",
-      authority: "Silberschatz, Operating System Concepts, \u9875\u7F6E\u6362",
-      assumptions: "\u56FA\u5B9A\u5F15\u7528\u4E32 1,2,3,4,1,2,5,1,2,3,4,5\uFF1B\u5E27\u6570\u53EF\u8C03"
-    },
-    "acid-tx": {
-      fidelity: "engineering",
-      authority: "Silberschatz, CPU \u8C03\u5EA6",
-      assumptions: "n \u4E2A\u7B49\u957F\u4F5C\u4E1A\u3001\u65E0\u5207\u6362\u5F00\u9500\u65F6\u603B\u5468\u8F6C\u548C\u4E3A n(n+1)/2 \xD7 q \u5F53\u4F5C\u4E1A\u6070\u4E3A 1 \u7247\u2014\u2014\u6B64\u5904\u4F5C\u4E1A\u957F\u5EA6 = q"
-    },
     raft: {
       fidelity: "engineering",
       authority: "Ongaro & Ousterhout, Raft \u8BBA\u6587\u4E2D\u7684\u591A\u6570\u6D3E",
@@ -4387,16 +4384,6 @@ var authority_templates_default = {
       authority: "Scully & Zubairy, Quantum Optics, \u538B\u7F29\u771F\u7A7A\u7684\u4E0D\u786E\u5B9A\u5EA6\u5206\u914D",
       assumptions: "\u210F=1 \u7684\u5B9A\u4E49\u5F0F\uFF0C\u4E0D\u662F\u5B9E\u9A8C\u88C5\u7F6E"
     },
-    "fam-sort-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
-    },
-    "fam-search-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
-    },
     "fam-graph-trav-v01": {
       fidelity: "engineering",
       authority: "CLRS, \u56FE\u7B97\u6CD5\uFF08BFS/Dijkstra/\u677E\u5F1B\uFF09",
@@ -4412,37 +4399,7 @@ var authority_templates_default = {
       authority: "CLRS, \u56FE\u7B97\u6CD5\uFF08BFS/Dijkstra/\u677E\u5F1B\uFF09",
       assumptions: "\u6709\u9650\u56FE\u3001\u975E\u8D1F\u6743\uFF08Dijkstra\uFF09\uFF1B\u70B9\u9009\u8FDE\u8FB9\u987B\u4FDD\u6301\u7B97\u6CD5\u4E0D\u53D8\u91CF"
     },
-    "fam-string-match-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
-    },
-    "fam-dp-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
-    },
-    "fam-tree-ds-v01": {
-      fidelity: "engineering",
-      authority: "CLRS, \u6811\u4E0E\u5206\u6CBB\u7AE0\u8282",
-      assumptions: "\u6709\u9650\u6811\uFF1B\u6B65\u8FDB\u9AD8\u4EAE\u5BF9\u5E94\u6807\u51C6\u904D\u5386/\u64CD\u4F5C"
-    },
     "fam-hashtable-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
-    },
-    "fam-uf-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
-    },
-    "fam-heap-v01": {
-      fidelity: "engineering",
-      authority: "CLRS, \u6811\u4E0E\u5206\u6CBB\u7AE0\u8282",
-      assumptions: "\u6709\u9650\u6811\uFF1B\u6B65\u8FDB\u9AD8\u4EAE\u5BF9\u5E94\u6807\u51C6\u904D\u5386/\u64CD\u4F5C"
-    },
-    "fam-segtree-v01": {
       fidelity: "engineering",
       authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
       assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
@@ -4457,30 +4414,10 @@ var authority_templates_default = {
       authority: "Hopcroft, Motwani, Ullman, Introduction to Automata Theory, \u6709\u9650\u81EA\u52A8\u673A",
       assumptions: "\u6709\u9650\u72B6\u6001\u3001\u786E\u5B9A\u6216\u6309\u6A21\u578B\u58F0\u660E\u7684\u4E0D\u786E\u5B9A\u8F6C\u79FB\uFF1B\u975E\u5DE5\u4E1A PLC \u7A0B\u5E8F"
     },
-    "fam-tm-v01": {
-      fidelity: "principle",
-      authority: "Sipser, Introduction to the Theory of Computation, \u56FE\u7075\u673A\u7AE0\u8282",
-      assumptions: "\u7EB8\u5E26\u793A\u610F\u3001\u6709\u9650\u6B65\u6F14\u793A\uFF1B\u975E\u901A\u7528\u89E3\u91CA\u5668"
-    },
     "fam-regex-v01": {
       fidelity: "principle",
       authority: "Hopcroft, Motwani, Ullman, Introduction to Automata Theory, \u6709\u9650\u81EA\u52A8\u673A",
       assumptions: "\u6709\u9650\u72B6\u6001\u3001\u786E\u5B9A\u6216\u6309\u6A21\u578B\u58F0\u660E\u7684\u4E0D\u786E\u5B9A\u8F6C\u79FB\uFF1B\u975E\u5DE5\u4E1A PLC \u7A0B\u5E8F"
-    },
-    "fam-grammar-v01": {
-      fidelity: "engineering",
-      authority: "CLRS, \u6811\u4E0E\u5206\u6CBB\u7AE0\u8282",
-      assumptions: "\u6709\u9650\u6811\uFF1B\u6B65\u8FDB\u9AD8\u4EAE\u5BF9\u5E94\u6807\u51C6\u904D\u5386/\u64CD\u4F5C"
-    },
-    "fam-computability-v01": {
-      fidelity: "principle",
-      authority: "Sipser, Introduction to the Theory of Computation, \u56FE\u7075\u673A\u7AE0\u8282",
-      assumptions: "\u7EB8\u5E26\u793A\u610F\u3001\u6709\u9650\u6B65\u6F14\u793A\uFF1B\u975E\u901A\u7528\u89E3\u91CA\u5668"
-    },
-    "fam-complexity-v01": {
-      fidelity: "engineering",
-      authority: "Cormen et al., Introduction to Algorithms (CLRS), \u76F8\u5173\u7B97\u6CD5\u7AE0\u8282",
-      assumptions: "\u79BB\u6563\u6B65\u9AA4\u4E0E\u4E0D\u53D8\u91CF\u6309\u8BE5\u7B97\u6CD5\u5B9A\u4E49\uFF1B\u53EF\u89C6\u5316\u9AD8\u4EAE\u4E0D\u662F\u590D\u6742\u5EA6\u8BC1\u660E\u672C\u8EAB"
     },
     "fam-ca-v01": {
       fidelity: "principle",
@@ -4657,11 +4594,6 @@ var authority_templates_default = {
       authority: "Lee & Seshia, Introduction to Embedded Systems, \u65F6\u5E8F\u4E0E\u91C7\u6837\u793A\u610F",
       assumptions: "\u903B\u8F91\u65F6\u5E8F\u793A\u610F\uFF1B\u975E\u76EE\u6807\u677F BSP"
     },
-    "fam-serial-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
-    },
     "fam-dma-v01": {
       fidelity: "principle",
       authority: "Lee & Seshia, Introduction to Embedded Systems, \u65F6\u5E8F\u4E0E\u91C7\u6837\u793A\u610F",
@@ -4688,11 +4620,6 @@ var authority_templates_default = {
       assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
     },
     "fam-fft-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
-    },
-    "fam-filter-v01": {
       fidelity: "principle",
       authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
       assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
@@ -4792,16 +4719,6 @@ var authority_templates_default = {
       authority: "Clauser et al., Phys. Rev. Lett. 23 (1969)\uFF1BAspect \u5B9E\u9A8C\u7EFC\u8FF0\u4E2D\u7684 CHSH",
       assumptions: "\u53EA\u7ED9\u51FA Tsirelson \u754C\u4E0E\u7ECF\u5178\u754C\uFF0C\u4E0D\u6A21\u62DF\u5B9E\u9A8C\u566A\u58F0\u534F\u8BAE"
     },
-    "fam-qgate-v01": {
-      fidelity: "principle",
-      authority: "Nielsen & Chuang, Quantum Computation and Quantum Information, \u5355\u6BD4\u7279\u65CB\u8F6C",
-      assumptions: "\u7406\u60F3\u5355\u6BD4\u7279\u95E8\uFF1BP(1)=sin\xB2(\u03B8/2)\uFF1B\u975E\u566A\u58F0\u786C\u4EF6\u6807\u5B9A"
-    },
-    "fam-qalgo-v01": {
-      fidelity: "principle",
-      authority: "Nielsen & Chuang, Quantum Computation and Quantum Information, Grover \u8FED\u4EE3",
-      assumptions: "\u7406\u60F3 Grover \u793A\u610F P=sin\xB2((2k+1)\u03B8)\uFF1B\u975E\u5B9E\u9645\u91CF\u5B50\u786C\u4EF6"
-    },
     "fam-rel-kin-v01": {
       fidelity: "engineering",
       authority: "French, Special Relativity, \u6216 Rindler\uFF1B\u65F6\u95F4\u81A8\u80C0\u4E0E\u957F\u5EA6\u6536\u7F29",
@@ -4857,16 +4774,6 @@ var authority_templates_default = {
       authority: "Katz & Lindell, Introduction to Modern Cryptography, \u5BF9\u5E94\u539F\u8BED\u7AE0\u8282\uFF08\u4EC5\u516C\u5F00\u6559\u5B66\u6B65\u9AA4\uFF09",
       assumptions: "\u6559\u5B66\u6B65\u9AA4\u53EF\u89C6\u5316\uFF1B\u4E0D\u63D0\u4F9B\u653B\u51FB\u5B9E\u73B0\u3001\u5BC6\u94A5\u6062\u590D\u6216\u7ED5\u8FC7"
     },
-    "fam-ecc-code-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
-    },
-    "fam-compress-v01": {
-      fidelity: "engineering",
-      authority: "CLRS, \u6811\u4E0E\u5206\u6CBB\u7AE0\u8282",
-      assumptions: "\u6709\u9650\u6811\uFF1B\u6B65\u8FDB\u9AD8\u4EAE\u5BF9\u5E94\u6807\u51C6\u904D\u5386/\u64CD\u4F5C"
-    },
     "fam-zkp-v01": {
       fidelity: "principle",
       authority: "Katz & Lindell, Introduction to Modern Cryptography, \u5BF9\u5E94\u539F\u8BED\u7AE0\u8282\uFF08\u4EC5\u516C\u5F00\u6559\u5B66\u6B65\u9AA4\uFF09",
@@ -4906,26 +4813,6 @@ var authority_templates_default = {
       fidelity: "principle",
       authority: "Tanenbaum & van Steen, Distributed Systems, \u5171\u8BC6\u7AE0\u8282\uFF08\u6559\u5B66\u72B6\u6001\u673A\uFF09",
       assumptions: "\u7B80\u5316\u6D88\u606F\u6A21\u578B\uFF1B\u975E\u751F\u4EA7\u5171\u8BC6\u5B9E\u73B0"
-    },
-    "fam-linecode-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
-    },
-    "fam-chancode-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
-    },
-    "fam-equalize-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
-    },
-    "fam-sync-v01": {
-      fidelity: "principle",
-      authority: "Proakis & Salehi, Fundamentals of Communication Systems, \u8C03\u5236\u7AE0\u8282",
-      assumptions: "\u57FA\u5E26/\u7406\u60F3\u4FE1\u9053\u793A\u610F\uFF1B\u975E\u94FE\u8DEF\u9884\u7B97\u8F6F\u4EF6"
     },
     "fam-thermo-cycle-v01": {
       fidelity: "principle",
@@ -4996,6 +4883,26 @@ var authority_templates_default = {
       fidelity: "principle",
       authority: "Lamarsh & Baratta, Introduction to Nuclear Engineering, \u70B9\u5806\u52A8\u529B\u5B66\u7AE0\u8282\uFF08\u516C\u5F00\u6559\u79D1\u4E66\uFF09",
       assumptions: "\u70B9\u5806\u3001\u5355\u7EC4\u7F13\u53D1\u793A\u610F\uFF1B\u975E\u5806\u82AF\u8BBE\u8BA1\u3001\u975E\u71C3\u6599\u5FAA\u73AF\u3001\u65E0\u589E\u5F3A\u8DEF\u5F84"
+    },
+    "avl-tree": {
+      fidelity: "principle",
+      authority: "Cormen et al., CLRS, AVL height bound; Knuth \xA76.2.3",
+      assumptions: "\u53EA\u7ED9\u51FA\u6700\u574F\u9AD8\u5EA6\u4E0A\u754C\uFF1B\u4E0D\u662F\u65CB\u8F6C\u52A8\u753B\u4E5F\u4E0D\u662F\u7EA2\u9ED1\u6811\u8BC1\u660E"
+    },
+    turing: {
+      fidelity: "principle",
+      authority: "Sipser, Introduction to the Theory of Computation, Turing machine",
+      assumptions: "\u5355\u5E26\u5355\u5934\u786E\u5B9A\u6027\uFF1B\u4E0D\u662F\u901A\u7528\u6A21\u62DF\u5668\u4E5F\u4E0D\u662F\u505C\u673A\u5224\u5B9A"
+    },
+    huffman: {
+      fidelity: "principle",
+      authority: "CLRS Huffman; Cover & Thomas entropy bounds",
+      assumptions: "\u4E24\u7B26\u53F7\u793A\u610F\uFF1B\u4E0D\u662F\u591A\u7B26\u53F7\u5EFA\u6811\u52A8\u753B"
+    },
+    "crc-hamming": {
+      fidelity: "principle",
+      authority: "Lin & Costello, Error Control Coding, Hamming distance / parity-bit bound",
+      assumptions: "\u4E8C\u5143\u7801\u5B57\u6559\u5B66\u5B9A\u4E49\uFF1B\u4E0D\u662F CRC \u591A\u9879\u5F0F\u7F16\u89E3\u7801\u5668"
     }
   },
   verifiedUserFamilies: [
@@ -5007,7 +4914,6 @@ var authority_templates_default = {
     "circuit",
     "circular",
     "comm",
-    "compile",
     "control",
     "crypto",
     "cycle",
@@ -5038,8 +4944,6 @@ var authority_templates_default = {
     "reactor",
     "struct",
     "traffic",
-    "tree",
-    "turing",
     "wave1d"
   ]
 };
@@ -5051,7 +4955,7 @@ function emptyMiss() {
 var topicMissNote = emptyMiss;
 function ensureTopicRows() {
   if (topicMissNote !== emptyMiss) return Promise.resolve();
-  return import("./chunk-topicOverrides-PWFOK47O.js").then((mod) => {
+  return import("./chunk-topicOverrides-FWMHUERC.js").then((mod) => {
     topicMissNote = mod.topicMissNote;
   });
 }
@@ -5220,7 +5124,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-P2LMSDFA.js").then((mod) => {
+    handsPending = import("./chunk-handModels-X44GAH4J.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -5312,7 +5216,11 @@ function buildFromSpecs(specs, options = {}) {
         sub: spec.sub || ""
       }, spec)));
     } else {
-      list.push(ensureRefresh(applyCatalogPolicy(factoryBuilder()(spec), spec)));
+      const built = factoryBuilder()(spec);
+      if (!built) {
+        throw new Error(`catalog reject: no engine for id=${spec.id} family=${spec.family || "?"}`);
+      }
+      list.push(ensureRefresh(applyCatalogPolicy(built, spec)));
     }
   }
   if (leftovers) {
@@ -11015,4 +10923,4 @@ function bindUserModelUi() {
 }
 boot();
 
-globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-VRB5UK4M.js");
+globalThis.__FACTORY_CHUNK = globalThis.__stampedChunk("./chunk-factory-HGAYOUCE.js");

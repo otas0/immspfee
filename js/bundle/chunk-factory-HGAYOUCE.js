@@ -2,10 +2,10 @@ import {
   applyLowInkStrokeBoost,
   familyCapabilities,
   localizeSchema
-} from "./chunk-chunk-4QGOOICJ.js";
+} from "./chunk-chunk-KUFB563V.js";
 import {
   overrideOptions
-} from "./chunk-chunk-54AD6SA2.js";
+} from "./chunk-chunk-SEITT3Z7.js";
 import {
   forceGraphStep,
   mapNormToScreen,
@@ -500,58 +500,6 @@ function shell(spec, o) {
 function has(topic, re) {
   return re.test(topic || "");
 }
-function kin(spec, topic) {
-  const blob = topic;
-  let x0 = 0;
-  let v0 = 8;
-  let a = 2;
-  let eq = "x = x\u2080 + v\u2080 t + \xBD a t\xB2";
-  if (has(blob, /竖直上抛|竖直下抛/)) {
-    v0 = 20;
-    a = -9.81;
-    eq = "v = v\u2080 \u2212 g t\uFF0Cy = y\u2080 + v\u2080 t \u2212 \xBD g t\xB2";
-  } else if (has(blob, /自由落体/)) {
-    v0 = 0;
-    x0 = 20;
-    a = -9.81;
-    eq = "y = h\u2080 \u2212 \xBD g t\xB2";
-  } else if (has(blob, /斜抛|平抛/)) {
-    return projectile(spec, has(blob, /平抛/) ? 0 : 45);
-  } else if (has(blob, /匀减速/)) {
-    v0 = 12;
-    a = -2;
-    eq = "x = x\u2080 + v\u2080 t + \xBD a t\xB2\uFF08\u9ED8\u8BA4 a = \u22122 m/s\xB2\uFF09";
-  } else if (has(blob, /匀加速/)) {
-    v0 = 0;
-    a = 2;
-    eq = "x = x\u2080 + v\u2080 t + \xBD a t\xB2\uFF08\u9ED8\u8BA4 a = +2 m/s\xB2\uFF09";
-  } else if (has(blob, /相对/)) {
-    return relative(spec);
-  } else if (has(blob, /追及|相遇/)) {
-    return chase(spec);
-  }
-  return shell(spec, {
-    equation: eq,
-    authority: "Halliday, Resnick, Walker, Fundamentals of Physics, \u76F4\u7EBF\u8FD0\u52A8",
-    assumptions: "\u4E00\u7EF4\u3001\u5E38\u52A0\u901F\u5EA6\u3001\u65E0\u989D\u5916\u963B\u529B\uFF08\u629B\u4F53\u5206\u652F\u53E6\u89C1\u6C34\u5E73/\u7AD6\u76F4\u5206\u89E3\uFF09",
-    params: { x0, v0, a },
-    schema: {
-      x0: S("x\u2080", "initial", "m", -50, 80),
-      v0: S("v\u2080", "initial", "m/s", -40, 40),
-      a: S("a", "dynamics", "m/s\xB2", -20, 20)
-    },
-    tick(state) {
-      const t = state.t;
-      const x0p = P(state.params, "x0", 0);
-      const v0p = P(state.params, "v0", 0);
-      const ap = P(state.params, "a", 0);
-      state.x = x0p + v0p * t + 0.5 * ap * t * t;
-      state.v = v0p + ap * t;
-    },
-    plot: (s) => s.x,
-    rows: (s, d) => [["t", s.t, "s"], ["x", s.x, "m"], ["v", s.v, "m/s"], ["a", P(s.params, "a", 0), "m/s\xB2"]]
-  });
-}
 function projectile(spec, thetaDeg) {
   return shell(spec, {
     equation: "x = v\u2080 cos\u03B8 \xB7 t\uFF0Cy = v\u2080 sin\u03B8 \xB7 t \u2212 \xBD g t\xB2",
@@ -577,48 +525,6 @@ function projectile(spec, thetaDeg) {
     },
     plot: (s) => s.y,
     rows: (s) => [["t", s.t, "s"], ["x", s.x, "m"], ["y", s.y, "m"], ["vx", s.vx, "m/s"], ["vy", s.vy, "m/s"]]
-  });
-}
-function relative(spec) {
-  return shell(spec, {
-    equation: "v_rel = v\u2081 \u2212 v\u2082\uFF0Cx_rel = x\u2080 + v_rel t",
-    authority: "Halliday, Resnick, Walker, \u76F8\u5BF9\u901F\u5EA6\uFF08\u4E00\u7EF4\uFF09",
-    assumptions: "\u540C\u4E00\u76F4\u7EBF\u3001\u5E38\u901F\u5EA6",
-    params: { v1: 8, v2: 3, x0: 0 },
-    schema: {
-      v1: S("v\u2081", "dynamics", "m/s", -30, 30),
-      v2: S("v\u2082", "dynamics", "m/s", -30, 30),
-      x0: S("x\u2080", "initial", "m", -20, 20)
-    },
-    tick(state) {
-      state.vrel = P(state.params, "v1", 8) - P(state.params, "v2", 3);
-      state.x = P(state.params, "x0", 0) + state.vrel * state.t;
-    },
-    plot: (s) => s.x,
-    rows: (s) => [["v_rel", s.vrel, "m/s"], ["x_rel", s.x, "m"], ["t", s.t, "s"]]
-  });
-}
-function chase(spec) {
-  return shell(spec, {
-    equation: "x\u2081 = v\u2081 t\uFF0Cx\u2082 = gap + v\u2082 t\uFF1B\u8FFD\u4E0A\u65F6 t = gap/(v\u2081\u2212v\u2082)",
-    authority: "Halliday, Resnick, Walker, \u8FFD\u53CA\uFF08\u5E38\u901F\u5EA6\uFF09",
-    assumptions: "\u4E00\u7EF4\u5E38\u901F\u5EA6\uFF1Bv\u2081>v\u2082 \u624D\u8FFD\u4E0A",
-    params: { v1: 10, v2: 4, gap: 20 },
-    schema: {
-      v1: S("v\u2081", "dynamics", "m/s", 0, 40),
-      v2: S("v\u2082", "dynamics", "m/s", 0, 40),
-      gap: S("\u521D\u59CB\u95F4\u8DDD", "initial", "m", 0, 100)
-    },
-    tick(state) {
-      const v1 = P(state.params, "v1", 10);
-      const v2 = P(state.params, "v2", 4);
-      const gap = P(state.params, "gap", 20);
-      state.x1 = v1 * state.t;
-      state.x2 = gap + v2 * state.t;
-      state.tCatch = v1 > v2 ? gap / (v1 - v2) : Infinity;
-    },
-    plot: (s) => s.x1 - s.x2,
-    rows: (s) => [["x\u2081", s.x1, "m"], ["x\u2082", s.x2, "m"], ["t_catch", Number.isFinite(s.tCatch) ? s.tCatch : NaN, "s"]]
   });
 }
 function newton(spec, topic) {
@@ -3181,6 +3087,58 @@ function boltzmannFactor(spec) {
     rows: (s) => [["n2/n1", s.ratio, ""]]
   });
 }
+function dfaAccept(spec) {
+  return shell(spec, {
+    equation: "DFA\uFF1A\u03B4: Q\xD7\u03A3\u2192Q\uFF1B\u63A5\u53D7\u5F53 \u03B4*(q0,w)\u2208F\uFF08\u4E24\u72B6\u6001\u5947\u5076\u6821\u9A8C\u793A\u610F\uFF09",
+    authority: "Sipser, Introduction to the Theory of Computation, DFA definition",
+    assumptions: "\u4E8C\u5143\u5B57\u6BCD\u8868\u3001\u4E24\u72B6\u6001\u5947\u5076 DFA\uFF1B\u63A5\u53D7\u5F53\u4E14\u4EC5\u5F53\u8F93\u5165\u4E2D 1 \u7684\u4E2A\u6570\u4E3A\u5076\u6570\uFF1B\u4E0D\u662F\u901A\u7528 NFA \u5B50\u96C6\u6784\u9020",
+    fidelity: "principle",
+    params: { ones: 2, len: 4 },
+    schema: {
+      ones: S("\u7B26\u53F7 1 \u4E2A\u6570", "dynamics", "\u2014", 0, 16),
+      len: S("\u4E32\u957F |w|", "dynamics", "\u2014", 1, 16)
+    },
+    tick(st) {
+      const ones = Math.max(0, Math.round(P(st.params, "ones", 2)));
+      st.accept = ones % 2 === 0 ? 1 : 0;
+      st.q = ones % 2;
+    },
+    plot: (st) => st.accept,
+    rows: (st) => [["accept", st.accept, ""], ["q", st.q, ""]]
+  });
+}
+function rlGrid1d(spec) {
+  return shell(spec, {
+    equation: "1D \u7F51\u683C TD(0)\uFF1AV(s)\u2190V(s)+\u03B1[r+\u03B3V(s\u2032)\u2212V(s)]\uFF083 \u683C\u793A\u610F\uFF09",
+    authority: "Sutton & Barto, Reinforcement Learning, TD(0)",
+    assumptions: "3 \u72B6\u6001\u7EBF\u3001\u53F3\u7AEF\u5438\u6536\u5956\u52B1 +1\uFF1B\u793A\u610F\u4E00\u6B65 TD\uFF0C\u4E0D\u662F\u6DF1\u5EA6 RL",
+    fidelity: "principle",
+    params: { alpha: 0.3, gamma: 0.9, s: 1 },
+    schema: {
+      alpha: S("\u03B1", "dynamics", "\u2014", 0.05, 1),
+      gamma: S("\u03B3", "dynamics", "\u2014", 0, 0.99),
+      s: S("\u72B6\u6001 s", "initial", "\u2014", 0, 2)
+    },
+    init(st) {
+      st.V = [0, 0, 0];
+    },
+    tick(st, h) {
+      if (!Array.isArray(st.V)) st.V = [0, 0, 0];
+      if (h <= 0) return;
+      const a = P(st.params, "alpha", 0.3);
+      const g = P(st.params, "gamma", 0.9);
+      let s = Math.max(0, Math.min(2, Math.round(P(st.params, "s", 1))));
+      const sp = Math.min(2, s + 1);
+      const r = sp === 2 ? 1 : 0;
+      const target = r + g * st.V[sp];
+      st.V[s] += a * (target - st.V[s]);
+      st.Vs = st.V[s];
+      st.s = s;
+    },
+    plot: (st) => st.Vs || 0,
+    rows: (st) => [["V(s)", st.Vs || 0, ""], ["s", st.s || 0, ""]]
+  });
+}
 function keywordModel(spec) {
   const blob = `${spec.id} ${spec.name} ${spec.formula || ""}`;
   if (/玻尔兹曼/.test(blob) && !/格子|斯特藩/.test(blob)) return boltzmannFactor(spec);
@@ -3255,6 +3213,8 @@ function keywordModel(spec) {
     [/复利|\(1\+r\)/, () => compound(spec)],
     [/pH|滴定/, () => titration(spec)],
     [/矩阵|x'=Ax/, () => matrix2(spec, "\u77E9\u9635")],
+    [/dfa-nfa|有限自动机|DFA\/NFA|δ\(q/, () => dfaAccept(spec)],
+    [/rl-grid|强化学习网格|V←r|TD\(0\)/, () => rlGrid1d(spec)],
     [/二分|binary-search/, () => binarySearchSteps(spec)],
     [/Dijkstra|最短/, () => dijkstraBound(spec)],
     [/K-means|kmeans/, () => kmeans1d(spec)],
@@ -3298,7 +3258,7 @@ function keywordModel(spec) {
     })],
     [/全加器|进位/, () => boolGate(spec, "\u5F02\u6216")],
     [/哈希/, () => hashLoad(spec)],
-    [/页表|TLB|虚拟/, () => pageReplace(spec)],
+    [/页表|TLB|虚拟内存|页置换|page-replace|cache-lru/, () => pageReplace(spec)],
     [/银行家/, () => bankerNeed(spec)],
     [/Raft|选举/, () => shell(spec, {
       equation: "\u4EFB\u671F\u6295\u7968\uFF1A\u8FC7\u534A\u5373\u5F53\u9009",
@@ -3347,25 +3307,20 @@ function familyFallback(spec) {
     circuit: () => rcCircuit(spec),
     induction: () => faraday(spec),
     rays: () => snell(spec),
-    // gauge remounted off catalog; keep a neutral fallback if a stale family slips through
-    gauge: () => kin(spec, spec.name || ""),
+    // Dangerous silent aliases removed (tree/compile/turing/comm/discrete/gauge).
+    // Those families must hit keywordModel or a dedicated builder — never binary-search/Nyquist by default.
     bohr: () => bohr(spec),
     decay: () => decay(spec),
-    discrete: () => binarySearchSteps(spec),
     graph: () => dijkstraBound(spec),
-    tree: () => binarySearchSteps(spec),
     fsm: () => tcpStates(spec),
-    turing: () => binarySearchSteps(spec),
     crypto: () => caesar(spec),
     ml: () => gdQuadratic(spec),
     opt: () => gdQuadratic(spec),
     logic: () => boolGate(spec, "\u4E0E"),
     arch: () => amdahl(spec),
     embed: () => pwm(spec),
-    comm: () => nyquist(spec),
     net: () => tcpStates(spec),
     os: () => rrWait(spec),
-    compile: () => binarySearchSteps(spec),
     dist: () => PREFIX["\u5206\u5E03\u5F0F\u4E0E\u5B89\u5168"](spec, ""),
     struct: () => stress(spec, spec.formula || ""),
     control: () => secondOrderStep(spec),
@@ -3375,7 +3330,7 @@ function familyFallback(spec) {
     aero: () => clift(spec)
   };
   const fn = map[fam];
-  return fn ? fn() : kin(spec, spec.name || "");
+  return fn ? fn() : null;
 }
 function buildTopicModel(spec) {
   if (!spec) return null;
@@ -7168,7 +7123,8 @@ function createFactoryModel(spec) {
   if (spec.dims || spec.generated) {
     return enrich(buildVariant(spec), spec);
   }
-  const build = builders[family] || buildGauge;
+  const build = builders[family];
+  if (!build) return null;
   return enrich(build(spec), spec);
 }
 function variantKnobs(spec) {

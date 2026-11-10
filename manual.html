@@ -192,7 +192,7 @@ expr_a = a_extra + 0.01 * t</pre>
       <tr><td>buoyancy</td><td>浮力/阿基米德原理</td><td>容器、物块、液面、力箭头；调物体密度、液体密度、体积</td></tr>
       <tr><td>drag-fall</td><td>粘滞阻力落体</td><td>小球、速度曲线、阻力矢量；调质量、阻力系数、g</td></tr>
       <tr><td>bernoulli</td><td>伯努利效应</td><td>管道、流速、压强色带；调管径变化、流量</td></tr>
-      <tr><td>sph-simple</td><td>简单 SPH 流体</td><td>粒子、颜色映射、交互扰动；调粘度、重力、粒子数</td></tr>
+      <tr><td>sph-simple</td><td>SPH 核函数（中心值）</td><td>三次样条核中心 W(0)；调光滑长度 h（不是流体求解器）</td></tr>
       <tr><td>laminar-turbulent</td><td>层流/湍流切换</td><td>流线、涡旋、雷诺数；调流速、粘度、管径</td></tr>
     </tbody></table></div>
 <div class="card"><strong>波与振动</strong> <span class="muted">(7)</span>
@@ -256,10 +256,14 @@ expr_a = a_extra + 0.01 * t</pre>
       <tr><td>binary-search</td><td>二分查找</td><td>有序数组、区间收缩；调目标值、数组规模</td></tr>
       <tr><td>bfs-grid</td><td>BFS/DFS 图遍历</td><td>图节点、边、访问顺序；调图结构、起点</td></tr>
       <tr><td>dijkstra</td><td>Dijkstra 最短路径</td><td>带权图、路径高亮；调图结构、起点/终点</td></tr>
+<tr><td>crc-hamming</td><td>差错检测 CRC/汉明码</td><td>汉明距离与单错校验位数；调码长、翻转位数</td></tr>
+<tr><td>huffman</td><td>哈夫曼编码</td><td>二元熵与最优前缀码长界；调概率 p</td></tr>
+<tr><td>turing</td><td>图灵机</td><td>单带扫描上界与头位置；调带长</td></tr>
+<tr><td>avl-tree</td><td>平衡树 AVL/红黑</td><td>AVL 最坏高度上界；调结点数 n</td></tr>
       <tr><td>astar-grid</td><td>A* 寻路</td><td>网格、开放/关闭集；调启发函数、障碍</td></tr>      <tr><td>hashtable</td><td>哈希表冲突处理</td><td>桶、链表/开放寻址；调哈希函数、容量、插入序列</td></tr>    </tbody></table></div>
 <div class="card"><strong>计算理论</strong> <span class="muted">(5)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
-      <tr><td>dfa-nfa</td><td>有限自动机 DFA/NFA</td><td>状态图、转移、输入串；调状态/转移、输入串</td></tr>
+      <tr><td>dfa-nfa</td><td>有限自动机 DFA/NFA</td><td>两状态奇偶 DFA 接受条件；调 1 的个数</td></tr>
       <tr><td>pda</td><td>下推自动机</td><td>状态图、栈；调转移规则、输入串</td></tr>      <tr><td>life</td><td>细胞自动机/生命游戏</td><td>网格、世代演化；调规则、初始图案、速度</td></tr>
     </tbody></table></div>
 <div class="card"><strong>密码学</strong> <span class="muted">(3)</span>
@@ -278,7 +282,7 @@ expr_a = a_extra + 0.01 * t</pre>
       <tr><td>backprop</td><td>反向传播/训练</td><td>损失曲线、权重变化；调学习率、网络规模</td></tr>
       <tr><td>cnn-demo</td><td>CNN/卷积演示</td><td>卷积核滑动、特征图；调核大小、步长</td></tr>
       <tr><td>attention</td><td>Transformer 注意力</td><td>token、注意力热图；调序列、头数</td></tr>
-      <tr><td>rl-grid</td><td>强化学习网格世界</td><td>网格、策略箭头、价值色；调奖励、折扣因子</td></tr>
+      <tr><td>rl-grid</td><td>强化学习网格世界</td><td>TD(0) 单备份示意；调 α、γ、奖励</td></tr>
     </tbody></table></div>
 <div class="card"><strong>优化</strong> <span class="muted">(3)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
@@ -330,11 +334,9 @@ expr_a = a_extra + 0.01 * t</pre>
       <tr><td>fs-inode</td><td>文件系统/索引</td><td>inode、目录树、块映射；调文件大小、块大小</td></tr>
     </tbody></table></div>
 <div class="card"><strong>编译原理</strong> <span class="muted">(3)</span>
-<table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>      <tr><td>vm-interp</td><td>解释器/虚拟机</td><td>指令流、栈/寄存器、输出；调程序、单步</td></tr>
-    </tbody></table></div>
+<table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>          </tbody></table></div>
 <div class="card"><strong>数据库</strong> <span class="muted">(2)</span>
-<table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>      <tr><td>acid-tx</td><td>事务 ACID/并发控制</td><td>事务时间线、锁、提交/回滚；调隔离级别、冲突</td></tr>
-    </tbody></table></div>
+<table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>          </tbody></table></div>
 <div class="card"><strong>分布式</strong> <span class="muted">(2)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
       <tr><td>raft</td><td>Raft/Paxos 共识</td><td>节点状态、日志复制、选举；调节点数、网络分区</td></tr>
@@ -514,9 +516,7 @@ expr_a = a_extra + 0.01 * t</pre>
 <div class="card"><strong>电生理</strong> <span class="muted">(3)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
       <tr><td>hodgkin-huxley</td><td>神经动作电位（Hodgkin-Huxley）</td><td>膜电位时程、离子通道电导；调刺激电流、通道参数</td></tr>
-      <tr><td>ecg-synth</td><td>心电图（ECG）合成</td><td>P-QRS-T 波形、心率变异性；调心率、各波幅</td></tr>
-      <tr><td>pacemaker</td><td>房室结/起搏器控制</td><td>起搏节律、传导延迟；调起搏频率、延迟</td></tr>
-    </tbody></table></div>
+                </tbody></table></div>
 <div class="card"><strong>生理系统</strong> <span class="muted">(2)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
       <tr><td>respiratory-mech</td><td>呼吸系统力学</td><td>肺容积-压力环、气道阻力；调顺应性、阻力</td></tr>
@@ -591,12 +591,10 @@ expr_a = a_extra + 0.01 * t</pre>
 <h3>经济与管理</h3>
 <div class="card"><strong>微观</strong> <span class="muted">(1)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
-      <tr><td>supply-demand</td><td>供需均衡</td><td>供给/需求曲线、均衡价格；调弹性、冲击</td></tr>
-    </tbody></table></div>
+          </tbody></table></div>
 <div class="card"><strong>金融</strong> <span class="muted">(1)</span>
 <table><thead><tr><th>id</th><th>名称</th><th>要点</th></tr></thead><tbody>
-      <tr><td>compound-growth</td><td>复利/投资增长</td><td>本金增长曲线、不同利率对比；调利率、期数</td></tr>
-    </tbody></table></div>
+          </tbody></table></div>
 
     <h2>9. 宽屏折叠 / 窄屏抽屉</h2>
     <div class="card">

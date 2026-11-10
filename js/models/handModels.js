@@ -31,6 +31,13 @@ import beamSfdBmd from './beamSfdBmd.js';
 import pidTune from './pidTune.js';
 import hodgkinHuxley from './hodgkinHuxley.js';
 import compoundMicroscope from './compoundMicroscope.js';
+import doubleSlit from './doubleSlit.js';
+import singleSlit from './singleSlit.js';
+import standingWave from './standingWave.js';
+import crcHamming from './crcHamming.js';
+import avlTree from './avlTree.js';
+import turingMachine from './turingMachine.js';
+import huffman from './huffman.js';
 
 export const HANDS = [
   projectile, spring, pendulum, collision, doublePendulum, wave, heat,
@@ -38,4 +45,5 @@ export const HANDS = [
   rlCircuit, ohmsLaw, polarization, photoelectric,
   inclinedPlane, collision2d, dijkstra, logicGates, beamSfdBmd, pidTune,
   hodgkinHuxley, compoundMicroscope,
+  doubleSlit, singleSlit, standingWave, crcHamming, avlTree, turingMachine, huffman,
 ];
