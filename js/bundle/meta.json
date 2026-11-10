@@ -1,9 +1,9 @@
 {
-  "at": "2026-11-10T10:43:02.052Z",
+  "at": "2026-11-10T11:32:56.072Z",
   "outputs": [
     {
       "file": "lab.js",
-      "bytes": 484749
+      "bytes": 485415
     },
     {
       "file": "chunk-factory-HGAYOUCE.js",
@@ -14,12 +14,12 @@
       "bytes": 270207
     },
     {
-      "file": "chunk-handModels-X44GAH4J.js",
-      "bytes": 198724
+      "file": "chunk-handModels-WRQ7Z2WM.js",
+      "bytes": 198931
     },
     {
-      "file": "chunk-microscopeWebgl-4UXH2FZD.js",
-      "bytes": 75629
+      "file": "chunk-microscopeWebgl-IAEFP3JO.js",
+      "bytes": 75070
     },
     {
       "file": "chunk-chunk-RJLELWJ4.js",
@@ -30,8 +30,8 @@
       "bytes": 13681
     },
     {
-      "file": "chunk-chunk-EW7TY4D2.js",
-      "bytes": 5737
+      "file": "chunk-chunk-DBGF6KTB.js",
+      "bytes": 5887
     },
     {
       "file": "chunk-chunk-ZIYIE64H.js",

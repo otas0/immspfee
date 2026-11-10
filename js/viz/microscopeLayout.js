@@ -40,7 +40,9 @@ export function armPoint(t) {
  */
 export function microscopeLayout(optics, params = {}) {
   const mag = optics.obj.mag;
-  const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
+  // Classroom scopes keep a fixed mechanical tube; L only enters the M ≈ −(L/f) formula.
+  // Do not stretch the barrel when tubeL_mm changes — that looked like “focusing by tube length”.
+  const Lscale = 1;
   const tubeH = (1.35 + MagScale(mag) * 0.22) * Lscale;
   const headY = 1.55;
   const turY = headY - 0.28;
@@ -62,9 +64,11 @@ export function microscopeLayout(optics, params = {}) {
   // Map WD → condenser clearance under the stage.
   const wdT = Math.min(1, Math.max(0, (WD - 0.15) / (18 - 0.15)));
   const condenserGap = 0.08 + wdT * 0.27;
-  // Fine focus raises/lowers the stage relative to the nosepiece.
+  // Coarse/fine focus change objective–stage gap (WD). focusZ is a small extra rack offset.
   const objLen = 0.26 + MagScale(mag) * 0.055;
-  const stageY = turY - objLen - 0.18 - focusZmm * 0.04;
+  const tipY = turY - objLen;
+  const clearWorld = 0.05 + Math.min(0.7, WD * 0.032);
+  const stageY = tipY - clearWorld - focusZmm * 0.02;
 
   const NAcap = Math.max(0.05, Number(optics.NAcap) || 0.25);
   const NA = Math.max(0.05, Math.min(NAcap, Number(optics.NA) || 0.25));
@@ -99,7 +103,8 @@ export function microscopeLayout(optics, params = {}) {
   });
 
   const focus = armPoint(0.3);
-  const condenserY = stageY - condenserGap;
+  const condenserOffset = (Number(params.condenser_mm) || 0) * 0.04;
+  const condenserY = stageY - condenserGap - condenserOffset;
   const lampY = stageY - 0.46;
 
   const pts = [];
@@ -203,14 +208,7 @@ export function microscopeLayout(optics, params = {}) {
     z: 0.02,
     rWorld: 0.16,
   });
-  pts.push({
-    kind: 'tubeL',
-    index: 0,
-    x: -0.28,
-    y: tubeCenterY,
-    z: 0,
-    rWorld: 0.12,
-  });
+  // tubeL is not a pick target: fixed mechanical tube (design L in the rail / formula only).
   pts.push({
     kind: 'interpupillary',
     index: 0,
@@ -282,7 +280,6 @@ export const DRAG_KINDS = new Set([
   'condenser',
   'iris',
   'fieldIris',
-  'tubeL',
   'interpupillary',
 ]);
 

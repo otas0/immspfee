@@ -27,7 +27,7 @@ Each hit:
 
 | field | meaning |
 | --- | --- |
-| `kind` | `obj` / `eye` / `focusCoarse` / `focusFine` / `stageX` / `stageY` / `condenser` / `iris` / `fieldIris` / `lamp` / `tubeL` / `immersion` / `clip` |
+| `kind` | `obj` / `eye` / `focusCoarse` / `focusFine` / `stageX` / `stageY` / `condenser` / `iris` / `fieldIris` / `lamp` / `immersion` / `clip` (tube L is design-fixed, not a drag) |
 | `index` | Objective/eyepiece/clip index, or side for focus knobs |
 | `x`, `y` | Center in CSS px relative to the canvas |
 | `r` | Hit radius in CSS px |

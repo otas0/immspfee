@@ -1018,7 +1018,7 @@ function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
 }
 
 
-/* inlined chunk-chunk-EW7TY4D2.js */
+/* inlined chunk-chunk-DBGF6KTB.js */
 // js/models/microscopeOptics.js
 var OBJECTIVES = [
   { id: "4x", mag: 4, fMm: 40, na: 0.1, wdMm: 18, alphaDeg: 5.7 },
@@ -1131,6 +1131,7 @@ var DEFAULT_PARAMS = {
   NA: 0.25,
   WD_mm: 6.5,
   focusZ_mm: 0,
+  condenser_mm: 0,
   stageX_mm: 0,
   stageY_mm: 0,
   fieldIris: 0.55,
@@ -1154,12 +1155,13 @@ var PARAM_SCHEMA = {
     label: "Eyepiece",
     options: EYE_OPTIONS
   },
-  tubeL_mm: { group: "dynamics", unit: "mm", label: "Tube length L", min: 120, max: 200 },
+  tubeL_mm: { group: "dynamics", unit: "mm", label: "Tube length L (design, usually fixed)", min: 120, max: 200 },
   fObj_mm: { group: "dynamics", unit: "mm", label: "f_obj", min: 1, max: 50 },
   fEye_mm: { group: "dynamics", unit: "mm", label: "f_eye", min: 10, max: 60 },
   NA: { group: "dynamics", unit: "\u2014", label: "NA", min: 0.05, max: 1.4 },
-  WD_mm: { group: "dynamics", unit: "mm", label: "Working distance", min: 0.05, max: 25 },
-  focusZ_mm: { group: "dynamics", unit: "mm", label: "Focus \u0394z", min: -2, max: 2 },
+  WD_mm: { group: "dynamics", unit: "mm", label: "Objective\u2013stage gap", min: 0.05, max: 25 },
+  focusZ_mm: { group: "dynamics", unit: "mm", label: "Fine rack \u0394z", min: -2, max: 2 },
+  condenser_mm: { group: "dynamics", unit: "mm", label: "Condenser height", min: -3, max: 3 },
   stageX_mm: { group: "dynamics", unit: "mm", label: "Stage X", min: -25, max: 25 },
   stageY_mm: { group: "dynamics", unit: "mm", label: "Stage Y", min: -25, max: 25 },
   fieldIris: { group: "dynamics", unit: "\u2014", label: "Field iris", min: 0.1, max: 1 },
@@ -1365,7 +1367,7 @@ var __export = (target, all) => {
 /* static chunk inlined: chunk-chunk-KUFB563V.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
-/* static chunk inlined: chunk-chunk-EW7TY4D2.js */
+/* static chunk inlined: chunk-chunk-DBGF6KTB.js */
 /* static chunk inlined: chunk-chunk-ZIYIE64H.js */
 /* static chunk inlined: chunk-chunk-KX6VIJEB.js */
 // js/models/freeFall.js
@@ -1609,7 +1611,7 @@ var STRINGS = {
     "ui.lang": "\u8BED\u8A00",
     "ui.shell": "\u58F3",
     "ui.microExit": "\u8FD4\u56DE\u8BFE\u8868",
-    "ui.microLede": "WASD/\u65B9\u5411\u952E \xB7 QE\u5347\u964D \xB7 RF\u4FEF\u4EF0 \xB7 ZC\u5E73\u79FB \xB7 0\u20137\u673A\u4F4D \xB7 \u53CC\u6307/\u6EDA\u8F6E\u7F29\u653E \xB7 \u65CB\u94AE\u6539 L/NA/WD/\u8F7D\u7269\u53F0",
+    "ui.microLede": "WASD/\u65B9\u5411\u952E \xB7 QE\u5347\u964D \xB7 RF\u4FEF\u4EF0 \xB7 ZC\u5E73\u79FB \xB7 0\u20137\u673A\u4F4D \xB7 \u53CC\u6307/\u6EDA\u8F6E\u7F29\u653E \xB7 \u7C97/\u7EC6\u51C6\u7126\u87BA\u65CB\u6539\u7269\u955C\u2013\u8F7D\u7269\u53F0\u95F4\u8DDD",
     "ui.microReset": "\u91CD\u7F6E\u5149\u5B66",
     "ui.microBench": "\u5149\u5B66\u53C2\u6570",
     "ui.micro3dSection": "\u4E09\u7EF4\u53F0",
@@ -1621,10 +1623,12 @@ var STRINGS = {
     "ui.microRailTitle": "\u6709\u9650\u955C\u7B52",
     "ui.microRailObj": "\u7269\u955C",
     "ui.microRailEye": "\u76EE\u955C",
-    "ui.microRailTube": "\u955C\u7B52\u957F L",
+    "ui.microRailTube": "\u955C\u7B52\u957F L\uFF08\u8BBE\u8BA1\uFF09",
+    "ui.microRailTubeHint": "\u8BFE\u5802\u663E\u5FAE\u955C\u901A\u5E38\u56FA\u5B9A\uFF1B\u4EC5\u8FDB\u5165 M \u2248 \u2212(L/f)",
+    "ui.microRailWDHint": "\u81C2\u4E0A\u7C97\u51C6\u7126 / \u7EC6\u51C6\u7126\u87BA\u65CB\u8C03\u8282",
     "ui.microRailNA": "NA",
-    "ui.microRailWD": "\u5DE5\u4F5C\u8DDD\u79BB",
-    "ui.microRailFocus": "\u8C03\u7126 \u0394z",
+    "ui.microRailWD": "\u7269\u955C\u2013\u8F7D\u7269\u53F0\u95F4\u8DDD",
+    "ui.microRailFocus": "\u7EC6\u51C6\u7126\u9F7F\u6761 \u0394z",
     "ui.microRailStageX": "\u8F7D\u7269\u53F0 X",
     "ui.microRailStageY": "\u8F7D\u7269\u53F0 Y",
     "ui.microRailFieldIris": "\u89C6\u573A\u5149\u9611",
@@ -1647,8 +1651,8 @@ var STRINGS = {
     "ui.microViewLamp": "\u5149\u6E90",
     "ui.microViewCondenser": "\u805A\u5149\u955C",
     "ui.microViewSide": "\u4FA7\u9762",
-    "ui.microKnobCoarse": "\u7C97\u8C03",
-    "ui.microKnobFine": "\u5FAE\u8C03",
+    "ui.microKnobCoarse": "\u7C97\u51C6\u7126\u87BA\u65CB",
+    "ui.microKnobFine": "\u7EC6\u51C6\u7126\u87BA\u65CB",
     "ui.microKnobStageX": "\u8F7D\u7269\u53F0 X",
     "ui.microKnobStageY": "\u8F7D\u7269\u53F0 Y",
     "ui.microKnobCondenser": "\u805A\u5149\u955C",
@@ -1772,7 +1776,7 @@ var STRINGS = {
     "ui.lang": "language",
     "ui.shell": "shell",
     "ui.microExit": "Back to catalog",
-    "ui.microLede": "WASD/arrows dolly+yaw \xB7 QE crane \xB7 RF pitch \xB7 ZC strafe \xB7 0\u20137 views \xB7 pinch/wheel zoom \xB7 knobs edit L/NA/WD/stage",
+    "ui.microLede": "WASD/arrows dolly+yaw \xB7 QE crane \xB7 RF pitch \xB7 ZC strafe \xB7 0\u20137 views \xB7 pinch/wheel zoom \xB7 coarse/fine focus change objective\u2013stage gap",
     "ui.microReset": "Reset optics",
     "ui.microBench": "Optical params",
     "ui.micro3dSection": "3D stage",
@@ -1784,10 +1788,12 @@ var STRINGS = {
     "ui.microRailTitle": "Finite tube",
     "ui.microRailObj": "Objective",
     "ui.microRailEye": "Eyepiece",
-    "ui.microRailTube": "Tube length L",
+    "ui.microRailTube": "Tube length L (design)",
+    "ui.microRailTubeHint": "Fixed on common classroom scopes; used in M \u2248 \u2212(L/f)",
+    "ui.microRailWDHint": "Coarse / fine focus screws on the arm",
     "ui.microRailNA": "NA",
-    "ui.microRailWD": "Working distance",
-    "ui.microRailFocus": "Focus \u0394z",
+    "ui.microRailWD": "Objective\u2013stage gap",
+    "ui.microRailFocus": "Fine rack \u0394z",
     "ui.microRailStageX": "Stage X",
     "ui.microRailStageY": "Stage Y",
     "ui.microRailFieldIris": "Field iris",
@@ -1810,8 +1816,8 @@ var STRINGS = {
     "ui.microViewLamp": "Lamp",
     "ui.microViewCondenser": "Condenser",
     "ui.microViewSide": "Side",
-    "ui.microKnobCoarse": "Coarse",
-    "ui.microKnobFine": "Fine",
+    "ui.microKnobCoarse": "Coarse focus",
+    "ui.microKnobFine": "Fine focus",
     "ui.microKnobStageX": "Stage X",
     "ui.microKnobStageY": "Stage Y",
     "ui.microKnobCondenser": "Condenser",
@@ -1978,8 +1984,8 @@ var STRINGS = {
     "ui.microViewLamp": "\u30E9\u30F3\u30D7",
     "ui.microViewCondenser": "\u30B3\u30F3\u30C7\u30F3\u30B5",
     "ui.microViewSide": "\u5074\u9762",
-    "ui.microKnobCoarse": "\u7C97\u52D5",
-    "ui.microKnobFine": "\u5FAE\u52D5",
+    "ui.microKnobCoarse": "\u7C97\u52D5\u7126\u70B9",
+    "ui.microKnobFine": "\u5FAE\u52D5\u7126\u70B9",
     "ui.microKnobStageX": "\u30B9\u30C6\u30FC\u30B8 X",
     "ui.microKnobStageY": "\u30B9\u30C6\u30FC\u30B8 Y",
     "ui.microKnobCondenser": "\u30B3\u30F3\u30C7\u30F3\u30B5\u30FC",
@@ -2103,8 +2109,8 @@ var STRINGS = {
     "ui.microViewLamp": "\uB7A8\uD504",
     "ui.microViewCondenser": "\uC9D1\uAD11\uAE30",
     "ui.microViewSide": "\uCE21\uBA74",
-    "ui.microKnobCoarse": "\uC870\uB3D9",
-    "ui.microKnobFine": "\uBBF8\uB3D9",
+    "ui.microKnobCoarse": "\uC870\uB3D9 \uCD08\uC810",
+    "ui.microKnobFine": "\uBBF8\uB3D9 \uCD08\uC810",
     "ui.microKnobStageX": "\uC7AC\uBB3C\uB300 X",
     "ui.microKnobStageY": "\uC7AC\uBB3C\uB300 Y",
     "ui.microKnobCondenser": "\uCF58\uB374\uC11C",
@@ -2228,8 +2234,8 @@ var STRINGS = {
     "ui.microViewLamp": "L\xE1mpara",
     "ui.microViewCondenser": "Condensador",
     "ui.microViewSide": "Lateral",
-    "ui.microKnobCoarse": "Grueso",
-    "ui.microKnobFine": "Fino",
+    "ui.microKnobCoarse": "Foco grueso",
+    "ui.microKnobFine": "Foco fino",
     "ui.microKnobStageX": "Platina X",
     "ui.microKnobStageY": "Platina Y",
     "ui.microKnobCondenser": "Condensador",
@@ -2353,8 +2359,8 @@ var STRINGS = {
     "ui.microViewLamp": "Lampe",
     "ui.microViewCondenser": "Condenseur",
     "ui.microViewSide": "C\xF4t\xE9",
-    "ui.microKnobCoarse": "Grossi\xE8re",
-    "ui.microKnobFine": "Fine",
+    "ui.microKnobCoarse": "Mise au point grossi\xE8re",
+    "ui.microKnobFine": "Mise au point fine",
     "ui.microKnobStageX": "Platine X",
     "ui.microKnobStageY": "Platine Y",
     "ui.microKnobCondenser": "Condenseur",
@@ -2478,8 +2484,8 @@ var STRINGS = {
     "ui.microViewLamp": "Lampe",
     "ui.microViewCondenser": "Kondensor",
     "ui.microViewSide": "Seite",
-    "ui.microKnobCoarse": "Grob",
-    "ui.microKnobFine": "Fein",
+    "ui.microKnobCoarse": "Grobtrieb",
+    "ui.microKnobFine": "Feintrieb",
     "ui.microKnobStageX": "Tisch X",
     "ui.microKnobStageY": "Tisch Y",
     "ui.microKnobCondenser": "Kondensor",
@@ -5124,7 +5130,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-X44GAH4J.js").then((mod) => {
+    handsPending = import("./chunk-handModels-WRQ7Z2WM.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -7295,10 +7301,18 @@ function createMicroscopeStage(api) {
           <div class="micro-chips" id="micro-eye" role="group"></div>
         </div>
         <label class="micro-field">
-          <span class="micro-field-label" data-i18n="ui.microRailTube">Tube length L</span>
+          <span class="micro-field-label" data-i18n="ui.microRailWD">Objective\u2013stage gap</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-tube" min="120" max="200" step="1" />
-            <output id="micro-tube-out">160 mm</output>
+            <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
+            <output id="micro-wd-out">6.5 mm</output>
+          </div>
+          <span class="micro-cap" data-i18n="ui.microRailWDHint">Coarse / fine focus screws on the arm</span>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailFocus">Fine rack \u0394z</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
+            <output id="micro-focus-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
@@ -7309,20 +7323,13 @@ function createMicroscopeStage(api) {
           </div>
           <span class="micro-cap" id="micro-na-cap"></span>
         </label>
-        <label class="micro-field">
-          <span class="micro-field-label" data-i18n="ui.microRailWD">Working distance</span>
+        <div class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailTube">Tube length L (design)</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
-            <output id="micro-wd-out">6.5 mm</output>
+            <output id="micro-tube-out">160 mm</output>
           </div>
-        </label>
-        <label class="micro-field">
-          <span class="micro-field-label" data-i18n="ui.microRailFocus">Focus \u0394z</span>
-          <div class="micro-slider-row">
-            <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
-            <output id="micro-focus-out">0 mm</output>
-          </div>
-        </label>
+          <span class="micro-cap" data-i18n="ui.microRailTubeHint">Fixed on common classroom scopes; used in M \u2248 \u2212(L/f)</span>
+        </div>
         <label class="micro-field">
           <span class="micro-field-label" data-i18n="ui.microRailStageX">Stage X</span>
           <div class="micro-slider-row">
@@ -7462,14 +7469,6 @@ function createMicroscopeStage(api) {
       paint();
       api.onChange();
     });
-    const tube = stage.querySelector("#micro-tube");
-    tube?.addEventListener("input", () => {
-      const state = api.getState();
-      if (!state?.params) return;
-      state.params.tubeL_mm = Number(tube.value);
-      paint();
-      api.onChange();
-    });
     const na = stage.querySelector("#micro-na");
     na?.addEventListener("input", () => {
       const state = api.getState();
@@ -7571,9 +7570,7 @@ function createMicroscopeStage(api) {
     for (const btn of stage.querySelectorAll("#micro-imm .micro-chip")) {
       btn.classList.toggle("is-active", btn.dataset.imm === "oil" === o.immersion);
     }
-    const tube = stage.querySelector("#micro-tube");
     const tubeOut = stage.querySelector("#micro-tube-out");
-    if (tube) tube.value = String(Math.round(o.Lmm));
     if (tubeOut) tubeOut.textContent = `${formatNum(o.Lmm, 0)} mm`;
     const na = stage.querySelector("#micro-na");
     const naOut = stage.querySelector("#micro-na-out");
@@ -9486,7 +9483,7 @@ function updateHud(opts = {}) {
 var webglCreatePromise = null;
 function loadMicroscopeWebgl() {
   if (!webglCreatePromise) {
-    webglCreatePromise = import("./chunk-microscopeWebgl-4UXH2FZD.js").then((mod) => mod.createMicroscopeWebgl);
+    webglCreatePromise = import("./chunk-microscopeWebgl-IAEFP3JO.js").then((mod) => mod.createMicroscopeWebgl);
   }
   return webglCreatePromise;
 }

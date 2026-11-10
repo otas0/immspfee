@@ -570,9 +570,19 @@ export function runSuite() {
         String(lay.irisOpen),
       );
       assert('condenser height tracks WD', lay.condenserY < lay.stageY - 0.05, `c=${lay.condenserY} s=${lay.stageY}`);
-      assert('focus displaces stage (WD)', lay.stageY < microscopeLayout(o40, { focusZ_mm: 0 }).stageY);
+      assert('focus displaces stage (rack)', lay.stageY < microscopeLayout(o40, { focusZ_mm: 0 }).stageY);
+      const layWide = microscopeLayout(
+        opticsFromParams({ objective: '40x', eyepiece: '10x', tubeL_mm: 160, NA: 0.65, WD_mm: 6 }),
+        { focusZ_mm: 0 },
+      );
+      assert(
+        'WD opens objective–stage gap',
+        layWide.stageY < lay.stageY - 0.05,
+        `wide=${layWide.stageY} tight=${lay.stageY}`,
+      );
+      assert('tubeL is not a focus drag', !DRAG_KINDS.has('tubeL'));
       assert('stage XY slides slide picks', Math.abs(lay.slideX - 0.02) < 1e-9 && Math.abs(lay.slideZ + 0.012) < 1e-9);
-      for (const k of ['focusCoarse', 'focusFine', 'stageX', 'stageY', 'condenser', 'iris', 'fieldIris', 'tubeL']) {
+      for (const k of ['focusCoarse', 'focusFine', 'stageX', 'stageY', 'condenser', 'iris', 'fieldIris']) {
         assert(`DRAG_KINDS has ${k}`, DRAG_KINDS.has(k));
       }
       for (const k of ['obj', 'eye', 'lamp', 'immersion', 'clip']) {

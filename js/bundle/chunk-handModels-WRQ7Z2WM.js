@@ -25,7 +25,7 @@ import {
   PARAM_SCHEMA,
   applyTurretDefaults,
   opticsFromParams
-} from "./chunk-chunk-EW7TY4D2.js";
+} from "./chunk-chunk-DBGF6KTB.js";
 import {
   mobileBudget,
   perfClassFor
@@ -5169,12 +5169,16 @@ var compoundMicroscope_default = {
       ctx.fillText(`${obj.mag}\xD7`, lx - 10, ly + 4);
       hits.push({ kind: "obj", index: i, x: lx - s / 2, y: ly - s / 2, w: s, h: s });
     });
-    const stageY = turY + turR + 40;
+    const wdPx = 28 + Math.min(70, o.WD * 4);
+    const stageY = turY + turR + wdPx;
     ctx.strokeStyle = C.body || "#fff";
     ctx.beginPath();
     ctx.moveTo(cx - 50, stageY);
     ctx.lineTo(cx + 50, stageY);
     ctx.stroke();
+    ctx.fillStyle = C.muted || "#888";
+    ctx.font = "10px IBM Plex Mono, monospace";
+    ctx.fillText(`gap ${formatNum(o.WD, 1)} mm`, cx - 48, stageY + 14);
     if (o.immersion) {
       ctx.fillStyle = "rgba(180,220,255,0.25)";
       ctx.fillRect(cx - 12, stageY - 14, 24, 14);

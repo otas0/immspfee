@@ -493,27 +493,25 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     const p = lastState.params;
     const o = opticsFromParams(p);
     if (kind === 'focusCoarse') {
-      // Coarse: large rack-and-pinion Δz + WD together.
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -2, 2);
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.09, 0.05, 25);
+      // Coarse focus screw: large change in objective–stage gap (WD).
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.035, -2, 2);
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.14, 0.05, 25);
     } else if (kind === 'focusFine') {
-      // Fine: small Δz while unsaturated; WD always nudges so a saturated
-      // focusZ knob never feels dead (contract: fine→WD when focusZ hits ±2).
+      // Fine focus screw: small gap change; WD still moves when focusZ saturates.
       const z0 = Number(p.focusZ_mm) || 0;
-      p.focusZ_mm = clamp(z0 + dy * -0.006, -2, 2);
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.02, 0.05, 25);
+      p.focusZ_mm = clamp(z0 + dy * -0.008, -2, 2);
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.028, 0.05, 25);
     } else if (kind === 'stageX') {
       p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -15, 15);
     } else if (kind === 'stageY') {
       p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -10, 10);
     } else if (kind === 'condenser') {
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.07, 0.05, 25);
+      // Condenser height only — does not replace coarse/fine stage focus.
+      p.condenser_mm = clamp((Number(p.condenser_mm) || 0) + dy * -0.08, -3, 3);
     } else if (kind === 'iris') {
       p.NA = clamp((Number(p.NA) || o.NA) + dx * 0.0025, 0.05, o.NAcap);
     } else if (kind === 'fieldIris') {
       p.fieldIris = clamp((Number(p.fieldIris) || 0.55) + dx * 0.003, 0.1, 1);
-    } else if (kind === 'tubeL') {
-      p.tubeL_mm = clamp((Number(p.tubeL_mm) || 160) + dy * -0.2, 120, 200);
     } else if (kind === 'interpupillary') {
       p.interpupillary_mm = clamp((Number(p.interpupillary_mm) || 64) + dx * 0.08, 50, 75);
     } else {
@@ -840,7 +838,6 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       iris: tFn('ui.microKnobIris'),
       fieldIris: tFn('ui.microKnobFieldIris'),
       lamp: tFn('ui.microKnobLamp'),
-      tubeL: null, // L dimension already labeled when captions are standing
       interpupillary: tFn('ui.microKnobIPD'),
       immersion: tFn('ui.microKnobOil'),
       clip: tFn('ui.microKnobClip'),
@@ -850,14 +847,12 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       hot: !!pointerHot,
     });
     if (caption.standing) {
-      const tubeHit = layout.pts.find((row) => row.kind === 'tubeL');
-      const Lpt = tubeHit
-        ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height)
-        : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
+      // Design tube length caption only (not a focus control).
+      const Lpt = project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
       if (Lpt) {
         overlayLabels.push({
           id: 'L',
-          text: `L = ${Math.round(optics.Lmm)} mm`,
+          text: `L = ${Math.round(optics.Lmm)} mm (fixed)`,
           x: Lpt.x,
           y: Lpt.y,
         });
@@ -959,14 +954,6 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
                 role: 'eye',
               });
             }
-          } else if (p.kind === 'tubeL') {
-            overlayLabels.push({
-              id: 'L',
-              text: `L = ${Math.round(optics.Lmm)} mm`,
-              x: s.x,
-              y: s.y,
-              active: true,
-            });
           } else if (knobLabels[p.kind]) {
             const key = p.kind === 'clip' ? `clip-${p.index}` : p.kind;
             overlayLabels.push({

@@ -5,7 +5,7 @@ import {
   applyTurretDefaults,
   objectiveRingColor,
   opticsFromParams
-} from "./chunk-chunk-EW7TY4D2.js";
+} from "./chunk-chunk-DBGF6KTB.js";
 import {
   mobileBudget
 } from "./chunk-chunk-ZIYIE64H.js";
@@ -34,7 +34,7 @@ function armPoint(t) {
 }
 function microscopeLayout(optics, params = {}) {
   const mag = optics.obj.mag;
-  const Lscale = Math.max(0.85, Math.min(1.25, (optics.Lmm || 160) / 160));
+  const Lscale = 1;
   const tubeH = (1.35 + MagScale(mag) * 0.22) * Lscale;
   const headY = 1.55;
   const turY = headY - 0.28;
@@ -52,7 +52,9 @@ function microscopeLayout(optics, params = {}) {
   const wdT = Math.min(1, Math.max(0, (WD - 0.15) / (18 - 0.15)));
   const condenserGap = 0.08 + wdT * 0.27;
   const objLen = 0.26 + MagScale(mag) * 0.055;
-  const stageY = turY - objLen - 0.18 - focusZmm * 0.04;
+  const tipY = turY - objLen;
+  const clearWorld = 0.05 + Math.min(0.7, WD * 0.032);
+  const stageY = tipY - clearWorld - focusZmm * 0.02;
   const NAcap = Math.max(0.05, Number(optics.NAcap) || 0.25);
   const NA = Math.max(0.05, Math.min(NAcap, Number(optics.NA) || 0.25));
   const irisOpen = Math.min(0.95, Math.max(0.08, NA / NAcap));
@@ -87,7 +89,8 @@ function microscopeLayout(optics, params = {}) {
     };
   });
   const focus = armPoint(0.3);
-  const condenserY = stageY - condenserGap;
+  const condenserOffset = (Number(params.condenser_mm) || 0) * 0.04;
+  const condenserY = stageY - condenserGap - condenserOffset;
   const lampY = stageY - 0.46;
   const pts = [];
   OBJECTIVES.forEach((obj, i) => {
@@ -187,14 +190,6 @@ function microscopeLayout(optics, params = {}) {
     rWorld: 0.16
   });
   pts.push({
-    kind: "tubeL",
-    index: 0,
-    x: -0.28,
-    y: tubeCenterY,
-    z: 0,
-    rWorld: 0.12
-  });
-  pts.push({
     kind: "interpupillary",
     index: 0,
     x: 0,
@@ -262,7 +257,6 @@ var DRAG_KINDS = /* @__PURE__ */ new Set([
   "condenser",
   "iris",
   "fieldIris",
-  "tubeL",
   "interpupillary"
 ]);
 var CLICK_KINDS = /* @__PURE__ */ new Set([
@@ -604,6 +598,7 @@ function meshDynamicKey(optics, hover, params = {}) {
     optics?.WD ?? "",
     optics?.immersion ? 1 : 0,
     p.focusZ_mm ?? 0,
+    p.condenser_mm ?? 0,
     p.stageX_mm ?? 0,
     p.stageY_mm ?? 0,
     p.fieldIris ?? 0.55,
@@ -1597,24 +1592,22 @@ function createMicroscopeWebgl(canvas, opts = {}) {
     const p = lastState.params;
     const o = opticsFromParams(p);
     if (kind === "focusCoarse") {
-      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.028, -2, 2);
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.09, 0.05, 25);
+      p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.035, -2, 2);
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.14, 0.05, 25);
     } else if (kind === "focusFine") {
       const z0 = Number(p.focusZ_mm) || 0;
-      p.focusZ_mm = clamp(z0 + dy * -6e-3, -2, 2);
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.02, 0.05, 25);
+      p.focusZ_mm = clamp(z0 + dy * -8e-3, -2, 2);
+      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.028, 0.05, 25);
     } else if (kind === "stageX") {
       p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -15, 15);
     } else if (kind === "stageY") {
       p.stageY_mm = clamp((Number(p.stageY_mm) || 0) + dy * -0.06, -10, 10);
     } else if (kind === "condenser") {
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.07, 0.05, 25);
+      p.condenser_mm = clamp((Number(p.condenser_mm) || 0) + dy * -0.08, -3, 3);
     } else if (kind === "iris") {
       p.NA = clamp((Number(p.NA) || o.NA) + dx * 25e-4, 0.05, o.NAcap);
     } else if (kind === "fieldIris") {
       p.fieldIris = clamp((Number(p.fieldIris) || 0.55) + dx * 3e-3, 0.1, 1);
-    } else if (kind === "tubeL") {
-      p.tubeL_mm = clamp((Number(p.tubeL_mm) || 160) + dy * -0.2, 120, 200);
     } else if (kind === "interpupillary") {
       p.interpupillary_mm = clamp((Number(p.interpupillary_mm) || 64) + dx * 0.08, 50, 75);
     } else {
@@ -1923,8 +1916,6 @@ function createMicroscopeWebgl(canvas, opts = {}) {
       iris: tFn("ui.microKnobIris"),
       fieldIris: tFn("ui.microKnobFieldIris"),
       lamp: tFn("ui.microKnobLamp"),
-      tubeL: null,
-      // L dimension already labeled when captions are standing
       interpupillary: tFn("ui.microKnobIPD"),
       immersion: tFn("ui.microKnobOil"),
       clip: tFn("ui.microKnobClip")
@@ -1934,12 +1925,11 @@ function createMicroscopeWebgl(canvas, opts = {}) {
       hot: !!pointerHot
     });
     if (caption.standing) {
-      const tubeHit = layout.pts.find((row) => row.kind === "tubeL");
-      const Lpt = tubeHit ? project(mvp, tubeHit.x, tubeHit.y, tubeHit.z, view.width, view.height) : project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
+      const Lpt = project(mvp, -0.28, layout.tubeCenterY, 0, view.width, view.height);
       if (Lpt) {
         overlayLabels.push({
           id: "L",
-          text: `L = ${Math.round(optics.Lmm)} mm`,
+          text: `L = ${Math.round(optics.Lmm)} mm (fixed)`,
           x: Lpt.x,
           y: Lpt.y
         });
@@ -2035,14 +2025,6 @@ function createMicroscopeWebgl(canvas, opts = {}) {
                 role: "eye"
               });
             }
-          } else if (p.kind === "tubeL") {
-            overlayLabels.push({
-              id: "L",
-              text: `L = ${Math.round(optics.Lmm)} mm`,
-              x: s.x,
-              y: s.y,
-              active: true
-            });
           } else if (knobLabels[p.kind]) {
             const key = p.kind === "clip" ? `clip-${p.index}` : p.kind;
             overlayLabels.push({

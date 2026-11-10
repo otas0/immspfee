@@ -303,6 +303,7 @@ export function meshDynamicKey(optics, hover, params = {}) {
     optics?.WD ?? '',
     optics?.immersion ? 1 : 0,
     p.focusZ_mm ?? 0,
+    p.condenser_mm ?? 0,
     p.stageX_mm ?? 0,
     p.stageY_mm ?? 0,
     p.fieldIris ?? 0.55,

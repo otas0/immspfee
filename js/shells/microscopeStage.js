@@ -116,10 +116,18 @@ export function createMicroscopeStage(api) {
           <div class="micro-chips" id="micro-eye" role="group"></div>
         </div>
         <label class="micro-field">
-          <span class="micro-field-label" data-i18n="ui.microRailTube">Tube length L</span>
+          <span class="micro-field-label" data-i18n="ui.microRailWD">Objective–stage gap</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-tube" min="120" max="200" step="1" />
-            <output id="micro-tube-out">160 mm</output>
+            <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
+            <output id="micro-wd-out">6.5 mm</output>
+          </div>
+          <span class="micro-cap" data-i18n="ui.microRailWDHint">Coarse / fine focus screws on the arm</span>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailFocus">Fine rack Δz</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
+            <output id="micro-focus-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
@@ -130,20 +138,13 @@ export function createMicroscopeStage(api) {
           </div>
           <span class="micro-cap" id="micro-na-cap"></span>
         </label>
-        <label class="micro-field">
-          <span class="micro-field-label" data-i18n="ui.microRailWD">Working distance</span>
+        <div class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailTube">Tube length L (design)</span>
           <div class="micro-slider-row">
-            <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
-            <output id="micro-wd-out">6.5 mm</output>
+            <output id="micro-tube-out">160 mm</output>
           </div>
-        </label>
-        <label class="micro-field">
-          <span class="micro-field-label" data-i18n="ui.microRailFocus">Focus Δz</span>
-          <div class="micro-slider-row">
-            <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
-            <output id="micro-focus-out">0 mm</output>
-          </div>
-        </label>
+          <span class="micro-cap" data-i18n="ui.microRailTubeHint">Fixed on common classroom scopes; used in M ≈ −(L/f)</span>
+        </div>
         <label class="micro-field">
           <span class="micro-field-label" data-i18n="ui.microRailStageX">Stage X</span>
           <div class="micro-slider-row">
@@ -286,14 +287,6 @@ export function createMicroscopeStage(api) {
       paint();
       api.onChange();
     });
-    const tube = stage.querySelector('#micro-tube');
-    tube?.addEventListener('input', () => {
-      const state = api.getState();
-      if (!state?.params) return;
-      state.params.tubeL_mm = Number(tube.value);
-      paint();
-      api.onChange();
-    });
     const na = stage.querySelector('#micro-na');
     na?.addEventListener('input', () => {
       const state = api.getState();
@@ -401,9 +394,7 @@ export function createMicroscopeStage(api) {
     for (const btn of stage.querySelectorAll('#micro-imm .micro-chip')) {
       btn.classList.toggle('is-active', (btn.dataset.imm === 'oil') === o.immersion);
     }
-    const tube = stage.querySelector('#micro-tube');
     const tubeOut = stage.querySelector('#micro-tube-out');
-    if (tube) tube.value = String(Math.round(o.Lmm));
     if (tubeOut) tubeOut.textContent = `${formatNum(o.Lmm, 0)} mm`;
     const na = stage.querySelector('#micro-na');
     const naOut = stage.querySelector('#micro-na-out');
