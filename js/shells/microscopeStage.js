@@ -9,6 +9,9 @@ import {
   objectiveRingColor,
   opticsFromParams,
   applyTurretDefaults,
+  clampObjectiveGap,
+  gapReadouts,
+  focusStatus,
 } from '../models/microscopeOptics.js';
 import { formatNum } from '../utils/draw.js';
 
@@ -42,14 +45,19 @@ const READOUTS = [
   { key: 'f_obj', label: 'f_obj' },
   { key: 'NA', label: 'NA' },
   { key: 'd_Abbe', label: 'd_Abbe' },
+  { key: 'gap', label: 'gap' },
+  { key: 'clarity', label: 'clarity' },
 ];
 
-function fmtReadouts(o) {
+function fmtReadouts(o, params) {
+  const gap = gapReadouts(params || {}, 2);
   return {
     M: `${formatNum(o.M, 1)}×`,
     f_obj: `${formatNum(o.fObjM * 1e3, 2)} mm`,
     NA: formatNum(o.NA, 3),
     d_Abbe: `${formatNum(o.dResM * 1e6, 2)} µm`,
+    gap: gap.gap,
+    clarity: gap.clarity,
   };
 }
 
@@ -72,6 +80,7 @@ function opticsFingerprint(params) {
     Math.round(o.lambdaNm),
     o.immersion ? 'oil' : 'dry',
     (Number(p.focusZ_mm) || 0).toFixed(2),
+    (Number(p.condenser_mm) || 0).toFixed(2),
     (Number(p.stageX_mm) || 0).toFixed(1),
     (Number(p.stageY_mm) || 0).toFixed(1),
     (Number(p.fieldIris) || 0.55).toFixed(2),
@@ -99,6 +108,8 @@ export function createMicroscopeStage(api) {
     stage.hidden = true;
     stage.innerHTML = `
       <div class="micro-gl-labels" id="micro-gl-labels" aria-hidden="true"></div>
+      <div class="micro-defocus" id="micro-defocus" aria-hidden="true"></div>
+      <div class="micro-crash" id="micro-crash" hidden data-i18n="ui.microCrashWarn">碰片限位 · tip near coverslip</div>
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
@@ -121,6 +132,12 @@ export function createMicroscopeStage(api) {
             <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
             <output id="micro-wd-out">6.5 mm</output>
           </div>
+          <div class="micro-chips micro-focus-steps" id="micro-focus-steps" role="group">
+            <button type="button" class="micro-chip" data-focus-step="coarse-in" data-i18n="ui.microStepCoarseIn">粗＋</button>
+            <button type="button" class="micro-chip" data-focus-step="coarse-out" data-i18n="ui.microStepCoarseOut">粗−</button>
+            <button type="button" class="micro-chip" data-focus-step="fine-in" data-i18n="ui.microStepFineIn">细＋</button>
+            <button type="button" class="micro-chip" data-focus-step="fine-out" data-i18n="ui.microStepFineOut">细−</button>
+          </div>
           <span class="micro-cap" data-i18n="ui.microRailWDHint">Coarse / fine focus screws on the arm</span>
         </label>
         <label class="micro-field">
@@ -128,6 +145,13 @@ export function createMicroscopeStage(api) {
           <div class="micro-slider-row">
             <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
             <output id="micro-focus-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailCondenser">Condenser height</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-condenser" min="-3" max="3" step="0.05" />
+            <output id="micro-condenser-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
@@ -254,7 +278,7 @@ export function createMicroscopeStage(api) {
       const state = api.getState();
       if (!state?.params) return;
       state.params.objective = btn.dataset.obj;
-      applyTurretDefaults(state, 'obj');
+      applyTurretDefaults(state, 'obj', { animate: true });
       state._lastObj = state.params.objective;
       state.pick = `obj-${btn.textContent}`;
       paint();
@@ -282,8 +306,27 @@ export function createMicroscopeStage(api) {
       } else if (state.params.objective === '100x') {
         state.params.objective = '40x';
       }
-      applyTurretDefaults(state, 'obj');
+      applyTurretDefaults(state, 'obj', { animate: true });
       state._lastObj = state.params.objective;
+      paint();
+      api.onChange();
+    });
+    stage.querySelector('#micro-focus-steps')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-focus-step]');
+      if (!btn) return;
+      const state = api.getState();
+      if (!state?.params) return;
+      const step = btn.dataset.focusStep;
+      const delta = step === 'coarse-in' ? -0.8
+        : step === 'coarse-out' ? 0.8
+          : step === 'fine-in' ? -0.12
+            : 0.12;
+      const next = clampObjectiveGap(state.params, (Number(state.params.WD_mm) || 6.5) + delta);
+      state.params.WD_mm = next.WD_mm;
+      state._crashWarn = next.atCrash || next.nearCrash;
+      if (step.startsWith('fine')) {
+        state.params.focusZ_mm = Math.max(-2, Math.min(2, (Number(state.params.focusZ_mm) || 0) + delta * 0.15));
+      }
       paint();
       api.onChange();
     });
@@ -314,8 +357,18 @@ export function createMicroscopeStage(api) {
         api.onChange();
       });
     };
-    bindSlider('#micro-wd', 'WD_mm');
+    const wdEl = stage.querySelector('#micro-wd');
+    wdEl?.addEventListener('input', () => {
+      const state = api.getState();
+      if (!state?.params) return;
+      const next = clampObjectiveGap(state.params, Number(wdEl.value));
+      state.params.WD_mm = next.WD_mm;
+      state._crashWarn = next.atCrash || next.nearCrash;
+      paint();
+      api.onChange();
+    });
     bindSlider('#micro-focus', 'focusZ_mm');
+    bindSlider('#micro-condenser', 'condenser_mm');
     bindSlider('#micro-stage-x', 'stageX_mm');
     bindSlider('#micro-stage-y', 'stageY_mm');
     bindSlider('#micro-field-iris', 'fieldIris');
@@ -356,7 +409,8 @@ export function createMicroscopeStage(api) {
     if (!state?.params) return;
     labelsPrefSet(state);
     const o = opticsFromParams(state.params);
-    const values = fmtReadouts(o);
+    const values = fmtReadouts(o, state.params);
+    const focusStat = focusStatus(state.params);
     const t = typeof api.t === 'function' ? api.t : (k) => k;
     for (const el of stage.querySelectorAll('[data-i18n]')) {
       const key = el.getAttribute('data-i18n');
@@ -411,13 +465,37 @@ export function createMicroscopeStage(api) {
     if (lambdaOut) lambdaOut.textContent = `${formatNum(o.lambdaNm, 0)} nm`;
     const wd = stage.querySelector('#micro-wd');
     const wdOut = stage.querySelector('#micro-wd-out');
-    if (wd) wd.value = String(o.WD);
+    if (wd) {
+      wd.min = String(focusStat.crashFloor);
+      wd.value = String(o.WD);
+    }
     if (wdOut) wdOut.textContent = `${formatNum(o.WD, 2)} mm`;
     const focusZ = Number(state.params.focusZ_mm) || 0;
-    const focus = stage.querySelector('#micro-focus');
+    const focusEl = stage.querySelector('#micro-focus');
     const focusOut = stage.querySelector('#micro-focus-out');
-    if (focus) focus.value = String(focusZ);
+    if (focusEl) focusEl.value = String(focusZ);
     if (focusOut) focusOut.textContent = `${formatNum(focusZ, 2)} mm`;
+    const condZ = Number(state.params.condenser_mm) || 0;
+    const condEl = stage.querySelector('#micro-condenser');
+    const condOut = stage.querySelector('#micro-condenser-out');
+    if (condEl) condEl.value = String(condZ);
+    if (condOut) condOut.textContent = `${formatNum(condZ, 2)} mm`;
+    const crashEl = stage.querySelector('#micro-crash');
+    if (crashEl) {
+      const showCrash = focusStat.atCrash || focusStat.nearCrash || !!state._crashWarn;
+      crashEl.hidden = !showCrash;
+      crashEl.classList.toggle('is-hard', focusStat.atCrash);
+      crashEl.textContent = focusStat.atCrash
+        ? t('ui.microCrashWarn')
+        : t('ui.microCrashNear');
+    }
+    const defocus = stage.querySelector('#micro-defocus');
+    if (defocus) {
+      const blurPx = Math.min(6, (1 - focusStat.clarity) * 7);
+      defocus.style.setProperty('--micro-defocus-blur', `${blurPx.toFixed(2)}px`);
+      defocus.style.setProperty('--micro-defocus-alpha', String(Math.min(0.45, (1 - focusStat.clarity) * 0.55)));
+      defocus.dataset.active = blurPx > 0.35 ? '1' : '0';
+    }
     const sx = Number(state.params.stageX_mm) || 0;
     const sy = Number(state.params.stageY_mm) || 0;
     const stageX = stage.querySelector('#micro-stage-x');

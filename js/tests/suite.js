@@ -37,6 +37,10 @@ import {
   objectiveRingColor,
   opticsFromParams,
   DEFAULT_PARAMS,
+  focusStatus,
+  clampObjectiveGap,
+  stepWdTween,
+  gapReadouts,
 } from '../models/microscopeOptics.js';
 import { createMicroscopeStage } from '../shells/microscopeStage.js';
 import { microscopeLayout, DRAG_KINDS, CLICK_KINDS } from '../viz/microscopeLayout.js';
@@ -409,6 +413,8 @@ export function runSuite() {
         'compound-microscope optics',
         r.some((x) => x.label === 'NA')
           && r.some((x) => x.label === 'WD')
+          && r.some((x) => x.label === 'gap')
+          && r.some((x) => x.label === 'clarity')
           && r.some((x) => x.label === '|M|')
           && r.some((x) => x.label === 'NA_cap')
           && m1 > m0
@@ -416,6 +422,18 @@ export function runSuite() {
           && !!na0,
         `M0=${m0} M1=${m1} nOil=${nOil}`,
       );
+      {
+        const sharp = focusStatus({ objective: '10x', WD_mm: 6.5 });
+        const soft = focusStatus({ objective: '10x', WD_mm: 12 });
+        assert('clarity peaks at design WD', sharp.clarity > soft.clarity && sharp.clarity > 0.95);
+        const hit = clampObjectiveGap({ objective: '40x', WD_mm: 0.6 }, 0.01);
+        assert('crash floor blocks tip', hit.atCrash && hit.WD_mm >= hit.crashFloor);
+        const twState = { params: { WD_mm: 6.5 }, _wdTween: { from: 6.5, to: 0.6, t: 0, dur: 0.4 } };
+        stepWdTween(twState, 0.2);
+        assert('WD tween mid', twState.params.WD_mm < 6.5 && twState.params.WD_mm > 0.6);
+        const g = gapReadouts({ objective: '10x', WD_mm: 6.5 });
+        assert('gap readout shared', /6\.50 mm/.test(g.gap) && g.clarity === '100%');
+      }
       const ctx = new Proxy({}, { get: () => () => {}, set: () => true });
       const clickObj = (index) => {
         const state = { params: { ...compoundMicroscope.params } };

@@ -9,6 +9,9 @@ import {
   opticsFromParams,
   applyTurretDefaults,
   objectiveRingColor,
+  focusStatus,
+  clampObjectiveGap,
+  stepWdTween,
 } from '../models/microscopeOptics.js';
 import { buildMicroscopeSolid, meshStaticKey, meshDynamicKey } from './microscopeMeshBuild.js';
 import { activityCollarWorld, microscopeLayout, DRAG_KINDS, CLICK_KINDS } from './microscopeLayout.js';
@@ -495,12 +498,16 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     if (kind === 'focusCoarse') {
       // Coarse focus screw: large change in objective–stage gap (WD).
       p.focusZ_mm = clamp((Number(p.focusZ_mm) || 0) + dy * -0.035, -2, 2);
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.14, 0.05, 25);
+      const next = clampObjectiveGap(p, (Number(p.WD_mm) || o.WD) + dy * -0.14);
+      p.WD_mm = next.WD_mm;
+      lastState._crashWarn = next.atCrash || next.nearCrash;
     } else if (kind === 'focusFine') {
       // Fine focus screw: small gap change; WD still moves when focusZ saturates.
       const z0 = Number(p.focusZ_mm) || 0;
       p.focusZ_mm = clamp(z0 + dy * -0.008, -2, 2);
-      p.WD_mm = clamp((Number(p.WD_mm) || o.WD) + dy * -0.028, 0.05, 25);
+      const next = clampObjectiveGap(p, (Number(p.WD_mm) || o.WD) + dy * -0.028);
+      p.WD_mm = next.WD_mm;
+      lastState._crashWarn = next.atCrash || next.nearCrash;
     } else if (kind === 'stageX') {
       p.stageX_mm = clamp((Number(p.stageX_mm) || 0) + dx * 0.06, -15, 15);
     } else if (kind === 'stageY') {
@@ -527,10 +534,10 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
       const obj = OBJECTIVES[hit.index];
       if (!obj) return false;
       p.objective = obj.id;
-      applyTurretDefaults(lastState, 'obj');
+      applyTurretDefaults(lastState, 'obj', { animate: true });
       lastState._lastObj = p.objective;
       lastState.pick = `obj-${obj.mag}×`;
-      notifyParams();
+      notifyParams({ live: true });
       return true;
     }
     if (hit.kind === 'eye') {
@@ -552,7 +559,7 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     if (hit.kind === 'immersion') {
       if (p.objective === '100x') p.objective = '40x';
       else p.objective = '100x';
-      applyTurretDefaults(lastState, 'obj');
+      applyTurretDefaults(lastState, 'obj', { animate: true });
       lastState._lastObj = p.objective;
       lastState.pick = p.objective === '100x' ? 'immersion-oil' : 'immersion-dry';
       notifyParams();
@@ -725,14 +732,22 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     gl.drawArrays(gl.TRIANGLES, 0, count);
   }
 
+  let lastDrawMs = performance.now();
+
   function drawScene(state, view) {
     lastState = state;
     lastView = { width: view.width, height: view.height };
+    const now = performance.now();
+    const frameDt = Math.min(0.05, Math.max(0, (now - lastDrawMs) / 1000));
+    lastDrawMs = now;
+    if (stepWdTween(state, frameDt)) notifyParams({ live: true });
     const params = state.params || {};
     const optics = opticsFromParams(params);
     const layout = microscopeLayout(optics, params);
+    const focus = focusStatus(params);
+    state._focusStatus = focus;
     const tess = mobileBudget().microTess ?? 1;
-    const tSec = performance.now() * 0.001;
+    const tSec = now * 0.001;
 
     const dpr = Math.min(window.devicePixelRatio || 1, Number(document.documentElement.dataset.dprCap) || 3);
     const bw = Math.max(1, Math.floor(view.width * dpr));
@@ -1077,6 +1092,13 @@ export function createMicroscopeWebgl(canvas, opts = {}) {
     /** Last meshDynamicKey after draw (NA / irisOpen / turret rebuild fingerprint). */
     getMeshDynamicKey() {
       return dynamicKey;
+    },
+    /** World Y of the stage after last draw (coarse focus moves this). */
+    getLayoutStageY() {
+      return lastLayout?.stageY ?? null;
+    },
+    getFocusStatus() {
+      return lastState?._focusStatus || focusStatus(lastState?.params || {});
     },
     capturePng(state, view) {
       drawScene(state, view);

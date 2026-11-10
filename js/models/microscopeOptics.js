@@ -100,13 +100,78 @@ export function opticsFromParams(params) {
   };
 }
 
-export function applyTurretDefaults(state, which = 'all') {
+/**
+ * Teaching focus status: gap = objective–stage clearance (WD_mm).
+ * Clarity falls as gap leaves the objective’s design working distance.
+ * Crash floor ≈ coverslip contact (not a lab safety interlock).
+ */
+export function focusStatus(params = {}) {
+  const obj = findObjective(params.objective || '10x');
+  const designWd = obj.wdMm;
+  const gap = Math.max(0.05, Number(params.WD_mm) || designWd);
+  const defocus = Math.abs(gap - designWd);
+  const sigma = Math.max(0.2, designWd * 0.32);
+  const clarity = Math.exp(-0.5 * (defocus / sigma) ** 2);
+  const crashFloor = obj.mag >= 100 ? 0.05 : obj.mag >= 40 ? 0.12 : 0.35;
+  const atCrash = gap <= crashFloor + 1e-9;
+  const nearCrash = gap <= crashFloor * 1.2;
+  return {
+    designWd,
+    gap,
+    defocus,
+    clarity,
+    crashFloor,
+    atCrash,
+    nearCrash,
+    obj,
+  };
+}
+
+/** Clamp gap to the crash floor; returns next WD and warn flags. */
+export function clampObjectiveGap(params, nextWd) {
+  const st = focusStatus({ ...params, WD_mm: nextWd });
+  const wd = Math.max(st.crashFloor, Math.min(25, Number(nextWd) || st.designWd));
+  return {
+    WD_mm: wd,
+    atCrash: wd <= st.crashFloor + 1e-9,
+    nearCrash: wd <= st.crashFloor * 1.2,
+    crashFloor: st.crashFloor,
+  };
+}
+
+/** Shared gap / clarity strings for 2D HUD and 3D optical rail. */
+export function gapReadouts(params, digits = 2) {
+  const st = focusStatus(params);
+  return {
+    gap: `${st.gap.toFixed(digits)} mm`,
+    designWd: `${st.designWd.toFixed(digits)} mm`,
+    clarity: `${Math.round(st.clarity * 100)}%`,
+    defocus: `${st.defocus.toFixed(digits)} mm`,
+    crash: st.atCrash ? 'tip!' : (st.nearCrash ? 'near' : 'ok'),
+    status: st,
+  };
+}
+
+/**
+ * @param {object} state
+ * @param {'all'|'obj'|'eye'} [which]
+ * @param {{ animate?: boolean }} [opts] animate WD → design WD on objective change
+ */
+export function applyTurretDefaults(state, which = 'all', opts = {}) {
   const obj = findObjective(state.params.objective || '10x');
   const eye = findEyepiece(state.params.eyepiece || '10x');
   if (which === 'obj' || which === 'all') {
     state.params.objective = obj.id;
     state.params.fObj_mm = obj.fMm;
-    state.params.WD_mm = obj.wdMm;
+    const targetWd = obj.wdMm;
+    const cur = Number(state.params.WD_mm);
+    if (opts.animate && Number.isFinite(cur) && Math.abs(cur - targetWd) > 0.02) {
+      state._wdTween = { from: cur, to: targetWd, t: 0, dur: 0.42 };
+    } else {
+      state.params.WD_mm = targetWd;
+      state._wdTween = null;
+    }
+    state.params.focusZ_mm = 0;
     if (obj.immersion) {
       state.params.n = Math.max(Number(state.params.n) || 1, 1.515);
     } else if (Number(state.params.n) > 1.33) {
@@ -122,6 +187,21 @@ export function applyTurretDefaults(state, which = 'all') {
   const o = opticsFromParams(state.params);
   state.params.n = o.n;
   state.params.NA = Math.min(Number(state.params.NA) || o.NA, o.NAcap);
+}
+
+/** Advance WD tween after turret click; returns true while animating. */
+export function stepWdTween(state, dt) {
+  const tw = state?._wdTween;
+  if (!tw || !state?.params) return false;
+  tw.t += Math.max(0, dt);
+  const u = Math.min(1, tw.t / Math.max(1e-3, tw.dur));
+  const e = u * u * (3 - 2 * u);
+  state.params.WD_mm = tw.from + (tw.to - tw.from) * e;
+  if (u >= 1) {
+    state.params.WD_mm = tw.to;
+    state._wdTween = null;
+  }
+  return true;
 }
 
 export const DEFAULT_PARAMS = {

@@ -226,12 +226,50 @@ html.shell-lab-microscope3d .micro-stage {
   grid-template-rows: minmax(0, 1fr) auto;
 }
 
+html.shell-lab-microscope3d .micro-defocus {
+  grid-column: 1;
+  grid-row: 1;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  background: rgba(170, 190, 210, var(--micro-defocus-alpha, 0));
+  backdrop-filter: blur(var(--micro-defocus-blur, 0px));
+  -webkit-backdrop-filter: blur(var(--micro-defocus-blur, 0px));
+}
+html.shell-lab-microscope3d .micro-defocus[data-active="1"] {
+  opacity: 1;
+}
+html.shell-lab-microscope3d .micro-crash {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  justify-self: center;
+  margin-top: 0.7rem;
+  z-index: 4;
+  pointer-events: none;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #c45a2d;
+  background: rgba(40, 16, 8, 0.88);
+  color: #ffd2b8;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+html.shell-lab-microscope3d .micro-crash.is-hard {
+  border-color: #ff5a5a;
+  color: #ffd0d0;
+  background: rgba(60, 10, 10, 0.92);
+}
+html.shell-lab-microscope3d .micro-focus-steps {
+  margin-top: 0.35rem;
+}
 html.shell-lab-microscope3d .micro-readouts {
   grid-column: 1;
   grid-row: 2;
   pointer-events: none;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.4rem;
   padding: 0.65rem 0.85rem 0.85rem;
   background: linear-gradient(0deg, rgba(6, 8, 11, 0.92) 35%, transparent);

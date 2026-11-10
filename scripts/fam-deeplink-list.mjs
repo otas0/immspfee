@@ -28,14 +28,38 @@ const fail = (msg) => {
   process.exit(1);
 };
 
+async function settleOnModel(mid) {
+  // Deep-link `?m=` already selects the model; avoid a redundant switchModel that
+  // can race a soft navigation and destroy the Playwright execution context.
+  await page.waitForFunction(() => !!window.__labCapture?.getModelId, null, { timeout: 90000 });
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const current = await page.evaluate(() => window.__labCapture.getModelId?.());
+      if (current === mid) return;
+      await page.evaluate(async (id) => {
+        await window.__labCapture.switchModel?.(id);
+      }, mid);
+      await page.waitForFunction(
+        (id) => window.__labCapture?.getModelId?.() === id,
+        mid,
+        { timeout: 20000 },
+      );
+      return;
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (!/Execution context was destroyed|navigation/i.test(msg) || attempt === 3) {
+        throw err;
+      }
+      await page.waitForTimeout(400);
+      await page.waitForFunction(() => !!window.__labCapture?.getModelId, null, { timeout: 30000 });
+    }
+  }
+}
+
 for (const id of ids) {
   const url = `${base.replace(/\/?$/, '/')}?shell=lab-classic&lang=zh&m=${encodeURIComponent(id)}&_=${Date.now()}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  await page.waitForFunction(() => window.__labCapture?.getModelId, { timeout: 90000 });
-  await page.evaluate(async (mid) => {
-    await window.__labCapture.switchModel?.(mid);
-  }, id);
-  await page.waitForTimeout(800);
+  await settleOnModel(id);
   await page.waitForFunction((mid) => {
     const btn = document.querySelector(`#model-list .model-item[data-id="${mid}"]`);
     return !!btn && btn.classList.contains('active');

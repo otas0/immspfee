@@ -6,6 +6,9 @@ import {
   EYEPIECES,
   opticsFromParams,
   applyTurretDefaults,
+  stepWdTween,
+  focusStatus,
+  gapReadouts,
   DEFAULT_PARAMS,
   PARAM_SCHEMA,
 } from './microscopeOptics.js';
@@ -151,7 +154,7 @@ export default {
   refresh(state) {
     if (state._lastObj !== state.params.objective) {
       state._lastObj = state.params.objective;
-      applyTurretDefaults(state, 'obj');
+      applyTurretDefaults(state, 'obj', { animate: true });
     }
     if (state._lastEye !== state.params.eyepiece) {
       state._lastEye = state.params.eyepiece;
@@ -160,10 +163,12 @@ export default {
     const o = opticsFromParams(state.params);
     state.params.n = o.n;
     state.params.NA = Math.min(Number(state.params.NA) || o.NA, o.NAcap);
+    state._focusStatus = focusStatus(state.params);
   },
 
   step(state, dt) {
     state.t += Math.max(0, dt);
+    stepWdTween(state, dt);
     this.refresh(state);
   },
 
@@ -175,7 +180,7 @@ export default {
       if (!hit) return false;
       if (hit.kind === 'obj') {
         state.params.objective = OBJECTIVES[hit.index].id;
-        applyTurretDefaults(state, 'obj');
+        applyTurretDefaults(state, 'obj', { animate: true });
         state._lastObj = state.params.objective;
         state.pick = `obj-${OBJECTIVES[hit.index].mag}×`;
         return true;
@@ -203,11 +208,16 @@ export default {
     ctx.fillText('Compound microscope · structure + rays', 14, 22);
     ctx.font = '12px IBM Plex Mono, monospace';
     const imm = o.immersion ? ' · oil' : '';
+    const gap = gapReadouts(state.params, 2);
     ctx.fillText(
-      `M=${formatNum(o.M, 1)}×  NA=${formatNum(o.NA, 2)}≤${formatNum(o.NAcap, 2)}  WD=${formatNum(o.WD, 2)} mm  n=${formatNum(o.n, 3)}${imm}`,
+      `M=${formatNum(o.M, 1)}×  NA=${formatNum(o.NA, 2)}≤${formatNum(o.NAcap, 2)}  gap=${gap.gap} (design ${gap.designWd})  clarity=${gap.clarity}${imm}`,
       14,
       40,
     );
+    if (gap.status.atCrash || gap.status.nearCrash) {
+      ctx.fillStyle = gap.status.atCrash ? '#ff6b6b' : '#ffb020';
+      ctx.fillText(gap.status.atCrash ? '碰片限位 · tip near coverslip' : '接近碰片 · near coverslip', 14, 56);
+    }
 
     ctx.strokeStyle = C.body || '#fff';
     ctx.lineWidth = 3;
@@ -275,7 +285,18 @@ export default {
     ctx.stroke();
     ctx.fillStyle = C.muted || '#888';
     ctx.font = '10px IBM Plex Mono, monospace';
-    ctx.fillText(`gap ${formatNum(o.WD, 1)} mm`, cx - 48, stageY + 14);
+    ctx.fillText(`gap ${gap.gap} · clarity ${gap.clarity}`, cx - 48, stageY + 14);
+    // Soft specimen blur when off the design WD (teaching defocus).
+    const blur = Math.max(0, 1 - gap.status.clarity);
+    if (blur > 0.04) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.55, blur * 0.7);
+      ctx.fillStyle = 'rgba(180,200,220,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(cx, stageY - 6, 18 + blur * 22, 8 + blur * 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     if (o.immersion) {
       ctx.fillStyle = 'rgba(180,220,255,0.25)';
       ctx.fillRect(cx - 12, stageY - 14, 24, 14);
@@ -316,6 +337,7 @@ export default {
   getReadouts(state, opts = {}) {
     const digits = opts.digits ?? 3;
     const o = opticsFromParams(state.params);
+    const gap = gapReadouts(state.params, Math.min(2, digits));
     return [
       { label: 'M', value: `${formatNum(o.M, digits)}×` },
       { label: '|M|', value: `${formatNum(Math.abs(o.M), digits)}×` },
@@ -323,6 +345,10 @@ export default {
       { label: 'M_eye', value: formatNum(o.Meye, digits) },
       { label: 'NA', value: formatNum(o.NA, digits) },
       { label: 'NA_cap', value: formatNum(o.NAcap, digits) },
+      { label: 'gap', value: gap.gap },
+      { label: 'design WD', value: gap.designWd },
+      { label: 'clarity', value: gap.clarity },
+      { label: 'crash', value: gap.crash },
       { label: 'WD', value: `${formatNum(o.WD, digits)} mm` },
       { label: 'f_obj', value: `${formatNum(o.fObjM * 1e3, digits)} mm` },
       { label: 'f_eye', value: `${formatNum(o.fEyeM * 1e3, digits)} mm` },

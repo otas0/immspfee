@@ -45,6 +45,13 @@ const clientY = rect.top + hit.y;
 Call `paintFrame()` (or wait one rAF) before reading hits after a param change
 — layout and projection update only on draw.
 
+## `stage.getLayoutStageY()` / `stage.getFocusStatus()`
+
+After `draw()`, `getLayoutStageY()` returns the world-Y of the stage deck (moves when
+coarse/fine focus change the objective–stage gap). `getFocusStatus()` returns
+`{ designWd, gap, defocus, clarity, crashFloor, atCrash, nearCrash }` from
+`focusStatus()` in `microscopeOptics.js`.
+
 ## `stage.getActivityRing()`
 
 Projects the active objective’s barrel collar to CSS pixels `{ x, y, r }` from the

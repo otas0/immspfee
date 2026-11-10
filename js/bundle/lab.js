@@ -1018,7 +1018,7 @@ function drawPaletteLegend(ctx, x, y, width, modelId = activeModelId) {
 }
 
 
-/* inlined chunk-chunk-DBGF6KTB.js */
+/* inlined chunk-chunk-H7LI2WW3.js */
 // js/models/microscopeOptics.js
 var OBJECTIVES = [
   { id: "4x", mag: 4, fMm: 40, na: 0.1, wdMm: 18, alphaDeg: 5.7 },
@@ -1100,13 +1100,63 @@ function opticsFromParams(params) {
     immersion: !!obj.immersion
   };
 }
-function applyTurretDefaults(state, which = "all") {
+function focusStatus(params = {}) {
+  const obj = findObjective(params.objective || "10x");
+  const designWd = obj.wdMm;
+  const gap = Math.max(0.05, Number(params.WD_mm) || designWd);
+  const defocus = Math.abs(gap - designWd);
+  const sigma = Math.max(0.2, designWd * 0.32);
+  const clarity = Math.exp(-0.5 * (defocus / sigma) ** 2);
+  const crashFloor = obj.mag >= 100 ? 0.05 : obj.mag >= 40 ? 0.12 : 0.35;
+  const atCrash = gap <= crashFloor + 1e-9;
+  const nearCrash = gap <= crashFloor * 1.2;
+  return {
+    designWd,
+    gap,
+    defocus,
+    clarity,
+    crashFloor,
+    atCrash,
+    nearCrash,
+    obj
+  };
+}
+function clampObjectiveGap(params, nextWd) {
+  const st = focusStatus({ ...params, WD_mm: nextWd });
+  const wd = Math.max(st.crashFloor, Math.min(25, Number(nextWd) || st.designWd));
+  return {
+    WD_mm: wd,
+    atCrash: wd <= st.crashFloor + 1e-9,
+    nearCrash: wd <= st.crashFloor * 1.2,
+    crashFloor: st.crashFloor
+  };
+}
+function gapReadouts(params, digits = 2) {
+  const st = focusStatus(params);
+  return {
+    gap: `${st.gap.toFixed(digits)} mm`,
+    designWd: `${st.designWd.toFixed(digits)} mm`,
+    clarity: `${Math.round(st.clarity * 100)}%`,
+    defocus: `${st.defocus.toFixed(digits)} mm`,
+    crash: st.atCrash ? "tip!" : st.nearCrash ? "near" : "ok",
+    status: st
+  };
+}
+function applyTurretDefaults(state, which = "all", opts = {}) {
   const obj = findObjective(state.params.objective || "10x");
   const eye = findEyepiece(state.params.eyepiece || "10x");
   if (which === "obj" || which === "all") {
     state.params.objective = obj.id;
     state.params.fObj_mm = obj.fMm;
-    state.params.WD_mm = obj.wdMm;
+    const targetWd = obj.wdMm;
+    const cur = Number(state.params.WD_mm);
+    if (opts.animate && Number.isFinite(cur) && Math.abs(cur - targetWd) > 0.02) {
+      state._wdTween = { from: cur, to: targetWd, t: 0, dur: 0.42 };
+    } else {
+      state.params.WD_mm = targetWd;
+      state._wdTween = null;
+    }
+    state.params.focusZ_mm = 0;
     if (obj.immersion) {
       state.params.n = Math.max(Number(state.params.n) || 1, 1.515);
     } else if (Number(state.params.n) > 1.33) {
@@ -1121,6 +1171,19 @@ function applyTurretDefaults(state, which = "all") {
   const o = opticsFromParams(state.params);
   state.params.n = o.n;
   state.params.NA = Math.min(Number(state.params.NA) || o.NA, o.NAcap);
+}
+function stepWdTween(state, dt) {
+  const tw = state?._wdTween;
+  if (!tw || !state?.params) return false;
+  tw.t += Math.max(0, dt);
+  const u = Math.min(1, tw.t / Math.max(1e-3, tw.dur));
+  const e = u * u * (3 - 2 * u);
+  state.params.WD_mm = tw.from + (tw.to - tw.from) * e;
+  if (u >= 1) {
+    state.params.WD_mm = tw.to;
+    state._wdTween = null;
+  }
+  return true;
 }
 var DEFAULT_PARAMS = {
   objective: "10x",
@@ -1367,7 +1430,7 @@ var __export = (target, all) => {
 /* static chunk inlined: chunk-chunk-KUFB563V.js */
 /* static chunk inlined: chunk-chunk-CSLFYDCB.js */
 /* static chunk inlined: chunk-chunk-RJLELWJ4.js */
-/* static chunk inlined: chunk-chunk-DBGF6KTB.js */
+/* static chunk inlined: chunk-chunk-H7LI2WW3.js */
 /* static chunk inlined: chunk-chunk-ZIYIE64H.js */
 /* static chunk inlined: chunk-chunk-KX6VIJEB.js */
 // js/models/freeFall.js
@@ -1662,6 +1725,13 @@ var STRINGS = {
     "ui.microKnobIPD": "\u77B3\u8DDD",
     "ui.microKnobOil": "\u6CB9",
     "ui.microKnobClip": "\u5939\u7247",
+    "ui.microRailCondenser": "\u805A\u5149\u955C\u9AD8\u5EA6",
+    "ui.microStepCoarseIn": "\u7C97\uFF0B",
+    "ui.microStepCoarseOut": "\u7C97\u2212",
+    "ui.microStepFineIn": "\u7EC6\uFF0B",
+    "ui.microStepFineOut": "\u7EC6\u2212",
+    "ui.microCrashWarn": "\u78B0\u7247\u9650\u4F4D \xB7 \u7269\u955C\u8FC7\u8FD1",
+    "ui.microCrashNear": "\u63A5\u8FD1\u78B0\u7247 \xB7 \u653E\u6162\u7EC6\u51C6\u7126",
     "ui.userModel": "\uFF0B \u81EA\u5EFA\u6A21\u578B",
     "ui.manual": "\u624B\u518C",
     "ui.ethics": "\u4F26\u7406",
@@ -1827,6 +1897,13 @@ var STRINGS = {
     "ui.microKnobIPD": "IPD",
     "ui.microKnobOil": "Oil",
     "ui.microKnobClip": "Clip",
+    "ui.microRailCondenser": "Condenser height",
+    "ui.microStepCoarseIn": "Coarse +",
+    "ui.microStepCoarseOut": "Coarse \u2212",
+    "ui.microStepFineIn": "Fine +",
+    "ui.microStepFineOut": "Fine \u2212",
+    "ui.microCrashWarn": "Crash stop \xB7 tip near coverslip",
+    "ui.microCrashNear": "Near crash \xB7 ease fine focus",
     "ui.userModel": "+ custom model",
     "ui.manual": "manual",
     "ui.ethics": "ethics",
@@ -1946,7 +2023,7 @@ var STRINGS = {
     "ui.lang": "\u8A00\u8A9E",
     "ui.shell": "\u30B7\u30A7\u30EB",
     "ui.microExit": "\u30AB\u30BF\u30ED\u30B0\u3078\u623B\u308B",
-    "ui.microLede": "WASD/\u77E2\u5370 \xB7 QE\u30AF\u30EC\u30FC\u30F3 \xB7 RF\u30D4\u30C3\u30C1 \xB7 ZC\u30B9\u30C8\u30EC\u30A4\u30D5 \xB7 0\u20137\u8996\u70B9 \xB7 \u30D4\u30F3\u30C1/\u30DB\u30A4\u30FC\u30EB \xB7 \u30CE\u30D6\u3067 L/NA/WD/\u30B9\u30C6\u30FC\u30B8",
+    "ui.microLede": "WASD/\u77E2\u5370 \xB7 QE\u30AF\u30EC\u30FC\u30F3 \xB7 RF\u30D4\u30C3\u30C1 \xB7 ZC\u30B9\u30C8\u30EC\u30A4\u30D5 \xB7 0\u20137\u8996\u70B9 \xB7 \u30D4\u30F3\u30C1/\u30DB\u30A4\u30FC\u30EB \xB7 \u7C97/\u5FAE\u52D5\u3067\u5BFE\u7269\u2013\u30B9\u30C6\u30FC\u30B8\u9593\u9694",
     "ui.microReset": "\u5149\u5B66\u3092\u30EA\u30BB\u30C3\u30C8",
     "ui.microBench": "\u5149\u5B66\u30D1\u30E9\u30E1\u30FC\u30BF",
     "ui.micro3dSection": "3D \u30B9\u30C6\u30FC\u30B8",
@@ -2071,7 +2148,7 @@ var STRINGS = {
     "ui.lang": "\uC5B8\uC5B4",
     "ui.shell": "\uC178",
     "ui.microExit": "\uBAA9\uB85D\uC73C\uB85C",
-    "ui.microLede": "WASD/\uD654\uC0B4\uD45C \xB7 QE\uD06C\uB808\uC778 \xB7 RF\uD53C\uCE58 \xB7 ZC\uC2A4\uD2B8\uB808\uC774\uD504 \xB7 0\u20137\uC2DC\uC810 \xB7 \uD540\uCE58/\uD720 \xB7 \uB178\uBE0C\uB85C L/NA/WD/\uC2A4\uD14C\uC774\uC9C0",
+    "ui.microLede": "WASD/\uD654\uC0B4\uD45C \xB7 QE\uD06C\uB808\uC778 \xB7 RF\uD53C\uCE58 \xB7 ZC\uC2A4\uD2B8\uB808\uC774\uD504 \xB7 0\u20137\uC2DC\uC810 \xB7 \uD540\uCE58/\uD720 \xB7 \uC870/\uBBF8\uB3D9\uC73C\uB85C \uB300\uBB3C\u2013\uC2A4\uD14C\uC774\uC9C0 \uAC04\uACA9",
     "ui.microReset": "\uAD11\uD559 \uCD08\uAE30\uD654",
     "ui.microBench": "\uAD11\uD559 \uB9E4\uAC1C\uBCC0\uC218",
     "ui.micro3dSection": "3D \uC2A4\uD14C\uC774\uC9C0",
@@ -2196,7 +2273,7 @@ var STRINGS = {
     "ui.lang": "idioma",
     "ui.shell": "shell",
     "ui.microExit": "Volver al cat\xE1logo",
-    "ui.microLede": "WASD/flechas \xB7 QE gr\xFAa \xB7 RF cabeceo \xB7 ZC strafe \xB7 vistas 0\u20137 \xB7 pellizco/rueda \xB7 mandos L/NA/WD/platina",
+    "ui.microLede": "WASD/flechas \xB7 QE gr\xFAa \xB7 RF cabeceo \xB7 ZC strafe \xB7 vistas 0\u20137 \xB7 pellizco/rueda \xB7 foco grueso/fino cambia hueco objetivo\u2013platina",
     "ui.microReset": "Restablecer \xF3ptica",
     "ui.microBench": "Par\xE1metros \xF3pticos",
     "ui.micro3dSection": "Escenario 3D",
@@ -2321,7 +2398,7 @@ var STRINGS = {
     "ui.lang": "langue",
     "ui.shell": "shell",
     "ui.microExit": "Retour au catalogue",
-    "ui.microLede": "WASD/fl\xE8ches \xB7 QE grue \xB7 RF tangage \xB7 ZC strafe \xB7 vues 0\u20137 \xB7 pincer/molette \xB7 molettes L/NA/WD/platine",
+    "ui.microLede": "WASD/fl\xE8ches \xB7 QE grue \xB7 RF tangage \xB7 ZC strafe \xB7 vues 0\u20137 \xB7 pincer/molette \xB7 mise au point grossi\xE8re/fine = \xE9cart objectif\u2013platine",
     "ui.microReset": "R\xE9initialiser l\u2019optique",
     "ui.microBench": "Param\xE8tres optiques",
     "ui.micro3dSection": "Sc\xE8ne 3D",
@@ -2446,7 +2523,7 @@ var STRINGS = {
     "ui.lang": "Sprache",
     "ui.shell": "Shell",
     "ui.microExit": "Zur\xFCck zum Katalog",
-    "ui.microLede": "WASD/Pfeile \xB7 QE Kran \xB7 RF Neigung \xB7 ZC Strafe \xB7 Ansichten 0\u20137 \xB7 Pinch/Rad \xB7 Kn\xF6pfe L/NA/WD/Tisch",
+    "ui.microLede": "WASD/Pfeile \xB7 QE Kran \xB7 RF Neigung \xB7 ZC Strafe \xB7 Ansichten 0\u20137 \xB7 Pinch/Rad \xB7 Grob-/Feintrieb \xE4ndern Objektiv\u2013Tisch-Abstand",
     "ui.microReset": "Optik zur\xFCcksetzen",
     "ui.microBench": "Optische Parameter",
     "ui.micro3dSection": "3D-B\xFChne",
@@ -5130,7 +5207,7 @@ var handsPending = null;
 function ensureHandModels() {
   if (handcrafted.length > 1) return Promise.resolve(handcrafted);
   if (!handsPending) {
-    handsPending = import("./chunk-handModels-WRQ7Z2WM.js").then((mod) => {
+    handsPending = import("./chunk-handModels-N7NO3HRU.js").then((mod) => {
       const extras = mod.HANDS || [];
       handcrafted = [freeFall_default, ...extras];
       byId = Object.fromEntries(handcrafted.map((m) => [m.id, m]));
@@ -7238,14 +7315,19 @@ var READOUTS = [
   { key: "M", label: "M" },
   { key: "f_obj", label: "f_obj" },
   { key: "NA", label: "NA" },
-  { key: "d_Abbe", label: "d_Abbe" }
+  { key: "d_Abbe", label: "d_Abbe" },
+  { key: "gap", label: "gap" },
+  { key: "clarity", label: "clarity" }
 ];
-function fmtReadouts(o) {
+function fmtReadouts(o, params) {
+  const gap = gapReadouts(params || {}, 2);
   return {
     M: `${formatNum(o.M, 1)}\xD7`,
     f_obj: `${formatNum(o.fObjM * 1e3, 2)} mm`,
     NA: formatNum(o.NA, 3),
-    d_Abbe: `${formatNum(o.dResM * 1e6, 2)} \xB5m`
+    d_Abbe: `${formatNum(o.dResM * 1e6, 2)} \xB5m`,
+    gap: gap.gap,
+    clarity: gap.clarity
   };
 }
 function opticsFingerprint(params) {
@@ -7260,6 +7342,7 @@ function opticsFingerprint(params) {
     Math.round(o.lambdaNm),
     o.immersion ? "oil" : "dry",
     (Number(p.focusZ_mm) || 0).toFixed(2),
+    (Number(p.condenser_mm) || 0).toFixed(2),
     (Number(p.stageX_mm) || 0).toFixed(1),
     (Number(p.stageY_mm) || 0).toFixed(1),
     (Number(p.fieldIris) || 0.55).toFixed(2),
@@ -7284,6 +7367,8 @@ function createMicroscopeStage(api) {
     stage.hidden = true;
     stage.innerHTML = `
       <div class="micro-gl-labels" id="micro-gl-labels" aria-hidden="true"></div>
+      <div class="micro-defocus" id="micro-defocus" aria-hidden="true"></div>
+      <div class="micro-crash" id="micro-crash" hidden data-i18n="ui.microCrashWarn">\u78B0\u7247\u9650\u4F4D \xB7 tip near coverslip</div>
       <div class="micro-readouts" id="micro-readouts" aria-label="Optical readouts"></div>
       <aside class="micro-rail" id="micro-rail" aria-label="Optical parameters">
         <div class="micro-rail-head">
@@ -7306,6 +7391,12 @@ function createMicroscopeStage(api) {
             <input type="range" id="micro-wd" min="0.05" max="25" step="0.05" />
             <output id="micro-wd-out">6.5 mm</output>
           </div>
+          <div class="micro-chips micro-focus-steps" id="micro-focus-steps" role="group">
+            <button type="button" class="micro-chip" data-focus-step="coarse-in" data-i18n="ui.microStepCoarseIn">\u7C97\uFF0B</button>
+            <button type="button" class="micro-chip" data-focus-step="coarse-out" data-i18n="ui.microStepCoarseOut">\u7C97\u2212</button>
+            <button type="button" class="micro-chip" data-focus-step="fine-in" data-i18n="ui.microStepFineIn">\u7EC6\uFF0B</button>
+            <button type="button" class="micro-chip" data-focus-step="fine-out" data-i18n="ui.microStepFineOut">\u7EC6\u2212</button>
+          </div>
           <span class="micro-cap" data-i18n="ui.microRailWDHint">Coarse / fine focus screws on the arm</span>
         </label>
         <label class="micro-field">
@@ -7313,6 +7404,13 @@ function createMicroscopeStage(api) {
           <div class="micro-slider-row">
             <input type="range" id="micro-focus" min="-2" max="2" step="0.05" />
             <output id="micro-focus-out">0 mm</output>
+          </div>
+        </label>
+        <label class="micro-field">
+          <span class="micro-field-label" data-i18n="ui.microRailCondenser">Condenser height</span>
+          <div class="micro-slider-row">
+            <input type="range" id="micro-condenser" min="-3" max="3" step="0.05" />
+            <output id="micro-condenser-out">0 mm</output>
           </div>
         </label>
         <label class="micro-field">
@@ -7436,7 +7534,7 @@ function createMicroscopeStage(api) {
       const state = api.getState();
       if (!state?.params) return;
       state.params.objective = btn.dataset.obj;
-      applyTurretDefaults(state, "obj");
+      applyTurretDefaults(state, "obj", { animate: true });
       state._lastObj = state.params.objective;
       state.pick = `obj-${btn.textContent}`;
       paint();
@@ -7464,8 +7562,24 @@ function createMicroscopeStage(api) {
       } else if (state.params.objective === "100x") {
         state.params.objective = "40x";
       }
-      applyTurretDefaults(state, "obj");
+      applyTurretDefaults(state, "obj", { animate: true });
       state._lastObj = state.params.objective;
+      paint();
+      api.onChange();
+    });
+    stage.querySelector("#micro-focus-steps")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-focus-step]");
+      if (!btn) return;
+      const state = api.getState();
+      if (!state?.params) return;
+      const step = btn.dataset.focusStep;
+      const delta = step === "coarse-in" ? -0.8 : step === "coarse-out" ? 0.8 : step === "fine-in" ? -0.12 : 0.12;
+      const next = clampObjectiveGap(state.params, (Number(state.params.WD_mm) || 6.5) + delta);
+      state.params.WD_mm = next.WD_mm;
+      state._crashWarn = next.atCrash || next.nearCrash;
+      if (step.startsWith("fine")) {
+        state.params.focusZ_mm = Math.max(-2, Math.min(2, (Number(state.params.focusZ_mm) || 0) + delta * 0.15));
+      }
       paint();
       api.onChange();
     });
@@ -7496,8 +7610,18 @@ function createMicroscopeStage(api) {
         api.onChange();
       });
     };
-    bindSlider("#micro-wd", "WD_mm");
+    const wdEl = stage.querySelector("#micro-wd");
+    wdEl?.addEventListener("input", () => {
+      const state = api.getState();
+      if (!state?.params) return;
+      const next = clampObjectiveGap(state.params, Number(wdEl.value));
+      state.params.WD_mm = next.WD_mm;
+      state._crashWarn = next.atCrash || next.nearCrash;
+      paint();
+      api.onChange();
+    });
     bindSlider("#micro-focus", "focusZ_mm");
+    bindSlider("#micro-condenser", "condenser_mm");
     bindSlider("#micro-stage-x", "stageX_mm");
     bindSlider("#micro-stage-y", "stageY_mm");
     bindSlider("#micro-field-iris", "fieldIris");
@@ -7536,7 +7660,8 @@ function createMicroscopeStage(api) {
     if (!state?.params) return;
     labelsPrefSet(state);
     const o = opticsFromParams(state.params);
-    const values = fmtReadouts(o);
+    const values = fmtReadouts(o, state.params);
+    const focusStat = focusStatus(state.params);
     const t2 = typeof api.t === "function" ? api.t : (k) => k;
     for (const el of stage.querySelectorAll("[data-i18n]")) {
       const key = el.getAttribute("data-i18n");
@@ -7587,13 +7712,35 @@ function createMicroscopeStage(api) {
     if (lambdaOut) lambdaOut.textContent = `${formatNum(o.lambdaNm, 0)} nm`;
     const wd = stage.querySelector("#micro-wd");
     const wdOut = stage.querySelector("#micro-wd-out");
-    if (wd) wd.value = String(o.WD);
+    if (wd) {
+      wd.min = String(focusStat.crashFloor);
+      wd.value = String(o.WD);
+    }
     if (wdOut) wdOut.textContent = `${formatNum(o.WD, 2)} mm`;
     const focusZ = Number(state.params.focusZ_mm) || 0;
-    const focus = stage.querySelector("#micro-focus");
+    const focusEl = stage.querySelector("#micro-focus");
     const focusOut = stage.querySelector("#micro-focus-out");
-    if (focus) focus.value = String(focusZ);
+    if (focusEl) focusEl.value = String(focusZ);
     if (focusOut) focusOut.textContent = `${formatNum(focusZ, 2)} mm`;
+    const condZ = Number(state.params.condenser_mm) || 0;
+    const condEl = stage.querySelector("#micro-condenser");
+    const condOut = stage.querySelector("#micro-condenser-out");
+    if (condEl) condEl.value = String(condZ);
+    if (condOut) condOut.textContent = `${formatNum(condZ, 2)} mm`;
+    const crashEl = stage.querySelector("#micro-crash");
+    if (crashEl) {
+      const showCrash = focusStat.atCrash || focusStat.nearCrash || !!state._crashWarn;
+      crashEl.hidden = !showCrash;
+      crashEl.classList.toggle("is-hard", focusStat.atCrash);
+      crashEl.textContent = focusStat.atCrash ? t2("ui.microCrashWarn") : t2("ui.microCrashNear");
+    }
+    const defocus = stage.querySelector("#micro-defocus");
+    if (defocus) {
+      const blurPx = Math.min(6, (1 - focusStat.clarity) * 7);
+      defocus.style.setProperty("--micro-defocus-blur", `${blurPx.toFixed(2)}px`);
+      defocus.style.setProperty("--micro-defocus-alpha", String(Math.min(0.45, (1 - focusStat.clarity) * 0.55)));
+      defocus.dataset.active = blurPx > 0.35 ? "1" : "0";
+    }
     const sx = Number(state.params.stageX_mm) || 0;
     const sy = Number(state.params.stageY_mm) || 0;
     const stageX = stage.querySelector("#micro-stage-x");
@@ -9483,7 +9630,7 @@ function updateHud(opts = {}) {
 var webglCreatePromise = null;
 function loadMicroscopeWebgl() {
   if (!webglCreatePromise) {
-    webglCreatePromise = import("./chunk-microscopeWebgl-IAEFP3JO.js").then((mod) => mod.createMicroscopeWebgl);
+    webglCreatePromise = import("./chunk-microscopeWebgl-M4YVAIW2.js").then((mod) => mod.createMicroscopeWebgl);
   }
   return webglCreatePromise;
 }

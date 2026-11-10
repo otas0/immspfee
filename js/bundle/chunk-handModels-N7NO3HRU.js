@@ -24,8 +24,11 @@ import {
   OBJECTIVES,
   PARAM_SCHEMA,
   applyTurretDefaults,
-  opticsFromParams
-} from "./chunk-chunk-DBGF6KTB.js";
+  focusStatus,
+  gapReadouts,
+  opticsFromParams,
+  stepWdTween
+} from "./chunk-chunk-H7LI2WW3.js";
 import {
   mobileBudget,
   perfClassFor
@@ -5064,7 +5067,7 @@ var compoundMicroscope_default = {
   refresh(state) {
     if (state._lastObj !== state.params.objective) {
       state._lastObj = state.params.objective;
-      applyTurretDefaults(state, "obj");
+      applyTurretDefaults(state, "obj", { animate: true });
     }
     if (state._lastEye !== state.params.eyepiece) {
       state._lastEye = state.params.eyepiece;
@@ -5073,9 +5076,11 @@ var compoundMicroscope_default = {
     const o = opticsFromParams(state.params);
     state.params.n = o.n;
     state.params.NA = Math.min(Number(state.params.NA) || o.NA, o.NAcap);
+    state._focusStatus = focusStatus(state.params);
   },
   step(state, dt) {
     state.t += Math.max(0, dt);
+    stepWdTween(state, dt);
     this.refresh(state);
   },
   onPointer(state, ev) {
@@ -5086,7 +5091,7 @@ var compoundMicroscope_default = {
       if (!hit) return false;
       if (hit.kind === "obj") {
         state.params.objective = OBJECTIVES[hit.index].id;
-        applyTurretDefaults(state, "obj");
+        applyTurretDefaults(state, "obj", { animate: true });
         state._lastObj = state.params.objective;
         state.pick = `obj-${OBJECTIVES[hit.index].mag}\xD7`;
         return true;
@@ -5112,11 +5117,16 @@ var compoundMicroscope_default = {
     ctx.fillText("Compound microscope \xB7 structure + rays", 14, 22);
     ctx.font = "12px IBM Plex Mono, monospace";
     const imm = o.immersion ? " \xB7 oil" : "";
+    const gap = gapReadouts(state.params, 2);
     ctx.fillText(
-      `M=${formatNum(o.M, 1)}\xD7  NA=${formatNum(o.NA, 2)}\u2264${formatNum(o.NAcap, 2)}  WD=${formatNum(o.WD, 2)} mm  n=${formatNum(o.n, 3)}${imm}`,
+      `M=${formatNum(o.M, 1)}\xD7  NA=${formatNum(o.NA, 2)}\u2264${formatNum(o.NAcap, 2)}  gap=${gap.gap} (design ${gap.designWd})  clarity=${gap.clarity}${imm}`,
       14,
       40
     );
+    if (gap.status.atCrash || gap.status.nearCrash) {
+      ctx.fillStyle = gap.status.atCrash ? "#ff6b6b" : "#ffb020";
+      ctx.fillText(gap.status.atCrash ? "\u78B0\u7247\u9650\u4F4D \xB7 tip near coverslip" : "\u63A5\u8FD1\u78B0\u7247 \xB7 near coverslip", 14, 56);
+    }
     ctx.strokeStyle = C.body || "#fff";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -5178,7 +5188,17 @@ var compoundMicroscope_default = {
     ctx.stroke();
     ctx.fillStyle = C.muted || "#888";
     ctx.font = "10px IBM Plex Mono, monospace";
-    ctx.fillText(`gap ${formatNum(o.WD, 1)} mm`, cx - 48, stageY + 14);
+    ctx.fillText(`gap ${gap.gap} \xB7 clarity ${gap.clarity}`, cx - 48, stageY + 14);
+    const blur = Math.max(0, 1 - gap.status.clarity);
+    if (blur > 0.04) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.55, blur * 0.7);
+      ctx.fillStyle = "rgba(180,200,220,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(cx, stageY - 6, 18 + blur * 22, 8 + blur * 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     if (o.immersion) {
       ctx.fillStyle = "rgba(180,220,255,0.25)";
       ctx.fillRect(cx - 12, stageY - 14, 24, 14);
@@ -5215,6 +5235,7 @@ var compoundMicroscope_default = {
   getReadouts(state, opts = {}) {
     const digits = opts.digits ?? 3;
     const o = opticsFromParams(state.params);
+    const gap = gapReadouts(state.params, Math.min(2, digits));
     return [
       { label: "M", value: `${formatNum(o.M, digits)}\xD7` },
       { label: "|M|", value: `${formatNum(Math.abs(o.M), digits)}\xD7` },
@@ -5222,6 +5243,10 @@ var compoundMicroscope_default = {
       { label: "M_eye", value: formatNum(o.Meye, digits) },
       { label: "NA", value: formatNum(o.NA, digits) },
       { label: "NA_cap", value: formatNum(o.NAcap, digits) },
+      { label: "gap", value: gap.gap },
+      { label: "design WD", value: gap.designWd },
+      { label: "clarity", value: gap.clarity },
+      { label: "crash", value: gap.crash },
       { label: "WD", value: `${formatNum(o.WD, digits)} mm` },
       { label: "f_obj", value: `${formatNum(o.fObjM * 1e3, digits)} mm` },
       { label: "f_eye", value: `${formatNum(o.fEyeM * 1e3, digits)} mm` },

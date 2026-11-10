@@ -92,20 +92,25 @@ try {
   const beforeFocus = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
+    const stage = window.__labCapture.getWebglStage?.();
     return {
       focusZ: Number(p.focusZ_mm) || 0,
       WD: Number(p.WD_mm) || 0,
+      stageY: stage?.getLayoutStageY?.() ?? null,
     };
   });
   await dragHit(page, 'focusCoarse', 0, -80);
   const afterFocus = await page.evaluate(() => {
     window.__labCapture.paintFrame();
     const p = window.__labCapture.getParams() || {};
+    const stage = window.__labCapture.getWebglStage?.();
     return {
       focusZ: Number(p.focusZ_mm) || 0,
       WD: Number(p.WD_mm) || 0,
+      stageY: stage?.getLayoutStageY?.() ?? null,
       wdOut: document.getElementById('micro-wd-out')?.textContent || '',
       focusOut: document.getElementById('micro-focus-out')?.textContent || '',
+      gapOut: document.querySelector('.micro-metric[data-key="gap"] [data-v]')?.textContent || '',
     };
   });
 
@@ -114,6 +119,10 @@ try {
   }
   if (!(Math.abs(afterFocus.WD - beforeFocus.WD) > 0.01)) {
     fail(`WD unchanged ${beforeFocus.WD} → ${afterFocus.WD}`);
+  }
+  if (!(Number.isFinite(beforeFocus.stageY) && Number.isFinite(afterFocus.stageY)
+    && Math.abs(afterFocus.stageY - beforeFocus.stageY) > 1e-4)) {
+    fail(`stageY unchanged ${beforeFocus.stageY} → ${afterFocus.stageY}`);
   }
   const wdNum = parseFloat(afterFocus.wdOut);
   if (!(Number.isFinite(wdNum) && Math.abs(wdNum - afterFocus.WD) < 0.15)) {
@@ -126,7 +135,9 @@ try {
   console.log('focusCoarse ok', {
     focusZ: [beforeFocus.focusZ, afterFocus.focusZ],
     WD: [beforeFocus.WD, afterFocus.WD],
+    stageY: [beforeFocus.stageY, afterFocus.stageY],
     wdOut: afterFocus.wdOut,
+    gapOut: afterFocus.gapOut,
   });
 
   const beforeStage = await page.evaluate(() => {
