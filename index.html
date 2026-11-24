@@ -2,361 +2,104 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="imm-js" content="b3f0b05c8853" />
-  <meta name="imm-css" content="a87b376af254" />
-  <title>IMMSPFEE · Lab</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
-  <!-- Self-hosted Latin fonts; CJK uses system stack (no Google Fonts). -->
-  <link rel="stylesheet" href="./css/fonts.css?v=b70cc5a8be92" />
-  <link rel="stylesheet" href="./css/styles.css?v=a87b376af254" />
-  <!-- Microscope CSS stays off the classic cold path; enable for ?shell=lab-microscope3d or on enter. -->
-  <link id="microscope-shell-css" rel="stylesheet" href="./css/microscope-shell.css?v=17a1d0de2343" media="not all" />
-  <script>
-  (function () {
-    try {
-      var q = new URLSearchParams(location.search).get('shell');
-      var stored = '';
-      try { stored = localStorage.getItem('immspfee-shell') || ''; } catch (e) { /* ignore */ }
-      if (q === 'lab-microscope3d' || stored === 'lab-microscope3d') {
-        var el = document.getElementById('microscope-shell-css');
-        if (el) el.media = 'all';
-      }
-    } catch (e) { /* ignore */ }
-  })();
-  </script>
-  <script>window.__BOOT_I18N={"zh":{"ui.bootReload":"正在重新载入","ui.bootManual":"无法自动刷新，请手动重新载入","ui.bootDismiss":"关闭"},"en":{"ui.bootReload":"Reloading…","ui.bootManual":"Automatic refresh is unavailable. Reload the page manually.","ui.bootDismiss":"Dismiss"},"ja":{"ui.bootReload":"再読み込みしています","ui.bootManual":"自動では更新できません。手動で再読み込みしてください","ui.bootDismiss":"閉じる"},"ko":{"ui.bootReload":"다시 불러오는 중","ui.bootManual":"자동으로 새로고칠 수 없습니다. 직접 새로고침하세요","ui.bootDismiss":"닫기"},"es":{"ui.bootReload":"Volviendo a cargar…","ui.bootManual":"No se puede actualizar solo. Recarga la página manualmente.","ui.bootDismiss":"Cerrar"},"fr":{"ui.bootReload":"Rechargement…","ui.bootManual":"Actualisation automatique impossible. Rechargez la page manuellement.","ui.bootDismiss":"Fermer"},"de":{"ui.bootReload":"Wird neu geladen…","ui.bootManual":"Automatisches Neuladen nicht möglich. Bitte manuell neu laden.","ui.bootDismiss":"Schließen"}};</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>IMMSPFEE — Project discontinued</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --muted: #555;
+      --line: #ddd;
+      --bg: #f7f7f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.65;
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 3.5rem 1.25rem 4rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 650;
+      letter-spacing: 0.02em;
+      margin: 0 0 0.35rem;
+    }
+    .kicker {
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    section {
+      margin: 0 0 2.25rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--line);
+    }
+    section:last-of-type { border-bottom: 0; padding-bottom: 0; }
+    h2 {
+      font-size: 1.05rem;
+      font-weight: 650;
+      margin: 0 0 0.75rem;
+    }
+    p { margin: 0 0 0.85rem; color: var(--ink); }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
 <body>
-  <p id="boot-status" class="boot-banner" hidden><span data-i18n="ui.bootReload">Reloading…</span><button type="button" data-i18n-aria="ui.bootDismiss" aria-label="Dismiss">×</button></p>
-  <p id="boot-refresh-hint" class="boot-banner" hidden><span data-i18n="ui.bootManual">Automatic refresh is unavailable. Reload the page manually.</span><button type="button" data-i18n-aria="ui.bootDismiss" aria-label="Dismiss">×</button></p>
-  <!-- sidebar / bench 与 stage 同级，避免 .app overflow 裁切 fixed 抽屉 -->
-  <div class="chassis" id="chassis">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-drag" id="sidebar-drag" aria-hidden="true"><span></span></div>
-      <header class="brand">
-        <a class="brand-logo" href="./index.html" aria-label="IMMSPFEE">
-          <img
-            src="./assets/immspfee-logo.svg"
-            width="454"
-            height="70"
-            alt="IMMSPFEE"
-            decoding="async"
-            fetchpriority="high"
-          />
-        </a>
-      </header>
+  <main>
+    <p class="kicker">Notice · お知らせ</p>
+    <h1>IMMSPFEE</h1>
 
-      <div class="filters">
-        <label class="field">
-          <span data-i18n="ui.search">搜索</span>
-          <input type="search" id="filter-q" data-i18n-placeholder="ui.searchPh" placeholder="子类 / CS / CE / formula" data-i18n-aria="ui.search" aria-label="搜索模型" />
-        </label>
-        <label class="field">
-          <span data-i18n="ui.tag">标签</span>
-          <select id="filter-tag" aria-label="tag">
-            <option value="" data-i18n="ui.all">全部</option>
-          </select>
-        </label>
-        <label class="field">
-          <span data-i18n="ui.form">形式</span>
-          <select id="filter-formalism" aria-label="form">
-            <option value="" data-i18n="ui.all">全部</option>
-          </select>
-        </label>
-        <label class="field field-locale">
-          <span data-i18n="ui.lang">语言</span>
-          <select id="locale-select" aria-label="language"></select>
-        </label>
-        <label class="field field-shell">
-          <span data-i18n="ui.shell">壳</span>
-          <select id="shell-select" aria-label="shell"></select>
-        </label>
-        <!-- fold-bar 挂在 filters 内，避免与 model-list 之间露底缝 -->
-        <div class="fold-bar" id="fold-bar" role="group" aria-label="fold"></div>
-        <button type="button" id="filter-heavy" class="filter-chip" aria-pressed="false" data-i18n="ui.perfHeavyFilter" data-i18n-aria="ui.perfHeavyFilterHint" aria-label="Show heavy models only">heavy</button>
-        <button type="button" id="filter-eq" class="filter-chip" aria-pressed="false" data-i18n="ui.eqFilter" data-i18n-aria="ui.eqFilterHint" aria-label="Show equation-wired models only">eq</button>
-        <button type="button" id="btn-user-model" class="btn user-model-btn" data-i18n="ui.userModel" title="自建工业级模型（须权威方程与假设）">＋ 自建模型</button>
-      </div>
+    <section lang="en">
+      <h2>Project discontinued</h2>
+      <p>
+        We sincerely apologize. The IMMSPFEE interactive laboratory website and
+        related public materials have been <strong>discontinued and taken offline</strong>.
+      </p>
+      <p>
+        The former catalog, simulations, documentation pages, and downloads on this
+        site are no longer available. We apologize for any inconvenience this may
+        cause to teachers, students, and visitors who relied on this project.
+      </p>
+      <p class="muted">
+        Thank you for your understanding. This page is the only remaining content
+        for this project site.
+      </p>
+    </section>
 
-      <nav class="model-list" id="model-list" aria-label="模型列表"></nav>
+    <section lang="ja">
+      <h2>プロジェクト終了のお詫び</h2>
+      <p>
+        このたび、IMMSPFEE 対話型実験サイトおよび関連する公開コンテンツを
+        <strong>終了し、公開を停止</strong>いたしました。ご不便をおかけし、深くお詫び申し上げます。
+      </p>
+      <p>
+        本サイト上のカタログ、シミュレーション、ドキュメント、ダウンロード等は、
+        すべて利用できなくなりました。授業や学習でご利用いただいていた皆様には、
+        心よりお詫び申し上げます。
+      </p>
+      <p class="muted">
+        何卒ご理解賜りますようお願い申し上げます。本ページが、本プロジェクトサイトに残る唯一の内容です。
+      </p>
+    </section>
 
-      <dialog id="user-model-dialog" class="user-model-dialog" aria-labelledby="user-model-title">
-        <form method="dialog" id="user-model-form" class="user-model-form">
-          <header class="user-model-head">
-            <h2 id="user-model-title" data-i18n="dialog.title">Custom model</h2>
-            <p class="user-model-lede" data-i18n="dialog.lede">Industrial-grade · rich params · verify governing equations and assumptions against authoritative sources before saving.</p>
-          </header>
-          <div class="user-model-grid">
-            <label class="field"><span data-i18n="dialog.name">Name</span><input name="name" required maxlength="64" placeholder="e.g. 2nd-order RLC state-space" /></label>
-            <label class="field"><span data-i18n="dialog.domain">Domain</span>
-              <select name="domain" required>
-                <option value="物理" data-i18n="domain.物理">Physics</option>
-                <option value="计算机科学" data-i18n="domain.计算机科学">Computer Science</option>
-                <option value="计算机工程" data-i18n="domain.计算机工程">Computer Engineering</option>
-                <option value="化学工程" data-i18n="domain.化学工程">Chemical Engineering</option>
-                <option value="其他" data-i18n="domain.其他">Other</option>
-              </select>
-            </label>
-            <label class="field"><span data-i18n="dialog.sub">Subcategory</span><input name="sub" required maxlength="48" placeholder="Classical mechanics / control / …" /></label>
-            <label class="field"><span data-i18n="dialog.family">Engine family</span>
-              <select name="family" id="user-model-family" required></select>
-            </label>
-            <label class="field span-2"><span data-i18n="dialog.formula">Governing equation / formula</span><input name="formula" required maxlength="160" placeholder="e.g. mẍ = −kx − cẋ" /></label>
-            <label class="field span-2"><span data-i18n="dialog.authority">Authority (required)</span><input name="authority" required maxlength="240" placeholder="Author · book/standard · section or DOI" /></label>
-            <label class="field span-2"><span data-i18n="dialog.assumptions">Assumptions / limits</span><textarea name="assumptions" required rows="2" maxlength="400" placeholder="Linear, small-angle, lumped…; do not claim industrial accuracy beyond this"></textarea></label>
-            <label class="field span-2"><span data-i18n="dialog.description">Description</span><textarea name="description" required rows="2" maxlength="400" placeholder="States, I/O, mapping to textbook/standard"></textarea></label>
-            <label class="field"><span data-i18n="dialog.fidelity">Fidelity</span>
-              <select name="fidelity" required>
-                <option value="engineering">engineering</option>
-                <option value="principle">principle</option>
-              </select>
-            </label>
-            <label class="field check"><span></span>
-              <label class="ethics-check"><input type="checkbox" name="ethicsOk" required /> <span data-i18n="dialog.ethics">I verified concepts/ethics against authoritative docs; not a false analogy</span></label>
-            </label>
-          </div>
-          <div class="user-model-error" id="user-model-error" hidden role="alert"></div>
-          <section class="user-model-saved" aria-label="Saved custom models">
-            <div class="user-model-saved-bar">
-              <span data-i18n="dialog.saved">Saved</span>
-              <button type="button" class="btn quiet" id="user-model-export" data-i18n="dialog.export">Export JSON</button>
-              <button type="button" class="btn quiet" id="user-model-import" data-i18n="dialog.import">Import JSON</button>
-              <input type="file" id="user-model-file" accept="application/json,.json" hidden />
-            </div>
-            <ul id="user-model-list" class="user-model-list"></ul>
-          </section>
-          <footer class="user-model-actions">
-            <button type="button" class="btn primary" id="user-model-submit" data-i18n="dialog.submit">Create &amp; load</button>
-            <button type="submit" class="btn quiet" value="cancel" formnovalidate data-i18n="dialog.cancel">Cancel</button>
-          </footer>
-        </form>
-      </dialog>
-
-      <footer class="sidebar-foot">
-        <a href="./manual.html" data-i18n="ui.manual">手册</a>
-        <a href="./docs/ethics-audit.md" data-i18n="ui.ethics">伦理</a>
-        <a href="./equation-index.html">equations</a>
-        <a href="#" id="btn-hc" data-i18n="ui.contrast">高对比</a>
-      </footer>
-    </aside>
-
-    <main class="stage">
-      <header class="toolbar">
-        <button type="button" id="btn-menu" class="icon-btn ghost" data-i18n-aria="ui.openMenu" aria-label="打开模型列表" aria-expanded="false" aria-controls="sidebar"></button>
-        <div class="toolbar-title-block">
-          <div class="toolbar-kicker" id="toolbar-sub">mechanics</div>
-          <div class="toolbar-title" id="toolbar-title">自由落体</div>
-        </div>
-        <div class="toolbar-actions">
-          <label class="speed-control">
-            <span>spd</span>
-            <input type="range" id="speed-slider" min="0.1" max="4" step="0.1" value="1" />
-            <output id="speed-label">1.0×</output>
-          </label>
-          <button type="button" id="btn-pause" class="btn primary" data-priority="high">pause</button>
-          <button type="button" id="btn-reset" class="btn" data-priority="high" data-i18n-title="ui.rerunTitle" data-i18n-aria="ui.rerun" title="保持当前参数，从 t=0 重积" aria-label="重跑"><span class="lbl" data-i18n="ui.rerun">重跑</span></button>
-          <button type="button" id="btn-shot" class="btn" data-priority="mid">png</button>
-          <button type="button" id="btn-csv" class="btn" data-priority="low">csv</button>
-          <details class="tb-more" id="tb-more">
-            <summary class="btn" aria-label="more actions">⋯</summary>
-            <div class="tb-more-menu">
-              <button type="button" id="btn-csv-more" class="btn quiet">csv</button>
-            </div>
-          </details>
-          <button type="button" id="btn-params" class="btn ghost-always params-toggle" data-priority="high" aria-expanded="false" aria-controls="bench" data-i18n-title="ui.paramsTitle" title="打开参数工作台"><span class="lbl" data-i18n="ui.params">参数</span></button>
-        </div>
-      </header>
-
-      <section class="microscope-chrome" id="microscope-chrome" hidden aria-label="Microscope">
-        <button type="button" class="micro-exit" id="btn-micro-exit" data-i18n="ui.microExit">Back to catalog</button>
-        <div class="micro-hero">
-          <p class="micro-brand">IMMSPFEE</p>
-          <h1 class="micro-title" id="micro-title">Compound microscope</h1>
-          <p class="micro-lede" id="micro-lede" data-i18n="ui.microLede">WASD/arrows dolly+yaw · QE crane · RF pitch · ZC strafe · 0–7 views · pinch/wheel zoom · coarse/fine focus change objective–stage gap</p>
-        </div>
-        <div class="micro-actions">
-          <div class="micro-views" id="micro-views" role="group" aria-label="Viewpoint">
-            <button type="button" class="micro-chip is-active" data-view="free" data-i18n="ui.microViewFree" title="0">Free</button>
-            <button type="button" class="micro-chip" data-view="overview" data-i18n="ui.microViewOverview" title="1">Overview</button>
-            <button type="button" class="micro-chip" data-view="binocular" data-i18n="ui.microViewBinocular" title="2">Binocular</button>
-            <button type="button" class="micro-chip" data-view="turret" data-i18n="ui.microViewTurret" title="3">Turret</button>
-            <button type="button" class="micro-chip" data-view="stage" data-i18n="ui.microViewStage" title="4">Stage</button>
-            <button type="button" class="micro-chip" data-view="lamp" data-i18n="ui.microViewLamp" title="5">Lamp</button>
-            <button type="button" class="micro-chip" data-view="condenser" data-i18n="ui.microViewCondenser" title="6">Condenser</button>
-            <button type="button" class="micro-chip" data-view="side" data-i18n="ui.microViewSide" title="7">Side</button>
-          </div>
-          <button type="button" id="btn-micro-reset" class="btn quiet" data-i18n="ui.microReset">Reset optics</button>
-          <button type="button" id="btn-micro-shot" class="btn quiet">png</button>
-          <button type="button" id="btn-micro-params" class="btn quiet" data-i18n="ui.microBench" aria-expanded="true" aria-controls="micro-rail">Optical params</button>
-        </div>
-      </section>
-
-      <div class="display-bezel">
-        <div class="model-shell" id="model-shell">
-          <span class="shell-chip" id="shell-mode">knobs</span>
-          <span class="shell-chip shell-deprecated" id="shell-deprecated" hidden>deprecated</span>
-          <span class="shell-hint" id="shell-hint" aria-live="polite" data-i18n="ui.hintDefault">右侧调参</span>
-          <p class="shell-formula" id="shell-formula"></p>
-          <button type="button" id="btn-safe-restore" class="btn quiet shell-safe" hidden data-i18n="ui.safeRestore" title="宽量程 NaN 后一键恢复模型默认参数（与「重跑」不同：会改回 schema 默认值）">恢复安全默认</button>
-        </div>
-        <div class="canvas-wrap">
-          <canvas id="canvas"></canvas>
-          <canvas id="canvas-webgl" class="canvas-webgl" hidden></canvas>
-        </div>
-      </div>
-
-      <footer class="hud">
-        <div class="hud-label-row">
-          <div class="hud-label" data-i18n="ui.readouts">readouts</div>
-          <div class="baseline-tools" id="baseline-tools">
-            <select id="baseline-select" class="baseline-select" aria-label="baseline" title="baseline">
-              <option value="" data-i18n="ui.baselineCurrent">当前对照</option>
-            </select>
-            <button type="button" id="btn-save-baseline" class="btn quiet" title="save"><span class="lbl" data-i18n="ui.saveSnap">存快照</span></button>
-            <button type="button" id="btn-copy-readouts" class="btn quiet" title="copy"><span class="lbl" data-i18n="ui.copyReadouts">复制读数</span></button>
-            <button type="button" id="btn-export-baseline" class="btn quiet" title="export"><span class="lbl" data-i18n="ui.export">导出</span></button>
-            <label class="pack-shots-opt" title="shots">
-              <input type="checkbox" id="chk-pack-shots" />
-              <span data-i18n="ui.withShots">含图</span>
-            </label>
-            <button type="button" id="btn-export-classpack" class="btn quiet" title="class pack"><span class="lbl" data-i18n="ui.classPack">课堂包</span></button>
-            <button type="button" id="btn-import-baseline" class="btn quiet" title="import"><span class="lbl" data-i18n="ui.import">导入</span></button>
-            <input type="file" id="baseline-file" accept="application/json,.json,application/zip,.zip" hidden />
-            <button type="button" id="btn-pin-baseline" class="btn quiet" title="pin"><span class="lbl" data-i18n="ui.pinBaseline">钉住基线</span></button>
-          </div>
-        </div>
-        <div class="readouts" id="readouts"></div>
-        <details class="sr-readouts-panel">
-          <summary data-i18n="ui.srTable">文本读数表</summary>
-          <table class="sr-readouts" id="sr-readouts" aria-live="polite" aria-label="当前读数"></table>
-        </details>
-      </footer>
-    </main>
-
-    <aside class="bench" id="bench">
-      <div class="bench-drag" id="bench-drag" aria-hidden="true"><span></span></div>
-      <div class="bench-head">
-        <div>
-          <div class="bench-kicker" id="bench-kicker" data-i18n="ui.benchKicker">param module</div>
-          <h2 id="bench-title" data-i18n="ui.bench">工作台</h2>
-        </div>
-        <button type="button" id="btn-close-bench" class="btn ghost-always bench-close" data-i18n="ui.close">close</button>
-      </div>
-
-      <details class="bench-help" id="bench-help">
-        <summary data-i18n="ui.formulaNotes">formula / notes</summary>
-        <div id="meta-formula" class="meta-formula"></div>
-      </details>
-
-      <div id="param-root" class="param-root"></div>
-    </aside>
-  </div>
-
-  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
-  <script>
-    // Reload once only when this document was served from cache and its v is stale.
-    (function hardRefreshOnce() {
-      var KEY = 'immspfee-hard-refresh';
-      var status = document.getElementById('boot-status');
-      var hint = document.getElementById('boot-refresh-hint');
-      function bootLang() {
-        try {
-          var q = new URL(location.href).searchParams.get('lang');
-          if (q) return q;
-        } catch (e) {}
-        try {
-          var saved = localStorage.getItem('physics-lab-locale-v1');
-          if (saved) return saved;
-        } catch (e) {}
-        var nav = (navigator.language || 'en').toLowerCase();
-        if (nav.indexOf('zh') === 0) return 'zh';
-        return nav.slice(0, 2);
-      }
-      function bootText(key, fallback) {
-        var pack = window.__BOOT_I18N || {};
-        var table = pack[bootLang()] || pack.en || {};
-        return table[key] || fallback;
-      }
-      function paintBoot() {
-        var reload = status && status.querySelector('[data-i18n]');
-        var manual = hint && hint.querySelector('[data-i18n]');
-        if (reload) reload.textContent = bootText('ui.bootReload', reload.textContent);
-        if (manual) manual.textContent = bootText('ui.bootManual', manual.textContent);
-        var buttons = document.querySelectorAll('#boot-status button, #boot-refresh-hint button');
-        for (var i = 0; i < buttons.length; i++) {
-          buttons[i].setAttribute('aria-label', bootText('ui.bootDismiss', 'Dismiss'));
-          buttons[i].addEventListener('click', function () {
-            if (this.parentElement) this.parentElement.hidden = true;
-            try { sessionStorage.setItem('immspfee-boot-dismiss', '1'); } catch (e) {}
-          });
-        }
-      }
-      paintBoot();
-      var dismissed = false;
-      try { dismissed = sessionStorage.getItem('immspfee-boot-dismiss') === '1'; } catch (e) {}
-      function meta(name) {
-        var el = document.querySelector('meta[name="' + name + '"]');
-        return el ? el.content : '';
-      }
-      function fromCache() {
-        try {
-          var nav = performance.getEntriesByType('navigation')[0];
-          return !!(nav && nav.transferSize === 0);
-        } catch (e) { return false; }
-      }
-      function storageOk() {
-        try { sessionStorage.getItem(KEY); return true; } catch (e) { return false; }
-      }
-      function loadModule(js) {
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = js ? './js/entry.js?v=' + encodeURIComponent(js) : './js/entry.js';
-        document.body.appendChild(s);
-      }
-      function dismissedNow() {
-        try { return sessionStorage.getItem('immspfee-boot-dismiss') === '1'; } catch (e) { return false; }
-      }
-      function go(js) {
-        if (dismissedNow()) { loadModule(js); return; }
-        if (status) status.hidden = false;
-        var url = new URL(location.href);
-        url.searchParams.set('v', js);
-        var replace = function () {
-          if (dismissedNow()) { loadModule(js); return; }
-          location.replace(url.href);
-        };
-        if (window.__bootHold && typeof window.__bootHold.then === 'function') window.__bootHold.then(replace);
-        else replace();
-      }
-      var automated = false;
-      try { automated = navigator.webdriver === true; } catch (e) {}
-      var canStore = storageOk();
-      if (!canStore && hint && !dismissed) hint.hidden = false;
-      function decide(js) {
-        if (dismissedNow()) { loadModule(js); return; }
-        var current = '';
-        try { current = new URL(location.href).searchParams.get('v') || ''; } catch (e) {}
-        var armed = false;
-        try { armed = sessionStorage.getItem(KEY) === '1'; } catch (e) {}
-        if (!automated && canStore && fromCache() && js && current !== js && !armed) {
-          try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
-          go(js);
-          return;
-        }
-        loadModule(js);
-      }
-      var inline = meta('imm-js');
-      if (inline) { decide(inline); return; }
-      fetch('./asset-stamp.json', { cache: 'no-store' }).then(function (res) {
-        if (!res.ok) throw new Error('stamp');
-        return res.json();
-      }).then(function (stamp) {
-        decide((stamp && (stamp.js || stamp.main)) || '');
-      }).catch(function () { decide(''); });
-    }());
-  </script>
+    <footer>
+      IMMSPFEE · project terminated
+    </footer>
+  </main>
 </body>
 </html>

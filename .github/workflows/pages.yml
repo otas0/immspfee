@@ -9,7 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  checks: write
 
 concurrency:
   group: pages
@@ -24,38 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-
       - name: Prepare static site
         run: |
-          npm run build:bundle
           mkdir -p _site
-          rsync -a \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='artifacts' \
-            --exclude='shots' \
-            --exclude='_site' \
-            --exclude='*.log' \
-            --exclude='package-lock.json' \
-            ./ _site/
-          # Ensure Jekyll never processes the artifact (Actions path is already static).
-          touch _site/.nojekyll
-          node scripts/prepare-site.mjs _site
-          node -e "
-            const s=require('./_site/asset-stamp.json');
-            if (!s.docsAssets || String(s.docsAssets).length < 8) {
-              console.error('asset-stamp.json missing docsAssets', s);
-              process.exit(1);
-            }
-            console.log('docsAssets', s.docsAssets, 'microCss', s.microCss);
-          "
+          cp index.html _site/index.html
+          cp .nojekyll _site/.nojekyll 2>/dev/null || touch _site/.nojekyll
+          if [ -f _headers ]; then cp _headers _site/_headers; fi
+          # Same notice for any old deep links
+          cp index.html _site/404.html
+          cp index.html _site/manual.html
+          cp index.html _site/equation-index.html
+          cp index.html _site/poster.html
+          cp index.html _site/tests.html
 
       - uses: actions/configure-pages@v6
 
@@ -65,195 +44,3 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v5
-
-      - name: Upload built asset-stamp (for post-deploy expect)
-        uses: actions/upload-artifact@v6
-        with:
-          name: pages-built-stamp
-          path: _site/asset-stamp.json
-          if-no-files-found: error
-
-  pages-check:
-    name: pages-check
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-
-      - name: Cache Playwright Chromium
-        uses: actions/cache@v5
-        id: pw-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright Chromium
-        if: steps.pw-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium --with-deps
-
-      - name: Install Playwright system deps (cache hit)
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      - name: Restore previous Pages stamp
-        continue-on-error: true
-        uses: actions/cache/restore@v5
-        with:
-          path: artifacts/prev-stamp
-          key: pages-live-stamp-deploy-${{ github.run_id }}
-          restore-keys: |
-            pages-live-stamp-deploy-
-            pages-live-stamp-
-
-      - name: Download built asset-stamp from deploy job
-        uses: actions/download-artifact@v6
-        with:
-          name: pages-built-stamp
-          path: artifacts/built-stamp
-
-      - name: Neutron strip on deployed Pages
-        id: pages_strip
-        env:
-          PAGES_SKIP_WAIT: '1'
-          PAGES_SHA: ${{ github.sha }}
-          PAGES_URL: https://otas0.github.io/immspfee/
-          PAGES_HONORS_HEADERS: '1'
-        run: |
-          SHORT=$(echo "$PAGES_SHA" | cut -c1-7)
-          export PAGES_SHA="$SHORT"
-          npm run test:pages
-
-      - name: Assert live stamp matches this deploy (+ ≠ previous)
-        id: pages_stamp
-        env:
-          PAGES_URL: https://otas0.github.io/immspfee/
-          PREV_STAMP_PATH: artifacts/prev-stamp/pages-live-stamp.json
-          EXPECT_STAMP_PATH: artifacts/built-stamp/asset-stamp.json
-          PAGES_STAMP_EXPECT: '1'
-        run: |
-          mkdir -p artifacts artifacts/stamp-cache
-          # Poll until CDN serves this build's stamp (content hash).
-          ok=0
-          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-            if npm run test:pages-stamp; then ok=1; break; fi
-            sleep 10
-          done
-          if [ "$ok" != "1" ]; then
-            echo "live Pages stamp never matched this deploy"
-            exit 1
-          fi
-          # Advisory: also log whether js/css differs from previous deploy cache.
-          PAGES_STAMP_EXPECT=0 PAGES_STAMP_HARD=0 npm run test:pages-stamp || true
-          cp -f artifacts/pages-live-stamp.json artifacts/stamp-cache/pages-live-stamp.json
-
-      - name: Pages mobile smoke (post-deploy gate)
-        id: pages_mobile
-        env:
-          PAGES_URL: https://otas0.github.io/immspfee/
-        run: |
-          mkdir -p artifacts shots
-          npm run test:pages-mobile 2>&1 | tee artifacts/pages-mobile.log
-
-      - name: Save Pages stamp after deploy
-        if: always()
-        continue-on-error: true
-        uses: actions/cache/save@v5
-        with:
-          path: artifacts/stamp-cache
-          key: pages-live-stamp-deploy-${{ github.run_id }}
-
-      - name: Upload pages-mobile report
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: pages-mobile-${{ github.sha }}
-          path: |
-            artifacts/pages-mobile-smoke.json
-            artifacts/pages-mobile.log
-            artifacts/pages-live-stamp.json
-            shots/narrow-params-*-390.png
-          if-no-files-found: ignore
-
-      - name: Publish pages-check run
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const stripOk = '${{ steps.pages_strip.outcome }}' === 'success';
-            const stampOk = '${{ steps.pages_stamp.outcome }}' === 'success';
-            const mobileOk = '${{ steps.pages_mobile.outcome }}' === 'success';
-            const ok = stripOk && stampOk && mobileOk;
-            const short = context.sha.slice(0, 7);
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'pages-check',
-              head_sha: context.sha,
-              status: 'completed',
-              conclusion: ok ? 'success' : 'failure',
-              output: {
-                title: ok
-                  ? `Pages strip + stamp + mobile ok (${short})`
-                  : `Pages gate failed (${short}) strip=${stripOk} stamp=${stampOk} mobile=${mobileOk}`,
-                summary: ok
-                  ? `Deployed strip, asset-stamp rolled, and pages-mobile smoke passed.`
-                  : `See the pages-check job log (neutron strip / stamp roll / pages-mobile).`,
-              },
-            });
-
-  microscope-webgl3d:
-    name: microscope-webgl3d
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-
-      - name: Cache Playwright Chromium
-        uses: actions/cache@v5
-        id: pw-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright Chromium
-        if: steps.pw-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium --with-deps
-
-      - name: Install Playwright system deps (cache hit)
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      - name: Cold-start lab-microscope3d must reach webgl3d
-        id: micro_webgl
-        env:
-          PAGES_URL: https://otas0.github.io/immspfee/
-          PAGES_SHA: ${{ github.sha }}
-        run: |
-          SHORT=$(echo "$PAGES_SHA" | cut -c1-7)
-          export PAGES_SHA="$SHORT"
-          mkdir -p shots artifacts
-          node scripts/pages-microscope-webgl.mjs
-
-      - name: Upload microscope fail screenshots
-        if: failure()
-        uses: actions/upload-artifact@v6
-        with:
-          name: microscope-webgl3d-${{ github.sha }}
-          path: |
-            shots/pages-micro-*.png
-            artifacts/pages-micro-*.json
-          if-no-files-found: ignore
