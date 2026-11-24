@@ -9,10 +9,11 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -21,26 +22,27 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Prepare static site
         run: |
           mkdir -p _site
           cp index.html _site/index.html
-          cp .nojekyll _site/.nojekyll 2>/dev/null || touch _site/.nojekyll
-          if [ -f _headers ]; then cp _headers _site/_headers; fi
-          # Same notice for any old deep links
+          touch _site/.nojekyll
           cp index.html _site/404.html
           cp index.html _site/manual.html
           cp index.html _site/equation-index.html
           cp index.html _site/poster.html
           cp index.html _site/tests.html
+          if [ -f _headers ]; then cp _headers _site/_headers; fi
+          ls -la _site
+          wc -c _site/index.html
 
-      - uses: actions/configure-pages@v6
+      - uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
